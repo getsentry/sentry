@@ -7,15 +7,15 @@ import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
-from sentry.search.events.fields import get_function_alias
+from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode
-from sentry.snuba import metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
@@ -53,6 +53,7 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.javascript.node": "7.6.0",
     "sentry.javascript.angular-ivy": "7.6.0",
     "sentry.javascript.sveltekit": "7.6.0",
+    "sentry.javascript.bun": "7.70.0",
     # Apple
     "sentry-cocoa": "7.23.0",
     "sentry-objc": "7.23.0",
@@ -144,7 +145,7 @@ SUPPORTED_SDK_VERSIONS = {
 
 # List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
 # support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
-SDKS_SUPPORTING_PERFORMACE = {
+SDKS_SUPPORTING_PERFORMANCE = {
     "sentry.aspnetcore",
     "sentry.aspnetcore",
     "sentry.dotnet",
@@ -211,6 +212,7 @@ SDKS_SUPPORTING_PERFORMACE = {
     "sentry-laravel",
     "sentry.php.laravel",
     "sentry.javascript.node",
+    "sentry.javascript.bun",
     "sentry-php",
     "sentry.php",
     "sentry-python",
@@ -289,9 +291,9 @@ class CheckAM2Compatibility:
     @classmethod
     def get_found_sdks_url(cls, org_slug):
         return (
-            f"https://{org_slug}.sentry.io/organizations/{org_slug}/discover/homepage/?field=sdk.version&field=sdk"
-            f".name&field=project&field"
-            f"=count%28%29"
+            f"https://{org_slug}.sentry.io/organizations/{org_slug}/discover/homepage/?field=count%28%29&field"
+            f"=project&field=sdk.name&field=sdk.version&query=event.type%3Atransaction&statsPeriod=30d&yAxis=count%28"
+            f"%29"
         )
 
     @classmethod
@@ -319,12 +321,11 @@ class CheckAM2Compatibility:
     def format_results(
         cls,
         organization,
-        projects_compatibility,
         unsupported_widgets,
         unsupported_alerts,
         outdated_sdks_per_project,
     ):
-        results: Dict[str, Any] = {"projects_compatibility": projects_compatibility}
+        results: Dict[str, Any] = {}
 
         widgets = []
         for dashboard_id, unsupported_widgets in unsupported_widgets.items():
@@ -403,7 +404,7 @@ class CheckAM2Compatibility:
             for sdk_name, sdk_versions in found_sdks.items():
                 # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
                 # compatibility, and we also don't return it as unsupported since it will create noise.
-                if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
+                if sdk_name not in SDKS_SUPPORTING_PERFORMANCE:
                     continue
 
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
@@ -448,7 +449,7 @@ class CheckAM2Compatibility:
         try:
             results = discover_query(
                 selected_columns=selected_columns,
-                query="",
+                query="event.type:transaction",
                 params=params,
                 referrer="api.organization-events",
             )
@@ -461,7 +462,6 @@ class CheckAM2Compatibility:
 
     @classmethod
     def is_metrics_data(cls, organization_id, project_objects, query):
-        # We use the count operation since it's the most generic.
         selected_columns = ["count()"]
         params = {
             "organization_id": organization_id,
@@ -471,14 +471,22 @@ class CheckAM2Compatibility:
         }
 
         try:
-            results = performance_query(
-                selected_columns=selected_columns,
+            builder = MetricsQueryBuilder(
+                params,
+                dataset=Dataset.PerformanceMetrics,
                 query=query,
-                params=params,
-                referrer="api.organization-events",
+                selected_columns=selected_columns,
+                config=QueryBuilderConfig(
+                    allow_metric_aggregates=True,
+                    auto_fields=False,
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=False,
+                ),
             )
-
-            return results.get("meta", {}).get("isMetricsData", None)
+            builder.get_snql_query()
+            return True
+        except IncompatibleMetricsQuery:
+            return False
         except Exception:
             return None
 
@@ -517,80 +525,17 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset=[Dataset.Transactions.value],
+                snuba_query__dataset=Dataset.Transactions.value,
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
         )
 
     @classmethod
-    def get_organization_metrics_compatibility(cls, organization, project_objects):
-        params = {
-            "organization_id": organization.id,
-            "project_objects": project_objects,
-            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=timezone.utc),
-        }
-
-        projects = {project.id: project for project in project_objects}
-
-        # We want to first fetch all projects that have some transactions in the last x days.
-        count = "count()"
-        count_null = "count_null_transactions()"
-        count_unparameterized = "count_unparameterized_transactions()"
-        results = metrics_performance.query(
-            selected_columns=["project.id", count, count_null, count_unparameterized],
-            params=params,
-            query=f"{count}:>0",
-            referrer="api.organization-events",
-            functions_acl=[
-                "count",
-                "count_null_transactions",
-                "count_unparameterized_transactions",
-            ],
-            use_aggregate_conditions=True,
-        )
-
-        compatible_project_ids = set()
-        incompatible_project_ids = set()
-        for row in results.get("data"):
-            project_id = row["project.id"]
-            # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
-            if (
-                row[get_function_alias(count_null)] > 0
-                or row[get_function_alias(count_unparameterized)] > 0
-            ):
-                incompatible_project_ids.add(project_id)
-            else:
-                compatible_project_ids.add(project_id)
-
-        def get_project_slug(project_id: int) -> Optional[str]:
-            project = projects.get(project_id)
-            if project is None:
-                return None
-
-            return project.slug
-
-        return {
-            "compatible_projects": [
-                {"id": project_id, "slug": get_project_slug(project_id)}
-                for project_id in compatible_project_ids
-            ],
-            "incompatible_projects": [
-                {"id": project_id, "slug": get_project_slug(project_id)}
-                for project_id in incompatible_project_ids
-            ],
-        }
-
-    @classmethod
     def run_compatibility_check(cls, org_id):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
-
-        projects_compatibility = cls.get_organization_metrics_compatibility(
-            organization, all_projects
-        )
 
         unsupported_widgets = defaultdict(list)
         for (
@@ -649,7 +594,6 @@ class CheckAM2Compatibility:
 
         return cls.format_results(
             organization,
-            projects_compatibility,
             unsupported_widgets,
             unsupported_alerts,
             outdated_sdks_per_project,

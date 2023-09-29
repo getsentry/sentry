@@ -14,7 +14,7 @@ export interface FeedbackItemResponse {
   };
   dist: string;
   environment: string;
-  id: string;
+  feedback_id: string;
   locale: {
     lang: string;
     timezone: string;
@@ -25,6 +25,7 @@ export interface FeedbackItemResponse {
     version: null | string;
   };
   platform: string;
+  project_id: number;
   release: string;
   replay_id: null | string;
   sdk: {
@@ -32,7 +33,7 @@ export interface FeedbackItemResponse {
     version: string;
   };
   status: 'unresolved' | 'resolved';
-  tags: Record<string, unknown>;
+  tags: Record<string, string>;
   timestamp: string;
   url: string;
   user: {
@@ -51,6 +52,7 @@ export type HydratedFeedbackItem = Overwrite<FeedbackItemResponse, {timestamp: D
 export type HydratedFeedbackList = HydratedFeedbackItem[];
 
 export interface FeedbackListQueryParams {
+  [key: string]: string | string[] | null | undefined;
   cursor?: string;
   end?: string;
   environment?: string[];
@@ -60,8 +62,13 @@ export interface FeedbackListQueryParams {
   project?: string[];
   query?: string;
   queryReferrer?: string;
-  sort?: 'timestamp' | '-timestamp' | 'projectId' | '-projectId';
+  sort?: string | 'timestamp' | '-timestamp' | 'projectId' | '-projectId';
   start?: string;
   statsPeriod?: string;
   utc?: 'true' | 'false';
+}
+
+export interface FeedbackItemLoaderQueryParams {
+  [key: string]: string | string[] | null | undefined;
+  feedbackSlug?: string;
 }

@@ -6,7 +6,10 @@ from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFI
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):

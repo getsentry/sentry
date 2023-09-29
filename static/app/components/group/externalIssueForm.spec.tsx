@@ -40,7 +40,7 @@ describe('ExternalIssueForm', () => {
 
   const renderComponent = async (action = 'Create') => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/${integration.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
       body: formConfig,
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
@@ -70,12 +70,30 @@ describe('ExternalIssueForm', () => {
         createIssueConfig: [],
       };
       MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
       });
     });
     it('renders', async () => {
       await renderComponent();
+    });
+    it('if we have an error fields, we should disable the create button', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            name: 'error',
+            type: 'blank',
+          },
+        ],
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+      });
+      await renderComponent();
+
+      const submitButton = screen.getByRole('button', {name: 'Create Issue'});
+      expect(submitButton).toBeDisabled();
     });
   });
   describe('link', () => {
@@ -139,7 +157,7 @@ describe('ExternalIssueForm', () => {
         id: '5',
       };
       getFormConfigRequest = MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
         match: [MockApiClient.matchQuery({action: 'link'})],
       });
@@ -153,7 +171,7 @@ describe('ExternalIssueForm', () => {
     describe('options loaded', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
-          url: `/groups/${group.id}/integrations/${integration.id}/?action=link`,
+          url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/?action=link`,
           body: formConfig,
         });
       });

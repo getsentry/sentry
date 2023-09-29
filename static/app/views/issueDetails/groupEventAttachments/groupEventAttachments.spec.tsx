@@ -1,3 +1,5 @@
+import {EventAttachment} from 'sentry-fixture/eventAttachment';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -26,8 +28,8 @@ describe('GroupEventAttachments > Screenshots', function () {
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      url: '/organizations/org-slug/issues/group-id/attachments/',
+      body: [EventAttachment()],
     });
   });
 
@@ -45,7 +47,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
-      '/issues/group-id/attachments/',
+      '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
         query: {per_page: MAX_SCREENSHOTS_PER_PAGE, screenshot: 1, types: undefined},
       })

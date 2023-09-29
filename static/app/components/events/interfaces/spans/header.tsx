@@ -22,7 +22,7 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
@@ -57,7 +57,7 @@ import {
 
 type PropType = {
   dragProps: DragManagerChildrenProps;
-  event: EventTransaction;
+  event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
@@ -826,7 +826,7 @@ export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boole
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const MinimapBackground = styled('div')`
+export const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;

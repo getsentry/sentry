@@ -10,11 +10,9 @@ from typing import Callable, Dict, List, Type
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies
+from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_sentry_models
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
@@ -262,8 +260,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         findings = []
         fields = sorted(self.fields)
         for f in fields:
-            obj_name = self.foreign_fields[f]._meta.object_name.lower()  # type: ignore[union-attr]
-            field_model_name = "sentry." + obj_name
+            field_model_name = get_model_name(self.foreign_fields[f])
             if left["fields"].get(f) is None and right["fields"].get(f) is None:
                 continue
 
@@ -519,6 +516,39 @@ class SecretHexComparator(RegexComparator):
         super().__init__(re.compile(f"""^[0-9a-f]{{{bytes * 2}}}$"""), *fields)
 
 
+class SubscriptionIDComparator(RegexComparator):
+    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric prefix. Ensure that the two values are NOT equivalent."""
+
+    def __init__(self, *fields: str):
+        super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # First, ensure that the two sides are not equivalent.
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv == rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the subscription ID field `{f}` was
+                                equal to the right value ({rv})""",
+                    )
+                )
+
+        # Now, make sure both IDs' regex are valid.
+        findings.extend(super().compare(on, left, right))
+        return findings
+
+
 # Note: we could also use the `uuid` Python uuid module for this, but it is finicky and accepts some
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
@@ -564,7 +594,7 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
-        name = "sentry." + e.__name__.lower()
+        name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
@@ -590,7 +620,7 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
-        name = "sentry." + e.__name__.lower()
+        name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
@@ -599,7 +629,8 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
 
         if len(assign):
             found = next(
-                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]), None
+                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
+                None,
             )
             if found:
                 found.fields.update(assign)
@@ -612,7 +643,7 @@ def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
     dependencies.py for more on what "appropriate" means in this context)."""
 
     for model_name, rels in dependencies().items():
-        comps[model_name.lower()].append(
+        comps[str(model_name)].append(
             ForeignKeyComparator({k: v.model for k, v in rels.foreign_keys.items()})
         )
 
@@ -625,6 +656,9 @@ ComparatorMap = Dict[str, ComparatorList]
 @lru_cache(maxsize=1)
 def get_default_comparators():
     """Helper function executed at startup time which builds the static default comparators map."""
+
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
@@ -653,7 +687,12 @@ def get_default_comparators():
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
             ],
-            "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
+            "sentry.querysubscription": [
+                DateUpdatedComparator("date_updated"),
+                # We regenerate subscriptions when importing them, so even though all of the
+                # particulars stay the same, the `subscription_id`s will be different.
+                SubscriptionIDComparator("subscription_id"),
+            ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.sentryapp": [

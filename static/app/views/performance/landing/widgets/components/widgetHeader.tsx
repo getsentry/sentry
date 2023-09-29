@@ -6,6 +6,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {
   GenericPerformanceWidgetProps,
@@ -30,7 +31,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isStarfishDBWidget && <FeatureBadge type="alpha" />}
+          {isStarfishDBWidget && <FeatureBadge type={RELEASE_LEVEL} />}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />

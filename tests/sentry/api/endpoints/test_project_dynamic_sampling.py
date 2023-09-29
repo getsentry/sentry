@@ -4,9 +4,9 @@ from datetime import timedelta
 from operator import itemgetter
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 from snuba_sdk import Column, Function
 from snuba_sdk.conditions import Condition, Op
 
@@ -18,7 +18,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -1123,6 +1123,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
+    @pytest.mark.skip(reason="broken test: https://github.com/getsentry/sentry/issues/57136")
     def test_when_no_transactions_in_last_hour_but_exists_in_last_30_days(
         self,
     ):

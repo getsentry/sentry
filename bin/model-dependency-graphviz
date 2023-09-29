@@ -15,7 +15,7 @@ from string import Template
 import click
 from django.db import models
 
-from sentry.backup.dependencies import ForeignFieldKind, ModelRelations, dependencies
+from sentry.backup.dependencies import ForeignField, ForeignFieldKind, ModelRelations, dependencies
 
 digraph = Template(
     """
@@ -76,6 +76,7 @@ class ClusterColor(Enum):
     Purple = "lavenderblush"
     Yellow = "khaki"
     Green = "honeydew"
+    Blue = "lightsteelblue1"
 
 
 @unique
@@ -85,10 +86,10 @@ class NodeColor(Enum):
 
 
 @unique
-class EdgeStyle(Enum):
-    Hybrid = "[color=green]"
-    Explicit = "[color=blue]"
-    Implicit = "[color=red]"
+class EdgeColor(Enum):
+    Hybrid = "color=green"
+    Explicit = "color=blue"
+    Implicit = "color=red"
 
 
 def print_model_node(model: models.base.ModelBase, silo: SiloMode) -> str:
@@ -112,18 +113,23 @@ def print_edges(mr: ModelRelations) -> str:
         return ""
 
     src = mr.model
-    return "\n    ".join([print_edge(src, ff.model, ff.kind) for ff in mr.foreign_keys.values()])
+    return "\n    ".join([print_edge(src, ff.model, ff) for ff in mr.foreign_keys.values()])
 
 
-def print_edge(
-    src: models.base.ModelBase, dest: models.base.ModelBase, kind: ForeignFieldKind
-) -> str:
-    style = EdgeStyle.Explicit
-    if kind == ForeignFieldKind.HybridCloudForeignKey:
-        style = EdgeStyle.Hybrid
-    elif kind == ForeignFieldKind.ImplicitForeignKey:
-        style = EdgeStyle.Implicit
-    return f""""{src.__name__}":e -> "{dest.__name__}":w {style.value};"""
+def print_edge(src: models.base.ModelBase, dest: models.base.ModelBase, field: ForeignField) -> str:
+    color = EdgeColor.Explicit
+    if field.kind == ForeignFieldKind.HybridCloudForeignKey:
+        color = EdgeColor.Hybrid
+    elif field.kind == ForeignFieldKind.ImplicitForeignKey:
+        color = EdgeColor.Implicit
+    style = "dashed" if field.nullable else "solid"
+    return f""""{src.__name__}":e -> "{dest.__name__}":w [{color.value},style={style}];"""
+
+
+def get_most_permissive_relocation_scope(mr: ModelRelations) -> RelocationScope:
+    if isinstance(mr.relocation_scope, set):
+        return sorted(list(mr.relocation_scope), key=lambda obj: obj.value * -1)[0]
+    return mr.relocation_scope
 
 
 @click.command()
@@ -136,17 +142,27 @@ def main(show_excluded: bool):
     if not show_excluded:
         deps = list(filter(lambda m: m.relocation_scope != RelocationScope.Excluded, deps))
 
-    # Group by region scope.
-    user_scoped = filter(lambda m: m.relocation_scope == RelocationScope.User, deps)
-    org_scoped = filter(lambda m: m.relocation_scope == RelocationScope.Organization, deps)
-    global_scoped = filter(lambda m: m.relocation_scope == RelocationScope.Global, deps)
+    # Group by most permissive region scope.
+    user_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.User, deps
+    )
+    org_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Organization, deps
+    )
+    config_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Config, deps
+    )
+    global_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Global, deps
+    )
 
     # Print nodes.
     clusters = "".join(
         [
             print_rel_scope_subgraph("User", 1, user_scoped, ClusterColor.Green),
             print_rel_scope_subgraph("Organization", 2, org_scoped, ClusterColor.Purple),
-            print_rel_scope_subgraph("Global", 3, global_scoped, ClusterColor.Yellow),
+            print_rel_scope_subgraph("Config", 3, config_scoped, ClusterColor.Blue),
+            print_rel_scope_subgraph("Global", 4, global_scoped, ClusterColor.Yellow),
         ]
     )
 

@@ -15,7 +15,13 @@ import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconCursorArrow,
+  IconDelete,
+  IconEllipsis,
+  IconFire,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -37,7 +43,12 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+export type ReferrerTableType =
+  | 'main'
+  | 'dead-table'
+  | 'errors-table'
+  | 'rage-table'
+  | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -323,8 +334,8 @@ export function ReplayCell({
       case 'errors-table':
         return replayDetailsErrorTab;
       case 'dead-table':
-        return replayDetailsDOMEventsTab;
       case 'rage-table':
+      case 'selector-widget':
         return replayDetailsDOMEventsTab;
       default:
         return replayDetails;
@@ -528,7 +539,10 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
     <Item data-test-id="replay-table-count-rage-clicks">
       <Container>
         {replay.count_rage_clicks ? (
-          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+          <RageClickCount>
+            <IconCursorArrow size="sm" />
+            {replay.count_rage_clicks}
+          </RageClickCount>
         ) : (
           <Count>0</Count>
         )}
@@ -551,7 +565,10 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
     <Item data-test-id="replay-table-count-dead-clicks">
       <Container>
         {replay.count_dead_clicks ? (
-          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+          <DeadClickCount>
+            <IconCursorArrow size="sm" />
+            {replay.count_dead_clicks}
+          </DeadClickCount>
         ) : (
           <Count>0</Count>
         )}
@@ -627,9 +644,18 @@ const Count = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
-const DeadRageCount = styled(Count)`
+const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.yellow300};
+`;
+
+const RageClickCount = styled(Count)`
+  display: flex;
+  width: 40px;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red300};
 `;
 
 const ErrorCount = styled(Count)`

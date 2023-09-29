@@ -29,10 +29,8 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    OutboxFlushError,
     RegionScheduledDeletion,
     User,
-    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
@@ -41,7 +39,10 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -391,6 +392,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "codecovAccess": True,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
+            "githubNudgeInvite": False,
             "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
@@ -466,6 +468,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
+        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
 
     @responses.activate
     @patch(
@@ -847,48 +850,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
-        organization_mapping.refresh_from_db()
-        assert organization_mapping.slug == desired_slug
-
-    def test_update_slug_with_temporary_rename_collision(self):
-        desired_slug = "taken"
-        previous_slug = self.organization.slug
-        org_with_colliding_slug = self.create_organization(
-            slug=desired_slug, name="collision-imminent"
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_org_mapping = OrganizationMapping.objects.get(
-                organization_id=org_with_colliding_slug.id
-            )
-        assert colliding_org_mapping.slug == desired_slug
-
-        # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
-        org_with_colliding_slug.slug = "unique-slug"
-        with outbox_context(flush=False):
-            org_with_colliding_slug.save()
-
-        self.get_success_response(self.organization.slug, slug=desired_slug)
-        self.organization.refresh_from_db()
-        assert self.organization.slug == desired_slug
-
-        # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        with pytest.raises(OutboxFlushError):
-            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            organization_mapping = OrganizationMapping.objects.get(
-                organization_id=self.organization.id
-            )
-        assert organization_mapping.slug == previous_slug
-
-        # Flush the colliding org slug change
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
-        colliding_org_mapping.refresh_from_db()
-        assert colliding_org_mapping.slug == "unique-slug"
-
-        # Flush the desired slug change and assert the correct slug was resolved
-        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 

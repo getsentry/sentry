@@ -119,21 +119,3 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  # We don't yet test the bootstrap step
-  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
-  bootstrap-script:
-    runs-on: macos-13
-    timeout-minutes: 40
-    env:
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Run bootstrap code
-        env:
-          STRAP_DEBUG: 1
-          # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
-        run: |
-          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
@@ -37,16 +39,23 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    OutboxFlushError,
     RegionScheduledDeletion,
     UserEmail,
 )
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization_actions.impl import (
-    mark_organization_as_pending_deletion_with_outbox_message,
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcOrganization,
+    RpcOrganizationDeleteResponse,
+    RpcOrganizationDeleteState,
 )
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.services.organization.provisioning import (
+    OrganizationSlugCollisionException,
+    organization_provisioning_service,
+)
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -142,6 +151,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    (
+        "githubNudgeInvite",
+        "sentry:github_nudge_invite",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -186,6 +201,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
+    githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -475,6 +491,32 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+def post_org_pending_deletion(
+    *, request: Request, org_delete_response: RpcOrganizationDeleteResponse
+):
+    if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+        updated_organization = org_delete_response.updated_organization
+        assert updated_organization
+
+        entry = create_audit_entry(
+            request=request,
+            organization=updated_organization,
+            target_object=updated_organization.id,
+            event=audit_log.get_event_id("ORG_REMOVE"),
+            data=updated_organization.get_audit_log_data(),
+            transaction_id=org_delete_response.schedule_guid,
+        )
+
+        delete_confirmation_args: DeleteConfirmationArgs = dict(
+            username=request.user.get_username(),
+            ip_address=entry.ip_address,
+            deletion_datetime=entry.datetime,
+            countdown=ONE_DAY,
+            organization=updated_organization,
+        )
+        send_delete_confirmation(delete_confirmation_args)
+
+
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -546,17 +588,24 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
-            changed_data = {}
-            try:
-                with transaction.atomic(router.db_for_write(Organization)):
-                    organization, changed_data = serializer.save()
-            except IntegrityError:
-                return self.respond(
-                    {"slug": ["An organization with this slug already exists."]},
-                    status=status.HTTP_409_CONFLICT,
-                )
-            except OutboxFlushError:
-                pass
+            with transaction.atomic(router.db_for_write(Organization)):
+                slug_change_requested = "slug" in request.data and request.data["slug"]
+
+                # Start with the slug change first, as this may fail independent of
+                # the remaining organization changes.
+                if slug_change_requested:
+                    slug = request.data["slug"]
+                    try:
+                        organization_provisioning_service.modify_organization_slug(
+                            organization_id=organization.id, slug=slug
+                        )
+                    except OrganizationSlugCollisionException:
+                        return self.respond(
+                            {"slug": ["An organization with this slug already exists."]},
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                organization, changed_data = serializer.save()
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -586,53 +635,37 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request: Request, organization):
+    def handle_delete(self, request: Request, organization: Organization):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
         if not request.user.is_authenticated:
             return self.respond({"detail": ERR_NO_USER}, status=401)
-        if organization.is_default:
-            return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
 
-        published_sentry_apps = app_service.get_published_sentry_apps_for_organization(
-            organization_id=organization.id
+        org_delete_response = organization_service.delete_organization(
+            organization_id=organization.id, user=serialize_generic_user(request.user)
         )
 
-        if len(published_sentry_apps) > 0:
+        if (
+            org_delete_response.response_state
+            == RpcOrganizationDeleteState.CANNOT_REMOVE_DEFAULT_ORG
+            or organization.is_default
+        ):
+            return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
+
+        if (
+            org_delete_response.response_state
+            == RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
+        ):
             return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
-        user_name = request.user.get_username()
-        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
-            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
-                org_id=organization.id
+        if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+            organization.status = OrganizationStatus.PENDING_DELETION
+            post_org_pending_deletion(
+                request=request,
+                org_delete_response=org_delete_response,
             )
 
-            if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(
-                    organization, days=1, actor=request.user
-                )
-
-                entry = self.create_audit_entry(
-                    request=request,
-                    organization=updated_organization,
-                    target_object=updated_organization.id,
-                    event=audit_log.get_event_id("ORG_REMOVE"),
-                    data=updated_organization.get_audit_log_data(),
-                    transaction_id=schedule.guid,
-                )
-
-                delete_confirmation_args: DeleteConfirmationArgs = {
-                    "username": user_name,
-                    "ip_address": entry.ip_address,
-                    "deletion_datetime": entry.datetime,
-                    "countdown": ONE_DAY,
-                    "organization": updated_organization,
-                }
-                send_delete_confirmation(delete_confirmation_args)
-                Organization.objects.uncache_object(updated_organization.id)
-
-            organization.status = OrganizationStatus.PENDING_DELETION
         context = serialize(
             organization,
             request.user,
@@ -693,7 +726,7 @@ class DeleteConfirmationArgs(TypedDict):
     username: str
     ip_address: str
     deletion_datetime: datetime
-    organization: Organization
+    organization: RpcOrganization
     countdown: int
 
 

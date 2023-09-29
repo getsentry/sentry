@@ -1,19 +1,17 @@
-from typing import Any, Union
-
 import pydantic
 
+# TODO(Gabe): Remove this once GetSentry has been updated to use new model file in org provisioning
+from sentry.services.organization.model import (  # noqa
+    OrganizationOptions,
+    OrganizationProvisioningOptions,
+    PostProvisionOptions,
+)
 
-class OrganizationOptions(pydantic.BaseModel):
-    name: str
+
+class RpcOrganizationSlugReservation(pydantic.BaseModel):
+    id: int
+    organization_id: int
+    user_id: int
     slug: str
-    owning_user_id: int
-
-
-class PostProvisionOptions(pydantic.BaseModel):
-    sentry_options: Union[Any, None]  # Placeholder for any sentry post-provisioning data
-    getsentry_options: Union[Any, None]  # Reserved for getsentry post-provisioning data
-
-
-class OrganizationProvisioningOptions(pydantic.BaseModel):
-    provision_options: OrganizationOptions
-    post_provision_options: PostProvisionOptions
+    region_name: str
+    reservation_type: int

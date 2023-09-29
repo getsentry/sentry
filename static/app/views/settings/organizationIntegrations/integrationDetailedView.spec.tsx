@@ -1,3 +1,5 @@
+import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
@@ -118,7 +120,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -162,7 +164,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -206,7 +208,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -234,13 +236,14 @@ describe('IntegrationDetailedView', function () {
     ).toBeDisabled();
   });
 
-  it('can enable github comment bots', async function () {
+  it('can enable github features', async function () {
     org.features.push('integrations-open-pr-comment');
+    org.features.push('integrations-gh-invite');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
 
@@ -285,6 +288,19 @@ describe('IntegrationDetailedView', function () {
         ENDPOINT,
         expect.objectContaining({
           data: {githubOpenPRBot: true},
+        })
+      );
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubNudgeInvite: true},
         })
       );
     });

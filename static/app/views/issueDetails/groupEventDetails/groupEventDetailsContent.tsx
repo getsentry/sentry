@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -14,6 +15,7 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
@@ -106,9 +108,18 @@ function GroupEventDetailsContent({
       >
         <Fragment>
           <RegressionMessage event={event} />
-          <EventBreakpointChart event={event} />
-          <EventSpanOpBreakdown event={event} />
-          <EventComparison event={event} group={group} project={project} />
+          <ErrorBoundary mini>
+            <EventBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventSpanOpBreakdown event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <AggregateSpanDiff event={event} projectId={project.id} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventComparison event={event} group={group} project={project} />
+          </ErrorBoundary>
         </Fragment>
       </Feature>
     );

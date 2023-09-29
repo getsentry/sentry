@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -75,6 +76,14 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
       }
     }
   }, [event, organization]);
+
+  useEffect(() => {
+    const mechanism = event.tags?.find(tag => tag.key === 'mechanism')?.value;
+    const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    if (mechanism && transaction) {
+      transaction.tags.hasMechanism = mechanism;
+    }
+  }, [event]);
 
   if (!!meta?.[''] && !event.tags) {
     return <AnnotatedText value={event.tags} meta={meta?.['']} />;

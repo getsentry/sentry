@@ -99,7 +99,7 @@ describe('SpanEvidencePreview', () => {
       .getEvent();
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/issues/group-id/events/recommended/`,
       body: event,
     });
 

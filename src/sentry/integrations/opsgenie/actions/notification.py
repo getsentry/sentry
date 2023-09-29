@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
-from sentry.integrations.opsgenie.client import OpsgenieClient
+from sentry.integrations.opsgenie.client import OpsgenieClient, OpsgeniePriority
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.rules.actions import IntegrationEventAction
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -50,7 +50,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         team = get_team(self.get_option("team"), org_integration)
 
-        priority = self.get_option("priority", default="P3")
+        priority: OpsgeniePriority = self.get_option("priority", default="P3")
 
         if not team:
             logger.error(
@@ -71,7 +71,9 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             )
             try:
                 rules = [f.rule for f in futures]
-                resp = client.send_notification(event, priority, rules)
+                resp = client.send_notification(
+                    data=event, priority=priority, rules=rules, notification_uuid=notification_uuid
+                )
             except ApiError as e:
                 logger.info(
                     "rule.fail.opsgenie_notification",
@@ -95,6 +97,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                     "team_id": team["id"],
                 },
             )
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, team["id"], rule, notification_uuid)
 
         key = f"opsgenie:{integration.id}:{team['id']}:{priority}"
         yield self.future(send_notification, key=key)

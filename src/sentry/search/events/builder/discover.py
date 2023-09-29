@@ -231,7 +231,14 @@ class BaseQueryBuilder:
         org_id = self.organization_id or (
             self.params.organization.id if self.params.organization else None
         )
-        self.tenant_ids = {"organization_id": org_id} if org_id else None
+        self.tenant_ids = dict()
+        if org_id is not None:
+            self.tenant_ids["organization_id"] = org_id
+        use_case_id = params.get("use_case_id")
+        if use_case_id is not None:
+            self.tenant_ids["use_case_id"] = use_case_id
+        if not self.tenant_ids:
+            self.tenant_ids = None
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -805,28 +812,6 @@ class BaseQueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(
-        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
-    ) -> SelectType:
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [divisor, 0],
-                ),
-                Function(
-                    "divide",
-                    [
-                        dividend,
-                        divisor,
-                    ],
-                ),
-                fallback,
-            ],
-            alias,
-        )
-
     def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
@@ -1087,7 +1072,7 @@ class BaseQueryBuilder:
                     if len(conflicting_functions) > 2
                     else ""
                 )
-                alias = column.name if type(column) == Column else column.alias
+                alias = column.name if isinstance(column, Column) else column.alias
                 raise InvalidSearchQuery(
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
@@ -1809,7 +1794,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":

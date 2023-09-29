@@ -455,12 +455,14 @@ def update_artifact_bundle_index(
 
 
 # We have seen customers with up to 5_000 bundles per *release*.
-MAX_BUNDLES_PER_INDEX = 10_000
+MAX_BUNDLES_PER_INDEX = 7_500
 # Older `sentry-cli` used to generate fully random DebugIds, and uploads can end up
 # having over 400_000 unique ids that do not have mutual sharing among them.
-MAX_DEBUGIDS_PER_INDEX = 200_000
-# We have seen uploads with over 25_000 unique files.
-MAX_URLS_PER_INDEX = 200_000
+MAX_DEBUGIDS_PER_INDEX = 75_000
+# We have seen (legitimate) uploads with over 25_000 unique files.
+MAX_URLS_PER_INDEX = 75_000
+# Some highly joint bundles will have thousands of bundles matching a file
+MAX_BUNDLES_PER_ENTRY = 50
 
 
 Bundles = List[BundleMeta]
@@ -553,6 +555,9 @@ class FlatFileIndex:
             self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
     def _add_or_update_bundle(self, bundle_meta: BundleMeta) -> Optional[int]:
+        if len(self._bundles) > MAX_BUNDLES_PER_ENTRY:
+            self._is_complete = False
+
         index_and_bundle_meta = self._index_and_bundle_meta_for_id(bundle_meta.id)
         if index_and_bundle_meta is None:
             self._bundles.append(bundle_meta)
@@ -570,9 +575,10 @@ class FlatFileIndex:
 
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
-        entries.append(bundle_index)
         # Remove duplicates by doing a roundtrip through `set`.
-        entries = list(set(entries))
+        entries_set = set(entries[-MAX_BUNDLES_PER_ENTRY:])
+        entries_set.add(bundle_index)
+        entries = list(entries_set)
         # Symbolicator will consider the newest element the last element of the list.
         entries.sort(key=lambda index: (self._bundles[index].timestamp, self._bundles[index].id))
         collection[key] = entries
@@ -598,7 +604,7 @@ class FlatFileIndex:
         for key, indexes in collection.items():
             updated_indexes = [
                 index if index < removed_bundle_index else index - 1
-                for index in indexes
+                for index in indexes[-MAX_BUNDLES_PER_ENTRY:]
                 if index != removed_bundle_index
             ]
 

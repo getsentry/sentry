@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
+import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -415,6 +417,11 @@ type FetchIssueTagsParameters = {
   orgSlug: string;
   readable: boolean;
   groupId?: string;
+  isStatisticalDetector?: boolean;
+  statisticalDetectorParameters?: {
+    durationBaseline: number;
+    transaction: string;
+  };
 };
 
 export const makeFetchIssueTagsQueryKey = ({
@@ -428,13 +435,102 @@ export const makeFetchIssueTagsQueryKey = ({
   {query: {environment, readable, limit}},
 ];
 
+const makeFetchStatisticalDetectorTagsQueryKey = ({
+  orgSlug,
+  environment,
+  statisticalDetectorParameters,
+}: FetchIssueTagsParameters): ApiQueryKey => {
+  const {transaction, durationBaseline} = statisticalDetectorParameters ?? {
+    transaction: '',
+    durationBaseline: 0,
+  };
+  return [
+    `/organizations/${orgSlug}/events-facets/`,
+    {
+      query: {
+        environment,
+        transaction,
+        includeAll: true,
+        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+      },
+    },
+  ];
+};
+
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+  {
+    enabled = true,
+    ...options
+  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
-  return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
+  let queryKey = makeFetchIssueTagsQueryKey(parameters);
+  if (parameters.isStatisticalDetector) {
+    // Statistical detector issues need to use a Discover query for tags
+    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
+  }
+
+  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,
   });
 };
+
+type FetchIssueTagValuesParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+  environment?: string[];
+  sort?: string | string[];
+};
+
+export const makeFetchIssueTagValuesQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTagValues(
+  parameters: FetchIssueTagValuesParameters,
+  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
+) {
+  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
+
+type FetchIssueTagParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+};
+
+export const makeFetchIssueTagQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTag(
+  parameters: FetchIssueTagParameters,
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+) {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}

@@ -2,6 +2,7 @@ import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
@@ -38,7 +39,11 @@ function Page({
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const header = (
+  const header = replayRecord?.is_archived ? (
+    <Header>
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+    </Header>
+  ) : (
     <Header>
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
@@ -117,29 +122,6 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
-`;
-
-const FullViewport = styled('div')`
-  height: 100vh;
-  width: 100%;
-
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the replay can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
-
-  /*
-  TODO: Set \`body { overflow: hidden; }\` so that the body doesn't wiggle
-  when you try to scroll something that is non-scrollable.
-  */
 `;
 
 export default Page;

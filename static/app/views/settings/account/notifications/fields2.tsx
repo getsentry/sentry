@@ -61,12 +61,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   approval: {
     name: 'approval',
     type: 'select',
-    label: t('Approvals'),
+    label: t('Nudges'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications from teammates that require review or approval.'),
+    help: t('Notifications that require review or approval.'),
   },
   quota: {
     name: 'quota',

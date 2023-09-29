@@ -299,7 +299,7 @@ class SentryAppCreator:
 
         # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
         # eg: 123 -> 123-abc
-        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
             slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         # validate globally unique slug

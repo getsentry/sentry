@@ -167,7 +167,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
+@region_silo_test(stable=True)
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -262,4 +262,5 @@ class OrganizationTeamsCreateTest(APITestCase):
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
         team = Team.objects.get(id=response.data["id"])
-        assert team.slug.startswith("1234" + "-")
+        assert team.slug.startswith("1234-")
+        assert not team.slug.isdecimal()

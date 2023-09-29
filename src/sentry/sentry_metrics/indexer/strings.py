@@ -13,6 +13,7 @@ from sentry.sentry_metrics.indexer.base import (
     metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils import metrics
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -87,6 +88,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/alert@none": PREFIX + 133,
     "s:transactions/alert@none": PREFIX + 134,
     "g:transactions/alert@none": PREFIX + 135,
+    "d:transactions/duration_light@millisecond": PREFIX + 136,
 }
 
 # 200 - 399
@@ -158,6 +160,8 @@ SHARED_TAG_STRINGS = {
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
     "failure": PREFIX + 262,
+    # Escalating Issues
+    "group": PREFIX + 263,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -177,10 +181,16 @@ SPAN_METRICS_NAMES = {
     "d:spans/frames_slow@none": PREFIX + 408,
 }
 
+# 500-599
+ESCALATING_ISSUES_METRIC_NAMES = {
+    "c:escalating_issues/event_ingested@none": PREFIX + 500,
+}
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
+    **ESCALATING_ISSUES_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
@@ -230,6 +240,9 @@ class StaticStringIndexer(StringIndexer):
 
     @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        # TODO: remove this metric after investigation is over
+        if use_case_id is UseCaseID.ESCALATING_ISSUES:
+            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)

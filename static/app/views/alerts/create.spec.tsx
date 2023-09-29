@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Groups} from 'sentry-fixture/groups';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -39,11 +42,11 @@ describe('ProjectAlertsCreate', function () {
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
@@ -144,7 +147,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -187,7 +190,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
       // delete node
       await userEvent.click(screen.getByLabelText('Delete Node'));
@@ -237,7 +240,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -282,7 +285,7 @@ describe('ProjectAlertsCreate', function () {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
-          body: TestStubs.ProjectAlertRule(),
+          body: ProjectAlertRule(),
         });
       });
 
@@ -493,17 +496,17 @@ describe('ProjectAlertsCreate', function () {
 
   describe('test preview chart', () => {
     it('valid preview table', async () => {
-      const groups = TestStubs.Groups();
+      const groups = Groups();
       const date = new Date();
       for (let i = 0; i < groups.length; i++) {
-        groups[i].lastTriggered = date;
+        groups[i].lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         body: groups,
         headers: {
-          'X-Hits': groups.length,
+          'X-Hits': String(groups.length),
           Endpoint: 'endpoint',
         },
       });
@@ -649,11 +652,15 @@ describe('ProjectAlertsCreate', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
 
     createWrapper({organization: {features: ['noisy-alert-warning']}});
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
 
     expect(
       screen.getByText(/Alerts without conditions can fire too frequently/)
@@ -677,6 +684,27 @@ describe('ProjectAlertsCreate', function () {
       'alert_builder.noisy_warning_agreed',
       expect.anything()
     );
+  });
+
+  it('does not display noisy alert banner for legacy integrations', async function () {
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Send a notification to all legacy integrations',
+    ]);
+
+    expect(
+      screen.queryByText(/Alerts without conditions can fire too frequently/)
+    ).not.toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
   });
 
   it('displays duplicate error banner with link', async function () {

@@ -1,3 +1,5 @@
+import {SessionStatusCountByProjectInPeriod} from 'sentry-fixture/sessions';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
@@ -8,7 +10,7 @@ describe('TeamStability', () => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriod(),
     });
   });
 
