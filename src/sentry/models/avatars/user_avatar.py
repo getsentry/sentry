@@ -52,14 +52,11 @@ class UserAvatar(ControlAvatarBase):
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
-        return [
-            outbox
-            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                region_names=regions,
-                shard_identifier=self.user_id,
-                object_identifier=self.user_id,
-            )
-        ]
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
