@@ -68,6 +68,10 @@ import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
+import ThresholdsStep, {
+  ThresholdMaxKeys,
+  ThresholdsConfig,
+} from './buildSteps/thresholdsStep/thresholdsStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
@@ -136,6 +140,7 @@ interface State {
   description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
+  thresholds?: ThresholdsConfig | null;
   widgetToBeUpdated?: Widget;
 }
 
@@ -212,6 +217,7 @@ function WidgetBuilder({
         DisplayType.TABLE,
       interval: '5m',
       queries: [],
+      thresholds: null,
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       description: undefined,
@@ -312,6 +318,7 @@ function WidgetBuilder({
         errors: undefined,
         loading: false,
         userHasModified: false,
+        thresholds: widgetFromDashboard.thresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
@@ -352,6 +359,7 @@ function WidgetBuilder({
     title: state.title,
     description: state.description,
     displayType: state.displayType,
+    thresholds: state.thresholds,
     interval: state.interval,
     queries: state.queries,
     limit: state.limit,
@@ -898,6 +906,34 @@ function WidgetBuilder({
     );
   }
 
+  function handleThresholdChange(maxKey: ThresholdMaxKeys, value: string) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      if (value === '') {
+        delete newState.thresholds?.max_values[maxKey];
+
+        if (
+          newState.thresholds &&
+          Object.keys(newState.thresholds.max_values).length === 0
+        ) {
+          newState.thresholds = null;
+        }
+      } else {
+        if (!newState.thresholds) {
+          newState.thresholds = {
+            max_values: {},
+            unit: null,
+          };
+        }
+
+        newState.thresholds.max_values[maxKey] = Number(value);
+      }
+
+      return newState;
+    });
+  }
+
   function isFormInvalid() {
     if (
       (notDashboardsOrigin && !state.selectedDashboard) ||
@@ -1123,6 +1159,15 @@ function WidgetBuilder({
                                   tags={tags}
                                 />
                               )}
+                              {state.displayType === 'big_number' &&
+                                organization.features.includes(
+                                  'dashboard-widget-indicators'
+                                ) && (
+                                  <ThresholdsStep
+                                    onChange={handleThresholdChange}
+                                    thresholdsConfig={state.thresholds ?? null}
+                                  />
+                                )}
                             </BuildSteps>
                           </Main>
                           <Footer

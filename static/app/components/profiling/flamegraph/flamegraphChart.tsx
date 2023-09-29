@@ -99,22 +99,29 @@ export function FlamegraphChart({
       offsetPhysicalSpace
     );
 
-    const fromConfigView = mat3.create();
+    const configToPhysicalSpace = mat3.create();
     mat3.multiply(
-      fromConfigView,
+      configToPhysicalSpace,
       physicalSpaceToOffsetPhysicalSpaceTransform,
       configViewToPhysicalSpaceTransform
     );
+
     mat3.multiply(
-      fromConfigView,
+      configToPhysicalSpace,
+      transformMatrixBetweenRect(chartView.configView, chartCanvas.physicalSpace),
+      chartView.configSpaceTransform
+    );
+
+    mat3.multiply(
+      configToPhysicalSpace,
       chartCanvas.physicalSpace.invertYTransform(),
-      fromConfigView
+      configToPhysicalSpace
     );
 
     chartRenderer.draw(
-      chartView.configView,
-      fromConfigView,
-      chartView.toConfigView(chartCanvas.logicalSpace),
+      chartView.toOriginConfigView(chartView.configView),
+      configToPhysicalSpace, // this
+      chartView.fromTransformedConfigView(chartCanvas.logicalSpace),
       configSpaceCursorRef
     );
   }, [chart, chartCanvas, chartRenderer, chartView, theme]);
@@ -167,7 +174,7 @@ export function FlamegraphChart({
         return;
       }
 
-      const configSpaceMouse = chartView.getConfigViewCursor(
+      const configSpaceMouse = chartView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         chartCanvas
       );

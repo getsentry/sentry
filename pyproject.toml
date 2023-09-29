@@ -372,7 +372,6 @@ module = [
     "sentry.auth.system",
     "sentry.auth.view",
     "sentry.db.mixin",
-    "sentry.db.models.base",
     "sentry.db.models.manager.base",
     "sentry.db.models.paranoia",
     "sentry.db.models.query",

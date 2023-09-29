@@ -387,13 +387,13 @@ def generate_projects(organization: Organization) -> Mapping[str, Any]:
 
     # Quickly fetch/create the teams and projects
     for team_name, project_names in mocks:
-        click.echo(f"> Mocking team {team_name}")  # NOQA
+        click.echo(f"> Mocking team {team_name}")
         team, _ = Team.objects.get_or_create(
             name=team_name, defaults={"organization": organization}
         )
 
         for project_name in project_names:
-            click.echo(f"  > Mocking project {project_name}")  # NOQA
+            click.echo(f"  > Mocking project {project_name}")
             project, _ = Project.objects.get_or_create(
                 name=project_name,
                 defaults={
@@ -1049,7 +1049,7 @@ def create_mock_transactions(
                     "span_id": uuid4().hex[:16],
                     "hash": "858fea692d4d93e9",
                     "data": {
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -1278,7 +1278,7 @@ def main(
                 create_sample_time_series(event, release=release)
 
             if hasattr(buffer, "process_pending"):
-                click.echo("    > Processing pending buffers")  # NOQA
+                click.echo("    > Processing pending buffers")
                 buffer.process_pending()
 
             mocks_loaded.send(project=project, sender=__name__)
