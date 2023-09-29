@@ -86,7 +86,7 @@ export function VisualizationStep({
   }));
 
   return (
-    <BuildStep
+    <StyledBuildStep
       title={t('Choose your visualization')}
       description={t(
         'This is a preview of how your widget will appear in the dashboard.'
@@ -128,9 +128,20 @@ export function VisualizationStep({
           onDataFetched={onDataFetched}
         />
       </VisualizationWrapper>
-    </BuildStep>
+    </StyledBuildStep>
   );
 }
+
+const StyledBuildStep = styled(BuildStep)`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: ${p => p.theme.background};
+
+  &::before {
+    margin-top: 1px;
+  }
+`;
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
