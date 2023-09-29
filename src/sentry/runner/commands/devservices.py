@@ -568,8 +568,9 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
 
     try:
         run_with_retries(hc)
+        click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
-        click.secho(f"> '{service_name}' is not healthy", fg="red")
+        click.secho(f"  > '{service_name}' is not healthy", fg="red")
         raise
 
 
