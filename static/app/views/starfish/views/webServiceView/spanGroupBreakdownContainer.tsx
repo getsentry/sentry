@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
@@ -74,7 +75,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.span-category-breakdown',
-    location,
+    location: omit(location, 'query.cursor'),
     limit: 4,
   });
 
@@ -88,7 +89,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.total-time',
-    location,
+    location: omit(location, 'query.cursor'),
   });
 
   const {
