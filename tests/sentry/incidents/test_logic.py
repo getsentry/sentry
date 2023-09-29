@@ -1462,7 +1462,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.target_display == channel_id
         assert action.integration_id == integration.id
 
-    @responses.activate
     def test_discord_flag_off(self):
         guild_id = "example-discord-server"
         metadata = {
