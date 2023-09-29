@@ -570,14 +570,21 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
         healthcheck.check(containers)
 
     try:
-        run_with_retries(hc, healthcheck.retries, healthcheck.timeout)
+        run_with_retries(
+            hc,
+            healthcheck.retries,
+            healthcheck.timeout,
+            f"Health check for '{service_name}' failed",
+        )
         click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
         click.secho(f"  > '{service_name}' is not healthy", fg="red")
         raise
 
 
-def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int = 5) -> None:
+def run_with_retries(
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message="Command failed"
+) -> None:
     for retry in range(1, retries + 1):
         try:
             cmd()
@@ -586,7 +593,7 @@ def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int =
                 raise
             else:
                 click.secho(
-                    f"  > Health check failed, retrying in {timeout}s (attempt {retry+1} of {retries})...",
+                    f"  > {message}, retrying in {timeout}s (attempt {retry+1} of {retries})...",
                     fg="yellow",
                 )
                 time.sleep(timeout)
@@ -672,5 +679,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
-    "zookeeper": ServiceHealthcheck(check=check_zookeeper, retries=4, timeout=15),
+    "zookeeper": ServiceHealthcheck(check=check_zookeeper, retries=6, timeout=10),
 }
