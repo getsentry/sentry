@@ -259,13 +259,11 @@ class AuthLoginView(BaseView):
 
         register_form = self.initialize_register_form(request=request)
         if register_form.is_valid():
-            print("register_form.is_valid True")
             user = self.handle_new_user_creation(
                 request=request, register_form=register_form, organization=organization
             )
             return self.add_to_org_and_redirect_to_next_register_step(request=request, user=user)
         else:
-            print("register_form.is_valid False")
 
             context.update(
                 {
