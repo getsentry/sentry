@@ -3,7 +3,7 @@ import os
 from collections import OrderedDict
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
-import jsonref
+from jsonref import JsonRef
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -199,7 +199,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     # Populate references with lazy lookup objects. This is required so we can
     # order request body parameters by required and optional.
-    result = jsonref.JsonRef.replace_refs(result)
+    result = JsonRef.replace_refs(result)
 
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
