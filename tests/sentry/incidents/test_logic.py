@@ -1479,11 +1479,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_id = "channel-id"
-        responses.add(
-            method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{channel_id}",
-            json=metadata,
-        )
 
         with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
