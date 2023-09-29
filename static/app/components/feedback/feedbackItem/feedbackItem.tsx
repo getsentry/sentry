@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import DeleteButton from 'sentry/components/feedback/feedbackItem/deleteButton';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -47,6 +48,9 @@ export default function FeedbackItem({feedbackItem}: Props) {
             </ErrorBoundary>
             <ErrorBoundary mini>
               <ResolveButton feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <DeleteButton feedbackItem={feedbackItem} />
             </ErrorBoundary>
           </Flex>
         </Flex>
