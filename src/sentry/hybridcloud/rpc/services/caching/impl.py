@@ -8,6 +8,9 @@ from sentry.silo import SiloMode
 
 _V = TypeVar("_V")
 
+# Implementation uses generators so that testing concurrent read after writer properties is much easier.
+# In practice all generators are synchronously consumed, except for tests.
+
 
 def _consume_generator(g: Generator[None, None, _V]) -> _V:
     while True:
