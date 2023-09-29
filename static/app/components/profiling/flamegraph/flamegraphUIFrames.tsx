@@ -79,7 +79,9 @@ export function FlamegraphUIFrames({
     }
 
     const drawUIFrames = () => {
-      uiFramesRenderer.draw(uiFramesView.fromConfigView(uiFramesCanvas.physicalSpace));
+      uiFramesRenderer.draw(
+        uiFramesView.fromTransformedConfigView(uiFramesCanvas.physicalSpace)
+      );
     };
 
     scheduler.registerBeforeFrameCallback(drawUIFrames);
@@ -125,7 +127,7 @@ export function FlamegraphUIFrames({
         return;
       }
 
-      const configSpaceMouse = uiFramesView.getConfigViewCursor(
+      const configSpaceMouse = uiFramesView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         uiFramesCanvas
       );
