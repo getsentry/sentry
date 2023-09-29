@@ -278,7 +278,7 @@ def up(
                 e = future.exception()
                 if e:
                     click.secho(f"> Failed to start service: {e}", err=True, fg="red")
-                    raise
+                    raise e
 
     # Check health of services. Seperate from _start_services
     # in case there are dependencies needed for the health
@@ -297,7 +297,7 @@ def up(
             e = future.exception()
             if e:
                 click.secho(f"> Failed to check health: {e}", err=True, fg="red")
-                raise
+                raise e
 
 
 def _prepare_containers(
@@ -467,7 +467,7 @@ def down(project: str, service: list[str]) -> None:
                 e = future.exception()
                 if e:
                     click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
-                    raise
+                    raise e
 
 
 @devservices.command()
