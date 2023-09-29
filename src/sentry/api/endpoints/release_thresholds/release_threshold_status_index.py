@@ -204,13 +204,15 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 - this will determine whether we can give an accurate status report or not
                 """
                 error_counts = get_errors_timeseries_counts_by_project_and_release(
-                    start=start,
                     end=end,
+                    environments_list=environments_list,
+                    organization_id=organization.id,
                     project_id_list=project_id_list,
                     release_value_list=release_value_list,
-                    organization_id=organization.id,
+                    start=start,
                 )
                 for ethreshold in category_thresholds:
+                    # TODO: filter by environment as well?
                     is_healthy = is_error_count_healthy(ethreshold, error_counts)
                     ethreshold["is_healthy"] = is_healthy
                     release_threshold_health[ethreshold["key"]].append(
@@ -276,8 +278,8 @@ def is_error_count_healthy(ethreshold: Dict[str, Any], timeseries: List[Dict[str
             or i.time > ethreshold["end"]
             or i.release != ethreshold["release"]
             or i.project_id != ethreshold["project_id"]
+            or i.environment != ethreshold["environment"]
         ):
-            # IF timesefries is chronological, once we pass threshold end, we can break :shrug:
             continue
         # else ethreshold.start < i.time <= ethreshold.end
         total_count += i["count()"]
