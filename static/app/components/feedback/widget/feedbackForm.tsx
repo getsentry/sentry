@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {getCurrentHub} from '@sentry/react';
 
 interface FeedbackFormProps {
-  sendButtonText: string;
   descriptionPlaceholder: string;
   onClose: () => void;
   onSubmit: (data: {comment: string; email: string; name: string}) => void;
+  sendButtonText: string;
 }
 
 const retrieveStringValue = (formData: FormData, key: string) => {
@@ -18,7 +18,12 @@ const retrieveStringValue = (formData: FormData, key: string) => {
   return '';
 };
 
-export function FeedbackForm({sendButtonText, onClose, onSubmit}: FeedbackFormProps) {
+export function FeedbackForm({
+  descriptionPlaceholder,
+  sendButtonText,
+  onClose,
+  onSubmit,
+}: FeedbackFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [hasDescription, setHasDescription] = useState(false);
 

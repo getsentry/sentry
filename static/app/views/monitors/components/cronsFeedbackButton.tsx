@@ -8,7 +8,12 @@ function CronsFeedbackButton() {
   const title = 'Give Feedback';
 
   return (
-    <FeedbackModal title={title} type={CRONS_FEEDBACK_NAME} sendButtonText="Send Feedback" descriptionPlaceholder="What did you expect?">
+    <FeedbackModal
+      title={title}
+      type={CRONS_FEEDBACK_NAME}
+      sendButtonText="Send Feedback"
+      descriptionPlaceholder="What did you expect?"
+    >
       {({showModal}) => (
         <Button size="sm" icon={<IconMegaphone />} onClick={showModal}>
           {title}
