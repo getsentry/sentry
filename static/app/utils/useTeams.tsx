@@ -93,6 +93,7 @@ type FetchTeamOptions = {
 
 /**
  * Helper function to actually load teams
+ *
  */
 async function fetchTeams(
   api: Client,
@@ -157,6 +158,13 @@ async function fetchTeams(
  * NOTE: It is NOT guaranteed that all teams for an organization will be
  * loaded, so you should use this hook with the intention of providing specific
  * slugs, or loading more through search.
+ *
+ * @deprecated use the alternatives to this hook (except for search and pagination)
+ * new alternatives:
+ * - useTeamsById({ids: []}) - get teams by id
+ * - useTeamsById({slugs: []}) - get teams by slug
+ * - useTeamsById() - just reading from the teams store
+ * - useUserTeams() - same as `provideUserTeams: true`
  *
  */
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
