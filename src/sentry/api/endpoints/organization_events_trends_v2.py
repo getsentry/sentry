@@ -387,7 +387,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     )
 
                     regression: BreakpointData = {
-                        **qualifying_trend,
+                        **qualifying_trend,  # type: ignore
                         "project": project_id,
                     }
 

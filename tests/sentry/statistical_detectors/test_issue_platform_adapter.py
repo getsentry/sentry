@@ -25,8 +25,6 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
         }
     ]
 
-    # mock_regressions = cast(List[BreakpointData], mock_regressions)
-
     send_regressions_to_plaform(mock_regressions)
 
     assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
