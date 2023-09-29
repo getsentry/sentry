@@ -31,11 +31,11 @@ import type {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import type {
+import {
   CanvasPoolManager,
   CanvasScheduler,
+  useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -47,6 +47,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  FlamegraphProvider,
+  useFlamegraph,
+} from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
@@ -300,6 +304,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return frame => !frame.is_application;
   }, [frameFilter]);
 
+  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
+  const scheduler = useCanvasScheduler(canvasPoolManager);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -353,29 +360,24 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                   }}
                 >
                   <FlamegraphThemeProvider>
-                    {visualization === 'flamegraph' ? (
-                      <AggregateFlamegraph
-                        hideToolbar
+                    <FlamegraphProvider>
+                      <AggregateFlamegraphToolbar
+                        scheduler={scheduler}
+                        canvasPoolManager={canvasPoolManager}
+                        visualization={visualization}
+                        onVisualizationChange={onVisualizationChange}
+                        frameFilter={frameFilter}
+                        onFrameFilterChange={onFrameFilterChange}
                         hideSystemFrames={false}
                         setHideSystemFrames={() => void 0}
-                      >
-                        {p => {
-                          return (
-                            <AggregateFlamegraphToolbar
-                              {...p}
-                              visualization={visualization}
-                              onVisualizationChange={onVisualizationChange}
-                              frameFilter={frameFilter}
-                              onFrameFilterChange={onFrameFilterChange}
-                              hideSystemFrames={false}
-                              setHideSystemFrames={() => void 0}
-                            />
-                          );
-                        }}
-                      </AggregateFlamegraph>
-                    ) : (
-                      <div />
-                    )}
+                      />
+                      {visualization === 'flamegraph' ? (
+                        <AggregateFlamegraph
+                          canvasPoolManager={canvasPoolManager}
+                          scheduler={scheduler}
+                        />
+                      ) : null}
+                    </FlamegraphProvider>
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
               </ProfileGroupProvider>
@@ -393,7 +395,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraph: Flamegraph;
   frameFilter: 'system' | 'application' | 'all';
   hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
@@ -403,7 +404,8 @@ interface AggregateFlamegraphToolbarProps {
   visualization: 'flamegraph' | 'call tree';
 }
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
-  const flamegraphs = useMemo(() => [props.flamegraph], [props.flamegraph]);
+  const flamegraph = useFlamegraph();
+  const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
   const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
