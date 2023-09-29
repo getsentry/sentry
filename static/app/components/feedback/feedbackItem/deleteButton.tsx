@@ -69,7 +69,7 @@ export default function DeleteButton({feedbackItem}: Props) {
 
   return (
     <Button
-      priority="primary"
+      priority="danger"
       size="xs"
       icon={<IconDelete />}
       onClick={() => openDeleteModal(organization, projectSlug, feedbackId)}
