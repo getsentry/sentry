@@ -106,7 +106,7 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
                   {spanModule === pinnedModule && (
                     <StyledIconPin
                       isSolid
-                      style={{color: theme.barBreakdownFontColors[index]}}
+                      iconColor={theme.barBreakdownFontColors[index]}
                     />
                   )}
                   <SegmentText fontColor={theme.barBreakdownFontColors[index]}>
@@ -155,7 +155,7 @@ const StyledTooltip = styled(Tooltip)<{percent: number}>`
   min-width: 16px;
 `;
 
-const StyledIconPin = styled(IconPin)<{color: string}>`
+const StyledIconPin = styled(IconPin)<{iconColor: string}>`
   color: ${p => p.color};
   padding: 0 ${space(0.25)};
   margin-right: ${space(0.25)};
