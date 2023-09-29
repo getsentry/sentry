@@ -94,6 +94,9 @@ Retrieve a collection of feedback items.
 
   ```json
   {
+    "meta": {
+      "total": 100,
+    },
     "data": [
       {
         "browser": {
