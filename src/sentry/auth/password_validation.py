@@ -7,14 +7,9 @@ from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
 
-_default_password_validators = None
-
 
 def get_default_password_validators():
-    global _default_password_validators
-    if _default_password_validators is None:
-        _default_password_validators = get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
-    return _default_password_validators
+    return get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
 
 
 def get_password_validators(validator_config):
