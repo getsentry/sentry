@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.models.release_threshold.constants import ReleaseThresholdType
-from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+from sentry.models.release_threshold.release_threshold import (  # is_error_count_healthy,
+    ReleaseThreshold,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -319,3 +321,17 @@ class ReleaseThresholdStatusTest(APITestCase):
         # release2
         r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
         assert len(r2_keys) == 0
+
+
+class TestErrorCountThresholdCheck:
+    def setup(self):
+        pass
+
+    def test_threshold_within_timeseries(self):
+        pass
+
+    def test_threshold_time_subset_within_timeseries(self):
+        pass
+
+    def test_multiple_releases_projects_and_envs_within_timeseries(self):
+        pass

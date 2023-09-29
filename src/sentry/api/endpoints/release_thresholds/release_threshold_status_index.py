@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, TypedDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -24,7 +24,26 @@ from sentry.models.release_threshold.constants import ReleaseThresholdType, Trig
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
+    from sentry.models.environment import Environment
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+
+
+class EnrichedThreshold(TypedDict):
+    date: datetime
+    end: int
+    environment: Environment
+    is_healthy: bool
+    key: str
+    project: Project
+    project_id: int
+    release: str
+    start: int
+    threshold_type: int
+    trigger_type: int
+    value: int
+    window_in_seconds: int
 
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
@@ -171,7 +190,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         }
                     thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
-                    enriched_threshold = {
+                    enriched_threshold: EnrichedThreshold = {
                         **serialize(threshold),
                         "key": self.construct_threshold_key(
                             release=release, project=project, threshold=threshold
@@ -194,7 +213,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         for threshold_type, filter_list in thresholds_by_type.items():
             project_id_list = [proj_id for proj_id in filter_list["projects"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]
-            category_thresholds = filter_list["thresholds"]
+            category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
                 """
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
@@ -251,18 +270,21 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         return Response(release_threshold_health, status=200)
 
-    def construct_threshold_key(self, project, release, threshold) -> str:
+    def construct_threshold_key(
+        self, project: Project, release: Release, threshold: ReleaseThreshold
+    ) -> str:
         """
         Consistent key helps to determine which thresholds can be grouped together.
         project_id - environment - release_version
 
         NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
         NOTE: environment names can contain special characters... `-` delimiter may not be appropriate
+        TODO: move this into a separate helper?
         """
         return f"{project.id}-{threshold.environment.name}-{release.version}"
 
 
-def is_error_count_healthy(ethreshold: Dict[str, Any], timeseries: List[Dict[str, Any]]) -> bool:
+def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]) -> bool:
     """
     Iterate through timeseries given threshold window and determine health status
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
