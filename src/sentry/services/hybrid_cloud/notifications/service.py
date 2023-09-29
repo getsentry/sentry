@@ -7,6 +7,7 @@ from abc import abstractmethod
 from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
 
 from sentry.notifications.types import (
+    NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
@@ -17,6 +18,7 @@ from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -156,6 +158,26 @@ class NotificationsService(RpcService):
         organization_id: Optional[int],
         type: NotificationSettingEnum,
     ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def update_settings_bulk(
+        self,
+        *,
+        notification_settings: Sequence[
+            Tuple[
+                ExternalProviders,
+                NotificationSettingTypes,
+                NotificationScopeType,
+                int,
+                NotificationSettingOptionValues,
+            ]
+        ],
+        team: Optional[RpcTeam] = None,
+        user: Optional[RpcUser] = None,
+        organization_id_for_team: Optional[int] = None,
+    ) -> None:
         pass
 
 

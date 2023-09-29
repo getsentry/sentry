@@ -18,7 +18,7 @@ class TeamNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test()
+@region_silo_test(stable=True)
 class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
         _ = self.project  # HACK to force creation.
@@ -103,7 +103,7 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
         )
 
 
-@region_silo_test()
+@region_silo_test(stable=True)
 class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
     method = "put"
 

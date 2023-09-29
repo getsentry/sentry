@@ -7,6 +7,8 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
@@ -135,7 +137,7 @@ class NotificationSettingTest(TestCase):
                     NotificationSettingOptionValues.ALWAYS,
                 ),
             ],
-            user=self.user,
+            user=serialize_rpc_user(self.user),
         )
 
         ns1 = NotificationSetting.objects.find_settings(
@@ -172,7 +174,7 @@ class NotificationSettingTest(TestCase):
                     NotificationSettingOptionValues.ALWAYS,
                 ),
             ],
-            team=self.team,
+            team=serialize_rpc_team(self.team),
             organization_id_for_team=self.organization.id,
         )
 

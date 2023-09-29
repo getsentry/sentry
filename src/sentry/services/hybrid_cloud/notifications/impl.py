@@ -29,6 +29,7 @@ from sentry.services.hybrid_cloud.filter_query import (
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
@@ -255,6 +256,29 @@ class DatabaseBackedNotificationsService(NotificationsService):
         participants = controller.get_participants()
         return {actor.id: providers for actor, providers in participants.items()}
 
+    def update_settings_bulk(
+        self,
+        *,
+        notification_settings: Sequence[
+            Tuple[
+                ExternalProviders,
+                NotificationSettingTypes,
+                NotificationScopeType,
+                int,
+                NotificationSettingOptionValues,
+            ]
+        ],
+        team: Optional[RpcTeam] = None,
+        user: Optional[RpcUser] = None,
+        organization_id_for_team: Optional[int] = None,
+    ) -> None:
+        NotificationSetting.objects.update_settings_bulk(
+            notification_settings=notification_settings,
+            team=team,
+            user=user,
+            organization_id_for_team=organization_id_for_team,
+        )
+
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
             NotificationSetting, NotificationSettingFilterArgs, RpcNotificationSetting, None
@@ -271,10 +295,20 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 query = query.filter(scope_type=filters["scope_type"])
             if "scope_identifier" in filters and filters["scope_identifier"] is not None:
                 query = query.filter(scope_identifier=filters["scope_identifier"])
-            if "user_ids" in filters and len(filters["user_ids"]) > 0:
-                query = query.filter(user_id__in=filters["user_ids"])
-            if "team_ids" in filters and len(filters["team_ids"]) > 0:
-                query = query.filter(team_id__in=filters["team_ids"])
+            if (
+                "user_ids" in filters
+                and "team_ids" in filters
+                and len(filters["user_ids"]) > 0
+                and len(filters["team_ids"]) > 0
+            ):
+                query = query.filter(
+                    Q(user_id__in=filters["user_ids"]) | Q(team_id__in=filters["team_ids"])
+                )
+            else:
+                if "user_ids" in filters and len(filters["user_ids"]) > 0:
+                    query = query.filter(user_id__in=filters["user_ids"])
+                if "team_ids" in filters and len(filters["team_ids"]) > 0:
+                    query = query.filter(team_id__in=filters["team_ids"])
             return query.all()
 
         def base_query(self, ids_only: bool = False) -> QuerySet[NotificationSetting]:

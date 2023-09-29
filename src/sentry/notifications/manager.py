@@ -49,6 +49,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
@@ -562,8 +563,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 NotificationSettingOptionValues,
             ]
         ],
-        team: Team | None = None,
-        user: User | None = None,
+        team: RpcTeam | None = None,
+        user: RpcUser | None = None,
         organization_id_for_team: Optional[int] = None,
     ) -> None:
         assert user or team, "Cannot update settings if user or team is not passed"

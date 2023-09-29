@@ -2,10 +2,10 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -40,10 +40,12 @@ class NotificationSettingsSerializer(Serializer):
         team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
         user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
-        notifications_settings = NotificationSetting.objects._filter(
-            type=type_option,
-            team_ids=list(team_map.keys()),
-            user_ids=list(user_map.keys()),
+        notifications_settings = notifications_service.get_many(
+            filter=dict(
+                type=type_option,
+                team_ids=list(team_map.keys()),
+                user_ids=list(user_map.keys()),
+            ),
         )
 
         result: MutableMapping[Union[Team, User], MutableMapping[str, Set[Any]]] = defaultdict(
@@ -55,10 +57,10 @@ class NotificationSettingsSerializer(Serializer):
             result[user]["settings"] = set()
 
         for notifications_setting in notifications_settings:
-            if notifications_setting.user_id:
+            if notifications_setting.user_id is not None:
                 target_user = user_map[notifications_setting.user_id]
                 result[target_user]["settings"].add(notifications_setting)
-            elif notifications_setting.team_id:
+            elif notifications_setting.team_id is not None:
                 target_team = team_map[notifications_setting.team_id]
                 result[target_team]["settings"].add(notifications_setting)
             else:
