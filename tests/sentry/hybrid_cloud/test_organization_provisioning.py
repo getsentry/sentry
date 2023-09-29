@@ -11,11 +11,11 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization_provisioning import (
+from sentry.services.hybrid_cloud.organization_provisioning import organization_provisioning_service
+from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
     PostProvisionOptions,
-    organization_provisioning_service,
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase

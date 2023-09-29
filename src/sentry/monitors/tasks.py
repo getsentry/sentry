@@ -191,7 +191,7 @@ def check_missing(current_datetime: datetime):
 
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        mark_environment_missing.delay(monitor_environment.id)
+        mark_environment_missing.delay(monitor_environment.id, current_datetime)
 
 
 @instrumented_task(
@@ -243,7 +243,7 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id)
+        mark_checkin_timeout.delay(checkin.id, current_datetime)
 
 
 @instrumented_task(
