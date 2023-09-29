@@ -383,8 +383,8 @@ def _detect_function_change_points(
                 "data": serialized["data"],
                 "data_start": serialized["start"],
                 "data_end": serialized["end"],
-                # only look at the last 24 hours as the request data
-                "request_start": serialized["end"] - 24 * 60 * 60,
+                # only look at the last 3 days of the request data
+                "request_start": serialized["end"] - 3 * 24 * 60 * 60,
                 "request_end": serialized["end"],
             }
 
