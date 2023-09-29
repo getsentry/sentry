@@ -280,8 +280,6 @@ def detect_function_change_points(
     for project_id, fingerprint in functions_list:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("regressed_project_id", project_id)
-            # the service was originally meant for transactions so this
-            # naming is a result of this
             scope.set_tag("regressed_function_id", fingerprint)
             scope.set_tag("breakpoint", "no")
 
