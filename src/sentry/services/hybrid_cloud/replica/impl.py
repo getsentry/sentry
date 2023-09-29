@@ -7,9 +7,10 @@ from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.models import (
     ApiKey,
+    ApiToken,
     AuthIdentity,
     AuthIdentityReplica,
     AuthProvider,
@@ -18,14 +19,21 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationMemberTeamReplica,
     OrganizationSlugReservationReplica,
+    OrgAuthToken,
     OutboxCategory,
     Team,
     User,
 )
 from sentry.models.teamreplica import TeamReplica
-from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
+from sentry.services.hybrid_cloud.auth import (
+    RpcApiKey,
+    RpcApiToken,
+    RpcAuthIdentity,
+    RpcAuthProvider,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
+from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -123,6 +131,24 @@ def handle_replication(
 
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
+    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+        destination = ApiTokenReplica(
+            application_id=api_token.application_id,
+            token=api_token.token,
+            expires_at=api_token.expires_at,
+            apitoken_id=api_token.id,
+            scope_list=api_token.scope_list,
+            allowed_origins="\n".join(api_token.allowed_origins)
+            if api_token.allowed_origins
+            else None,
+            user_id=api_token.user_id,
+        )
+        handle_replication(ApiToken, destination)
+
+    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+        destination = OrgAuthTokenReplica()
+        handle_replication(OrgAuthToken, destination)
+
     def upsert_replicated_auth_provider(
         self, *, auth_provider: RpcAuthProvider, region_name: str
     ) -> None:

@@ -9,6 +9,7 @@ from urllib.parse import urlencode, urlparse
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -16,6 +17,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -420,6 +423,17 @@ class EmailAuthBackend(ModelBackend):
 
     def user_can_authenticate(self, user: User) -> bool:
         return True
+
+    def get_user(self, user_id: int) -> AbstractBaseUser | None:
+        if (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            or options.get("hybrid_cloud.authentication.use_rpc_user") >= 5
+        ):
+            user = user_service.get_user(user_id=user_id)
+            if user and user.is_active:
+                return user
+            return None
+        return super().get_user(user_id)
 
 
 def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:

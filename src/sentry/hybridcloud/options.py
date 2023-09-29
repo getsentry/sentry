@@ -1,5 +1,5 @@
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
-from sentry.utils.types import Bool, Int
+from sentry.utils.types import Int
 
 register(
     "outbox_replication.sentry_team.replication_version",
@@ -79,8 +79,14 @@ register(
 )
 
 register(
-    "hybrid_cloud.authentication.use_api_key_replica",
-    type=Bool,
-    default=False,
+    "hybrid_cloud.authentication.use_authenticated_token",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybrid_cloud.authentication.use_rpc_user",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

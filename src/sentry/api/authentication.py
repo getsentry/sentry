@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, ClassVar, Iterable, List, Optional, Tuple
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -18,11 +18,21 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
-from sentry.hybridcloud.models import ApiKeyReplica
-from sentry.models import ApiApplication, ApiKey, ApiToken, OrgAuthToken, ProjectKey, Relay
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.models import (
+    ApiApplication,
+    ApiKey,
+    ApiToken,
+    OrgAuthToken,
+    ProjectKey,
+    Relay,
+    SentryApp,
+)
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import compare_signature
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
@@ -122,8 +132,45 @@ def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
 
 
 class QuietBasicAuthentication(BasicAuthentication):
+    _hybrid_cloud_rollout_level = -1
+
     def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
+
+    def _use_authenticated_token(self) -> bool:
+        return (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            or options.get("hybrid_cloud.authentication.use_authenticated_token")
+            >= self._hybrid_cloud_rollout_level
+        )
+
+    def _use_rpc_user(self) -> bool:
+        return (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            or options.get("hybrid_cloud.authentication.use_rpc_user")
+            >= self._hybrid_cloud_rollout_level
+        )
+
+    def transform_auth(
+        self, user: int | User | RpcUser | None | AnonymousUser, auth: Any
+    ) -> Tuple[User | RpcUser | AnonymousUser, Any]:
+        if isinstance(user, int):
+            if self._use_rpc_user():
+                user = user_service.get_user(user_id=user)
+            else:
+                user = User.objects.filter(id=user).first()
+        elif isinstance(user, User):
+            if self._use_rpc_user():
+                user = user_service.get_user(user_id=user.id)
+        if user is None:
+            user = AnonymousUser()
+
+        return (
+            user,
+            AuthenticatedToken.from_token(auth)
+            if auth is not None and self._use_authenticated_token()
+            else auth,
+        )
 
 
 class StandardAuthentication(QuietBasicAuthentication):
@@ -186,42 +233,34 @@ class RelayAuthentication(BasicAuthentication):
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
+    _hybrid_cloud_rollout_level = 1
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
-
-    def _authenticate_credentials(self, userid):
-        key = ApiKeyReplica.objects.filter(key=userid).last()
-        if key is None:
-            raise AuthenticationFailed("API key is not valid")
-        if not key.is_active:
-            raise AuthenticationFailed("Key is disabled")
-        with configure_scope() as scope:
-            scope.set_tag("api_key", key.apikey_id)
-        return AuthenticatedToken.from_token(key)
 
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
 
-        if SiloMode.get_current_mode() == SiloMode.REGION or options.get(
-            "hybrid_cloud.authentication.use_api_key_replica"
-        ):
-            return AnonymousUser(), self._authenticate_credentials(userid)
-
-        try:
-            key = ApiKey.objects.get_from_cache(key=userid)
-        except ApiKey.DoesNotExist:
-            raise AuthenticationFailed("API key is not valid")
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            key = ApiKeyReplica.objects.filter(key=userid).last()
+            if key is None:
+                raise AuthenticationFailed("API key is not valid")
+        else:
+            try:
+                key = ApiKey.objects.get_from_cache(key=userid)
+            except ApiKey.DoesNotExist:
+                raise AuthenticationFailed("API key is not valid")
 
         if not key.is_active:
             raise AuthenticationFailed("Key is disabled")
 
+        authenticated_token = AuthenticatedToken.from_token(key)
         with configure_scope() as scope:
-            scope.set_tag("api_key", key.id)
+            scope.set_tag("api_key", authenticated_token.entity_id)
 
-        return (AnonymousUser(), key)
+        return self.transform_auth(None, key)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -244,6 +283,8 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
+    _hybrid_cloud_rollout_level = 2
+
     def authenticate(self, request: Request):
         if not request.json_body:
             raise AuthenticationFailed("Invalid request")
@@ -265,14 +306,18 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
             raise invalid_pair_error
 
         try:
-            return (application.sentry_app.proxy_user, None)
-        except Exception:
+            user_id = application.sentry_app.proxy_user_id
+        except SentryApp.DoesNotExist:
             raise invalid_pair_error
+        if user_id is None:
+            raise invalid_pair_error
+        return self.transform_auth(user_id, None)
 
 
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
+    _hybrid_cloud_rollout_level = 3
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
@@ -288,36 +333,49 @@ class TokenAuthentication(StandardAuthentication):
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = SystemToken.from_request(request, token_str)
-        try:
-            token = (
-                token
-                or ApiToken.objects.filter(token=token_str)
-                .select_related("user", "application")
-                .get()
-            )
-        except ApiToken.DoesNotExist:
-            raise AuthenticationFailed("Invalid token")
+        user = token.user
+        application_is_active = True
+
+        if not token:
+            if SiloMode.get_current_mode() == SiloMode.REGION:
+                token = ApiTokenReplica.objects.filter(token=token_str).last()
+                if not token:
+                    raise AuthenticationFailed("Invalid token")
+                user = user_service.get_user(user_id=token.user_id)
+                application_is_active = token.application_is_active
+            else:
+                try:
+                    token = (
+                        ApiToken.objects.filter(token=token_str)
+                        .select_related("user", "application")
+                        .get()
+                    )
+                except ApiToken.DoesNotExist:
+                    raise AuthenticationFailed("Invalid token")
+                user = token.user
+                application_is_active = token.application is None or token.application.is_active
 
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
 
-        if not token.user.is_active:
+        if not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
-        if token.application and not token.application.is_active:
+        if not application_is_active:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_token", token.id)
-            scope.set_tag("api_token_is_sentry_app", getattr(token.user, "is_sentry_app", False))
+            scope.set_tag("api_token", AuthenticatedToken.from_token(token).entity_id)
+            scope.set_tag("api_token_is_sentry_app", getattr(user, "is_sentry_app", False))
 
-        return (token.user, token)
+        return self.transform_auth(user, token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
+    _hybrid_cloud_rollout_level = 4
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
@@ -330,19 +388,27 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token = None
         token_hashed = hash_token(token_str)
 
-        try:
-            token = OrgAuthToken.objects.filter(
-                token_hashed=token_hashed, date_deactivated__isnull=True
-            ).get()
-        except OrgAuthToken.DoesNotExist:
-            raise AuthenticationFailed("Invalid org token")
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            token = OrgAuthTokenReplica.objects.filter(
+                token_hashed=token_hashed,
+                date_deactivated__isnull=True,
+            ).last()
+            if token is None:
+                raise AuthenticationFailed("Invalid org token")
+        else:
+            try:
+                token = OrgAuthToken.objects.filter(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                ).get()
+            except OrgAuthToken.DoesNotExist:
+                raise AuthenticationFailed("Invalid org token")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_token", token.id)
+            scope.set_tag("api_token", AuthenticatedToken.from_token(token).entity_id)
             scope.set_tag("api_token_is_org_token", True)
 
-        return (AnonymousUser(), token)
+        return self.transform_auth(None, token)
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)

@@ -16,13 +16,16 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     FlexibleForeignKey,
-    Model,
     control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.models import OutboxCategory
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
+from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token
+from sentry.services.hybrid_cloud.replica import region_replica_service
 
 MAX_NAME_LENGTH = 255
 
@@ -34,8 +37,9 @@ def validate_scope_list(value):
 
 
 @control_silo_only_model
-class OrgAuthToken(Model):
+class OrgAuthToken(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Organization
+    category = OutboxCategory.ORG_AUTH_TOKEN_UPDATE
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     # The JWT token in hashed form
@@ -116,6 +120,12 @@ class OrgAuthToken(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        region_replica_service.upsert_replicated_org_auth_token(
+            token=serialize_org_auth_token(self),
+            region_name=region_name,
+        )
 
 
 def is_org_auth_token_auth(auth: object) -> bool:
