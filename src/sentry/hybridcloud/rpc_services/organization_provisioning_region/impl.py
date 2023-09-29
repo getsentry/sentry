@@ -3,9 +3,6 @@ from django.db.models import Q
 from sentry_sdk import capture_exception
 
 from sentry import roles
-from sentry.hybridcloud.rpc_services.organization_provisioning import (
-    OrganizationProvisioningOptions,
-)
 from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     OrganizationProvisioningRegionService,
 )
@@ -18,6 +15,7 @@ from sentry.models import (
     RegionOutbox,
     outbox_context,
 )
+from sentry.services.organization import OrganizationProvisioningOptions
 
 
 def create_post_provision_outbox(

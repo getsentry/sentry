@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from sentry.hybridcloud.rpc_services.organization_provisioning import (
@@ -84,16 +86,12 @@ class TestControlOrganizationProvisioning(TestCase):
                 slug=conflicting_slug,
             )
 
-        # Since both Control and Monolith regions will invoke the RPC method locally,
-        # the exception type will differ.
-        expected_exception = (
-            RpcRemoteException
-            if SiloMode.get_current_mode() == SiloMode.REGION
-            else OrganizationSlugReservation.DoesNotExist
-        )
-
-        with pytest.raises(expected_exception):
-            self.provision_organization()
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            with pytest.raises(RpcRemoteException):
+                self.provision_organization()
+        else:
+            with pytest.raises(OrganizationSlugReservation.DoesNotExist):
+                self.provision_organization()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()

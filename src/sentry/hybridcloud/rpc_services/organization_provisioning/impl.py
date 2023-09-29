@@ -48,13 +48,14 @@ def create_organization_provisioning_outbox(
     region_name: str,
     org_provision_payload: Optional[OrganizationProvisioningOptions],
 ):
+    payload = org_provision_payload.json() if org_provision_payload is not None else None
     return ControlOutbox(
         region_name=region_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,
         category=OutboxCategory.PROVISION_ORGANIZATION,
         shard_identifier=organization_id,
         object_identifier=organization_id,
-        payload=org_provision_payload.json(),
+        payload=payload,
     )
 
 
