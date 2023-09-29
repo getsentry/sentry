@@ -161,7 +161,10 @@ export function SelectorLink({
           },
         }}
       >
-        <StyledTooltip title={t('Search for replays with clicks on this selector')}>
+        <StyledTooltip
+          position="top-start"
+          title={t('Search for replays with clicks on this selector')}
+        >
           {value}
         </StyledTooltip>
       </Link>

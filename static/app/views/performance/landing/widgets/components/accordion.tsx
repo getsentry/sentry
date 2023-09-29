@@ -59,8 +59,8 @@ function AccordionItem({
 }) {
   return buttonOnLeft ? (
     <StyledLineItem>
-      <ListItemContainer>
-        <StyledButton
+      <ButtonLeftListItemContainer>
+        <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
@@ -69,7 +69,7 @@ function AccordionItem({
           onClick={() => setExpandedIndex(index)}
         />
         {children}
-      </ListItemContainer>
+      </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
     </StyledLineItem>
   ) : (
@@ -100,6 +100,14 @@ const AccordionContainer = styled('ul')`
   list-style-type: none;
 `;
 
+const ButtonLeftListItemContainer = styled('div')`
+  display: flex;
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  column-gap: ${space(1.5)};
+`;
+
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
@@ -113,8 +121,4 @@ const StyledContentContainer = styled('div')`
 
 const LeftContentContainer = styled('div')`
   padding: ${space(0)} ${space(0.25)};
-`;
-
-const StyledButton = styled(Button)`
-  margin-right: ${space(1.5)};
 `;

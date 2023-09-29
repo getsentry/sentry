@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
-import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import {
   ContentContainer,
   HeaderContainer,
@@ -267,6 +266,13 @@ const StyledWidgetHeader = styled(HeaderTitleLegend)`
 
 const StyledWidgetContainer = styled(WidgetContainer)`
   margin-bottom: 0;
+`;
+
+export const RightAlignedCell = styled('div')`
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export default DeadRageSelectorCards;
