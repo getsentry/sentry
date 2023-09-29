@@ -268,7 +268,7 @@ class ReleaseLookupData:
         ] = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
 
         # Cached db objects across operations
-        self.artifact_index_release_files: Union[QuerySet, List[ReleaseFile]] = None
+        self.artifact_index_release_files: Optional[Union[QuerySet, List[ReleaseFile]]] = None
         self.dist_matched_artifact_index_release_file: Optional[ReleaseFile] = None
 
         self._find_source_file_in_basic_uploaded_files()
@@ -281,7 +281,7 @@ class ReleaseLookupData:
         ] = "unsuccessful"
 
         if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore
-            if self.source_map_reference.startswith("data:"):
+            if self.source_map_reference.startswith("data:"):  # type: ignore
                 self.source_map_reference = "Inline Sourcemap"
                 self.source_map_lookup_result = "found"
             else:
