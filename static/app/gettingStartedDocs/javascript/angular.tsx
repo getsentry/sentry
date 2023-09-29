@@ -97,7 +97,7 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Add the Sentry SDK as a dependency using [codeYarn:yarn] or [codeNpm:npm]:',
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
           {
             codeYarn: <code />,
             codeNpm: <code />,
@@ -116,7 +116,7 @@ export const steps = ({
             code: `npm install --save ${getNpmPackage(angularVersion)}`,
           },
           {
-            label: 'Yarn',
+            label: 'yarn',
             value: 'yarn',
             language: 'bash',
             code: `yarn add ${getNpmPackage(angularVersion)}`,

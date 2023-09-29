@@ -31,7 +31,7 @@ export const steps = ({
             code: 'npm install --save @sentry/electron',
           },
           {
-            label: 'Yarn',
+            label: 'yarn',
             value: 'yarn',
             language: 'bash',
             code: 'yarn add @sentry/electron',
