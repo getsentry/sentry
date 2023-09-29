@@ -206,7 +206,7 @@ def _query_metrics_with_pagination(
     end_date: datetime,
     all_results: List[GroupsCountResponse],
     category: GroupCategory | None = None,
-) -> List[GroupsCountResponse]:
+):
     """
     Paginates Snuba metric queries for event counts for the
     given list of project ids and groups ids in a time range.
@@ -256,8 +256,6 @@ def _query_metrics_with_pagination(
                 "Generics Metrics Backend query results not the same as Errors dataset query.",
                 extra={"metrics_results": metrics_results, "dataset_results": all_results},
             )
-
-    return
 
 
 def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
