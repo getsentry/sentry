@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
@@ -209,10 +209,10 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def _get_condition(query: str) -> RuleCondition:
+def _get_condition(query: Optional[str]) -> RuleCondition:
     if not query:
         # True condition when query not specified
-        condition = {"op": "and", "inner": []}
+        condition: RuleCondition = {"op": "and", "inner": []}
     else:
         tokens = parse_search_query(query)
         converter = SearchQueryConverter(tokens)
