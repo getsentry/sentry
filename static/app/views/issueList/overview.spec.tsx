@@ -1,5 +1,8 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
+import {GroupStats} from 'sentry-fixture/groupStats';
+import {Search} from 'sentry-fixture/search';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -57,15 +60,14 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  const tags = TestStubs.Tags();
+  const tags = Tags();
   const group = TestStubs.Group({project});
-  const groupStats = TestStubs.GroupStats();
-  const savedSearch = TestStubs.Search({
+  const groupStats = GroupStats();
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
     name: 'Unresolved TypeErrors',
-    projectId: project.id,
   });
 
   let fetchTagsRequest: jest.Mock;
@@ -229,7 +231,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -267,7 +269,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -322,14 +324,13 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
             sort: 'priority',
-            projectId: null,
             type: 0,
           }),
         ],
@@ -364,13 +365,12 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
-            projectId: null,
             type: 0,
           }),
         ],
@@ -402,7 +402,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -463,7 +463,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Pinned search',
             isPinned: true,
@@ -563,7 +563,7 @@ describe('IssueList', function () {
     });
 
     it('unpins a custom query', async function () {
-      const pinnedSearch = TestStubs.Search({
+      const pinnedSearch = Search({
         id: '666',
         name: 'My Pinned Search',
         query: 'assigned:me level:fatal',
@@ -609,14 +609,13 @@ describe('IssueList', function () {
     });
 
     it('pins a saved query', async function () {
-      const assignedToMe = TestStubs.Search({
+      const assignedToMe = Search({
         id: '234',
         name: 'Assigned to Me',
         isPinned: false,
         isGlobal: true,
         query: 'assigned:me',
         sort: 'date',
-        projectId: null,
         type: 0,
       });
 

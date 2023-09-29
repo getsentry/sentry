@@ -2522,10 +2522,17 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         severity = _get_severity_score(event)
 
+        payload = {
+            "message": "NopeError: Nopey McNopeface",
+            "has_stacktrace": 0,
+            "log_level": "error",
+            "handled": 1,
+        }
+
         mock_urlopen.assert_called_with(
             "POST",
             "/issues/severity-score",
-            body='{"message":"NopeError: Nopey McNopeface"}',
+            body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
         )
         mock_logger_info.assert_called_with(
@@ -2533,7 +2540,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": payload,
             },
         )
         assert severity == 0.1231
@@ -2554,15 +2561,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(**case))
+            manager = EventManager(make_event(level="info", **case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
 
+            payload = {
+                "message": "Dogs are great!",
+                "has_stacktrace": 0,
+                "log_level": "info",
+                "handled": 1,
+            }
+
             mock_urlopen.assert_called_with(
                 "POST",
                 "/issues/severity-score",
-                body='{"message":"Dogs are great!"}',
+                body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
             mock_logger_info.assert_called_with(
@@ -2570,7 +2584,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
-                    "event_message": "Dogs are great!",
+                    "payload": payload,
                 },
             )
             assert severity == 0.1231
@@ -2595,7 +2609,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         _get_severity_score(event)
 
-        assert mock_urlopen.call_args.kwargs["body"] == '{"message":"Dogs are great!"}'
+        assert json.loads(mock_urlopen.call_args.kwargs["body"])["message"] == "Dogs are great!"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -2653,7 +2667,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": {
+                    "message": "NopeError: Nopey McNopeface",
+                    "has_stacktrace": 0,
+                    "log_level": "error",
+                    "handled": 1,
+                },
             },
         )
         assert severity is None
@@ -2680,7 +2699,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": {
+                    "message": "NopeError: Nopey McNopeface",
+                    "has_stacktrace": 0,
+                    "log_level": "error",
+                    "handled": 1,
+                },
             },
         )
         assert severity is None

@@ -40,15 +40,18 @@ ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
-MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
     # Ingested
-    SESSION = "c:sessions/session@none"
-    ERROR = "s:sessions/error@none"
-    USER = "s:sessions/user@none"
+    # Do *not* use these metrics in product queries. Use the derived metrics below instead.
+    # The raw metrics do not necessarily add up in intuitive ways. For example, `RAW_SESSION`
+    # double-counts crashed sessions.
+    RAW_SESSION = "c:sessions/session@none"
+    RAW_ERROR = "s:sessions/error@none"
+    RAW_USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
 
     # Derived

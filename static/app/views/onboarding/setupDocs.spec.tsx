@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = TestStubs.ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeys()[0];
 
 function renderMockRequests({
   project,
@@ -466,6 +468,50 @@ describe('Onboarding Setup Docs', function () {
           success: expect.any(Function),
         }
       );
+    });
+  });
+
+  describe('special platforms', () => {
+    it('renders platform other', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'other',
+            platform: 'other',
+          },
+        ],
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      render(
+        <OnboardingContextProvider>
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            search=""
+            recentCreatedProject={project}
+          />
+        </OnboardingContextProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure Other SDK'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -1,3 +1,6 @@
+import {Broadcast} from 'sentry-fixture/broadcast';
+import {ServiceIncident} from 'sentry-fixture/serviceIncident';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +14,7 @@ jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
   const {organization, router, routerContext} = initializeOrg();
-  const broadcast = TestStubs.Broadcast();
+  const broadcast = Broadcast();
   const user = TestStubs.User();
   const apiMocks: {
     broadcasts: jest.Mock;
@@ -244,7 +247,7 @@ describe('Sidebar', function () {
         .spyOn(incidentActions, 'loadIncidents')
         .mockImplementation((): Promise<SentryServiceStatus | null> => {
           return Promise.resolve({
-            incidents: [TestStubs.ServiceIncident()],
+            incidents: [ServiceIncident()],
             indicator: 'none',
             url: '',
           });

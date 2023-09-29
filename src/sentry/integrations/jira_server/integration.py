@@ -705,10 +705,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         project_id = params.get("project", defaults.get("project"))
         jira_projects = self.get_projects()
 
-        try_other_projects = False
+        try_other_projects = True
         if not project_id:
             project_id = jira_projects[0]["id"]
-            try_other_projects = True
 
         logger.info(
             "get_create_issue_config.start",

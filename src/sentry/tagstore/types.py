@@ -22,7 +22,7 @@ class TagType:
         return hash(tuple(getattr(self, name) for name in self.__slots__))
 
     def __eq__(self, other):
-        return type(self) == type(other) and all(
+        return type(self) is type(other) and all(
             getattr(self, name) == getattr(other, name) for name in self.__slots__
         )
 

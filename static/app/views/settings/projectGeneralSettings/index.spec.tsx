@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
 
 import {
   act,
@@ -35,7 +36,7 @@ describe('projectGeneralSettings', function () {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = TestStubs.GroupingConfigs();
+  const groupingConfigs = GroupingConfigs();
   let routerContext;
   let putMock;
 
@@ -62,7 +63,7 @@ describe('projectGeneralSettings', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/grouping-configs/',
+      url: `/organizations/${org.slug}/grouping-configs/`,
       method: 'GET',
       body: groupingConfigs,
     });
