@@ -248,15 +248,31 @@ Retrieve a collection of accessibility issues.
 
 **Attributes**
 
-| Column          | Type                   | Description                                        |
-| --------------- | ---------------------- | -------------------------------------------------- |
-| id              | string                 | -                                                  |
-| timestamp       | number                 | -                                                  |
-| impact          | Optional[enum[string]] | One of: 'minor', 'moderate', 'serious', 'critical' |
-| description     | string                 | -                                                  |
-| help_url        | string                 | -                                                  |
-| element         | string                 | The offending element's DOM selector.              |
-| failure_summary | string                 | -                                                  |
+Issue Type:
+
+| Column    | Type                   | Description                                         |
+| --------- | ---------------------- | --------------------------------------------------- |
+| elements  | array[IssueElement]    | Array of elements matching the accessibility issue. |
+| help      | string                 | -                                                   |
+| help_url  | string                 | -                                                   |
+| id        | string                 | -                                                   |
+| impact    | Optional[enum[string]] | One of: 'minor', 'moderate', 'serious', 'critical'  |
+| timestamp | number                 | -                                                   |
+
+IssueElement Type:
+
+| Column       | Type                           | Description                                         |
+| ------------ | ------------------------------ | --------------------------------------------------- |
+| alternatives | array[IssueElementAlternative] | Array of solutions which could solve the problem.   |
+| element      | string                         | Array of elements matching the accessibility issue. |
+| target       | array[string]                  | Array of elements matching the accessibility issue. |
+
+IssueElementAlternative Type:
+
+| Column  | Type   | Description                           |
+| ------- | ------ | ------------------------------------- |
+| id      | string | String ID of the accessibility issue. |
+| message | string | Message explaining the problem.       |
 
 - Response 200
 
@@ -266,15 +282,43 @@ Retrieve a collection of accessibility issues.
       "total": 1
     },
     "data": [
-      {
-        "id": "AHC203525",
-        "timestamp": 12518101816,
-        "impact": "serious",
-        "description": "This is a serious issue.",
-        "help_url": "https://sentry.io",
-        "element": "div > span > a.class",
-        "failure_summary": "You were missing something."
-      }
+      [
+        {
+          "elements": [
+            {
+              "alternatives": [
+                {
+                  "id": "button-has-visible-text",
+                  "message": "Element does not have inner text that is visible to screen readers"
+                },
+                {
+                  "id": "aria-label",
+                  "message": "aria-label attribute does not exist or is empty"
+                },
+                {
+                  "id": "aria-labelledby",
+                  "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+                },
+                {
+                  "id": "non-empty-title",
+                  "message": "Element has no title attribute"
+                },
+                {
+                  "id": "presentational-role",
+                  "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+                }
+              ],
+              "element": "<button class=\"svelte-19ke1iv\">",
+              "target": ["button:nth-child(1)"]
+            }
+          ],
+          "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
+          "help": "Buttons must have discernible text",
+          "id": "button-name",
+          "impact": "critical",
+          "timestamp": 1695967678108
+        }
+      ]
     ]
   }
   ```
