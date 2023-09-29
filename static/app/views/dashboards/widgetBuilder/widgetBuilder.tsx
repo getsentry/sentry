@@ -58,6 +58,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
@@ -770,6 +771,10 @@ function WidgetBuilder({
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
 
+    if (widgetData.thresholds && !hasThresholdMaxValue(widgetData.thresholds)) {
+      widgetData.thresholds = null;
+    }
+
     if (widgetToBeUpdated) {
       widgetData.layout = widgetToBeUpdated?.layout;
     }
@@ -1209,6 +1214,7 @@ function WidgetBuilder({
                                     thresholdsConfig={state.thresholds ?? null}
                                     dataType={state.dataType}
                                     dataUnit={state.dataUnit}
+                                    errors={state.errors?.thresholds}
                                   />
                                 )}
                             </BuildSteps>

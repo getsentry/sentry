@@ -125,7 +125,7 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
   return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
-function inMilliseconds(value: number, unit: string, dataType: string): number {
+function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
@@ -145,14 +145,14 @@ export function getWidgetIndicatorColor(
   const dataType = tableMeta[field];
   const dataUnit = tableMeta.units?.[field];
   const data = Number(tableData[0].data[0][field]);
-  const normalizedData = dataUnit ? inMilliseconds(data, dataUnit, dataType) : data;
+  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
 
   const {max_values} = thresholds;
 
   const greenMax = max_values[ThresholdMaxKeys.MAX_1];
   const normalizedGreenMax =
     thresholds.unit && greenMax
-      ? inMilliseconds(greenMax, thresholds.unit, dataType)
+      ? normalizeUnit(greenMax, thresholds.unit, dataType)
       : greenMax;
   if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
     return theme.green300;
@@ -161,7 +161,7 @@ export function getWidgetIndicatorColor(
   const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
   const normalizedYellowMax =
     thresholds.unit && yellowMax
-      ? inMilliseconds(yellowMax, thresholds.unit, dataType)
+      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
       : yellowMax;
   if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
     return theme.yellow300;

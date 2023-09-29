@@ -11,7 +11,12 @@ import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 
 import {BuildStep} from '../buildStep';
 
+type ThresholdErrors = {
+  [K in ThresholdMaxKeys]?: string;
+};
+
 type ThresholdsStepProps = {
+  errors: ThresholdErrors;
   onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
   onUnitChange: (unit: string) => void;
   thresholdsConfig: ThresholdsConfig | null;
@@ -31,8 +36,8 @@ type ThresholdRowProp = {
 };
 
 export enum ThresholdMaxKeys {
-  MAX_1 = 'max_1',
-  MAX_2 = 'max_2',
+  MAX_1 = 'max1',
+  MAX_2 = 'max2',
 }
 
 type ThresholdMaxValues = {
@@ -65,9 +70,9 @@ function ThresholdRow({
   return (
     <ThresholdRowWrapper>
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
-      <NumberField {...minInputProps} inline={false} disabled />
+      <StyledNumberField {...minInputProps} inline={false} disabled />
       {t('to')}
-      <NumberField onChange={handleChange} {...maxInputProps} inline={false} />
+      <StyledNumberField onChange={handleChange} {...maxInputProps} inline={false} />
       {unitOptions.length > 0 && (
         <StyledSelectField
           {...unitSelectProps}
@@ -84,6 +89,7 @@ function ThresholdsStep({
   thresholdsConfig,
   onThresholdChange,
   onUnitChange,
+  errors,
   dataType = '',
   dataUnit = '',
 }: ThresholdsStepProps) {
@@ -93,6 +99,70 @@ function ThresholdsStep({
   const unitOptions = ['duration', 'rate'].includes(dataType)
     ? getThresholdUnitSelectOptions(dataType)
     : [];
+
+  const thresholdRowProps: ThresholdRowProp[] = [
+    {
+      maxKey: ThresholdMaxKeys.MAX_1,
+      minInputProps: {
+        name: 'firstMinimum',
+        value: 0,
+        'aria-label': 'First Minimum',
+      },
+      maxInputProps: {
+        name: 'firstMaximum',
+        value: maxOneValue,
+        'aria-label': 'First Maximum',
+        error: errors?.max1,
+      },
+      color: theme.green300,
+      unitOptions,
+      unitSelectProps: {
+        name: 'First unit select',
+        value: unit,
+      },
+    },
+    {
+      maxKey: ThresholdMaxKeys.MAX_2,
+      minInputProps: {
+        name: 'secondMinimum',
+        value: maxOneValue,
+        'aria-label': 'Second Minimum',
+      },
+      maxInputProps: {
+        name: 'secondMaximum',
+        value: maxTwoValue,
+        'aria-label': 'Second Maximum',
+        error: errors?.max2,
+      },
+      color: theme.yellow300,
+      unitOptions,
+      unitSelectProps: {
+        name: 'Second unit select',
+        value: unit,
+        disabled: true,
+      },
+    },
+    {
+      minInputProps: {
+        name: 'thirdMinimum',
+        value: maxTwoValue,
+        'aria-label': 'Third Minimum',
+      },
+      maxInputProps: {
+        name: 'thirdMaximum',
+        disabled: true,
+        placeholder: t('No max'),
+        'aria-label': 'Third Maximum',
+      },
+      color: theme.red300,
+      unitOptions,
+      unitSelectProps: {
+        name: 'Third unit select',
+        value: unit,
+        disabled: true,
+      },
+    },
+  ];
 
   return (
     <BuildStep
@@ -108,68 +178,14 @@ function ThresholdsStep({
       )}
     >
       <ThresholdsContainer>
-        <ThresholdRow
-          maxKey={ThresholdMaxKeys.MAX_1}
-          minInputProps={{
-            name: 'firstMinimum',
-            value: 0,
-            'aria-label': 'First Minimum',
-          }}
-          maxInputProps={{
-            name: 'firstMaximum',
-            value: maxOneValue,
-            'aria-label': 'First Maximum',
-          }}
-          color={theme.green300}
-          onThresholdChange={onThresholdChange}
-          onUnitChange={onUnitChange}
-          unitOptions={unitOptions}
-          unitSelectProps={{
-            name: 'First unit select',
-            value: unit,
-          }}
-        />
-        <ThresholdRow
-          maxKey={ThresholdMaxKeys.MAX_2}
-          minInputProps={{
-            name: 'secondMinimum',
-            value: maxOneValue,
-            'aria-label': 'Second Minimum',
-          }}
-          maxInputProps={{
-            name: 'secondMaximum',
-            value: maxTwoValue,
-            'aria-label': 'Second Maximum',
-          }}
-          color={theme.yellow300}
-          onThresholdChange={onThresholdChange}
-          unitOptions={unitOptions}
-          unitSelectProps={{
-            name: 'Second unit select',
-            value: unit,
-            disabled: true,
-          }}
-        />
-        <ThresholdRow
-          minInputProps={{
-            name: 'thirdMinimum',
-            value: maxTwoValue,
-            'aria-label': 'Third Minimum',
-          }}
-          maxInputProps={{
-            name: 'thirdMaximum',
-            disabled: true,
-            placeholder: t('No max'),
-            'aria-label': 'Third Maximum',
-          }}
-          color={theme.red300}
-          unitOptions={unitOptions}
-          unitSelectProps={{
-            name: 'Third unit select',
-            value: unit,
-            disabled: true,
-          }}
-        />
+        {thresholdRowProps.map((props, index) => (
+          <ThresholdRow
+            {...props}
+            onThresholdChange={onThresholdChange}
+            onUnitChange={onUnitChange}
+            key={index}
+          />
+        ))}
       </ThresholdsContainer>
     </BuildStep>
   );
@@ -191,6 +207,10 @@ const ThresholdsContainer = styled('div')`
     padding: 0;
     border-bottom: none;
   }
+`;
+
+const StyledNumberField = styled(NumberField)`
+  width: 200px;
 `;
 
 const StyledSelectField = styled(SelectField)`
