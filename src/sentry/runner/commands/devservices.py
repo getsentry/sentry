@@ -275,10 +275,11 @@ def up(
                     )
                 )
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to start service: {e}", err=True, fg="red")
-                    raise e
+                    raise
 
     # Check health of services. Seperate from _start_services
     # in case there are dependencies needed for the health
@@ -294,10 +295,11 @@ def up(
                 )
             )
         for future in as_completed(futures):
-            e = future.exception()
-            if e:
+            try:
+                future.result()
+            except Exception as e:
                 click.secho(f"> Failed to check health: {e}", err=True, fg="red")
-                raise e
+                raise
 
 
 def _prepare_containers(
@@ -464,10 +466,11 @@ def down(project: str, service: list[str]) -> None:
             for container in containers:
                 futures.append(executor.submit(_down, container))
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
-                    raise e
+                    raise
 
 
 @devservices.command()
