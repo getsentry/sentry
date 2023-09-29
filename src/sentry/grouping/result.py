@@ -34,7 +34,9 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 # To get around this, we truncate the tree label down to some arbitrary
 # number of functions. This does not apply to the grouping breakdown, as in
 # grouping_level_new_issues endpoint we populate the tree labels not through
-# this function at all.
+# this function at all. EDIT: This endpoint is no longer, nor is the FE it
+# powered. Does the "grouping breakdown" exist anywhere else, or can this part
+# of the comment go away?
 #
 # The reason we do this on the backend instead of the frontend's title
 # component is because JIRA/Slack/Email titles suffer from the same issue:

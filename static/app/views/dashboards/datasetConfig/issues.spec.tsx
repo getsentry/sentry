@@ -1,4 +1,6 @@
-import {ResolutionStatus} from 'sentry/types';
+import {GlobalSelection} from 'sentry-fixture/globalSelection';
+
+import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -12,7 +14,7 @@ describe('transformIssuesResponseToTable', function () {
             project: TestStubs.Project({
               id: '3',
             }),
-            status: ResolutionStatus.UNRESOLVED,
+            status: GroupStatus.UNRESOLVED,
             owners: [
               {
                 type: 'ownershipRule',
@@ -35,7 +37,7 @@ describe('transformIssuesResponseToTable', function () {
           orderby: '',
         },
         TestStubs.Organization(),
-        TestStubs.GlobalSelection()
+        GlobalSelection()
       )
     ).toEqual(
       expect.objectContaining({

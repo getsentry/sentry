@@ -1,3 +1,6 @@
+import {Commit} from 'sentry-fixture/commit';
+import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -107,7 +110,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
     const {rerender} = render(
@@ -124,7 +127,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -146,7 +149,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -163,7 +166,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -178,7 +181,7 @@ describe('Group > AssignedTo', () => {
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -188,13 +191,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = TestStubs.CommitAuthor({id: USER_2.id});
+    const author = CommitAuthor({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author})],
+            commits: [Commit({author})],
             author,
           },
         ],
@@ -213,7 +216,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -232,7 +235,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
         })

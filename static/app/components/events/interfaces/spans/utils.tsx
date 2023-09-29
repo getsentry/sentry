@@ -7,8 +7,15 @@ import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
+import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEntrySpans,
+  AggregateEventTransaction,
+  EntrySpans,
+  EntryType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
@@ -18,6 +25,7 @@ import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
 import {
+  AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
@@ -78,6 +86,52 @@ enum TimestampStatus {
   REVERSED = 1,
   EQUAL = 2,
 }
+
+export enum SpanSubTimingMark {
+  SPAN_START = 0,
+  SPAN_END = 1,
+  HTTP_REQUEST_START = 'http.request.request_start',
+  HTTP_RESPONSE_START = 'http.request.response_start',
+}
+
+export enum SpanSubTimingName {
+  WAIT_TIME = 'Wait Time',
+  REQUEST_TIME = 'Request Time',
+  RESPONSE_TIME = 'Response Time',
+}
+
+const HTTP_DATA_KEYS = [
+  'http.request.redirect_start',
+  'http.request.fetch_start',
+  'http.request.domain_lookup_start',
+  'http.request.domain_lookup_end',
+  'http.request.connect_start',
+  'http.request.secure_connection_start',
+  'http.request.connection_end',
+  'http.request.request_start',
+  'http.request.response_start',
+  'http.request.response_end',
+];
+const HIDDEN_DATA_KEYS = HTTP_DATA_KEYS;
+
+const TIMING_DATA_KEYS = [
+  SpanSubTimingMark.HTTP_REQUEST_START,
+  SpanSubTimingMark.HTTP_RESPONSE_START,
+];
+export const isSpanDataKeyTiming = (key: string) => {
+  return TIMING_DATA_KEYS.includes(key as SpanSubTimingMark);
+};
+export const isHiddenDataKey = (key: string) => {
+  return HIDDEN_DATA_KEYS.includes(key);
+};
+
+/**
+ * Affected spans (hatching when spans have errors) may only apply to a sub timing,
+ * as is the case for http overhead issues (only time before the request start matters)..
+ */
+export const shouldLimitAffectedToTiming = (timing: SubTimingInfo) => {
+  return timing.endMark === SpanSubTimingMark.HTTP_REQUEST_START; // Sub timing spanning between start and request start.
+};
 
 export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
   const startTimestamp: number = spanBounds.startTimestamp;
@@ -285,6 +339,98 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   return span.parent_span_id;
 }
 
+interface SubTimingDefinition {
+  colorLighten: number;
+  endMark: SpanSubTimingMark;
+  name: string;
+  startMark: SpanSubTimingMark;
+}
+
+export interface SubTimingInfo extends SubTimingDefinition {
+  color: string;
+  duration: number;
+  endTimestamp: number;
+  startTimestamp: number;
+}
+
+const SPAN_SUB_TIMINGS: Record<string, SubTimingDefinition[]> = {
+  'http.client': [
+    {
+      startMark: SpanSubTimingMark.SPAN_START,
+      endMark: SpanSubTimingMark.HTTP_REQUEST_START,
+      name: SpanSubTimingName.WAIT_TIME,
+      colorLighten: 0.5,
+    },
+    {
+      startMark: SpanSubTimingMark.HTTP_REQUEST_START,
+      endMark: SpanSubTimingMark.HTTP_RESPONSE_START,
+      name: SpanSubTimingName.REQUEST_TIME,
+      colorLighten: 0.25,
+    },
+    {
+      startMark: SpanSubTimingMark.HTTP_RESPONSE_START,
+      endMark: SpanSubTimingMark.SPAN_END,
+      name: SpanSubTimingName.RESPONSE_TIME,
+      colorLighten: 0,
+    },
+  ],
+};
+
+export function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) {
+  if (mark === SpanSubTimingMark.SPAN_START) {
+    return span.start_timestamp;
+  }
+  if (mark === SpanSubTimingMark.SPAN_END) {
+    return span.timestamp;
+  }
+
+  return (span as any).data?.[mark] as number | undefined;
+}
+
+export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | null {
+  if (span.type) {
+    return null; // narrow to RawSpanType
+  }
+  const op = getSpanOperation(span);
+  if (!op) {
+    return null;
+  }
+  const timingDefinitions = SPAN_SUB_TIMINGS[op];
+  if (!timingDefinitions) {
+    return null;
+  }
+
+  const timings: SubTimingInfo[] = [];
+  const spanStart = subTimingMarkToTime(span, SpanSubTimingMark.SPAN_START);
+  const spanEnd = subTimingMarkToTime(span, SpanSubTimingMark.SPAN_END);
+
+  const TEN_MS = 0.001;
+
+  for (const def of timingDefinitions) {
+    const start = subTimingMarkToTime(span, def.startMark);
+    const end = subTimingMarkToTime(span, def.endMark);
+    if (
+      !start ||
+      !end ||
+      !spanStart ||
+      !spanEnd ||
+      start < spanStart - TEN_MS ||
+      end > spanEnd + TEN_MS
+    ) {
+      return null;
+    }
+    timings.push({
+      ...def,
+      duration: end - start,
+      startTimestamp: start,
+      endTimestamp: end,
+      color: lightenBarColor(getSpanOperation(span), def.colorLighten),
+    });
+  }
+
+  return timings;
+}
+
 export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
   const label = span?.description ?? getSpanID(span);
 
@@ -302,17 +448,21 @@ export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<EventTransaction>
+  event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
-    return entry.type === EntryType.SPANS;
-  });
+export function parseTrace(
+  event: Readonly<EventTransaction | AggregateEventTransaction>
+): ParsedTraceType {
+  const spanEntry = event.entries.find(
+    (entry: EntrySpans | AggregateEntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
 
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -483,7 +633,9 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
+export function isEventFromBrowserJavaScriptSDK(
+  event: EventTransaction | AggregateEventTransaction
+): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -539,7 +691,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction | TraceFullDetailed,
+  event: EventTransaction | TraceFullDetailed | AggregateEventTransaction,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
   const startTimestamp =
@@ -811,10 +963,8 @@ export function getSpanGroupBounds(
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level'>[]
 ): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(
-    errors || [],
-    error => ERROR_LEVEL_WEIGHTS[error.level]
-  )?.level;
+  const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
+    ?.level;
 
   if (!highestErrorLevel) {
     return undefined;

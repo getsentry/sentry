@@ -1,25 +1,25 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
-from time import sleep, time
+from datetime import datetime, timezone
+from time import time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import msgpack
 import sentry_sdk
 from django.conf import settings
-from pytz import UTC
 from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
-from sentry.lang.javascript.processing import generate_scraping_config
-from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.profiles.java import deobfuscate_signature
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -45,6 +45,7 @@ class VroomTimeout(Exception):
     acks_late=True,
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
+    silo_mode=SiloMode.REGION,
 )
 def process_profile_task(
     profile: Optional[Profile] = None,
@@ -115,7 +116,8 @@ def process_profile_task(
     if not _push_profile_to_vroom(profile, project):
         return
 
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+    with metrics.timer("process_profile.track_outcome.accepted"):
+        _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -334,6 +336,10 @@ def symbolicate(
     )
 
 
+class SymbolicationTimeout(Exception):
+    pass
+
+
 @metrics.wraps("process_profile.symbolicate.request")
 def run_symbolicate(
     project: Project,
@@ -341,57 +347,55 @@ def run_symbolicate(
     modules: List[Any],
     stacktraces: List[Any],
 ) -> Tuple[List[Any], List[Any], bool]:
-    symbolicator = Symbolicator(SymbolicatorTaskKind(), project, profile["event_id"])
     symbolication_start_time = time()
 
-    while True:
-        try:
-            with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
-                response = symbolicate(
-                    symbolicator=symbolicator,
-                    profile=profile,
-                    stacktraces=stacktraces,
-                    modules=modules,
-                )
+    def on_symbolicator_request():
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
 
-                if not response:
-                    profile["symbolicator_error"] = {
-                        "type": EventError.NATIVE_INTERNAL_FAILURE,
-                    }
-                    return modules, stacktraces, False
-                elif response["status"] == "completed":
-                    return (
-                        response.get("modules", modules),
-                        response.get("stacktraces", stacktraces),
-                        True,
-                    )
-                elif response["status"] == "failed":
-                    profile["symbolicator_error"] = {
-                        "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
-                        "status": response.get("status"),
-                        "message": response.get("message"),
-                    }
-                    return modules, stacktraces, False
-                else:
-                    profile["symbolicator_error"] = {
-                        "status": response.get("status"),
-                        "type": EventError.NATIVE_INTERNAL_FAILURE,
-                    }
-                    return modules, stacktraces, False
-        except RetrySymbolication as e:
-            if (
-                time() - symbolication_start_time
-            ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-                metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
-                break
-            else:
-                sleep_time = (
-                    settings.SYMBOLICATOR_MAX_RETRY_AFTER
-                    if e.retry_after is None
-                    else min(e.retry_after, settings.SYMBOLICATOR_MAX_RETRY_AFTER)
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                stacktraces=stacktraces,
+                modules=modules,
+            )
+
+            if not response:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return modules, stacktraces, False
+            elif response["status"] == "completed":
+                return (
+                    response.get("modules", modules),
+                    response.get("stacktraces", stacktraces),
+                    True,
                 )
-                sleep(sleep_time)
-                continue
+            elif response["status"] == "failed":
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "status": response.get("status"),
+                    "message": response.get("message"),
+                }
+                return modules, stacktraces, False
+            else:
+                profile["symbolicator_error"] = {
+                    "status": response.get("status"),
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return modules, stacktraces, False
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
 
     # returns the unsymbolicated data to avoid errors later
     return modules, stacktraces, False
@@ -601,6 +605,10 @@ def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
+        # we still need to decode signatures
+        for m in profile["profile"]["methods"]:
+            if m.get("signature"):
+                m["signature"] = deobfuscate_signature(m["signature"])
         return
 
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
@@ -618,35 +626,52 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
+            method.setdefault("data", {})
+
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
-            method.setdefault("data", {})
-            if len(mapped) == 1:
-                new_frame = mapped[0]
-                method.update(
-                    {
-                        "class_name": new_frame.class_name,
-                        "name": new_frame.method,
-                        "source_file": new_frame.file,
-                        "source_line": new_frame.line,
-                    }
-                )
-                method["data"]["deobfuscation_status"] = "deobfuscated"
-            elif len(mapped) > 1:
+
+            if method.get("signature"):
+                method["signature"] = deobfuscate_signature(method["signature"], mapper)
+
+            if len(mapped) >= 1:
+                new_frame = mapped[-1]
+                method["class_name"] = new_frame.class_name
+                method["name"] = new_frame.method
+                method["data"] = {
+                    "deobfuscation_status": "deobfuscated"
+                    if method.get("signature", None)
+                    else "partial"
+                }
+
+                if new_frame.file:
+                    method["source_file"] = new_frame.file
+
+                if new_frame.line:
+                    method["source_line"] = new_frame.line
+
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
                     {
                         "class_name": new_frame.class_name,
+                        "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
                         "source_file": method["source_file"]
                         if bottom_class == new_frame.class_name
-                        else None,
+                        else "",
                         "source_line": new_frame.line,
-                        "data": {"deobfuscation_status": "deobfuscated"},
                     }
-                    for new_frame in mapped
+                    for new_frame in reversed(mapped)
                 ]
+
+                # vroom will only take into account frames in this list
+                # if it exists. since symbolic does not return a signature for
+                # the frame we deobfuscated, we update it to set
+                # the deobfuscated signature.
+                if len(method["inline_frames"]) > 0:
+                    method["inline_frames"][0]["data"] = method["data"]
+                    method["inline_frames"][0]["signature"] = method.get("signature", "")
             else:
                 mapped_class = mapper.remap_class(method["class_name"])
                 if mapped_class:
@@ -677,7 +702,7 @@ def _track_outcome(
         key_id=None,
         outcome=outcome,
         reason=reason,
-        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        timestamp=datetime.utcnow().replace(tzinfo=timezone.utc),
         event_id=event_id,
         category=DataCategory.PROFILE_INDEXED,
         quantity=1,
@@ -733,12 +758,10 @@ def process_js_stacktraces(
     stacktraces: List[Any],
     apply_source_context: bool = False,
 ) -> Any:
-    project = symbolicator.project
     return symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,
         release=profile.get("release"),
         dist=profile.get("dist"),
-        scraping_config=generate_scraping_config(project),
         apply_source_context=apply_source_context,
     )

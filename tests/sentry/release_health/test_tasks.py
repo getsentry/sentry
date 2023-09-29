@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from unittest import mock
 
@@ -6,17 +8,18 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
-from sentry.testutils import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 class BaseTestReleaseMonitor:
-    backend_class = None
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         super().setUp()

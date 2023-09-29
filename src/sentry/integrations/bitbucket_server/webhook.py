@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
@@ -13,6 +12,7 @@ from sentry.models import Commit, CommitAuthor, Integration, Organization, Repos
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
+from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -102,6 +102,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
+@region_silo_view
 class BitbucketServerWebhookEndpoint(View):
     _handlers = {"repo:refs_changed": PushEventWebhook}
 

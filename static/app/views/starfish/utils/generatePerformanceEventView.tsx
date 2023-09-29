@@ -122,7 +122,7 @@ function generateWebServiceSavedQuery(location: Location) {
     'transaction',
     'http.method',
     'tps()',
-    'p95(transaction.duration)',
+    'avg(transaction.duration)',
     'http_error_count()',
     'time_spent_percentage()',
     'sum(transaction.duration)',

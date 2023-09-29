@@ -6,11 +6,11 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -19,10 +19,9 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class GitlabRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path = f"{IntegrationControlMiddleware.integration_prefix}gitlab/webhook/"
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    path = f"{IntegrationClassification.integration_prefix}gitlab/webhook/"
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
         super().setUp()

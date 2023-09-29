@@ -359,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
             },
             devServer: false,
+            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -477,6 +477,13 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+    __dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
 if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
@@ -524,8 +531,6 @@ if (
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
@@ -567,7 +572,10 @@ if (
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = {
+        '/auth/**': controlSiloAddress,
+        '/account/**': controlSiloAddress,
         '/api/0/users/**': controlSiloAddress,
+        '/api/0/api-tokens/**': controlSiloAddress,
         '/api/0/sentry-apps/**': controlSiloAddress,
         '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
         '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
@@ -648,6 +656,8 @@ if (IS_UI_DEV_ONLY) {
       options: httpsOptions,
     },
     headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     static: {
@@ -667,6 +677,34 @@ if (IS_UI_DEV_ONLY) {
         router: ({hostname}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        context: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionname = req.path.match(regionPathPattern);
+          if (regionname) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
         },
       },
     ],

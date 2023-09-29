@@ -42,6 +42,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -63,6 +67,7 @@ import {
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
+  getWidgetIndicatorColor,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
@@ -87,6 +92,8 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import CircleIndicator from '../circleIndicator';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -115,7 +122,6 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
-const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
@@ -323,14 +329,6 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // World Map view should always have geo.country in the table chart
-  if (
-    widget.displayType === DisplayType.WORLD_MAP &&
-    !columns.includes(GEO_COUNTRY_CODE)
-  ) {
-    fields.unshift(GEO_COUNTRY_CODE);
-    columns.unshift(GEO_COUNTRY_CODE);
-  }
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
@@ -385,8 +383,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
-    modalTableSelection,
-    tableWidget.displayType
+    modalTableSelection
   );
 
   let columnOrder = decodeColumnOrder(
@@ -400,6 +397,12 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
@@ -407,7 +410,12 @@ function WidgetViewerModal(props: Props) {
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (
@@ -1000,8 +1008,23 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          organization.features.includes(
+                            'dashboard-widget-indicators'
+                          ) && (
+                            <CircleIndicator
+                              color={getWidgetIndicatorColor(
+                                widget.thresholds,
+                                tableData
+                              )}
+                              size={12}
+                            />
+                          )}
+                      </WidgetTitleRow>
                       {widget.description && (
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       )}
@@ -1028,7 +1051,7 @@ function WidgetViewerModal(props: Props) {
                           return null;
                         }}
                       </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1203,10 +1226,16 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

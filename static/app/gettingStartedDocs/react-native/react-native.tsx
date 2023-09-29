@@ -11,9 +11,7 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -28,7 +26,7 @@ export const steps = ({
       {
         language: 'bash',
         description: <div>{tct('Run [code:@sentry/wizard]:', {code: <code />})}</div>,
-        code: 'npx @sentry/wizard -s -i reactNative',
+        code: 'npx @sentry/wizard@latest -s -i reactNative',
         additionalInfo: (
           <Fragment>
             <p>

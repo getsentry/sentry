@@ -1,8 +1,7 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, OrderedDict, Set
 
-import pytz
 import sentry_sdk
 
 from sentry import features, quotas
@@ -18,7 +17,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_win
 from sentry.models import Organization, Project
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
+ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, RuleType.CUSTOM_RULE}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
@@ -37,7 +36,7 @@ def is_recently_added(model: Model) -> bool:
     like this one, the boosting will not happen.
     """
     if hasattr(model, "date_added"):
-        ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
+        ten_minutes_ago = datetime.now(tz=timezone.utc) - timedelta(
             minutes=NEW_MODEL_THRESHOLD_IN_MINUTES
         )
         return bool(model.date_added >= ten_minutes_ago)

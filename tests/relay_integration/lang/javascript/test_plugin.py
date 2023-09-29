@@ -1,14 +1,18 @@
 import os.path
 import zipfile
 from base64 import b64encode
+from datetime import timedelta
+from hashlib import sha1
 from io import BytesIO
-from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 import responses
-from django.utils.encoding import force_bytes
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.utils import timezone
 
+from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
 from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -19,10 +23,15 @@ from sentry.models import (
     ReleaseFile,
     SourceFileType,
 )
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.releasefile import update_artifact_index
-from sentry.testutils import RelayStoreHelper
+from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
 
 # IMPORTANT:
@@ -30,9 +39,12 @@ from sentry.utils import json
 # This test suite requires Symbolicator in order to run correctly.
 # Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
 #
-# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix` to `system.internal-url-prefix`
-# inside `process_with_symbolicator` fixture inside `src/sentry/utils/pytest/fixtures.py`,
-# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
+# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
+# to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
+# entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
@@ -55,10 +67,52 @@ def load_fixture(name):
         return fp.read()
 
 
-@pytest.mark.django_db(transaction=True)
+def make_compressed_zip_file(files):
+    def remove_and_return(dictionary, key):
+        dictionary.pop(key)
+        return dictionary
+
+    compressed = BytesIO(b"SYSB")
+    with zipfile.ZipFile(compressed, "a") as zip_file:
+        for file_path, info in files.items():
+            zip_file.writestr(file_path, bytes(info["content"]))
+
+        zip_file.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                    "files": {
+                        file_path: remove_and_return(info, "content")
+                        for file_path, info in files.items()
+                    }
+                }
+            ),
+        )
+    compressed.seek(0)
+
+    return compressed.getvalue()
+
+
+def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
+    blob1 = FileBlob.from_file(ContentFile(bundle_file))
+    total_checksum = sha1(bundle_file).hexdigest()
+
+    return assemble_artifacts(
+        org_id=project.organization.id,
+        project_ids=[project.id],
+        version=release,
+        dist=dist,
+        checksum=total_checksum,
+        chunks=[blob1.checksum],
+        upload_as_artifact_bundle=upload_as_artifact_bundle,
+    )
+
+
+@django_db_all(transaction=True)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
-    def initialize(self, default_projectkey, default_project):
+    def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
         self.project = default_project
         self.projectkey = default_projectkey
         self.organization = self.project.organization
@@ -66,9 +120,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # We disable scraping per-test when necessary.
         self.project.update_option("sentry:scrape_javascript", True)
 
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_without_device(self, process_with_symbolicator):
+    def test_adds_contexts_without_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -92,7 +150,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_device(self, process_with_symbolicator):
+    def test_adds_contexts_with_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -124,7 +182,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_ps4_device(self, process_with_symbolicator):
+    def test_adds_contexts_with_ps4_device(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -152,209 +210,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "brand": "Sony",
         }
 
-    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
-    def test_source_expansion(self, mock_fetch_by_url):
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/foo.js",
-                                    "filename": "foo.js",
-                                    "lineno": 4,
-                                    "colno": 0,
-                                },
-                                {
-                                    "abs_path": "http://example.com/foo.js",
-                                    "filename": "foo.js",
-                                    "lineno": 1,
-                                    "colno": 0,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
-        mock_fetch_by_url.return_value.encoding = None
-        mock_fetch_by_url.return_value.headers = {}
-
-        event = self.post_and_retrieve_event(data)
-
-        mock_fetch_by_url.assert_called_once_with("http://example.com/foo.js")
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert frame.pre_context == ["h", "e", "l"]
-        assert frame.context_line == "l"
-        assert frame.post_context == ["o", " ", "w", "o", "r"]
-
-        frame = frame_list[1]
-        assert not frame.pre_context
-        assert frame.context_line == "h"
-        assert frame.post_context == ["e", "l", "l", "o", " "]
-
-        # no source map means no raw_stacktrace
-        assert exception.values[0].raw_stacktrace is None
-
-    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
-    @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_by_url):
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/test.min.js",
-                                    "filename": "test.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
-
-        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
-        mock_fetch_by_url.return_value.encoding = None
-
-        event = self.post_and_retrieve_event(data)
-
-        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert not frame.pre_context
-        assert frame.context_line == 'console.log("hello, World!")'
-        assert not frame.post_context
-        assert frame.data["sourcemap"] == "http://example.com/test.min.js"
-
-    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
-    @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_invalid_base64_sourcemap_returns_an_error(
-        self, mock_discover_sourcemap, mock_fetch_by_url
-    ):
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/test.min.js",
-                                    "filename": "test.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
-
-        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
-        mock_fetch_by_url.return_value.encoding = None
-
-        event = self.post_and_retrieve_event(data)
-
-        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
-
-        assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "url": "<base64>",
-            "reason": "Invalid base64-encoded string: "
-            "number of data characters (1) cannot be 1 more than a multiple of 4",
-            "type": "js_invalid_source",
-        }
-
-    @patch("sentry.lang.javascript.processor.SmCache.from_bytes")
-    @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
-    @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_sourcemap_cache_is_constructed_only_once_if_an_error_is_raised(
-        self, mock_discover_sourcemap, mock_fetch_by_url, mock_from_bytes
-    ):
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/test.min.js",
-                                    "filename": "test.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                                {
-                                    "abs_path": "http://example.com/test.min.js",
-                                    "filename": "test.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                                {
-                                    "abs_path": "http://example.com/test.min.js",
-                                    "filename": "test.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
-
-        mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
-        mock_fetch_by_url.return_value.encoding = None
-
-        mock_from_bytes.side_effect = Exception()
-
-        self.post_and_retrieve_event(data)
-
-        mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
-        mock_from_bytes.assert_called_once()
-
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_message_translations(self, process_with_symbolicator):
+    def test_error_message_translations(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -392,7 +250,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_nonhandled_frames_inapp_normalization(self, process_with_symbolicator):
+    def test_nonhandled_frames_inapp_normalization(self):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -432,21 +290,20 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         exception = event.interfaces["exception"]
 
-        if process_with_symbolicator:
-            frame_list = exception.values[0].stacktrace.frames
-            assert not frame_list[0].in_app  # should be overwritten due to `native` abs_path
-            assert not frame_list[1].in_app  # should be overwritten due to `[native code]` abs_path
-            assert frame_list[2].in_app  # should not be touched and retain `in_app: true`
+        frame_list = exception.values[0].stacktrace.frames
+        assert not frame_list[0].in_app  # should be overwritten due to `native` abs_path
+        assert not frame_list[1].in_app  # should be overwritten due to `[native code]` abs_path
+        assert frame_list[2].in_app  # should not be touched and retain `in_app: true`
 
-            raw_frame_list = exception.values[0].raw_stacktrace.frames
-            # none of the raw frames should be altered
-            assert raw_frame_list[0].in_app
-            assert raw_frame_list[1].in_app
-            assert raw_frame_list[2].in_app
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        # none of the raw frames should be altered
+        assert raw_frame_list[0].in_app
+        assert raw_frame_list[1].in_app
+        assert raw_frame_list[2].in_app
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -509,23 +366,23 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
         ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
@@ -535,10 +392,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
             'divide(a,b){"use strict";try{return multip {snip}'
         )
-        if process_with_symbolicator:
-            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
-        else:
-            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
         assert raw_frame.lineno == 1
 
         # Since we couldn't expand source for the 2nd frame, both
@@ -550,7 +404,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_webpack(self, process_with_symbolicator):
+    def test_sourcemap_webpack(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -626,15 +480,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "    var data = {failed: true, value: 42};",
         ]
         assert first_frame.context_line == "    invoke(data);"
-        if process_with_symbolicator:
-            assert first_frame.post_context == [
-                "  }",
-                "",
-                "  return test;",
-                "})();",
-            ]
-        else:
-            assert first_frame.post_context == ["  }", "", "  return test;", "})();", ""]
+        assert first_frame.post_context == [
+            "  }",
+            "",
+            "  return test;",
+            "})();",
+        ]
 
         # The second frame should be identical to the first, except not in_app.
         second_frame = frame_list[1]
@@ -646,7 +497,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_embedded_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_embedded_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -705,27 +556,27 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
         ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_nofiles_source_expansion(self, process_with_symbolicator):
+    def test_sourcemap_nofiles_source_expansion(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -782,84 +633,16 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 1
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.abs_path == "app:///nofiles.js"
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_urlencoded_files(self, process_with_symbolicator):
-        if not process_with_symbolicator:
-            return
-        project = self.project
-        release = Release.objects.create(organization_id=project.organization_id, version="abc")
-        release.add_project(project)
-
-        for file, name in [
-            ("file.min.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js"),
-            ("file.wc.sourcemap.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js.map"),
-        ]:
-            with open(get_fixture_path(file), "rb") as f:
-                headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
-                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
-                file_obj.putfile(f)
-            ReleaseFile.objects.create(
-                name=name,
-                release_id=release.id,
-                organization_id=project.organization_id,
-                file=file_obj,
-            )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "app:///_next/static/chunks/pages/foo/%5Bbar%5D-1234.js",
-                                    "lineno": 1,
-                                    "colno": 79,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        assert len(frame_list) == 1
-        frame = frame_list[0]
-        assert frame.data["resolved_with"] == "release-old"
-        assert frame.data["symbolicated"]
-
-        assert frame.function == "multiply"
-        assert frame.filename == "file2.js"
-        assert frame.lineno == 3
-        assert frame.colno == 2
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_indexed_sourcemap_source_expansion(self, process_with_symbolicator):
+    def test_indexed_sourcemap_source_expansion(self):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -920,41 +703,28 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
 
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
         assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
-        if process_with_symbolicator:
-            assert raw_frame.post_context == [
-                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
-                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
-                "//# sourceMappingURL=indexed.sourcemap.js",
-            ]
-        else:
-            assert raw_frame.post_context == [
-                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
-                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
-                "//# sourceMappingURL=indexed.sourcemap.js",
-                "",
-            ]
+        assert raw_frame.post_context == [
+            'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+            "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
+            "//# sourceMappingURL=indexed.sourcemap.js",
+        ]
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -972,15 +742,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
             "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}"
         )
-        if process_with_symbolicator:
-            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
-        else:
-            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
+        assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
         assert raw_frame.lineno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_debug(self, process_with_symbolicator):
+    def test_expansion_via_debug(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1108,20 +875,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1134,7 +896,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_distribution_release_artifacts(self, process_with_symbolicator):
+    def test_expansion_via_distribution_release_artifacts(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1275,20 +1037,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1299,258 +1056,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    @responses.activate
-    def test_sourcemap_expansion_with_missing_source(self):
-        """
-        Tests a successful sourcemap expansion that points to source files
-        that are not found.
-        """
-        responses.add(
-            responses.GET,
-            "http://example.com/file.min.js",
-            body=load_fixture("file.min.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file.sourcemap.js",
-            body=load_fixture("file.sourcemap.js"),
-            content_type="application/json; charset=utf-8",
-        )
-        responses.add(responses.GET, "http://example.com/file1.js", body="Not Found", status=404)
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            # Add two frames.  We only want to see the
-                            # error once though.
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [
-            {"url": "http://example.com/file1.js", "type": "fetch_invalid_http_code", "value": 404}
-        ]
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-
-        # no context information ...
-        assert not frame.pre_context
-        assert not frame.context_line
-        assert not frame.post_context
-
-        # ... but line, column numbers are still correctly mapped
-        assert frame.lineno == 3
-        assert frame.colno == 9
-
-    @responses.activate
-    def test_failed_sourcemap_expansion(self):
-        """
-        Tests attempting to parse an indexed source map where each section has a "url"
-        property - this is unsupported and should fail.
-        """
-        responses.add(
-            responses.GET,
-            "http://example.com/unsupported.min.js",
-            body=load_fixture("unsupported.min.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-
-        responses.add(
-            responses.GET,
-            "http://example.com/unsupported.sourcemap.js",
-            body=load_fixture("unsupported.sourcemap.js"),
-            content_type="application/json; charset=utf-8",
-        )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/unsupported.min.js",
-                                    "filename": "indexed.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [
-            {"url": "http://example.com/unsupported.sourcemap.js", "type": "js_invalid_source"}
-        ]
-
-    def test_failed_sourcemap_expansion_data_url(self):
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "data:application/javascript,base46,asfasf",
-                                    "filename": "indexed.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [{"url": "<data url>", "type": "js_no_source"}]
-
-    @responses.activate
-    def test_failed_sourcemap_expansion_missing_location_entirely(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/indexed.min.js",
-            body="//# sourceMappingURL=indexed.sourcemap.js",
-        )
-        responses.add(responses.GET, "http://example.com/indexed.sourcemap.js", body="{}")
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/indexed.min.js",
-                                    "filename": "indexed.min.js",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                                {
-                                    "abs_path": "http://example.com/indexed.min.js",
-                                    "filename": "indexed.min.js",
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-    @responses.activate
-    def test_html_response_for_js(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/invalid_file1.js",
-            body="       <!DOCTYPE html><html><head></head><body></body></html>",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/invalid_file2.js",
-            body="<!doctype html><html><head></head><body></body></html>",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/valid_file.html",
-            body=(
-                "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
-            ),
-        )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/invalid_file1.js",
-                                    "filename": "invalid_file1.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                {
-                                    "abs_path": "http://example.com/invalid_file2.js",
-                                    "filename": "invalid_file2.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                {
-                                    "abs_path": "http://example.com/valid_file.html",
-                                    "filename": "valid_file.html",
-                                    "lineno": 1,
-                                    "colno": 1,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [
-            {"url": "http://example.com/invalid_file1.js", "type": "js_invalid_content"},
-            {"url": "http://example.com/invalid_file2.js", "type": "js_invalid_content"},
-        ]
-
-    def _test_expansion_via_release_archive(
-        self, link_sourcemaps: bool, process_with_symbolicator: bool
-    ):
+    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1634,20 +1140,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1660,21 +1161,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive(self, process_with_symbolicator):
-        self._test_expansion_via_release_archive(
-            link_sourcemaps=True, process_with_symbolicator=process_with_symbolicator
-        )
+    def test_expansion_via_release_archive(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=True)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive_no_sourcemap_link(self, process_with_symbolicator):
-        self._test_expansion_via_release_archive(
-            link_sourcemaps=False, process_with_symbolicator=process_with_symbolicator
-        )
+    def test_expansion_via_release_archive_no_sourcemap_link(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_node_processing(self, process_with_symbolicator):
+    def test_node_processing(self):
         project = self.project
         release = Release.objects.create(
             organization_id=project.organization_id, version="nodeabc123"
@@ -1816,6 +1313,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1891,6 +1391,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
+
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -1918,45 +1422,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert "errors" not in event.data
 
-    def test_expansion_with_allow_scraping_false(self):
-        project = self.project
-        project.organization.update_option("sentry:scrape_javascript", False)
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "1.0",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "type": "js_scraping_disabled",
-            "url": "http://example.com/file.min.js",
-        }
-
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id(self, process_with_symbolicator):
+    def test_expansion_with_debug_id(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2108,20 +1576,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "debug-id"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "debug-id"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "debug-id"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "debug-id"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2133,21 +1596,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
         frame = frame_list[2]
-        if process_with_symbolicator:
-            assert "resolved_with" not in frame.data
-            assert "symbolicated" not in frame.data
+        assert "resolved_with" not in frame.data
+        assert "symbolicated" not in frame.data
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(
-        self, process_with_symbolicator
-    ):
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -2274,48 +1731,34 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
-        if process_with_symbolicator:
-            assert "errors" not in event.data
+        assert "errors" not in event.data
 
-            exception = event.interfaces["exception"]
-            frame_list = exception.values[0].stacktrace.frames
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
 
-            frame = frame_list[0]
-            if process_with_symbolicator:
-                assert frame.data["resolved_with"] == "debug-id"
-                assert frame.data["symbolicated"]
-            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a + b; // fôo"
-            if process_with_symbolicator:
-                assert frame.post_context == ["}"]
-            else:
-                assert frame.post_context == ["}", ""]
+        frame = frame_list[0]
+        assert frame.data["resolved_with"] == "debug-id"
+        assert frame.data["symbolicated"]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}"]
 
-            frame = frame_list[1]
-            if process_with_symbolicator:
-                assert frame.data["resolved_with"] == "debug-id"
-                assert frame.data["symbolicated"]
-            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a * b;"
-            assert frame.post_context == [
-                "}",
-                "function divide(a, b) {",
-                '\t"use strict";',
-                "\ttry {",
-                "\t\treturn multiply(add(a, b), a, b) / c;",
-            ]
-        else:
-            assert len(event.data["errors"]) == 3
-            assert event.data["errors"][0] == {
-                "type": "js_missing_sources_content",
-                "source": "http://example.com/file.min.js",
-                "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
-            }
+        frame = frame_list[1]
+        assert frame.data["resolved_with"] == "debug-id"
+        assert frame.data["symbolicated"]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_malformed_sourcemap(self, process_with_symbolicator):
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -2445,22 +1888,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert len(event.data["errors"]) == 1
-
-        # NOTE: Its not obvious what data we want here yet.
-        if process_with_symbolicator:
-            assert event.data["errors"][0] == {
-                "type": "js_invalid_source",
-                "url": "http://example.com/file.malformed.sourcemap.js",
-            }
-        else:
-            assert event.data["errors"][0] == {
-                "type": "js_invalid_source",
-                "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
-            }
+        assert event.data["errors"][0] == {
+            "type": "js_invalid_source",
+            "symbolicator_type": "malformed_sourcemap",
+            "url": "http://example.com/file.malformed.sourcemap.js",
+        }
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_not_found(self, process_with_symbolicator):
+    def test_expansion_with_debug_id_not_found(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2560,10 +1996,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2579,14 +2012,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_x(self, process_with_symbolicator):
+    def test_expansion_with_release_dist_pair_x(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2719,20 +2149,15 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
         frame = frame_list[1]
-        if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release"
-            assert frame.data["symbolicated"]
+        assert frame.data["resolved_with"] == "release"
+        assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2746,16 +2171,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        if process_with_symbolicator:
-            assert frame.post_context == ["}"]
-        else:
-            assert frame.post_context == ["}", ""]
+        assert frame.post_context == ["}"]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(
-        self, process_with_symbolicator
-    ):
+    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2869,48 +2289,34 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
-        if process_with_symbolicator:
-            assert "errors" not in event.data
+        assert "errors" not in event.data
 
-            exception = event.interfaces["exception"]
-            frame_list = exception.values[0].stacktrace.frames
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
 
-            frame = frame_list[0]
-            if process_with_symbolicator:
-                assert frame.data["resolved_with"] == "release"
-                assert frame.data["symbolicated"]
-            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a + b; // fôo"
-            if process_with_symbolicator:
-                assert frame.post_context == ["}"]
-            else:
-                assert frame.post_context == ["}", ""]
+        frame = frame_list[0]
+        assert frame.data["resolved_with"] == "release"
+        assert frame.data["symbolicated"]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}"]
 
-            frame = frame_list[1]
-            if process_with_symbolicator:
-                assert frame.data["resolved_with"] == "release"
-                assert frame.data["symbolicated"]
-            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-            assert frame.context_line == "\treturn a * b;"
-            assert frame.post_context == [
-                "}",
-                "function divide(a, b) {",
-                '\t"use strict";',
-                "\ttry {",
-                "\t\treturn multiply(add(a, b), a, b) / c;",
-            ]
-        else:
-            assert len(event.data["errors"]) == 3
-            assert event.data["errors"][0] == {
-                "type": "js_missing_sources_content",
-                "source": "http://example.com/file.min.js",
-                "sourcemap": "http://example.com/file.sourcemap.js",
-            }
+        frame = frame_list[1]
+        assert frame.data["resolved_with"] == "release"
+        assert frame.data["symbolicated"]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_and_malformed_sourcemap(self, process_with_symbolicator):
+    def test_expansion_with_release_and_malformed_sourcemap(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -3026,5 +2432,97 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
             "type": "js_invalid_source",
+            "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    @with_feature("organizations:sourcemaps-bundle-flat-file-indexing")
+    @override_options(
+        {
+            "symbolicator.sourcemaps-bundle-index-sample-rate": 1.0,
+            "symbolicator.sourcemaps-bundle-index-refresh-sample-rate": 1.0,
+        }
+    )
+    def test_bundle_index(self):
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        file_a = make_compressed_zip_file(
+            {
+                "files/_/_/file.min.js": {
+                    "url": "~/file.min.js",
+                    "type": "minified_source",
+                    "content": load_fixture("file.min.js"),
+                    "headers": {
+                        "sourcemap": "file.sourcemap.js",
+                    },
+                },
+                "files/_/_/file.sourcemap.js": {
+                    "url": "~/file.sourcemap.js",
+                    "type": "source_map",
+                    "content": load_fixture("file.wc.sourcemap.js"),
+                },
+            },
+        )
+
+        upload_bundle(file_a, self.project, release.version)
+
+        # set the bundle date to something in the past so that it is being refreshed automatically
+        now = timezone.now()
+        ArtifactBundle.objects.filter(
+            organization_id=self.organization.id,
+        ).update(date_added=now - timedelta(days=45))
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.function == "add"
+        assert frame.filename == "file1.js"
+        assert frame.lineno == 3
+        assert frame.colno == 9
+
+        assert frame.data["resolved_with"] == "index"
+        assert frame.data["symbolicated"]
+
+        # explicitly trigger the task that is refreshing bundles, usually this
+        # happens on a schedule:
+        refresh_artifact_bundles_in_use()
+
+        artifact_bundles = ArtifactBundle.objects.filter(
+            organization_id=self.organization.id,
+        )
+
+        assert len(artifact_bundles) == 1
+        assert artifact_bundles[0].date_added >= now

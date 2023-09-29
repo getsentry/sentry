@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from threading import local
 
 import sentry_sdk
@@ -62,8 +64,10 @@ class NodeStorage(local, Service):
         "delete",
         "delete_multi",
         "get",
+        "get_bytes",
         "get_multi",
         "set",
+        "set_bytes",
         "set_subkeys",
         "cleanup",
         "validate",
@@ -112,11 +116,14 @@ class NodeStorage(local, Service):
         except StopIteration:
             return None
 
-    def _get_bytes(self, id):
+    def get_bytes(self, id):
         """
         >>> nodestore._get_bytes('key1')
         b'{"message": "hello world"}'
         """
+        return self._get_bytes(id)
+
+    def _get_bytes(self, id):
         raise NotImplementedError
 
     def get(self, id, subkey=None):
@@ -147,7 +154,7 @@ class NodeStorage(local, Service):
 
             return rv
 
-    def _get_bytes_multi(self, id_list):
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         """
         >>> nodestore._get_bytes_multi(['key1', 'key2')
         {
@@ -208,10 +215,13 @@ class NodeStorage(local, Service):
 
         return b"\n".join(lines)
 
+    def set_bytes(self, id, data, ttl=None):
+        """
+        >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")
+        """
+        return self._set_bytes(id, data, ttl)
+
     def _set_bytes(self, id, data, ttl=None):
-        """
-        >>> nodestore.set('key1', b"{'foo': 'bar'}")
-        """
         raise NotImplementedError
 
     def set(self, id, data, ttl=None):

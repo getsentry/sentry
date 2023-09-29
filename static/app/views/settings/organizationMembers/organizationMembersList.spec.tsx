@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {AuthProvider} from 'sentry-fixture/authProvider';
+import {Members} from 'sentry-fixture/members';
 
 import {
   render,
@@ -41,6 +43,13 @@ const roles = [
     allowed: true,
   },
 ];
+
+// const missingMembers = [
+//   {
+//     integration: 'github',
+//     users: TestStubs.MissingMembers(),
+//   },
+// ];
 
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
@@ -101,7 +110,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: [...TestStubs.Members(), member],
+      body: [...Members(), member],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${member.id}/`,
@@ -132,7 +141,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
-        ...TestStubs.AuthProvider(),
+        ...AuthProvider(),
         require_link: true,
       },
     });
@@ -145,6 +154,19 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      },
     });
     (browserHistory.push as jest.Mock).mockReset();
     OrganizationsStore.load([organization]);
@@ -566,4 +588,55 @@ describe('OrganizationMembersList', function () {
       );
     });
   });
+
+  // TODO(cathy): uncomment
+
+  // describe('inviteBanner', function () {
+  //   it('invites member from banner', async function () {
+  //     MockApiClient.addMockResponse({
+  //       url: '/organizations/org-slug/missing-members/',
+  //       method: 'GET',
+  //       body: missingMembers,
+  //     });
+
+  //     const newMember = TestStubs.Member({
+  //       id: '6',
+  //       email: 'hello@sentry.io',
+  //       teams: [],
+  //       teamRoles: [],
+  //       flags: {
+  //         'sso:linked': true,
+  //         'idp:provisioned': false,
+  //       },
+  //     });
+
+  //     MockApiClient.addMockResponse({
+  //       url: '/organizations/org-slug/members/?referrer=github_nudge_invite',
+  //       method: 'POST',
+  //       body: newMember,
+  //     });
+
+  //     const org = TestStubs.Organization({
+  //       features: ['integrations-gh-invite'],
+  //       githubNudgeInvite: true,
+  //     });
+
+  //     render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+  //       context: TestStubs.routerContext([{organization: org}]),
+  //     });
+
+  //     expect(
+  //       await screen.findByRole('heading', {
+  //         name: 'Bring your full GitHub team on board in Sentry',
+  //       })
+  //     ).toBeInTheDocument();
+  //     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
+  //     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+
+  //     const inviteButton = screen.queryAllByTestId('invite-missing-member')[0];
+  //     await userEvent.click(inviteButton);
+  //     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(4);
+  //     expect(screen.getByText('See all 4 missing members')).toBeInTheDocument();
+  //   });
+  // });
 });

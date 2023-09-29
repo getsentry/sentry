@@ -17,7 +17,7 @@ from sentry.api.endpoints.chunk import (
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -91,6 +91,14 @@ class ChunkUploadTest(APITestCase):
             self.url,
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             HTTP_USER_AGENT="sentry-cli/2.77.4",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.20.5",
             format="json",
         )
         assert response.data["url"] == self.url.lstrip(API_PREFIX)

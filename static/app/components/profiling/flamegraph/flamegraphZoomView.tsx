@@ -373,10 +373,34 @@ function FlamegraphZoomView({
     };
   }, [flamegraphCanvas, canvasPoolManager, dispatch, scheduler, flamegraphView]);
 
+  const previousKeyPress = useRef<{at: number; key: string | null}>({
+    key: null,
+    at: 0,
+  });
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       if (!flamegraphView) {
         return;
+      }
+
+      if (evt.key === 'Escape') {
+        if (highlightingAllOccurences) {
+          setHighlightingAllOccurences(false);
+          dispatch({type: 'set highlight all frames', payload: null});
+          canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+          previousKeyPress.current = {key: null, at: 0};
+          return;
+        }
+        // We'll keep 300ms as the threshold
+        if (
+          previousKeyPress.current.key === 'Escape' &&
+          previousKeyPress.current.at - performance.now() < 300
+        ) {
+          canvasPoolManager.dispatch('reset zoom', []);
+          previousKeyPress.current = {key: null, at: 0};
+        } else {
+          previousKeyPress.current = {key: evt.key, at: performance.now()};
+        }
       }
 
       if (evt.key === 'z' && evt.metaKey) {
@@ -438,6 +462,8 @@ function FlamegraphZoomView({
     };
   }, [
     canvasPoolManager,
+    setHighlightingAllOccurences,
+    highlightingAllOccurences,
     dispatch,
     nextState,
     previousState,

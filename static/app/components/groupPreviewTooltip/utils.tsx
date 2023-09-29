@@ -3,11 +3,11 @@ import {useCallback, useState} from 'react';
 import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
+  useDefaultIssueEvent,
 } from 'sentry/views/issueDetails/utils';
 
 const HOVERCARD_CONTENT_DELAY = 400;
@@ -44,20 +44,16 @@ export function usePreviewEvent<T = Event>({
   groupId: string;
   query?: string;
 }) {
-  const organization = useOrganization();
-  const hasMostHelpfulEventFeature = organization.features.includes(
-    'issue-details-most-helpful-event'
-  );
-  const eventType = hasMostHelpfulEventFeature ? 'helpful' : 'latest';
+  const defaultIssueEvent = useDefaultIssueEvent();
 
   // This query should match the one on group details so that the event will
   // be fully loaded already if you preview then click.
   const eventQuery = useApiQuery<T>(
     [
-      `/issues/${groupId}/events/${eventType}/`,
+      `/issues/${groupId}/events/${defaultIssueEvent}/`,
       {
         query: getGroupEventDetailsQueryData({
-          query: hasMostHelpfulEventFeature ? query : undefined,
+          query,
         }),
       },
     ],

@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
@@ -21,15 +20,83 @@ import {
   Project,
   User,
 } from 'sentry/types';
+import {isSemverRelease} from 'sentry/utils/formatters';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type Props = {
+interface AssignedMessageProps {
+  activity: GroupActivityAssigned;
+  author: React.ReactNode;
+}
+
+function AssignedMessage({activity, author}: AssignedMessageProps) {
+  const {data} = activity;
+  let assignee: string | User | undefined = undefined;
+  const {teams} = useTeamsById(
+    data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
+  );
+
+  if (data.assigneeType === 'team') {
+    const team = teams.find(({id}) => id === data.assignee);
+    // TODO: could show a loading indicator if the team is loading
+    assignee = team ? `#${team.slug}` : '<unknown-team>';
+  } else if (activity.user && data.assignee === activity.user.id) {
+    assignee = t('themselves');
+  } else if (data.assigneeType === 'user' && data.assigneeEmail) {
+    assignee = data.assigneeEmail;
+  } else {
+    assignee = t('an unknown user');
+  }
+
+  const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
+    data.integration as string
+  );
+
+  const integrationName: Record<
+    NonNullable<GroupActivityAssigned['data']['integration']>,
+    string
+  > = {
+    msteams: t('Microsoft Teams'),
+    slack: t('Slack'),
+    projectOwnership: t('Ownership Rule'),
+    codeowners: t('Codeowners Rule'),
+  };
+
+  return (
+    <Fragment>
+      <div>
+        {tct('[author] [action] this issue to [assignee]', {
+          action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
+          author,
+          assignee,
+        })}
+      </div>
+      {data.integration && (
+        <CodeWrapper>
+          {t('Assigned via %s', integrationName[data.integration])}
+          {data.rule && (
+            <Fragment>
+              : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
+            </Fragment>
+          )}
+        </CodeWrapper>
+      )}
+    </Fragment>
+  );
+}
+
+interface GroupActivityItemProps {
   activity: GroupActivity;
   author: React.ReactNode;
   organization: Organization;
   projectId: Project['id'];
-};
+}
 
-function GroupActivityItem({activity, organization, projectId, author}: Props) {
+function GroupActivityItem({
+  activity,
+  organization,
+  projectId,
+  author,
+}: GroupActivityItemProps) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
@@ -100,56 +167,6 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       author,
       action: ignoredOrArchived,
     });
-  }
-
-  function getAssignedMessage(data: GroupActivityAssigned['data']) {
-    let assignee: string | User | undefined = undefined;
-    if (data.assigneeType === 'team') {
-      const team = TeamStore.getById(data.assignee);
-      assignee = team ? `#${team.slug}` : '<unknown-team>';
-    } else if (activity.user && data.assignee === activity.user.id) {
-      assignee = t('themselves');
-    } else if (data.assigneeType === 'user' && data.assigneeEmail) {
-      assignee = data.assigneeEmail;
-    } else {
-      assignee = t('an unknown user');
-    }
-
-    const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
-      data.integration as string
-    );
-
-    const integrationName: Record<
-      NonNullable<GroupActivityAssigned['data']['integration']>,
-      string
-    > = {
-      msteams: t('Microsoft Teams'),
-      slack: t('Slack'),
-      projectOwnership: t('Ownership Rule'),
-      codeowners: t('Codeowners Rule'),
-    };
-
-    return (
-      <Fragment>
-        <div>
-          {tct('[author] [action] this issue to [assignee]', {
-            action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
-            author,
-            assignee,
-          })}
-        </div>
-        {data.integration && (
-          <CodeWrapper>
-            {t('Assigned via %s', integrationName[data.integration])}
-            {data.rule && (
-              <Fragment>
-                : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
-              </Fragment>
-            )}
-          </CodeWrapper>
-        )}
-      </Fragment>
-    );
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
@@ -233,28 +250,33 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        const {current_release_version, version} = activity.data;
-        if (current_release_version) {
+        // Resolved in the next release
+        if ('current_release_version' in activity.data) {
+          const currentVersion = activity.data.current_release_version;
           return tct(
-            '[author] marked this issue as resolved in releases greater than [version]',
+            '[author] marked this issue as resolved in releases greater than [version] [semver]',
             {
               author,
               version: (
                 <Version
-                  version={current_release_version}
+                  version={currentVersion}
                   projectId={projectId}
                   tooltipRawVersion
                 />
               ),
+              semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }
           );
         }
+
+        const version = activity.data.version;
         return version
-          ? tct('[author] marked this issue as resolved in [version]', {
+          ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
+              semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -366,14 +388,52 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         return tct('[author] made this issue private', {author});
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
-        return data.version
-          ? tct('[author] marked this issue as a regression in [version]', {
+        let subtext: React.ReactNode = null;
+        if (data.version && data.resolved_in_version && 'follows_semver' in data) {
+          subtext = (
+            <Subtext>
+              {tct(
+                '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
+                {
+                  regressionVersion: (
+                    <Version
+                      version={data.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  resolvedVersion: (
+                    <Version
+                      version={data.resolved_in_version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  comparison: data.follows_semver ? t('semver') : t('release date'),
+                }
+              )}
+            </Subtext>
+          );
+        }
+
+        return data.version ? (
+          <Fragment>
+            {tct('[author] marked this issue as a regression in [version]', {
               author,
               version: (
                 <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
-            })
-          : tct('[author] marked this issue as a regression', {author});
+            })}
+            {subtext}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {tct('[author] marked this issue as a regression', {
+              author,
+            })}
+            {subtext}
+          </Fragment>
+        );
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
@@ -424,8 +484,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       case GroupActivityType.FIRST_SEEN:
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
-        const {data} = activity;
-        return getAssignedMessage(data);
+        return <AssignedMessage activity={activity} author={author} />;
       }
       case GroupActivityType.UNASSIGNED:
         return tct('[author] unassigned this issue', {author});
@@ -479,6 +538,10 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
 }
 
 export default GroupActivityItem;
+
+const Subtext = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;

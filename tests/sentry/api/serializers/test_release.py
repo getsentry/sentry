@@ -24,7 +24,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 

@@ -11,7 +11,7 @@ import {Monitor, MonitorEnvironment} from '../types';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgId: string;
+  orgSlug: string;
 };
 
 function MonitorIssuesEmptyMessage() {
@@ -26,7 +26,7 @@ function MonitorIssuesEmptyMessage() {
   );
 }
 
-function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
+function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -43,8 +43,8 @@ function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
 
   return (
     <GroupList
-      orgId={orgId}
-      endpointPath={`/organizations/${orgId}/issues/`}
+      orgSlug={orgSlug}
+      endpointPath={`/organizations/${orgSlug}/issues/`}
       queryParams={{
         query: `monitor.slug:"${monitor.slug}" environment:[${monitorEnvs
           .map(e => e.name)

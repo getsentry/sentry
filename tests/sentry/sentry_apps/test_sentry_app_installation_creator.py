@@ -5,9 +5,9 @@ import responses
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
-from sentry.sentry_apps import SentryAppInstallationCreator
+from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -116,6 +116,7 @@ class TestCreator(TestCase):
 
         assert install.status == SentryAppInstallationStatus.INSTALLED
 
+    @responses.activate
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
         SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb",).run(

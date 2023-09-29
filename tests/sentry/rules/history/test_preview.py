@@ -4,7 +4,6 @@ from datetime import timedelta
 from typing import Any
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.issues.grouptype import (
     ErrorGroupType,
@@ -22,9 +21,8 @@ from sentry.rules.history.preview import (
     preview,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType

@@ -12,27 +12,18 @@ declare namespace Profiling {
     value: number;
   };
 
+  type Measurement = {
+    unit: string;
+    values: MeasurementValue[];
+  };
+
   type Measurements = {
-    cpu_usage?: {
-      unit: string;
-      values: MeasurementValue[];
-    }
-    memory_footprint?: {
-      unit: string;
-      values: MeasurementValue[];
-    };
-    frozen_frame_renders?: {
-      unit: string;
-      values: MeasurementValue[];
-    };
-    screen_frame_rates?: {
-      unit: string;
-      values: MeasurementValue[];
-    };
-    slow_frame_renders?: {
-      unit: string;
-      values: MeasurementValue[];
-    };
+    cpu_usage?: Measurement;
+    memory_footprint?: Measurement;
+    frozen_frame_renders?: Measurement;
+    screen_frame_rates?: Measurement;
+    slow_frame_renders?: Measurement;
+    [key: string]: Measurement;
   };
 
   type SentrySampledProfileSample = {
@@ -89,7 +80,7 @@ declare namespace Profiling {
     received: string;
     timestamp: string;
     release: Release | null;
-    platform: string;
+    platform: 'node' | 'javascript' | string;
     environment?: string;
     debug_meta?: {
       images: Image[];

@@ -3,30 +3,35 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from datetime import timezone
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import features, options
+from sentry import analytics, options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.plugins.providers.integration_repository import get_integration_repository_provider
+from sentry.plugins.providers.integration_repository import (
+    RepoExistsError,
+    get_integration_repository_provider,
+)
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -74,7 +79,7 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
-            logger.exception("Integration does not exist.")
+            metrics.incr("github.webhook.integration_does_not_exist")
             return
 
         if "repository" in event:
@@ -102,9 +107,23 @@ class Webhook:
                 }
 
                 for org in orgs.values():
-                    if features.has("organizations:auto-repo-linking", org):
-                        provider.create_repository(config, org)
-                        metrics.incr("github.webhook.create_repository")
+                    rpc_org = serialize_rpc_organization(org)
+
+                    try:
+                        _, repo = provider.create_repository(
+                            repo_config=config, organization=rpc_org
+                        )
+                    except RepoExistsError:
+                        metrics.incr("sentry.integration_repo_provider.repo_exists")
+                        continue
+
+                    analytics.record(
+                        "webhook.repository_created",
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        integration="github",
+                    )
+                    metrics.incr("github.webhook.repository_created")
 
                 repos = repos.all()
 
@@ -218,9 +237,7 @@ class PushEventWebhook(Webhook):
         host: str | None = None,
     ) -> None:
         authors = {}
-        client = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).get_client()
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         for commit in event["commits"]:
@@ -326,7 +343,8 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
-            author.preload_users()
+            if author:
+                author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
@@ -339,15 +357,24 @@ class PushEventWebhook(Webhook):
                     )
                     for fname in commit["added"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="A"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="A",
                         )
                     for fname in commit["removed"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="D"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="D",
                         )
                     for fname in commit["modified"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="M"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="M",
                         )
             except IntegrityError:
                 pass
@@ -534,6 +561,9 @@ class GitHubWebhookBase(Endpoint):
 
 @region_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     _handlers = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,

@@ -7,8 +7,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -77,55 +76,3 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
-
-
-@control_silo_test(stable=True)
-class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
-    method = "put"
-
-    def test_no_access_put_request(self):
-        self.get_error_response(
-            self.organization.slug, self.integration.id, **{"name": "Example Name"}, status_code=404
-        )
-
-    @with_feature("organizations:integrations-custom-scm")
-    def test_valid_put_request(self):
-        integration = Integration.objects.create(
-            provider="custom_scm", name="A Name", external_id="1232948573948579127"
-        )
-        integration.add_organization(self.organization, self.user)
-
-        self.get_success_response(
-            self.organization.slug,
-            integration.id,
-            **{"name": "New Name", "domain": "https://example.com/"},
-        )
-
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "New Name"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-    @with_feature("organizations:integrations-custom-scm")
-    def test_partial_updates(self):
-        integration = Integration.objects.create(
-            provider="custom_scm", name="A Name", external_id="1232948573948579127"
-        )
-        integration.add_organization(self.organization, self.user)
-
-        self.get_success_response(
-            self.organization.slug, integration.id, **{"domain": "https://example.com/"}
-        )
-
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "A Name"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-        self.get_success_response(self.organization.slug, integration.id, **{"name": "Newness"})
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "Newness"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-        self.get_success_response(self.organization.slug, integration.id, **{"domain": ""})
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "Newness"
-        assert updated.metadata["domain_name"] == ""

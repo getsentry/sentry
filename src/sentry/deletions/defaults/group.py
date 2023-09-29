@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import os
 from collections import defaultdict
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.rulefirehistory import RuleFireHistory
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -30,7 +33,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupEmailThread,
     models.GroupSubscription,
     models.GroupHistory,
-    models.RuleFireHistory,
+    RuleFireHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
@@ -95,7 +98,7 @@ class EventDataDeletionTask(BaseDeletionTask):
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        nodestore.delete_multi(node_ids)
+        nodestore.backend.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
@@ -126,7 +129,7 @@ class GroupDeletionTask(ModelDeletionTask):
         group_ids = [group.id for group in instance_list]
 
         # Remove child relations for all groups first.
-        child_relations = []
+        child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 

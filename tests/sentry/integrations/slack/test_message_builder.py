@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -19,12 +19,15 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 def build_test_message(
@@ -34,7 +37,7 @@ def build_test_message(
     group: Group,
     event: Event | None = None,
     link_to_event: bool = False,
-) -> Mapping[str, Any]:
+) -> dict[str, Any]:
     project = group.project
 
     title = group.title
@@ -102,7 +105,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         event = self.store_event(data={}, project_id=self.project.id)
 
-        assert SlackIssuesMessageBuilder(group, event).build() == build_test_message(
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group)
+        ).build() == build_test_message(
             teams={self.team},
             users={self.user},
             timestamp=event.datetime,
@@ -111,7 +116,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(
-            group, event, link_to_event=True
+            group, event.for_group(group), link_to_event=True
         ).build() == build_test_message(
             teams={self.team},
             users={self.user},
@@ -161,52 +166,60 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
-        assert (
-            SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()["actions"]
-            == []
-        )
+        ret = SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()
+        assert isinstance(ret, dict)
+        assert ret["actions"] == []
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
-        assert (
-            SlackIssuesMessageBuilder(
-                issue_alert_group, recipient=RpcActor.from_object(self.team)
-            ).build()["actions"]
-            != []
-        )
+        ret = SlackIssuesMessageBuilder(
+            issue_alert_group, recipient=RpcActor.from_object(self.team)
+        ).build()
+        assert isinstance(ret, dict)
+        assert ret["actions"] != []
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
-        assert SlackIssuesMessageBuilder(group_with_no_events).build()["color"] == "#E03E2F"
+        ret = SlackIssuesMessageBuilder(group_with_no_events).build()
+        assert isinstance(ret, dict)
+        assert ret["color"] == "#E03E2F"
 
     def test_build_group_attachment_color_unexpected_level_error_fallback(self):
         unexpected_level_event = self.store_event(
             data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
         )
-        assert SlackIssuesMessageBuilder(unexpected_level_event.group).build()["color"] == "#E03E2F"
+        assert unexpected_level_event.group is not None
+        ret = SlackIssuesMessageBuilder(unexpected_level_event.group).build()
+        assert isinstance(ret, dict)
+        assert ret["color"] == "#E03E2F"
 
     def test_build_group_attachment_color_warning(self):
         warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
-        assert SlackIssuesMessageBuilder(warning_event.group).build()["color"] == "#FFC227"
-        assert (
-            SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
-            == "#FFC227"
-        )
+        assert warning_event.group is not None
+        ret1 = SlackIssuesMessageBuilder(warning_event.group).build()
+        assert isinstance(ret1, dict)
+        assert ret1["color"] == "#FFC227"
+        ret2 = SlackIssuesMessageBuilder(
+            warning_event.group, warning_event.for_group(warning_event.group)
+        ).build()
+        assert isinstance(ret2, dict)
+        assert ret2["color"] == "#FFC227"
 
     def test_build_group_generic_issue_attachment(self):
         """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
         occurrence = self.build_occurrence(level="info")
         occurrence.save()
-        event.occurrence = occurrence
+        group_event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        group_event.group.type = ProfileFileIOGroupType.type_id
 
-        attachments = SlackIssuesMessageBuilder(group=event.group, event=event).build()
+        attachments = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
 
+        assert isinstance(attachments, dict)
         assert attachments["title"] == occurrence.issue_title
         assert attachments["text"] == occurrence.evidence_display[0].value
         assert attachments["fallback"] == f"[{self.project.slug}] {occurrence.issue_title}"
@@ -214,13 +227,16 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert event.group is not None
+        attachments = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
+        assert isinstance(attachments, dict)
         assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
 
     def test_build_performance_issue(self):
         event = self.create_performance_issue()
         with self.feature("organizations:performance-issues"):
             attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert isinstance(attachments, dict)
         assert attachments["title"] == "N+1 Query"
         assert (
             attachments["text"]
@@ -237,6 +253,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         attachments = SlackIssuesMessageBuilder(perf_group).build()
 
+        assert isinstance(attachments, dict)
         assert attachments["color"] == "#2788CE"  # blue for info level
 
     def test_escape_slack_message(self):
@@ -244,12 +261,43 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             project=self.project,
             data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
         )
+        ret = SlackIssuesMessageBuilder(group, None).build()
+        assert isinstance(ret, dict)
+        assert ret["text"] == "&lt;https://example.com/|*Click Here*&gt;"
+
+
+class BuildGroupAttachmentReplaysTest(TestCase):
+    @patch("sentry.models.group.Group.has_replays")
+    def test_build_replay_issue(self, has_replays):
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
+        ):
+            attachments = SlackIssuesMessageBuilder(
+                event.group, event.for_group(event.group)
+            ).build()
+        assert isinstance(attachments, dict)
         assert (
-            SlackIssuesMessageBuilder(group, None).build()["text"]
-            == "&lt;https://example.com/|*Click Here*&gt;"
+            attachments["text"]
+            == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
         )
 
 
+@region_silo_test(stable=True)
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -272,7 +320,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -312,7 +360,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
@@ -352,7 +400,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CLOSED, chart_url="chart-url"
@@ -372,6 +420,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
 
+@region_silo_test(stable=True)
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()

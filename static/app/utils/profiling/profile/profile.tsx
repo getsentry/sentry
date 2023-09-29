@@ -7,13 +7,15 @@ interface ProfileStats {
 }
 
 export class Profile {
+  // The epoch time at which this profile was started. All relative timestamp should be
+  // relative to this.
+  // Some older formats may not have a timestamp defined.
+  timestamp: number | null;
   // Duration of the profile
   duration: number;
-  // Started at ts of the profile - varies between implementations of the profiler.
-  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
+  // Releative timestamp of the first sample in the timestamp.
   startedAt: number;
-  // Ended at ts of the profile - varies between implementations of the profiler.
-  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
+  // Releative timestamp of the last sample in the timestamp.
   endedAt: number;
   threadId: number;
   type: string;
@@ -47,6 +49,7 @@ export class Profile {
     name,
     unit,
     threadId,
+    timestamp,
     type,
   }: {
     duration: number;
@@ -56,6 +59,7 @@ export class Profile {
     threadId: number;
     type: string;
     unit: string;
+    timestamp?: number;
   }) {
     this.threadId = threadId;
     this.duration = duration;
@@ -64,6 +68,7 @@ export class Profile {
     this.name = name;
     this.unit = unit;
     this.type = type ?? '';
+    this.timestamp = timestamp ?? null;
   }
 
   static Empty = new Profile({

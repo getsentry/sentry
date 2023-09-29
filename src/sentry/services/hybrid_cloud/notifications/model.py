@@ -3,7 +3,9 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import List, Optional, TypedDict
+from typing import List, Optional
+
+from typing_extensions import TypedDict
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -27,7 +29,7 @@ class RpcNotificationSetting(RpcModel):
     scope_type: NotificationScopeType = NotificationScopeType.USER
     scope_identifier: int = -1
     id: int = -1
-    target_id: int = -1
+    target_id: Optional[int] = None
     team_id: Optional[int] = None
     user_id: Optional[int] = None
     provider: ExternalProviders = ExternalProviders.EMAIL

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Generator
+from typing import Generator, Optional
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
@@ -14,7 +14,9 @@ class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
     @abc.abstractmethod
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         """
         Executed after a Rule matches.
 

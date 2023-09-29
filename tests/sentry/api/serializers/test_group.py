@@ -16,10 +16,13 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -148,6 +151,23 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["isSubscribed"]
         assert result["subscriptionDetails"] == {"reason": "unknown"}
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_subscribed_v2(self):
+        user = self.create_user()
+        group = self.create_group()
+
+        GroupSubscription.objects.create(
+            user_id=user.id, group=group, project=group.project, is_active=True
+        )
+
+        result = serialize(group, user)
+        assert result["isSubscribed"]
+        assert result["subscriptionDetails"] == {"reason": "unknown"}
+
+        group_2 = self.create_group()
+        result = serialize(group_2, user)
+        assert result["isSubscribed"]
 
     def test_explicit_unsubscribed(self):
         user = self.create_user()

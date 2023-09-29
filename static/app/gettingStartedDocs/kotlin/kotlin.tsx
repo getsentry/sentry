@@ -7,24 +7,29 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  "Sentry supports Kotlin for both JVM and [Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
-  {
-    gettingStartedWithAndroidLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/android/" />
-    ),
-    gettingStartedWithJavaLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/java/" />
-    ),
-    strong: <strong />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      "Sentry supports Kotlin for both JVM and [Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      {
+        gettingStartedWithAndroidLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/android/" />
+        ),
+        gettingStartedWithJavaLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/" />
+        ),
+        strong: <strong />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install the SDK via Gradle or Maven:'),
@@ -39,6 +44,7 @@ export const steps = ({
             })}
           </p>
         ),
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 // Make sure mavenCentral is there.
 repositories {
@@ -46,12 +52,17 @@ repositories {
 }
 
 dependencies {
-  implementation 'io.sentry:sentry:{{@inject packages.version('sentry.java', '4.0.0') }}'
+  implementation 'io.sentry:sentry:${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
+  }'
 }
         `,
       },
       {
         language: 'xml',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: (
           <p>
             {tct('For [strong:Maven], add to your [code:pom.xml] file:', {
@@ -64,7 +75,11 @@ dependencies {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.25.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
+  }</version>
 </dependency>
         `,
       },
@@ -171,8 +186,18 @@ throw e
 ];
 // Configuration End
 
-export function GettingStartedWithKotlin({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithKotlin({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithKotlin;

@@ -1,7 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models, router
+from django.db import models, router, transaction
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -19,10 +19,11 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
     UserEmail,
+    outbox_context,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import TestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
@@ -36,7 +37,6 @@ def _set_up_request():
     return request
 
 
-@control_silo_test(stable=True)
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -90,7 +90,7 @@ class AuthIdentityHandlerTest(TestCase):
         return user, auth_identity
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -99,7 +99,10 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         user = auth_identity.user
 
         assert user.email == self.email
-        org_member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
+                organization=self.organization, user_id=user.id
+            )
         self.assert_org_member_mapping(org_member=org_member)
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
@@ -121,9 +124,10 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         auth_identity = self.handler.handle_new_user()
 
-        assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=auth_identity.user_id
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            assigned_member = OrganizationMember.objects.get(
+                organization=self.organization, user_id=auth_identity.user_id
+            )
 
         assert assigned_member.id == member.id
 
@@ -136,15 +140,17 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         auth_identity = self.handler.handle_new_user()
 
-        org_member = OrganizationMember.objects.get(
-            organization=self.organization,
-            user_id=auth_identity.user_id,
-            invite_status=InviteStatus.APPROVED.value,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
+                organization=self.organization,
+                user_id=auth_identity.user_id,
+                invite_status=InviteStatus.APPROVED.value,
+            )
 
         self.assert_org_member_mapping(org_member=org_member)
         self.assert_org_member_mapping_not_exists(org_member=member)
-        assert not OrganizationMember.objects.filter(id=member.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_associate_pending_invite(self):
         # The org member invite should have a non matching email, but the
@@ -160,14 +166,15 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         auth_identity = self.handler.handle_new_user()
 
-        assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=auth_identity.user.id
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            assigned_member = OrganizationMember.objects.get(
+                organization=self.organization, user_id=auth_identity.user.id
+            )
 
         assert assigned_member.id == member.id
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.auth")
     def test_simple(self, mock_auth):
@@ -182,9 +189,10 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
         assert persisted_identity.data == self.identity["data"]
 
-        persisted_om = OrganizationMember.objects.get(
-            user_id=user.id, organization=self.organization
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            persisted_om = OrganizationMember.objects.get(
+                user_id=user.id, organization=self.organization
+            )
         assert getattr(persisted_om.flags, "sso:linked")
         assert not getattr(persisted_om.flags, "member-limit:restricted")
         assert not getattr(persisted_om.flags, "sso:invalid")
@@ -208,18 +216,20 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
             assert persisted_identity.data == self.identity["data"]
 
-            persisted_om = OrganizationMember.objects.get(
-                user_id=user.id, organization=self.organization
-            )
+            with assume_test_silo_mode(SiloMode.REGION):
+                persisted_om = OrganizationMember.objects.get(
+                    user_id=user.id, organization=self.organization
+                )
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
-            expected_rpc_org = serialize_rpc_organization(self.organization)
+            with assume_test_silo_mode(SiloMode.REGION):
+                expected_rpc_org = serialize_rpc_organization(self.organization)
             features_has.assert_any_call("organizations:invite-members", expected_rpc_org)
             self.assert_org_member_mapping(org_member=persisted_om)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity(self, mock_messages):
@@ -229,16 +239,13 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
-        self.assert_org_member_mapping(
-            org_member=OrganizationMember.objects.get(
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
                 user_id=request_user.id, organization=self.organization
             )
-        )
 
-        org_member = OrganizationMember.objects.get(
-            organization=self.organization,
-            user_id=self.user.id,
-        )
+        self.assert_org_member_mapping(org_member=org_member)
+
         self.assert_org_member_mapping(org_member=org_member)
 
         assert AuditLogEntry.objects.filter(
@@ -277,11 +284,14 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
-            existing_om = OrganizationMember.objects.create(
-                user_id=user.id,
-                organization=self.organization,
-            )
-            with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            with assume_test_silo_mode(SiloMode.REGION), outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMember))
+            ):
+                existing_om = OrganizationMember.objects.create(
+                    user_id=user.id,
+                    organization=self.organization,
+                )
+
                 existing_om.update(
                     flags=models.F("flags")
                     .bitor(OrganizationMember.flags["idp:provisioned"])
@@ -312,10 +322,11 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert returned_identity == existing_identity
         assert not mock_messages.add_message.called
 
-        org_member = OrganizationMember.objects.get(
-            organization=self.organization,
-            user_id=user.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
+                organization=self.organization,
+                user_id=user.id,
+            )
         self.assert_org_member_mapping(org_member=org_member)
 
     def _test_with_identity_belonging_to_another_user(self, request_user):
@@ -332,15 +343,18 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert returned_identity.user == request_user
         assert returned_identity.ident == self.identity["id"]
         assert returned_identity.data == self.identity["data"]
-        self.assert_org_member_mapping(
-            org_member=OrganizationMember.objects.get(
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
                 user_id=request_user.id, organization=self.organization
             )
-        )
 
-        persisted_om = OrganizationMember.objects.get(
-            user_id=other_user.id, organization=self.organization
-        )
+            persisted_om = OrganizationMember.objects.get(
+                user_id=other_user.id, organization=self.organization
+            )
+
+        self.assert_org_member_mapping(org_member=org_member)
+
         assert not getattr(persisted_om.flags, "sso:linked")
         assert getattr(persisted_om.flags, "sso:invalid")
         self.assert_org_member_mapping(org_member=persisted_om)
@@ -355,7 +369,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     def _test_simple(self, mock_render, expected_template):
         redirect = self.handler.handle_unknown_identity(self.state)
@@ -368,7 +382,8 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert request is self.request
         assert status == 200
 
-        expected_org = serialize_rpc_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.REGION):
+            expected_org = serialize_rpc_organization(self.organization)
 
         assert context["organization"] == expected_org
         assert context["identity"] == self.identity
@@ -429,7 +444,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     # TODO: More test cases for various values of request.POST.get("op")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthHelperTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -441,12 +456,13 @@ class AuthHelperTest(TestCase):
         self.request = _set_up_request()
         self.request.session["auth_key"] = self.auth_key
 
-    def _test_pipeline(self, flow):
+    def _test_pipeline(self, flow, referrer=None):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
             "provider_model_id": self.auth_provider_inst.id,
             "provider_key": None,
+            "referrer": referrer,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
@@ -455,6 +471,8 @@ class AuthHelperTest(TestCase):
         assert helper is not None
         helper.initialize()
         assert helper.is_valid()
+        assert helper.referrer == referrer
+        assert helper.flow == flow
 
         first_step = helper.current_step()
         assert first_step.status_code == 200
@@ -471,6 +489,11 @@ class AuthHelperTest(TestCase):
     @mock.patch("sentry.auth.helper.messages")
     def test_setup_provider(self, mock_messages):
         final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
+        assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_referrer_state(self, mock_messages):
+        final_step = self._test_pipeline(flow=AuthHelper.FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
 

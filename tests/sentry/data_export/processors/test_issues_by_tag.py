@@ -3,7 +3,7 @@ import pytest
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models import EventUser, Group, Project
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 

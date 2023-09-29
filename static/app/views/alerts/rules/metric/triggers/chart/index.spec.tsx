@@ -1,3 +1,5 @@
+import {EventsStats} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -9,14 +11,21 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
-  const eventStatsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
-    body: TestStubs.EventsStats(),
-  });
+  let eventStatsMock: jest.Func;
+  let eventCountsMock: jest.Func;
+  beforeEach(() => {
+    eventStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStats(),
+    });
 
-  const eventCountsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-meta/',
-    body: {count: 5},
+    eventCountsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+  });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   const api = new MockApiClient();
@@ -40,7 +49,7 @@ describe('Incident Rules Create', () => {
         resolveThreshold={null}
         thresholdType={AlertRuleThresholdType.BELOW}
         newAlertOrQuery
-        handleMEPAlertDataset={() => {}}
+        onDataLoaded={() => {}}
         isQueryValid
       />
     );

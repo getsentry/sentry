@@ -44,7 +44,7 @@ class ReplayActionsEventPayload(TypedDict):
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: List[bytes]
+    payload: List[int]
     project_id: int
     replay_id: str
     retention_days: int
@@ -92,7 +92,7 @@ def create_replay_actions_event(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": retention_days,
-        "payload": list(json.dumps(payload).encode()),  # type: ignore
+        "payload": list(json.dumps(payload).encode()),
     }
 
 
@@ -144,10 +144,15 @@ def get_user_actions(
                 is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
                     "a",
                     "button",
+                    "input",
                 )
-                timeout = payload["data"].get("timeafterclickms", 0)
+                timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
+                    "timeafterclickms", 0
+                )
                 if is_timeout_reason and is_target_tagname and timeout >= 7000:
-                    is_rage = payload["data"].get("clickcount", 0) >= 5
+                    is_rage = (
+                        payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
+                    ) >= 5
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)

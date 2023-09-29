@@ -6,6 +6,8 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
+import sentry_sdk
+
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.utils import metrics
@@ -50,22 +52,28 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Optional[Any] = None
     ) -> List[Type[GroupType]]:
-        released = [gt for gt in self.all() if gt.released]
-        feature_to_grouptype = {
-            gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-        }
-        batch_features = features.batch_has(
-            list(feature_to_grouptype.keys()), actor=actor, organization=organization
-        )
-        enabled = []
-        if batch_features:
-            feature_results = batch_features.get(f"organization:{organization.id}", {})
-            enabled = [
-                feature_to_grouptype[feature]
-                for feature, active in feature_results.items()
-                if active
-            ]
-        return released + enabled
+        with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
+            released = [gt for gt in self.all() if gt.released]
+            feature_to_grouptype = {
+                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+            }
+            batch_features = features.batch_has(
+                list(feature_to_grouptype.keys()), actor=actor, organization=organization
+            )
+            enabled = []
+            if batch_features:
+                feature_results = batch_features.get(f"organization:{organization.id}", {})
+                enabled = [
+                    feature_to_grouptype[feature]
+                    for feature, active in feature_results.items()
+                    if active
+                ]
+            span.set_tag("organization_id", organization.id)
+            span.set_tag("has_batch_features", batch_features is not None)
+            span.set_tag("released", released)
+            span.set_tag("enabled", enabled)
+            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            return released + enabled
 
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
@@ -205,6 +213,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -213,6 +222,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -221,6 +231,7 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -230,6 +241,7 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=15)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -238,6 +250,7 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -247,6 +260,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=5)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -255,6 +269,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -263,6 +278,7 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -272,6 +288,7 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -280,6 +297,7 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -288,6 +306,7 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_large_http_payload"
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -295,6 +314,26 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
+    noise_config = NoiseConfig(ignore_limit=20)
+    category = GroupCategory.PERFORMANCE.value
+
+
+# experimental
+@dataclass(frozen=True)
+class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1017
+    slug = "performance_duration_regression"
+    description = "Exp Duration Regression"
+    noise_config = NoiseConfig(ignore_limit=0)
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1018
+    slug = "performance_p95_duration_regression"
+    description = "Duration Regression"
+    noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
 
@@ -348,7 +387,32 @@ class ProfileRegexType(GroupType):
     slug = "profile_regex_main_thread"
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
-    release = True
+    released = True
+
+
+@dataclass(frozen=True)
+class ProfileFrameDropExperimentalType(GroupType):
+    type_id = 2008
+    slug = "profile_frame_drop_experimental"
+    description = "Frame Drop"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileFrameDropType(GroupType):
+    type_id = 2009
+    slug = "profile_frame_drop"
+    description = "Frame Drop"
+    category = GroupCategory.PERFORMANCE.value
+    noise_config = NoiseConfig(ignore_limit=25)
+
+
+@dataclass(frozen=True)
+class ProfileFunctionRegressionExperimentalType(GroupType):
+    type_id = 2010
+    slug = "profile_function_regression_exp"
+    description = "Function Duration Regression"
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)

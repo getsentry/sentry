@@ -7,10 +7,13 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
-from sentry.testutils import APITestCase
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class UserDetailsTest(APITestCase):
@@ -34,6 +37,7 @@ class UserDetailsGetTest(UserDetailsTest):
 
         assert resp.data["id"] == str(self.user.id)
         assert resp.data["options"]["theme"] == "light"
+        assert resp.data["options"]["defaultIssueEvent"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
@@ -77,6 +81,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             name="hello world",
             options={
                 "theme": "system",
+                "defaultIssueEvent": "latest",
                 "timezone": "UTC",
                 "stacktraceOrder": "2",
                 "language": "fr",
@@ -93,6 +98,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "a@example.com"
         assert user.username == "a@example.com"
         assert UserOption.objects.get_value(user=self.user, key="theme") == "system"
+        assert UserOption.objects.get_value(user=self.user, key="default_issue_event") == "latest"
         assert UserOption.objects.get_value(user=self.user, key="timezone") == "UTC"
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
@@ -259,6 +265,9 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_error_response(self.user.id, status_code=400)
         self.get_error_response(self.user.id, organizations=None, status_code=400)
 
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert DeletedOrganization.objects.count() == 0
+
         # test actual delete
         self.get_success_response(
             self.user.id,
@@ -270,23 +279,25 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             status_code=204,
         )
 
-        # deletes org_single_owner even though it wasn't specified in array
-        # because it has a single owner
-        assert (
-            Organization.objects.get(id=org_single_owner.id).status
-            == OrganizationStatus.PENDING_DELETION
-        )
-        # should delete org_with_other_owner, and org_as_other_owner
-        assert (
-            Organization.objects.get(id=org_with_other_owner.id).status
-            == OrganizationStatus.PENDING_DELETION
-        )
-        assert (
-            Organization.objects.get(id=org_as_other_owner.id).status
-            == OrganizationStatus.PENDING_DELETION
-        )
-        # should NOT delete `not_owned_org`
-        assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+        with assume_test_silo_mode(SiloMode.REGION):
+            # deletes org_single_owner even though it wasn't specified in array
+            # because it has a single owner
+            assert (
+                Organization.objects.get(id=org_single_owner.id).status
+                == OrganizationStatus.PENDING_DELETION
+            )
+            # should delete org_with_other_owner, and org_as_other_owner
+            assert (
+                Organization.objects.get(id=org_with_other_owner.id).status
+                == OrganizationStatus.PENDING_DELETION
+            )
+            assert (
+                Organization.objects.get(id=org_as_other_owner.id).status
+                == OrganizationStatus.PENDING_DELETION
+            )
+            # should NOT delete `not_owned_org`
+            assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+            assert DeletedOrganization.objects.count() == 3
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
@@ -301,30 +312,38 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.create_member(user=user2, organization=org_with_other_owner, role="owner")
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        member_records = list(
-            OrganizationMember.objects.filter(
-                organization__in=[org_with_other_owner.id, org_as_other_owner.id],
-                user_id=self.user.id,
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_records = list(
+                OrganizationMember.objects.filter(
+                    organization__in=[org_with_other_owner.id, org_as_other_owner.id],
+                    user_id=self.user.id,
+                )
             )
-        )
+            assert DeletedOrganization.objects.count() == 0
 
         for member in member_records:
             self.assert_org_member_mapping(org_member=member)
 
-        with outbox_runner():
+        with self.tasks(), outbox_runner():
             self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        # Assume monolith silo mode to ensure all tasks are run correctly
+        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+            schedule_hybrid_cloud_foreign_key_jobs()
 
         for member in member_records:
             self.assert_org_member_mapping_not_exists(org_member=member)
 
-        # deletes org_single_owner even though it wasn't specified in array
-        # because it has a single owner
-        assert (
-            Organization.objects.get(id=org_single_owner.id).status
-            == OrganizationStatus.PENDING_DELETION
-        )
-        # should NOT delete `not_owned_org`
-        assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+        with assume_test_silo_mode(SiloMode.REGION):
+            # deletes org_single_owner even though it wasn't specified in array
+            # because it has a single owner
+            assert (
+                Organization.objects.get(id=org_single_owner.id).status
+                == OrganizationStatus.PENDING_DELETION
+            )
+            # should NOT delete `not_owned_org`
+            assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+            assert DeletedOrganization.objects.count() == 1
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active

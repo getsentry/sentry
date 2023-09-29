@@ -3,9 +3,8 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;
@@ -29,7 +28,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
 }),
 `;
 
@@ -69,13 +68,16 @@ npm install --save @sentry/react
       {
         language: 'javascript',
         code: `
-        Sentry.init({
-          ${sentryInitContent}
-        });
+//...
+import * as Sentry from "@sentry/react";
 
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
+Sentry.init({
+  ${sentryInitContent}
+});
+
+const container = document.getElementById(“app”);
+const root = createRoot(container);
+root.render(<App />);
         `,
       },
     ],
@@ -93,7 +95,7 @@ npm install --save @sentry/react
       {
         language: 'javascript',
         code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,
       },
     ],
@@ -141,6 +143,7 @@ export function GettingStartedWithReact({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -184,6 +187,7 @@ export function GettingStartedWithReact({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

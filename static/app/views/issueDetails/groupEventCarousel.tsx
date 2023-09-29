@@ -1,24 +1,29 @@
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
   IconEllipsis,
-  IconNext,
-  IconOpen,
-  IconPrevious,
+  IconJson,
+  IconLink,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization} from 'sentry/types';
+import {Event, Group, IssueType, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -28,12 +33,15 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
 
@@ -41,6 +49,12 @@ type GroupEventCarouselProps = {
   event: Event;
   group: Group;
   projectSlug: string;
+};
+
+type GroupEventNavigationProps = {
+  event: Event;
+  group: Group;
+  isDisabled: boolean;
 };
 
 type EventNavigationButtonProps = {
@@ -52,19 +66,16 @@ type EventNavigationButtonProps = {
   eventId?: string | null;
 };
 
+enum EventNavDropdownOption {
+  RECOMMENDED = 'recommended',
+  LATEST = 'latest',
+  OLDEST = 'oldest',
+  CUSTOM = 'custom',
+  ALL = 'all',
+}
+
 const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
-
-const copyToClipboard = (value: string) => {
-  navigator.clipboard
-    .writeText(value)
-    .then(() => {
-      addSuccessMessage(t('Copied to clipboard'));
-    })
-    .catch(() => {
-      t('Error copying to clipboard');
-    });
-};
 
 const makeBaseEventsPath = ({
   organization,
@@ -106,25 +117,140 @@ function EventNavigationButton({
   );
 }
 
-export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigationProps) {
+  const location = useLocation();
+  const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
-  const location = useLocation();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const defaultIssueEvent = useDefaultIssueEvent();
+
+  if (!largeViewport) {
+    return null;
+  }
+
+  const getSelectedOption = () => {
+    switch (params.eventId) {
+      case EventNavDropdownOption.RECOMMENDED:
+      case EventNavDropdownOption.LATEST:
+      case EventNavDropdownOption.OLDEST:
+        return params.eventId;
+      case undefined:
+        return defaultIssueEvent;
+      default:
+        return undefined;
+    }
+  };
+
+  const selectedValue = getSelectedOption();
+  const eventNavDropdownOptions = [
+    {
+      value: EventNavDropdownOption.RECOMMENDED,
+      label: (
+        <div>
+          {t('Recommended')}
+          <FeatureBadge type="new" />
+        </div>
+      ),
+      textValue: t('Recommended'),
+      details: t('Event with the most context'),
+    },
+    {
+      value: EventNavDropdownOption.LATEST,
+      label: t('Latest'),
+      details: t('Last seen event in this issue'),
+    },
+    {
+      value: EventNavDropdownOption.OLDEST,
+      label: t('Oldest'),
+      details: t('First seen event in this issue'),
+    },
+    ...(!selectedValue
+      ? [
+          {
+            value: EventNavDropdownOption.CUSTOM,
+            label: t('Custom Selection'),
+          },
+        ]
+      : []),
+    {
+      options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
+    },
+  ];
+
+  return (
+    <GuideAnchor target="issue_details_default_event" position="bottom">
+      <CompactSelect
+        size="sm"
+        disabled={isDisabled}
+        options={eventNavDropdownOptions}
+        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+        triggerLabel={
+          !selectedValue ? (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
+        }
+        menuWidth={232}
+        onChange={selectedOption => {
+          trackAnalytics('issue_details.event_dropdown_option_selected', {
+            organization,
+            selected_event_type: selectedOption.value,
+            from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
+            event_id: event.id,
+            group_id: group.id,
+          });
+
+          switch (selectedOption.value) {
+            case EventNavDropdownOption.RECOMMENDED:
+            case EventNavDropdownOption.LATEST:
+            case EventNavDropdownOption.OLDEST:
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+                ),
+                query: {...location.query, referrer: `${selectedOption.value}-event`},
+              });
+              break;
+            case EventNavDropdownOption.ALL:
+              const searchTermWithoutQuery = omit(location.query, 'query');
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${group.id}/events/`
+                ),
+                query: searchTermWithoutQuery,
+              });
+              break;
+            default:
+              break;
+          }
+        }}
+      />
+    </GuideAnchor>
+  );
+}
+
+type GroupEventActionsProps = {
+  event: Event;
+  group: Group;
+  projectSlug: string;
+};
+
+export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
+  const theme = useTheme();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const organization = useOrganization();
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const isReplayEnabled = organization.features.includes('session-replay');
-  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
-  const isOverLatencyThreshold =
-    event.dateReceived &&
-    event.dateCreated &&
-    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
-
-  const hasPreviousEvent = defined(event.previousEventID);
-  const hasNextEvent = defined(event.nextEventID);
-
-  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
+  const isReplayEnabled =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(group.project);
+  const isDurationRegressionIssue =
+    group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
 
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
@@ -135,146 +261,205 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     });
   };
 
-  const copyLink = () => {
-    copyToClipboard(
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
       window.location.origin +
-        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
-    );
-    trackAnalytics('issue_details.copy_event_link_clicked', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyticsDataForEvent(event),
-    });
-  };
+      normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+      }),
+  });
+
+  const {onClick: copyEventDetailLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
+      window.location.origin +
+      normalizeUrl(
+        eventDetailsRoute({
+          eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+          orgSlug: organization.slug,
+        })
+      ),
+  });
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
+
+  return (
+    <Fragment>
+      <DropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          'aria-label': t('Event Actions Menu'),
+          icon: <IconEllipsis size="xs" />,
+          showChevron: false,
+          size: BUTTON_SIZE,
+        }}
+        items={[
+          {
+            key: 'copy-event-id',
+            label: t('Copy Event ID'),
+            onAction: copyEventId,
+          },
+          {
+            key: 'copy-event-url',
+            label: t('Copy Event Link'),
+            hidden: xlargeViewport,
+            onAction: isDurationRegressionIssue ? copyEventDetailLink : copyLink,
+          },
+          {
+            key: 'json',
+            label: `JSON (${formatBytesBase2(event.size)})`,
+            onAction: downloadJson,
+            hidden: xlargeViewport,
+          },
+          {
+            key: 'full-event-discover',
+            label: t('Full Event Details'),
+            hidden: !organization.features.includes('discover-basic'),
+            to: eventDetailsRoute({
+              eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+              orgSlug: organization.slug,
+            }),
+            onAction: () => {
+              trackAnalytics('issue_details.event_details_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+          {
+            key: 'replay',
+            label: t('View Replay'),
+            hidden: !hasReplay || !isReplayEnabled,
+            onAction: () => {
+              const breadcrumbsHeader = document.getElementById('replay');
+              if (breadcrumbsHeader) {
+                breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
+              }
+              trackAnalytics('issue_details.header_view_replay_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+        ]}
+      />
+      {xlargeViewport && !isDurationRegressionIssue && (
+        <Button
+          title={t('Copy link to this issue event')}
+          size={BUTTON_SIZE}
+          onClick={copyLink}
+          aria-label={t('Copy Link')}
+          icon={<IconLink />}
+        />
+      )}
+      {xlargeViewport && isDurationRegressionIssue && (
+        <Button
+          title={t('Copy link to this event')}
+          size={BUTTON_SIZE}
+          onClick={copyEventDetailLink}
+          aria-label={t('Copy Link')}
+          icon={<IconLink />}
+        />
+      )}
+      {xlargeViewport && (
+        <Button
+          title={t('View JSON')}
+          size={BUTTON_SIZE}
+          onClick={downloadJson}
+          aria-label={t('View JSON')}
+          icon={<IconJson />}
+        />
+      )}
+    </Fragment>
+  );
+}
+
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
+  const isOverLatencyThreshold =
+    event.dateReceived &&
+    event.dateCreated &&
+    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
+
+  const hasPreviousEvent = defined(event.previousEventID);
+  const hasNextEvent = defined(event.nextEventID);
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
 
   return (
     <CarouselAndButtonsWrapper>
-      <EventHeading>
-        <EventIdLabel>Event ID:</EventIdLabel>{' '}
-        <Button
-          aria-label={t('Copy')}
-          borderless
-          onClick={onClickCopy}
-          size="zero"
-          title={event.id}
-          tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-          translucentBorder
-        >
-          <EventId>
-            {getShortEventId(event.id)}
-            <CopyIconContainer>
-              <IconCopy size="xs" />
-            </CopyIconContainer>
-          </EventId>
-        </Button>{' '}
-        {(event.dateCreated ?? event.dateReceived) && (
-          <EventTimeLabel>
-            {getDynamicText({
-              fixed: 'Jan 1, 12:00 AM',
-              value: (
-                <Tooltip
-                  isHoverable
-                  showUnderline
-                  title={<EventCreatedTooltip event={event} />}
-                  overlayStyle={{maxWidth: 300}}
-                >
-                  <DateTime date={event.dateCreated ?? event.dateReceived} />
-                </Tooltip>
-              ),
-            })}
-            {isOverLatencyThreshold && (
-              <Tooltip title="High latency">
-                <StyledIconWarning size="xs" color="warningText" />
-              </Tooltip>
+      <div>
+        <EventHeading>
+          <EventIdAndTimeContainer>
+            <EventIdContainer>
+              <strong>Event ID:</strong>
+              <Button
+                aria-label={t('Copy')}
+                borderless
+                onClick={copyEventId}
+                size="zero"
+                title={event.id}
+                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
+                translucentBorder
+              >
+                <EventId>
+                  {getShortEventId(event.id)}
+                  <CopyIconContainer>
+                    <IconCopy size="xs" />
+                  </CopyIconContainer>
+                </EventId>
+              </Button>
+            </EventIdContainer>
+            {(event.dateCreated ?? event.dateReceived) && (
+              <EventTimeLabel>
+                {getDynamicText({
+                  fixed: 'Jan 1, 12:00 AM',
+                  value: (
+                    <Tooltip
+                      isHoverable
+                      showUnderline
+                      title={<EventCreatedTooltip event={event} />}
+                      overlayStyle={{maxWidth: 300}}
+                    >
+                      <DateTime date={event.dateCreated ?? event.dateReceived} />
+                    </Tooltip>
+                  ),
+                })}
+                {isOverLatencyThreshold && (
+                  <Tooltip title="High latency">
+                    <StyledIconWarning size="xs" color="warningText" />
+                  </Tooltip>
+                )}
+              </EventTimeLabel>
             )}
-          </EventTimeLabel>
-        )}
+          </EventIdAndTimeContainer>
+        </EventHeading>
         <QuickTrace event={event} organization={organization} location={location} />
-      </EventHeading>
+      </div>
       <ActionsWrapper>
-        <DropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            'aria-label': t('Event Actions Menu'),
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            size: BUTTON_SIZE,
-          }}
-          items={[
-            {
-              key: 'copy-event-id',
-              label: t('Copy Event ID'),
-              onAction: () => copyToClipboard(event.id),
-            },
-            {
-              key: 'copy-event-url',
-              label: t('Copy Event Link'),
-              hidden: xlargeViewport,
-              onAction: copyLink,
-            },
-            {
-              key: 'json',
-              label: `JSON (${formatBytesBase2(event.size)})`,
-              onAction: downloadJson,
-              hidden: largeViewport,
-            },
-            {
-              key: 'full-event-discover',
-              label: t('Full Event Details'),
-              hidden: !organization.features.includes('discover-basic'),
-              to: eventDetailsRoute({
-                eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-                orgSlug: organization.slug,
-              }),
-              onAction: () => {
-                trackAnalytics('issue_details.event_details_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-            {
-              key: 'replay',
-              label: t('View Replay'),
-              hidden: !hasReplay || !isReplayEnabled,
-              onAction: () => {
-                const breadcrumbsHeader = document.getElementById('breadcrumbs');
-                if (breadcrumbsHeader) {
-                  breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
-                }
-                trackAnalytics('issue_details.header_view_replay_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-          ]}
+        <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
+        <EventNavigationDropdown
+          isDisabled={!hasPreviousEvent && !hasNextEvent}
+          group={group}
+          event={event}
         />
-        {xlargeViewport && (
-          <Button size={BUTTON_SIZE} onClick={copyLink}>
-            Copy Link
-          </Button>
-        )}
-        {largeViewport && (
-          <Button
-            size={BUTTON_SIZE}
-            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
-            onClick={downloadJson}
-          >
-            JSON
-          </Button>
-        )}
         <NavButtons>
-          <EventNavigationButton
-            group={group}
-            icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
-            disabled={!hasPreviousEvent}
-            title={t('First Event')}
-            eventId="oldest"
-            referrer="oldest-event"
-          />
           <EventNavigationButton
             group={group}
             icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
@@ -291,14 +476,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             eventId={event.nextEventID}
             referrer="next-event"
           />
-          <EventNavigationButton
-            group={group}
-            icon={<IconNext size={BUTTON_ICON_SIZE} />}
-            disabled={!hasNextEvent}
-            title={t('Latest Event')}
-            eventId="latest"
-            referrer="latest-event"
-          />
         </NavButtons>
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>
@@ -314,6 +491,10 @@ const CarouselAndButtonsWrapper = styled('div')`
 `;
 
 const EventHeading = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
 
   @media (max-width: 600px) {
@@ -355,8 +536,18 @@ const NavButtons = styled('div')`
   }
 `;
 
-const EventIdLabel = styled('span')`
-  font-weight: bold;
+const EventIdAndTimeContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  column-gap: ${space(0.75)};
+  row-gap: 0;
+  flex-wrap: wrap;
+`;
+
+const EventIdContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  column-gap: ${space(0.25)};
 `;
 
 const EventTimeLabel = styled('span')`
@@ -377,6 +568,9 @@ const EventId = styled('span')`
     > span {
       display: flex;
     }
+  }
+  @media (max-width: 600px) {
+    font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
 

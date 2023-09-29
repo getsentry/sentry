@@ -4,12 +4,12 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from django.utils.encoding import force_str
-from freezegun import freeze_time
 
 from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
@@ -102,7 +102,7 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
-    @pytest.mark.django_db
+    @django_db_all
     @freeze_time()
     def test_group_cache_updated(self, default_group, task_runner):
         # Make sure group is stored in the cache and keep track of times_seen at the time
@@ -141,8 +141,8 @@ class TestRedisBuffer:
         key = self.buf._make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall(key)
-        # Force keys to strings
-        result = {force_str(k): v for k, v in result.items()}
+        if not self.buf.is_redis_cluster:
+            result = {k.decode(): v for k, v in result.items()}
 
         f = result.pop("f")
         if self.buf.is_redis_cluster:
@@ -171,8 +171,8 @@ class TestRedisBuffer:
             assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall(key)
-        # Force keys to strings
-        result = {force_str(k): v for k, v in result.items()}
+        if not self.buf.is_redis_cluster:
+            result = {k.decode(): v for k, v in result.items()}
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now

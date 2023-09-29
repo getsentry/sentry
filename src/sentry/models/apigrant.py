@@ -1,11 +1,12 @@
+import secrets
 from datetime import timedelta
 from typing import TypedDict
-from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
 
 from bitfield import typed_dict_bitfield
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, FlexibleForeignKey, Model, control_silo_only_model
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -16,7 +17,7 @@ def default_expiration():
 
 
 def generate_code():
-    return uuid4().hex
+    return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
 @control_silo_only_model
@@ -27,7 +28,7 @@ class ApiGrant(Model):
     of the OAuth 2 spec.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
     application = FlexibleForeignKey("sentry.ApiApplication")

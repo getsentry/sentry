@@ -1,7 +1,6 @@
 import {useCallback, useEffect} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -127,7 +126,6 @@ function ReplaySearchBar(props: Props) {
       mergeSearchGroupWith={{
         click: {
           documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
-          titleBadge: <FeatureBadge type="new">{t('New')}</FeatureBadge>,
         },
       }}
       onSearch={(query: string) => {

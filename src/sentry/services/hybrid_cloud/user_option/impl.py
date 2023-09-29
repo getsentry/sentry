@@ -55,7 +55,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
     class _UserOptionFilterQuery(
         FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[UserOption]:
             return UserOption.objects
 
         def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
@@ -65,7 +65,9 @@ class DatabaseBackedUserOptionService(UserOptionService):
             # User options should not be serialized in this way
             raise NotImplementedError
 
-        def apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
+        def apply_filters(
+            self, query: QuerySet[UserOption], filters: UserOptionFilterArgs
+        ) -> QuerySet[UserOption]:
             # To maintain expected behaviors, we default these to None and always query for them
             if "project_ids" in filters:
                 query = query.filter(

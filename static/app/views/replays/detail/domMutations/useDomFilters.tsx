@@ -26,9 +26,9 @@ type Return = {
 };
 
 const TYPE_TO_LABEL: Record<string, string> = {
-  'ui.slowClickDetected': 'Slow & Dead Click',
+  'ui.slowClickDetected': 'Rage & Dead Click',
   'largest-contentful-paint': 'LCP',
-  'ui.click': 'Click',
+  'ui.click': 'User Click',
   'ui.keyDown': 'KeyDown',
   'ui.input': 'Input',
 };
@@ -48,10 +48,7 @@ function useDomFilters({actions}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
-  const searchTerm = useMemo(
-    () => decodeScalar(query.f_d_search, '').toLowerCase(),
-    [query.f_d_search]
-  );
+  const searchTerm = decodeScalar(query.f_d_search, '').toLowerCase();
 
   const items = useMemo(
     () =>

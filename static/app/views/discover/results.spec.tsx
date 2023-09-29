@@ -69,6 +69,12 @@ function renderMockRequests() {
     body: [],
   });
 
+  const measurementsMetaMock = MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/measurements-meta/',
+    method: 'GET',
+    body: {},
+  });
+
   const eventsResultsMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     body: {
@@ -205,10 +211,15 @@ function renderMockRequests() {
     mockVisit,
     mockSaved,
     eventFacetsMock,
+    measurementsMetaMock,
   };
 }
 
 describe('Results', function () {
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+  });
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
@@ -433,7 +444,7 @@ describe('Results', function () {
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
     });
 
-    it('needs confirmation on long queries', function () {
+    it('needs confirmation on long queries', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -464,9 +475,12 @@ describe('Results', function () {
       );
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('needs confirmation on long query with explicit projects', function () {
+    it('needs confirmation on long query with explicit projects', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -503,9 +517,12 @@ describe('Results', function () {
       );
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('does not need confirmation on short queries', function () {
+    it('does not need confirmation on short queries', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -535,10 +552,13 @@ describe('Results', function () {
         }
       );
 
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not need confirmation with to few projects', function () {
+    it('does not need confirmation with to few projects', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -574,6 +594,9 @@ describe('Results', function () {
         }
       );
 
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
@@ -681,7 +704,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever yAxis parameter changes', function () {
+    it('updates chart whenever yAxis parameter changes', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -695,7 +718,7 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -723,6 +746,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -750,9 +776,12 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('updates chart whenever display parameter changes', function () {
+    it('updates chart whenever display parameter changes', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -764,7 +793,7 @@ describe('Results', function () {
         },
       });
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
@@ -794,6 +823,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -821,9 +853,12 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('updates chart whenever display and yAxis parameters change', function () {
+    it('updates chart whenever display and yAxis parameters change', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -835,7 +870,7 @@ describe('Results', function () {
         },
       });
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
@@ -865,6 +900,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -896,6 +934,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
     it('appends tag value to existing query when clicked', async function () {
@@ -1131,6 +1172,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1195,6 +1237,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1263,6 +1306,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1301,7 +1345,7 @@ describe('Results', function () {
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 
-    it('links back to the homepage through the Discover breadcrumb', () => {
+    it('links back to the homepage through the Discover breadcrumb', async () => {
       const organization = TestStubs.Organization({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1314,6 +1358,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1326,13 +1371,17 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByText('Discover')).toHaveAttribute(
         'href',
         expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
       );
     });
 
-    it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
+    it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
       const organization = TestStubs.Organization({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1343,6 +1392,7 @@ describe('Results', function () {
           location: {query: {id: '1'}},
         },
       });
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1355,13 +1405,17 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
         expect.stringMatching(new RegExp('^/organizations/org-slug/discover/queries/'))
       );
     });
 
-    it('allows users to Set As Default on the All Events query', () => {
+    it('allows users to Set As Default on the All Events query', async () => {
       const organization = TestStubs.Organization({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1382,6 +1436,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1394,7 +1449,49 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByTestId('set-as-default')).toBeEnabled();
+    });
+
+    it("doesn't render sample data alert", async function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-query'],
+      });
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              ...EventView.fromNewQueryWithLocation(
+                {...DEFAULT_EVENT_VIEW, query: 'event.type:error'},
+                TestStubs.location()
+              ).generateQueryStringObject(),
+            },
+          },
+        },
+      });
+      const {measurementsMetaMock} = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
+      expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });
   });
 });

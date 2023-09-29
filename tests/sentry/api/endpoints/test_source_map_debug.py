@@ -1,10 +1,13 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
+from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
+
+pytestmark = [requires_snuba, requires_kafka]
 
 
 @region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
@@ -46,7 +49,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ]
 
         for filename, artifact_name, expected in cases:
-            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
+            assert _find_url_prefix(filename, artifact_name) == expected
 
     def test_missing_event(self):
         resp = self.get_error_response(
@@ -70,6 +73,33 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
+
+    def test_non_integer_frame_given(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx="hello",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["detail"] == "Query parameter 'frame_idx' must be an integer"
+
+    def test_non_integer_exception_given(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx="hello",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["detail"] == "Query parameter 'exception_idx' must be an integer"
 
     def test_frame_out_of_bounds(self):
         event = self.store_event(
@@ -289,6 +319,143 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "url_not_valid"
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
+
+    def test_skips_node_internals(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "node:vm",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
+    def test_skip_node_context_line(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                        "context_line": "throw new Error('foo')",
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
+    def test_no_valid_url_skips_node(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/path/to/file/thats/not/url/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        file = File.objects.create(
+            name="application.js",
+            type="release.file",
+            headers={"Sourcemap": "/path/to/file/thats/not/url/main.fa8fe19f.js.map"},
+        )
+        fileobj = ContentFile(b"wat")
+        file.putfile(fileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js",
+        )
+
+        sourcemapfile = File.objects.create(
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map", type="release.file"
+        )
+        sourcemapfileobj = ContentFile(b"wat")
+        sourcemapfile.putfile(sourcemapfileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=sourcemapfile,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
 
     def test_partial_url_match(self):
         event = self.store_event(
@@ -747,7 +914,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_not_part_of_pipeline(self):
+    def test_valid_debugid_sdk_no_sourcemaps(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -785,5 +952,5 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "not_part_of_pipeline"
-        assert error["message"] == "Sentry is not part of your build pipeline"
+        assert error["type"] == "debug_id_no_sourcemaps"
+        assert error["message"] == "Can use debug id but no sourcemaps"

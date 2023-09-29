@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.suspect_resolutions import ALGO_VERSION

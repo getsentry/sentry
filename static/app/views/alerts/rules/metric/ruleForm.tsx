@@ -27,6 +27,10 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {
+  hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -37,7 +41,6 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {
-  hasNonStandardMetricSearchFilters,
   isOnDemandMetricAlert,
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -117,30 +120,11 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
+  isExtrapolatedChartData?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
-
-function determineAlertDataset(
-  org: Organization,
-  selectedDataset: Dataset,
-  query: string
-) {
-  if (!org.features.includes('on-demand-metrics-extraction')) {
-    return selectedDataset;
-  }
-
-  if (
-    hasNonStandardMetricSearchFilters(query) &&
-    selectedDataset === Dataset.TRANSACTIONS
-  ) {
-    // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
-    return Dataset.GENERIC_METRICS;
-  }
-
-  return selectedDataset;
-}
 
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
@@ -153,7 +137,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    const queryWithTypeFilter = (
+      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+    ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
@@ -478,9 +464,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    const dataset = this.checkOnDemandMetricsDataset(
+      this.state.dataset,
+      this.state.query
+    );
+
     if (name === 'alertType') {
       this.setState({
         alertType: value as MetricAlertType,
+        dataset,
       });
       return;
     }
@@ -497,14 +489,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project, aggregate, dataset, alertType}) => {
-        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+      this.setState(({project: _project, aggregate, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({
+          aggregate,
+          dataset,
+        });
 
         return {
           [name]: value,
           project:
             name === 'projectId' ? projects.find(({id}) => id === value) : _project,
           alertType: alertType !== newAlertType ? 'custom' : alertType,
+          dataset,
         };
       });
     }
@@ -522,7 +518,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query, isQueryValid});
+    const dataset = this.checkOnDemandMetricsDataset(this.state.dataset, query);
+    this.setState({query, dataset, isQueryValid});
   };
 
   validateOnDemandMetricAlert() {
@@ -619,20 +616,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
-      const dataset = determineAlertDataset(
-        organization,
-        this.state.dataset,
-        model.getTransformedData().query
-      );
-
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
-        project.slug,
         {
           ...rule,
           ...model.getTransformedData(),
+          projects: [project.slug],
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
@@ -640,10 +631,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
+          ...(hasMetricDataset
+            ? {queryType: DatasetMEPAlertQueryTypes[rule.dataset]}
+            : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset,
+          dataset: this.state.dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -750,11 +743,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleDeleteRule = async () => {
     const {organization, params} = this.props;
-    const {projectId, ruleId} = params;
+    const {ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -786,7 +779,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
 
     const {dataset} = this.state;
-
     if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
       this.setState({dataset: Dataset.GENERIC_METRICS});
     }
@@ -796,23 +788,37 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    const {isExtrapolatedData} = data ?? {};
+
+    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+
+    const {dataset, aggregate, query} = this.state;
+    if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
+      this.handleMEPAlertDataset(data);
+    }
+  };
+
+  // If the user is creating an on-demand metric alert, we want to override the dataset
+  // to be generic metrics instead of transactions
+  checkOnDemandMetricsDataset = (dataset: Dataset, query: string) => {
+    if (!hasOnDemandMetricAlertFeature(this.props.organization)) {
+      return dataset;
+    }
+    if (dataset !== Dataset.TRANSACTIONS || !isOnDemandQueryString(query)) {
+      return dataset;
+    }
+    return Dataset.GENERIC_METRICS;
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
-  renderBody() {
+  renderTriggerChart() {
+    const {organization, ruleId, rule} = this.props;
+
     const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      router,
-      disableProjectSelector,
-      eventView,
-      location,
-    } = this.props;
-    const {
-      name,
       query,
       project,
       timeWindow,
@@ -820,15 +826,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
-      loading,
       eventTypes,
       dataset,
       alertType,
       isQueryValid,
+      location,
     } = this.state;
 
     const chartProps = {
@@ -840,7 +845,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
-      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -848,11 +852,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
+      onDataLoaded: this.handleTimeSeriesDataFetched,
     };
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
-        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
@@ -867,6 +873,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         }
       />
     );
+
+    return wizardBuilderChart;
+  }
+
+  renderBody() {
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
+    const {
+      name,
+      query,
+      project,
+      timeWindow,
+      triggers,
+      aggregate,
+      thresholdType,
+      thresholdPeriod,
+      comparisonDelta,
+      comparisonType,
+      resolveThreshold,
+      loading,
+      eventTypes,
+      dataset,
+      alertType,
+      isExtrapolatedChartData,
+    } = this.state;
+
+    const wizardBuilderChart = this.renderTriggerChart();
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
@@ -946,8 +986,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             rule.id ? (
               <Confirm
                 disabled={formDisabled}
-                message={t('Are you sure you want to delete this alert rule?')}
-                header={t('Delete Alert Rule?')}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
@@ -977,6 +1020,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               }
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
+              isExtrapolatedChartData={isExtrapolatedChartData}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
@@ -990,7 +1034,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

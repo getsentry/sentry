@@ -1,9 +1,10 @@
 from unittest.mock import patch
 
-from sentry.models import Commit, ExternalActor, ProjectCodeOwners, ProjectOwnership, Repository
+from sentry.models import Commit, ExternalActor, ProjectCodeOwners, Repository
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 LATEST_GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",

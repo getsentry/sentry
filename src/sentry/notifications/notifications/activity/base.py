@@ -88,15 +88,23 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         # method only used for emails
         # TODO: pass in recipient so we can add that to the referrer
         referrer = self.get_referrer(ExternalProviders.EMAIL)
-        return str(self.group.get_absolute_url(params={"referrer": referrer}))
+        return str(
+            self.group.get_absolute_url(
+                params={"referrer": referrer, "notification_uuid": self.notification_uuid}
+            )
+        )
 
     @cached_property
     def user(self) -> RpcUser | None:
-        return user_service.get_user(self.activity.user_id)
+        return (
+            user_service.get_user(self.activity.user_id)
+            if self.activity.user_id is not None
+            else None
+        )
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """This is overridden by the activity subclasses."""
-        return get_participants_for_group(self.group, self.user)
+        return get_participants_for_group(self.group, self.activity.user_id)
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None
@@ -157,7 +165,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
-            group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
+            group_url = self.group.get_absolute_url(
+                params={
+                    "referrer": "activity_notification",
+                    "notification_uuid": self.notification_uuid,
+                }
+            )
             issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url, provider=provider)}"
 
         context = {"author": name, "an issue": issue_name}

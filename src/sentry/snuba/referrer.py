@@ -14,6 +14,7 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
+    API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )
@@ -45,7 +46,6 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.metrics-enhanced"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
-    API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -99,7 +99,6 @@ class Referrer(Enum):
         "api.organization-events-facets-performance.top-tags.tag_values"
     )
     API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
-    API_ORGANIZATION_EVENTS_GEO = "api.organization-events-geo"
     API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-histogram-min-max.metrics-enhanced.primary"
     )
@@ -124,6 +123,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
+    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
         "api.organization-events-spans-performance-stats"
     )
@@ -135,6 +135,7 @@ class Referrer(Enum):
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
+    API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -326,11 +327,13 @@ class Referrer(Enum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
+    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
     API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
     API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
     API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
@@ -339,6 +342,13 @@ class Referrer(Enum):
     API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.profiling.functions.statistical-detector.stats"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
+        "api.profiling.functions.statistical-detector.example"
+    )
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -542,6 +552,7 @@ class Referrer(Enum):
     REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
+    REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
@@ -590,9 +601,12 @@ class Referrer(Enum):
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
     SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
+    STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES = (
+        "statistical_detectors.distributions.fetch_top_transaction_names"
+    )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
-    TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore._get_tag_key_and_top_values"
+    TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
@@ -664,6 +678,7 @@ class Referrer(Enum):
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
+    METRIC_VALIDATION = "metric_validation"
 
 
 VALUES = {referrer.value for referrer in Referrer}

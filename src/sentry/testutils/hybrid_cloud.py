@@ -2,22 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 import threading
-from types import TracebackType
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypedDict,
-)
+from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -25,90 +12,16 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
+from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-class use_real_service:
-    service: object
-    silo_mode: SiloMode | None
-    context: contextlib.ExitStack
-
-    def __init__(self, service: object, silo_mode: SiloMode | None):
-        self.silo_mode = silo_mode
-        self.service = service
-        self.context = contextlib.ExitStack()
-
-    def __enter__(self) -> None:
-        from django.test import override_settings
-
-        if isinstance(self.service, DelegatedBySiloMode):
-            if self.silo_mode is not None:
-                self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
-                self.context.enter_context(self.service.with_replacement(None, self.silo_mode))
-            else:
-                self.context.enter_context(
-                    self.service.with_replacement(None, SiloMode.get_current_mode())
-                )
-        else:
-            raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
-
-    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(f)
-        def wrapped(*args: Any, **kwds: Any) -> Any:
-            with use_real_service(self.service, self.silo_mode):
-                return f(*args, **kwds)
-
-        return wrapped
-
-    def __exit__(
-        self,
-        __exc_type: Type[BaseException] | None,
-        __exc_value: BaseException | None,
-        __traceback: TracebackType | None,
-    ) -> bool | None:
-        return self.context.__exit__(__exc_type, __exc_value, __traceback)
-
-
-@contextlib.contextmanager
-def service_stubbed(
-    service: object,
-    stub: Optional[object],
-    silo_mode: Optional[SiloMode] = None,
-) -> Generator[None, None, None]:
-    """
-    Replaces a service created with silo_mode_delegation with a replacement implementation while inside of the scope,
-    closing the existing implementation on enter and closing the given implementation on exit.
-    """
-    if silo_mode is None:
-        silo_mode = SiloMode.get_current_mode()
-
-    if isinstance(service, DelegatedBySiloMode):
-        with service.with_replacement(stub, silo_mode):
-            yield
-    else:
-        raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
-
-
-@contextlib.contextmanager
-def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
-    call_sites: List[Tuple[Any, str, Sequence[Any], Mapping[str, Any]]] = []
-
-    def cb(service: Any, method_name: str, *args: Sequence[Any], **kwds: Mapping[str, Any]):
-        call_sites.append((service, method_name, args, kwds))
-        assert (
-            len(call_sites) < max_calls
-        ), "Too many inter silo calls (through stubs) found!  Consider consolidating total calls."
-
-    hc_test_stub.cb = cb
-    try:
-        yield
-    finally:
-        hc_test_stub.cb = None
-
-
 class HybridCloudTestMixin:
+    @property
+    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+        return get_regional_scheduled_deletion(SiloMode.get_current_mode())
+
     @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
         org_member.refresh_from_db()
@@ -176,6 +89,10 @@ class SimulatedTransactionWatermarks(threading.local):
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
 
 
+class CrossTransactionAssertionError(AssertionError):
+    pass
+
+
 class EnforceNoCrossTransactionWrapper:
     alias: str
 
@@ -197,13 +114,14 @@ class EnforceNoCrossTransactionWrapper:
         # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
         # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
         # for assistance.
-        assert (
-            len(open_transactions) < 2
-        ), f"Found mixed open transactions between dbs {open_transactions}"
-        if open_transactions:
-            assert (
-                self.alias in open_transactions
-            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+        if len(open_transactions) >= 2:
+            raise CrossTransactionAssertionError(
+                f"Found mixed open transactions between dbs {open_transactions}"
+            )
+        if open_transactions and not (self.alias in open_transactions):
+            raise CrossTransactionAssertionError(
+                f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+            )
 
         return execute(*params)
 
@@ -323,7 +241,7 @@ def simulate_on_commit(request: Any):
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
     transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
-    transaction.on_commit = new_atomic_on_commit
+    transaction.on_commit = new_atomic_on_commit  # type: ignore[assignment]
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
     try:
         yield
@@ -331,3 +249,9 @@ def simulate_on_commit(request: Any):
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         transaction.on_commit = _old_transaction_on_commit
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
+
+
+def use_split_dbs() -> bool:
+    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set in stone.
+    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    return not SENTRY_USE_MONOLITH_DBS

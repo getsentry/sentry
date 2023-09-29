@@ -2,11 +2,14 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -22,19 +25,11 @@ import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFil
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
 const RESIZEABLE_HANDLE_HEIGHT = 90;
-
-type Props = {
-  isNetworkDetailsSetup: boolean;
-  networkSpans: undefined | NetworkSpan[];
-  projectId: undefined | string;
-  startTimestampMs: number;
-};
 
 const cellMeasurer = {
   defaultHeight: BODY_HEIGHT,
@@ -42,24 +37,23 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({
-  isNetworkDetailsSetup,
-  networkSpans,
-  projectId,
-  startTimestampMs,
-}: Props) {
+function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
+  const networkFrames = replay?.getNetworkFrames();
+  const projectId = replay?.getReplay()?.project_id;
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
+  const [visibleRange, setVisibleRange] = useState([0, 0]);
 
-  const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
+  const filterProps = useNetworkFilters({networkFrames: networkFrames || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
@@ -92,7 +86,7 @@ function NetworkList({
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
   const splitSize =
-    networkSpans && detailDataIndex
+    networkFrames && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
       : undefined;
 
@@ -113,8 +107,8 @@ function NetworkList({
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: item.data.method,
-          resource_status: item.data.statusCode,
+          resource_method: getFrameMethod(item),
+          resource_status: String(getFrameStatus(item)),
           resource_type: item.op,
         });
       }
@@ -153,14 +147,14 @@ function NetworkList({
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClickTimestamp={handleClick}
+              frame={network}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
+              onClickTimestamp={onClickTimestamp}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              span={network}
               startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
@@ -170,17 +164,47 @@ function NetworkList({
     );
   };
 
+  const handleClick = () => {
+    const index = indexAtCurrentTime();
+    // When Jump Down, ensures purple line is visible and index needs to be 1 to jump to top of network list
+    if (index > visibleRange[1] || index === 0) {
+      setScrollToRow(index + 1);
+    } else {
+      setScrollToRow(index);
+    }
+  };
+
+  function indexAtCurrentTime() {
+    const frame = getNextReplayFrame({
+      frames: items,
+      targetOffsetMs: currentTime,
+      allowExact: true,
+    });
+    const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
+    // frameIndex is -1 at end of replay, so use last index
+    const index = frameIndex === -1 ? items.length - 1 : frameIndex;
+    return index;
+  }
+
+  function pixelsToRow(pixels) {
+    return Math.floor(pixels / BODY_HEIGHT);
+  }
+
+  const currentIndex = indexAtCurrentTime();
+  const showJumpDownButton = currentIndex > visibleRange[1];
+  const showJumpUpButton = currentIndex < visibleRange[0];
+
   return (
     <FluidHeight>
-      <NetworkFilters networkSpans={networkSpans} {...filterProps} />
+      <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
-      <NetworkTable ref={containerRef}>
+      <NetworkTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
           }}
         >
-          {networkSpans ? (
+          {networkFrames ? (
             <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
                 {({height, width}) => (
@@ -196,17 +220,21 @@ function NetworkList({
                     height={height}
                     noContentRenderer={() => (
                       <NoRowRenderer
-                        unfilteredItems={networkSpans}
+                        unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
                       >
                         {t('No network requests recorded')}
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
-                    onScroll={() => {
+                    onScroll={({clientHeight, scrollTop}) => {
                       if (scrollToRow !== undefined) {
                         setScrollToRow(undefined);
                       }
+                      setVisibleRange([
+                        pixelsToRow(scrollTop),
+                        pixelsToRow(scrollTop + clientHeight),
+                      ]);
                     }}
                     scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
@@ -217,6 +245,28 @@ function NetworkList({
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'startTimestamp' && showJumpUpButton ? (
+                <JumpButton
+                  onClick={handleClick}
+                  aria-label={t('Jump Up')}
+                  priority="primary"
+                  size="xs"
+                  style={{top: '30px'}}
+                >
+                  {t('↑ Jump to current timestamp')}
+                </JumpButton>
+              ) : null}
+              {sortConfig.by === 'startTimestamp' && showJumpDownButton ? (
+                <JumpButton
+                  onClick={handleClick}
+                  aria-label={t('Jump Down')}
+                  priority="primary"
+                  size="xs"
+                  style={{bottom: '5px'}}
+                >
+                  {t('↓ Jump to current timestamp')}
+                </JumpButton>
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -224,7 +274,7 @@ function NetworkList({
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
-            item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
+            item={detailDataIndex ? items[detailDataIndex] : null}
             onClose={() => {
               setDetailRow('');
               trackAnalytics('replay.details-network-panel-closed', {
@@ -254,6 +304,12 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
+`;
+
+const JumpButton = styled(Button)`
+  position: absolute;
+  justify-self: center;
 `;
 
 const NetworkTable = styled(FluidHeight)`

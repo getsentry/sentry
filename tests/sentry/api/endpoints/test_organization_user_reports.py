@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from sentry.ingest.userreport import save_userreport
 from sentry.models import GroupStatus, UserReport
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

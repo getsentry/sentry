@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, projectoptions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
@@ -16,6 +17,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
@@ -45,6 +47,7 @@ class InternalProjectOptions(Enum):
     CONSECUTIVE_DB_QUERIES = "consecutive_db_queries_detection_enabled"
     RENDER_BLOCKING_ASSET = "large_render_blocking_asset_detection_enabled"
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
+    HTTP_OVERHEAD = "http_overhead_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -57,6 +60,9 @@ class ConfigurableThresholds(Enum):
     CONSECUTIVE_DB_QUERIES_MIN_TIME_SAVED = "consecutive_db_min_time_saved_threshold"
     RENDER_BLOCKING_ASSET_FCP_RATIO = "render_blocking_fcp_ratio"
     SLOW_DB_QUERY_DURATION = "slow_db_query_duration_threshold"
+    N_PLUS_API_CALLS_DURATION = "n_plus_one_api_calls_total_duration_threshold"
+    CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED = "consecutive_http_spans_min_time_saved_threshold"
+    HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
 
 
 internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
@@ -70,6 +76,7 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.CONSECUTIVE_DB_QUERIES.value: PerformanceConsecutiveDBQueriesGroupType,
     InternalProjectOptions.RENDER_BLOCKING_ASSET.value: PerformanceRenderBlockingAssetSpanGroupType,
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
+    InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
@@ -82,6 +89,9 @@ configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
     ConfigurableThresholds.CONSECUTIVE_DB_QUERIES_MIN_TIME_SAVED.value: InternalProjectOptions.CONSECUTIVE_DB_QUERIES.value,
     ConfigurableThresholds.RENDER_BLOCKING_ASSET_FCP_RATIO.value: InternalProjectOptions.RENDER_BLOCKING_ASSET.value,
     ConfigurableThresholds.SLOW_DB_QUERY_DURATION.value: InternalProjectOptions.SLOW_DB_QUERY.value,
+    ConfigurableThresholds.N_PLUS_API_CALLS_DURATION.value: InternalProjectOptions.N_PLUS_ONE_API_CALLS.value,
+    ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value,
+    ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: InternalProjectOptions.HTTP_OVERHEAD.value,
 }
 
 
@@ -120,6 +130,15 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     consecutive_db_min_time_saved_threshold = serializers.IntegerField(
         required=False, min_value=50, max_value=5000  # ms
     )
+    n_plus_one_api_calls_total_duration_threshold = serializers.IntegerField(
+        required=False, min_value=100, max_value=TEN_SECONDS  # ms
+    )
+    consecutive_http_spans_min_time_saved_threshold = serializers.IntegerField(
+        required=False, min_value=1000, max_value=TEN_SECONDS  # ms
+    )
+    http_request_delay_threshold = serializers.IntegerField(
+        required=False, min_value=200, max_value=TEN_SECONDS  # ms
+    )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
     large_http_payload_detection_enabled = serializers.BooleanField(required=False)
@@ -149,6 +168,11 @@ def get_disabled_threshold_options(payload, current_settings):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectOwnerOrSuperUserPermissions,)
 
     def has_feature(self, project, request) -> bool:
@@ -187,14 +211,21 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         )
         if body_has_invalid_options:
             return Response(
-                {"detail": "Invalid settings option"},
+                {
+                    "detail": "Invalid settings option",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
         if body_has_admin_options and not is_active_superuser(request):
             return Response(
-                {"detail": "Passed options are only modifiable internally"},
+                {
+                    "detail": {
+                        "message": "Passed options are only modifiable internally",
+                        "code": "superuser-required",
+                    },
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 

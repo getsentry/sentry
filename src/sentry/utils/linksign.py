@@ -4,9 +4,10 @@ from urllib.parse import urlencode
 
 from django.core import signing
 from django.urls import reverse
+from sentry_sdk.api import capture_exception
 
 from sentry import options
-from sentry.models import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base36_decode, base36_encode
 
@@ -39,7 +40,7 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
 
 
 def find_signature(request) -> str | None:
-    return request.GET.get("_") or request.POST.get("_sentry_request_signature")
+    return request.GET.get("_")
 
 
 def process_signature(request, max_age=60 * 60 * 24 * 10):
@@ -50,10 +51,13 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
     if not sig or sig.count(":") < 2:
         return None
 
-    signed_data = "{}|{}|{}".format(request.build_absolute_uri("/").rstrip("/"), request.path, sig)
+    url_prefix = options.get("system.url-prefix")
+    request_path = request.path
+    signed_data = f"{url_prefix}|{request_path}|{sig}"
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
-    except signing.BadSignature:
+    except signing.BadSignature as e:
+        capture_exception(e)
         return None
 
     _, signed_path, user_id = data.rsplit("|", 2)
@@ -61,6 +65,6 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
         return None
 
     try:
-        return User.objects.get(pk=base36_decode(user_id))
-    except (ValueError, User.DoesNotExist):
+        return user_service.get_user(user_id=base36_decode(user_id))
+    except ValueError:
         return None

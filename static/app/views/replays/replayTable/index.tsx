@@ -1,7 +1,9 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -33,6 +35,9 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  gridRows?: string;
+  saveLocation?: boolean;
+  showDropdownFilters?: boolean;
 };
 
 function ReplayTable({
@@ -42,10 +47,25 @@ function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
+  saveLocation,
+  gridRows,
+  showDropdownFilters,
 }: Props) {
   const routes = useRoutes();
-  const location = useLocation();
+  const newLocation = useLocation();
   const organization = useOrganization();
+
+  const location: Location = saveLocation
+    ? {
+        pathname: '',
+        search: '',
+        query: {},
+        hash: '',
+        state: '',
+        action: 'PUSH',
+        key: '',
+      }
+    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -58,6 +78,7 @@ function ReplayTable({
         isLoading={false}
         visibleColumns={visibleColumns}
         data-test-id="replay-table"
+        gridRows={undefined}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -82,6 +103,8 @@ function ReplayTable({
       disablePadding
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
+      gridRows={isFetching ? undefined : gridRows}
+      loader={<LoadingIndicator style={{margin: '54px auto'}} />}
     >
       {replays?.map(replay => {
         return (
@@ -89,25 +112,85 @@ function ReplayTable({
             {visibleColumns.map(column => {
               switch (column) {
                 case ReplayColumn.ACTIVITY:
-                  return <ActivityCell key="activity" replay={replay} />;
+                  return (
+                    <ActivityCell
+                      key="activity"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.BROWSER:
-                  return <BrowserCell key="browser" replay={replay} />;
+                  return (
+                    <BrowserCell
+                      key="browser"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_DEAD_CLICKS:
-                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+                  return (
+                    <DeadClickCountCell
+                      key="countDeadClicks"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
+
+                case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
+                  return (
+                    <DeadClickCountCell
+                      key="countDeadClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_ERRORS:
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
+                  return (
+                    <ErrorCountCell
+                      key="countErrors"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_RAGE_CLICKS:
-                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+                  return (
+                    <RageClickCountCell
+                      key="countRageClicks"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
+
+                case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
+                  return (
+                    <RageClickCountCell
+                      key="countRageClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.DURATION:
-                  return <DurationCell key="duration" replay={replay} />;
+                  return (
+                    <DurationCell
+                      key="duration"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.OS:
-                  return <OSCell key="os" replay={replay} />;
+                  return (
+                    <OSCell
+                      key="os"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.REPLAY:
                   return (
@@ -117,6 +200,8 @@ function ReplayTable({
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl
+                      referrer_table="main"
                     />
                   );
 
@@ -126,6 +211,45 @@ function ReplayTable({
                       key="slowestTransaction"
                       replay={replay}
                       organization={organization}
+                    />
+                  );
+
+                case ReplayColumn.MOST_RAGE_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostRageClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="rage-table"
+                    />
+                  );
+
+                case ReplayColumn.MOST_DEAD_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostDeadClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="dead-table"
+                    />
+                  );
+
+                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+                  return (
+                    <ReplayCell
+                      key="mostErroneousReplays"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="errors-table"
                     />
                   );
 
@@ -140,14 +264,36 @@ function ReplayTable({
   );
 }
 
+const flexibleColumns = [
+  ReplayColumn.REPLAY,
+  ReplayColumn.MOST_RAGE_CLICKS,
+  ReplayColumn.MOST_DEAD_CLICKS,
+  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
+];
+
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
+  gridRows?: string;
 }>`
+  ${props =>
+    props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
+      ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
+      : ``}
+  margin-bottom: 0;
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+      )
       .join(' ')};
+
+  ${props =>
+    props.gridRows
+      ? `grid-template-rows: ${props.gridRows};`
+      : `grid-template-rows: 44px max-content;`}
 `;
 
 const StyledAlert = styled(Alert)`

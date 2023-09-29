@@ -9,7 +9,8 @@ describe('Debug Meta - Image Details', function () {
   const event = TestStubs.Event({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 
-  beforeAll(function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${eventEntryDebugMeta.data.images[0].debug_id}`,
       method: 'GET',
@@ -17,7 +18,7 @@ describe('Debug Meta - Image Details', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/builtin-symbol-sources/`,
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
       body: [],
     });

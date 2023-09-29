@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from functools import reduce
 from operator import or_
@@ -6,14 +8,16 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
 from sentry.models import Broadcast, BroadcastSeen
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 logger = logging.getLogger("sentry")
 
@@ -23,7 +27,12 @@ from rest_framework.response import Response
 
 
 @control_silo_endpoint
-class BroadcastIndexEndpoint(OrganizationEndpoint):
+class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def _get_serializer(self, request: Request):
@@ -45,7 +54,9 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, organization=None) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization | None = None, **kwargs
+    ) -> Response:
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")

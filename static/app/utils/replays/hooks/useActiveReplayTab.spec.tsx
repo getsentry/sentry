@@ -11,14 +11,10 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useOrganization');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockUseOrganization = useOrganization as jest.MockedFunction<
-  typeof useOrganization
->;
-const mockPush = browserHistory.push as jest.MockedFunction<typeof browserHistory.push>;
+const mockPush = jest.mocked(browserHistory.push);
 
 function mockLocation(query: string = '') {
-  mockUseLocation.mockReturnValue({
+  jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -31,11 +27,7 @@ function mockLocation(query: string = '') {
 
 function mockOrganization(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  mockUseOrganization.mockReturnValue(
-    TestStubs.Organization({
-      features,
-    })
-  );
+  jest.mocked(useOrganization).mockReturnValue(TestStubs.Organization({features}));
 }
 
 describe('useActiveReplayTab', () => {
@@ -81,17 +73,32 @@ describe('useActiveReplayTab', () => {
     });
   });
 
-  it('should allow ERRORS', () => {
+  it('should disallow PERF by default', () => {
     mockOrganization({
-      features: ['session-replay-errors-tab'],
+      features: [],
+    });
+
+    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+
+    result.current.setActiveTab(TabKey.PERF);
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: '',
+      query: {t_main: TabKey.CONSOLE},
+    });
+  });
+
+  it('should allow PERF when the feature is enabled', () => {
+    mockOrganization({
+      features: ['session-replay-trace-table'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
     expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
 
-    result.current.setActiveTab(TabKey.ERRORS);
+    result.current.setActiveTab(TabKey.PERF);
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.ERRORS},
+      query: {t_main: TabKey.PERF},
     });
   });
 });

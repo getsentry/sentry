@@ -1,8 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -11,9 +13,13 @@ import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/sp
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+
+const SpanSamplesTableContainer = styled('div')`
+  padding-bottom: ${space(2)};
+`;
 
 type Props = {
   groupId: string;
@@ -33,10 +39,10 @@ function SampleTable({
   transactionMethod,
 }: Props) {
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'api.starfish.span-summary-panel-samples-table-p95'
+    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    'api.starfish.span-summary-panel-samples-table-avg'
   );
   const organization = useOrganization();
 
@@ -58,6 +64,7 @@ function SampleTable({
     data: transactions,
     isFetching: isFetchingTransactions,
     isEnabled: isTransactionsEnabled,
+    isLoading: isLoadingTransactions,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
@@ -66,7 +73,7 @@ function SampleTable({
 
   const [loadedSpans, setLoadedSpans] = useState(false);
   useEffect(() => {
-    if (isFetchingTransactions || isFetchingSamples) {
+    if (isLoadingTransactions || isFetchingTransactions || !isTransactionsEnabled) {
       setLoadedSpans(false);
       return;
     }
@@ -80,10 +87,11 @@ function SampleTable({
     setLoadedSpans(true);
   }, [
     loadedSpans,
-    isFetchingSamples,
     transactions,
     isFetchingTransactions,
     organization,
+    isLoadingTransactions,
+    isTransactionsEnabled,
   ]);
 
   const transactionsById = keyBy(transactions, 'id');
@@ -94,15 +102,14 @@ function SampleTable({
     isFetchingSpanMetrics ||
     isFetchingSamples ||
     !isSamplesEnabled ||
-    !isTransactionsEnabled ||
-    (!areNoSamples && isFetchingTransactions);
+    (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
     setPageError(t('An error has occured while loading the samples table'));
   }
 
   return (
-    <Fragment>
+    <SpanSamplesTableContainer>
       <VisuallyCompleteWithData
         id="SpanSummary.Samples.SampleTable"
         hasData={spans.length > 0}
@@ -119,11 +126,11 @@ function SampleTable({
             };
           })}
           isLoading={isLoading}
-          p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+          avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
-      <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>
-    </Fragment>
+      <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
+    </SpanSamplesTableContainer>
   );
 }
 

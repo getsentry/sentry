@@ -2,6 +2,7 @@ from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
 from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
+from .alert_sent import *  # noqa: F401,F403
 from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
 from .artifactbundle_assemble import *  # noqa: F401,F403
@@ -28,6 +29,7 @@ from .internal_integration_created import *  # noqa: F401,F403
 from .issue_alert_fired import *  # noqa: F401,F403
 from .issue_archived import *  # noqa: F401,F403
 from .issue_assigned import *  # noqa: F401,F403
+from .issue_auto_resolved import *  # noqa: F401,F403
 from .issue_deleted import *  # noqa: F401,F403
 from .issue_escalating import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403
@@ -42,6 +44,7 @@ from .join_request_link_viewed import *  # noqa: F401,F403
 from .manual_issue_assignment import *  # noqa: F401,F403
 from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
+from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
 from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
@@ -57,6 +60,8 @@ from .release_created import *  # noqa: F401,F403
 from .release_get_previous_commits import *  # noqa: F401,F403
 from .release_set_commits import *  # noqa: F401,F403
 from .repo_linked import *  # noqa: F401,F403
+from .rule_disable_opt_out import *  # noqa: F401,F403
+from .rule_reenable import *  # noqa: F401,F403
 from .rule_snooze import *  # noqa: F401,F403
 from .search_saved import *  # noqa: F401,F403
 from .second_platform_added import *  # noqa: F401,F403
@@ -75,3 +80,5 @@ from .sso_enabled import *  # noqa: F401,F403
 from .team_created import *  # noqa: F401,F403
 from .user_created import *  # noqa: F401,F403
 from .user_signup import *  # noqa: F401,F403
+from .webhook_repository_created import *  # noqa: F401,F403
+from .weekly_report import *  # noqa: F401,F403

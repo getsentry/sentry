@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import dataclasses
+import random
+import string
 from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from rest_framework.request import Request
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, options
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -37,6 +39,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 Schema = Mapping[str, Any]
 
@@ -161,6 +164,7 @@ class SentryAppUpdater:
 
     def _update_service_hooks(self) -> None:
         hooks = hook_service.update_webhook_and_events(
+            organization_id=self.sentry_app.owner_id,
             application_id=self.sentry_app.application_id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
@@ -273,7 +277,7 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User, request: Request | None = None) -> SentryApp:
+    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -292,6 +296,11 @@ class SentryAppCreator:
 
     def _generate_and_validate_slug(self) -> str:
         slug = generate_slug(self.name, is_internal=self.is_internal)
+
+        # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
+        # eg: 123 -> 123-abc
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+            slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         # validate globally unique slug
         queryset = SentryApp.with_deleted.filter(slug=slug)
@@ -314,7 +323,7 @@ class SentryAppCreator:
         )
 
     def _create_sentry_app(
-        self, user: User, slug: str, proxy: User, api_app: ApiApplication
+        self, user: User | RpcUser, slug: str, proxy: User, api_app: ApiApplication
     ) -> SentryApp:
 
         kwargs = {
@@ -333,7 +342,7 @@ class SentryAppCreator:
             "verify_install": self.verify_install,
             "overview": self.overview,
             "popularity": self.popularity or SentryApp._meta.get_field("popularity").default,
-            "creator_user": user,
+            "creator_user_id": user.id,
             "creator_label": user.email
             or user.username,  # email is not required for some users (sentry apps)
         }
@@ -365,7 +374,9 @@ class SentryAppCreator:
                 scope.set_tag("sentry_app", sentry_app.slug)
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
-    def _install(self, *, slug: str, user: User, request: Request | None) -> SentryAppInstallation:
+    def _install(
+        self, *, slug: str, user: User, request: HttpRequest | None
+    ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
             slug=slug,
@@ -373,14 +384,14 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: Request
+        self, user: User, install: SentryAppInstallation, request: HttpRequest
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
         )
         install.save()
 
-    def audit(self, request: Request | None, sentry_app: SentryApp) -> None:
+    def audit(self, request: HttpRequest | None, sentry_app: SentryApp) -> None:
         from sentry.utils.audit import create_audit_entry
 
         if request:

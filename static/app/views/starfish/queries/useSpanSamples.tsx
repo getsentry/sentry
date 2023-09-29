@@ -9,11 +9,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
@@ -23,11 +23,11 @@ type Options = {
 
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
-  | SpanIndexedFields.SPAN_SELF_TIME
-  | SpanIndexedFields.TRANSACTION_ID
-  | SpanIndexedFields.PROJECT
-  | SpanIndexedFields.TIMESTAMP
-  | SpanIndexedFields.ID
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.ID
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -40,14 +40,14 @@ export const useSpanSamples = (options: Options) => {
 
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
-    `transaction:${transactionName}`,
+    `transaction:"${transactionName}"`,
     `transaction.method:${transactionMethod}`,
   ]);
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
@@ -55,7 +55,9 @@ export const useSpanSamples = (options: Options) => {
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
 
-  const enabled = Boolean(groupId && transactionName && !isLoadingSeries);
+  const enabled = Boolean(
+    groupId && transactionName && !isLoadingSeries && pageFilter.isReady
+  );
 
   const result = useQuery<SpanSample[]>({
     queryKey: [
@@ -75,6 +77,7 @@ export const useSpanSamples = (options: Options) => {
           firstBound: maxYValue * (1 / 3),
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
+          project: pageFilter.selection.projects,
           query: query.formatString(),
         })}`
       );

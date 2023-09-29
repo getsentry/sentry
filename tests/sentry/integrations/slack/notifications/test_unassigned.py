@@ -3,11 +3,14 @@ from unittest import mock
 import responses
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import UnassignedActivityNotification
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class SlackUnassignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -34,9 +37,10 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         attachment, text = get_attachment()
         assert text == f"Issue unassigned by {self.name}"
         assert attachment["title"] == self.group.title
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -74,9 +78,9 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
         with self.tasks():
-            self.create_notification(event.group).send()
+            self.create_notification(group_event.group).send()
 
         attachment, text = get_attachment()
         assert text == f"Issue unassigned by {self.name}"

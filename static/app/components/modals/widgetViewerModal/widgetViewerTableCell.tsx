@@ -120,8 +120,7 @@ export const renderDiscoverGridHeaderCell = ({
     const eventView = eventViewFromWidget(
       widget.title,
       {...widget.queries[0], orderby: aggregateAliasOrderBy},
-      selection,
-      widget.displayType
+      selection
     );
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);

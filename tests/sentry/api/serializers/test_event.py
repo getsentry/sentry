@@ -9,15 +9,18 @@ from sentry.api.serializers.models.event import (
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
+@region_silo_test(stable=True)
 class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
@@ -240,7 +243,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
@@ -261,7 +264,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry["type"] != "breadcrumbs"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
@@ -317,7 +320,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["groupID"] is None
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
@@ -399,7 +402,7 @@ class IssueEventSerializerTest(TestCase):
         assert result["sdkUpdates"] == []
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
         event = self.store_event(

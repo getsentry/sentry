@@ -31,4 +31,5 @@ def run(ctx, app_name, migration_name):
             )
 
     for op in migration.operations:
+        assert isinstance(op, RunPython)
         op.code(apps, None)

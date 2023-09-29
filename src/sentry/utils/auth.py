@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Dict, Iterable, Mapping, Sequence, cast
+from typing import Any, Collection, Dict, Iterable, Mapping, Optional, Sequence, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
-from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
@@ -17,18 +16,17 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
-_LOGIN_URL: str | None = None
+_LOGIN_URL: Optional[str] = None
 
 MFA_SESSION_KEY = "mfa"
 
 
-def _sso_expiry_from_env(seconds: str | None) -> timedelta:
+def _sso_expiry_from_env(seconds: Optional[str]) -> timedelta:
     if seconds is None:
         return timedelta(days=7)
     return timedelta(seconds=int(seconds))
@@ -90,7 +88,7 @@ def get_auth_providers() -> Collection[str]:
     ]
 
 
-def get_pending_2fa_user(request: HttpRequest) -> User | None:
+def get_pending_2fa_user(request: HttpRequest) -> Optional[User]:
     rv = request.session.get("_pending_2fa")
     if rv is None:
         return None
@@ -129,8 +127,14 @@ def get_login_url(reset: bool = False) -> str:
     return _LOGIN_URL
 
 
-def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
-    for key in ("_next", "_after_2fa", "_pending_2fa"):
+def initiate_login(
+    request: HttpRequest, next_url: Optional[str] = None, referrer: Optional[str] = None
+) -> None:
+    """
+    initiate_login simply clears session cache
+    if provided a `next_url` will append to the session after clearing previous keys
+    """
+    for key in ("_next", "_after_2fa", "_pending_2fa", "_referrer"):
         try:
             del request.session[key]
         except KeyError:
@@ -138,9 +142,13 @@ def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
 
     if next_url:
         request.session["_next"] = next_url
+    if referrer:
+        request.session["_referrer"] = referrer
 
 
-def get_org_redirect_url(request: HttpRequest, active_organization: RpcOrganization | None) -> str:
+def get_org_redirect_url(
+    request: HttpRequest, active_organization: Optional[RpcOrganization]
+) -> str:
     from sentry import features
 
     # TODO(dcramer): deal with case when the user cannot create orgs
@@ -151,7 +159,7 @@ def get_org_redirect_url(request: HttpRequest, active_organization: RpcOrganizat
     return "/organizations/new/"
 
 
-def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
+def _get_login_redirect(request: HttpRequest, default: Optional[str] = None) -> str:
     if default is None:
         default = get_login_url()
 
@@ -176,7 +184,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     return cast(str, login_url)
 
 
-def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
+def get_login_redirect(request: HttpRequest, default: Optional[str] = None) -> str:
     from sentry.api.utils import generate_organization_url
 
     login_redirect = _get_login_redirect(request, default)
@@ -187,7 +195,7 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     return login_redirect
 
 
-def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> bool:
+def is_valid_redirect(url: str, allowed_hosts: Optional[Iterable[str]] = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
@@ -245,23 +253,35 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
 
 
 def find_users(
-    username: str, with_valid_password: bool = True, is_active: bool | None = None
+    username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
 ) -> Sequence[User]:
     """
     Return a list of users that match a username
     and falling back to email
     """
-    return user_service.get_by_username(
-        username=username, with_valid_password=with_valid_password, is_active=is_active
-    )
+    queryset = User.objects.filter()
+    if is_active is not None:
+        queryset = queryset.filter(is_active=is_active)
+    if with_valid_password:
+        queryset = queryset.exclude(password="!")
+    try:
+        # First try username case insenstive match on username.
+        user = queryset.get(username__iexact=username)
+        return [user]
+    except User.DoesNotExist:
+        # If not, we can take a stab at guessing it's an email address
+        if "@" in username:
+            # email isn't guaranteed unique
+            return list(queryset.filter(email__iexact=username))
+        return []
 
 
 def login(
     request: HttpRequest,
     user: User,
-    passed_2fa: bool | None = None,
-    after_2fa: str | None = None,
-    organization_id: int | None = None,
+    passed_2fa: Optional[bool] = None,
+    after_2fa: Optional[str] = None,
+    organization_id: Optional[int] = None,
     source: Any = None,
 ) -> bool:
     """
@@ -329,7 +349,7 @@ def login(
 def log_auth_success(
     request: HttpRequest,
     username: str,
-    organization_id: int | None = None,
+    organization_id: Optional[int] = None,
     source: Any = None,
 ) -> None:
     logger.info(
@@ -343,7 +363,7 @@ def log_auth_success(
     )
 
 
-def log_auth_failure(request: HttpRequest, username: str | None = None) -> None:
+def log_auth_failure(request: HttpRequest, username: Optional[str] = None) -> None:
     logger.info(
         "user.auth.fail", extra={"ip_address": request.META["REMOTE_ADDR"], "username": username}
     )
@@ -380,8 +400,8 @@ class EmailAuthBackend(ModelBackend):
     """
 
     def authenticate(
-        self, request: HttpRequest, username: str, password: str | None = None
-    ) -> User | None:
+        self, request: HttpRequest, username: str, password: Optional[str] = None
+    ) -> Optional[User]:
         users = find_users(username)
         if users:
             for user in users:
@@ -402,11 +422,12 @@ class EmailAuthBackend(ModelBackend):
         return True
 
 
-def make_login_link_with_redirect(path: str, redirect: str) -> str:
+def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
     """
-    append an after login redirect to a path.
-    note: this function assumes that the redirect has been validated
+    constructs a link with url encoded query params given a base path
     """
-    query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
-    redirect_uri = f"{path}?{query_string}"
+    query_string = urlencode({k: v for k, v in query_params.items() if v})
+    redirect_uri = f"{path}"
+    if query_string:
+        redirect_uri += f"?{query_string}"
     return redirect_uri

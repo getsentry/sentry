@@ -10,7 +10,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -186,7 +186,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
 
 @override_settings(LOG_API_ACCESS=False)
-@control_silo_test
+@control_silo_test(stable=True)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"

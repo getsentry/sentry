@@ -1,15 +1,13 @@
 from django.urls import reverse
 
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -156,6 +154,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
                 "message_timestamp": three_min_ago,
             },
         )
+        assert cur_group_info is not None
         self.cur_group = cur_group_info.group
 
         next_event_id = "c" * 32

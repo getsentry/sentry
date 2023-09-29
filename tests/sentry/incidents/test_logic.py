@@ -7,7 +7,6 @@ import pytest
 import responses
 from django.core import mail
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.events import (
@@ -66,13 +65,13 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, Integration, PagerDutyService
+from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -640,7 +639,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -963,7 +962,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -1010,6 +1009,15 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = self.create_alert_rule(query="transaction.duration:>=100")
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
 
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1227,13 +1235,20 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_name = "#some_channel"
         channel_id = "s_c"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         action = create_alert_rule_trigger_action(
@@ -1260,7 +1275,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(InvalidTriggerActionError):
+        with pytest.raises(ApiError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1286,11 +1301,19 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_name = "#some_channel"
 
         responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+
+        responses.add(
             method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             create_alert_rule_trigger_action(
@@ -1361,16 +1384,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -1402,6 +1422,75 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=target_identifier,
+                integration_id=integration.id,
+            )
+
+    @responses.activate
+    def test_discord(self):
+        guild_id = "example-discord-server"
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+        }
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=guild_id,
+            metadata=metadata,
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_id = "channel-id"
+        responses.add(
+            method=responses.GET,
+            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            json=metadata,
+        )
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
+
+    @responses.activate
+    def test_discord_flag_off(self):
+        guild_id = "example-discord-server"
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+        }
+        integration = Integration.objects.create(
+            provider="discord",
+            external_id=guild_id,
+            metadata=metadata,
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_id = "channel-id"
+        responses.add(
+            method=responses.GET,
+            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            json=metadata,
+        )
+
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_id,
                 integration_id=integration.id,
             )
 
@@ -1443,13 +1532,20 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_name = "#some_channel"
         channel_id = "s_c"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         action = update_alert_rule_trigger_action(
@@ -1476,7 +1572,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(InvalidTriggerActionError):
+        with pytest.raises(ApiError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1502,11 +1598,19 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_name = "#some_channel"
 
         responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+
+        responses.add(
             method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             update_alert_rule_trigger_action(
@@ -1577,16 +1681,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = update_alert_rule_trigger_action(
             self.action,
             type,
@@ -1621,6 +1722,119 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 target_identifier=target_identifier,
                 integration_id=integration.id,
             )
+
+    @responses.activate
+    def test_opsgenie(self):
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        )
+        integration.add_organization(self.organization, self.user)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        org_integration.config = {"team_table": [team]}
+        org_integration.save()
+
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+
+        type = AlertRuleTriggerAction.Type.OPSGENIE
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=team["id"],
+            integration_id=integration.id,
+        )
+
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == team["id"]
+        assert action.target_display == "cool-team"
+        assert action.integration_id == integration.id
+
+    def test_opsgenie_not_existing(self):
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        )
+
+        type = AlertRuleTriggerAction.Type.OPSGENIE
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = "fake-team-id-123"
+
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=target_identifier,
+                integration_id=integration.id,
+            )
+
+    @responses.activate
+    def test_discord(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
@@ -1924,33 +2138,40 @@ class TestDeduplicateTriggerActions(TestCase):
 
 
 class TestCustomMetricAlertRule(TestCase):
-    @patch("sentry.incidents.logic.features.has", return_value=True)
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config, mocked_feature_has):
+    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config):
         self.create_alert_rule()
 
         mocked_schedule_invalidate_project_config.assert_not_called()
 
-    @patch("sentry.incidents.logic.features.has", return_value=True)
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule(
-        self, mocked_schedule_invalidate_project_config, mocked_feature_has
-    ):
-        self.create_alert_rule(
-            projects=[self.project],
-            dataset=Dataset.PerformanceMetrics,
-            query="transaction.duration:>=100",
-        )
+    def test_create_custom_metric_alert_rule(self, mocked_schedule_invalidate_project_config):
+        with self.feature({"organizations:on-demand-metrics-extraction": True}):
+            self.create_alert_rule(
+                projects=[self.project],
+                dataset=Dataset.PerformanceMetrics,
+                query="transaction.duration:>=100",
+            )
 
-        mocked_schedule_invalidate_project_config.assert_called_once_with(
-            trigger="alerts:create-on-demand-metric", project_id=self.project.id
-        )
+            mocked_schedule_invalidate_project_config.assert_called_once_with(
+                trigger="alerts:create-on-demand-metric", project_id=self.project.id
+            )
 
-    @patch("sentry.incidents.logic.features.has", return_value=False)
+        mocked_schedule_invalidate_project_config.reset_mock()
+
+        with self.feature({"organizations:on-demand-metrics-prefill": True}):
+            self.create_alert_rule(
+                projects=[self.project],
+                dataset=Dataset.PerformanceMetrics,
+                query="transaction.duration:>=50",
+            )
+
+            mocked_schedule_invalidate_project_config.assert_called_once_with(
+                trigger="alerts:create-on-demand-metric", project_id=self.project.id
+            )
+
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_turned_off(
-        self, mocked_schedule_invalidate_project_config, mocked_feature_has
-    ):
+    def test_create_custom_metric_turned_off(self, mocked_schedule_invalidate_project_config):
         self.create_alert_rule(
             projects=[self.project],
             dataset=Dataset.PerformanceMetrics,

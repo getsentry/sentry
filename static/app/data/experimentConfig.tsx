@@ -13,12 +13,6 @@ export const unassignedValue = -1;
  */
 export const experimentList = [
   {
-    key: 'OnboardingNewFooterExperiment',
-    type: ExperimentType.ORGANIZATION,
-    parameter: 'scenario',
-    assignments: ['baseline', 'variant1', 'variant2'],
-  },
-  {
     key: 'ExtendTrialByInvitingMemberExperiment',
     type: ExperimentType.ORGANIZATION,
     parameter: 'exposed',

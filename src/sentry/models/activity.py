@@ -9,6 +9,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -68,7 +69,7 @@ class ActivityManager(BaseManager):
         send_notification: bool = True,
     ) -> Activity:
         if user:
-            user_id = user.id  # type: ignore[assignment]
+            user_id = user.id
         activity_args = {
             "project_id": group.project_id,
             "group": group,
@@ -86,7 +87,7 @@ class ActivityManager(BaseManager):
 
 @region_silo_only_model
 class Activity(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
@@ -163,4 +164,5 @@ class ActivityIntegration(Enum):
     PROJECT_OWNERSHIP = "projectOwnership"
     SLACK = "slack"
     MSTEAMS = "msteams"
+    DISCORD = "discord"
     SUSPECT_COMMITTER = "suspectCommitter"

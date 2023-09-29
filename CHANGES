@@ -1,3 +1,221 @@
+23.9.1
+------
+
+### Various fixes & improvements
+
+- fix(fly): return user with correct auth (#56523) by @sentaur-athena
+- chore(api): Delete acceptance test for user tokens (#56537) by @schew2381
+- fix(backup): Suppress verbose SQL error reporting (#56583) by @azaslavsky
+- chore(github-growth): remove auto repo linking feature flag (#56581) by @cathteng
+- docs: Create some stories for PageBanner (#56519) by @ryan953
+- docs: Create a story for FeatureBadge (#56510) by @ryan953
+- ref(ui): Refine featureDisabled prop type (#56538) by @scttcper
+- migration(crons): Add MonitorIncident table (#56435) by @rjo100
+- ref(escalating-issues): Auto-transition tasks should update up to 500_000 groups per minute (#56168) by @NisanthanNanthakumar
+- chore(notifications): rename approval notifications to nudges in the UI (#56505) by @cathteng
+- feat(trace-view-load-more): Added ui for loading longer traces. (#56476) by @Abdkhan14
+- feat(starfish): add span domain array (#56494) by @wmak
+- chore(profiling): Track accepted profile outcomes (#56575) by @Zylphrex
+- feat(replay): Link page breadcrumb on Replay Details to the list page, filtered by project (#56574) by @ryan953
+- feat(crons): Add mark_environment_missed task (#56528) by @rjo100
+- fix(notifications): fixes bug for commited_only settings (#56518) by @scefali
+- ref(ddm): datetime params (#56567) by @obostjancic
+- chore(github-growth): stop writing to commitfilechange language column (#56491) by @cathteng
+- chore(github-growth): more FE analytics (#56507) by @cathteng
+- chore(hybrid-cloud): Mark extract_user_ids_from_mentions to be a region silo function (#56441) by @dashed
+- feat(statistical-detectors): Integrate detector with breakpoint detection (#56384) by @Zylphrex
+- feat(trace-view-load-more): Fixed bug that loads an extra row of orphans. (#56561) by @Abdkhan14
+- fix(dashboards): Use loading indicator to avoid multiple requests (#56558) by @narsaynorath
+- chore(hybrid-cloud): Stabilize issue integration defaults for split silo (#56297) by @dashed
+
+_Plus 46 more_
+
+23.9.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54286)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53643)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56280, #56151, #56141, #55937, #55479, #55366, #54891, #54809)
+
+### Various fixes & improvements
+
+- feat(crons): Fan out `check_missing` task to each `monitor_environment` (#55924) by @rjo100
+- fix(severity): Prevent skipping severity score when equal to zero (#56225) by @lobsterkatie
+- docs(api): Clarify how to use id param in bulk delete issue endpoint (#56422) by @malwilley
+- feat(perf): Add link to Database view to sidebar (#56341) by @gggritso
+- chore(codeowners): update enterprise codeowners (#56487) by @cathteng
+- fix(commits): use externalId in filechange and project release commits FE (#56146) by @cathteng
+- fix(github-growth): improve performance of missing members API (#56477) by @cathteng
+- fix(api): test symbol sources in DetailedProjectSerializer (#56473) by @cathteng
+- feat(replay): Upgrade rrweb packages to v2 (#56088) by @billyvg
+- fix(backup): Handle UserRole name collisions (#56479) by @azaslavsky
+- logging(apis): better logging for api failures (#56432) by @scefali
+- Release threshold folder imports nit (#56400) by @nhsiehgit
+- docs: Document our loadingTriangle component (#56438) by @ryan953
+- ref(tests): Split error event tests into classes (#56448) by @lobsterkatie
+- fix(jira-server): try a second project for jira server if the first one fails (#56439) by @scefali
+- ref(snuba-sdk): Update snuba-sdk version to latest 2.0.1 (#56419) by @enochtangg
+- fix(actionable-items): Remove source map debug from actionable items (#56405) by @roggenkemper
+- feat(save_event): Always use cache for stacktrace processing (#56413) by @armenzg
+- feat(stat-detectors): Add param to fetch all tags (#56434) by @narsaynorath
+- feat(ddm): support for 1m interval (#56467) by @obostjancic
+- fix(minimetrics): Fix broken recursion detection (#56466) by @mitsuhiko
+- ref(typing): Few typing changes for sentry.snuba.metrics (#56397) by @armenzg
+- ref(sentry-sdk): Upgrade SDK (#56461) by @mitsuhiko
+- feat(ddm): Add metrics explorer from getsentry (#56460) by @matejminar
+
+_Plus 1078 more_
+
+23.8.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54734, #54655, #54589, #54640, #54466, #54348, #54339, #53522, #54234)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#54744)
+
+### Various fixes & improvements
+
+- (fix): user creation for self-hosted clean installs (#54776) by @hubertdeng123
+- fix(replays): remove replay from desktop and mobile projects (#54749) by @michellewzhang
+- ref: add mypy stubs for django-csp (#54786) by @asottile-sentry
+- chore(hybrid-cloud): Update OrganizationAuditLogsEndpoint to be a control silo endpoint (#54755) by @dashed
+- fix: ensure PYTEST_DEBUG_TEMPROOT exists (#54725) by @joshuarli
+- ref(replays): Update replay pages to show project name (#54728) by @c298lee
+- chore(codeowners): Update codeowners with project creation files (#54774) by @schew2381
+- feat(commit-context): Do not create if older than 1 year (#54624) by @NisanthanNanthakumar
+- feat(backup): Support foreign key remapping (#54610) by @azaslavsky
+- feat(tracing-without-performance): Replay compatibility and ui improvements. (#54700) by @Abdkhan14
+- fix(crons): Add border back to non-sticky timeline header (#54770) by @davidenwang
+- ref: upgrade datadog to a typed version (#54758) by @asottile-sentry
+- ref(crons): Remove temp_task_dispatcher (#54768) by @evanpurkhiser
+- fix(metrics-layer): Add xfailing metrics layer sort test (#54712) by @wmak
+- ref(query-builder): Cleanup query_framework code (#54586) by @wmak
+- ref(statistical-detectors): Clean up statistical detectors calculation (#54694) by @Zylphrex
+- fix(crons): Add className parameter to timeline components (#54769) by @davidenwang
+- ref(ui): Enhance Carousel component (#54747) by @evanpurkhiser
+- Feat/opt automator add region (#54631) by @kneeyo1
+- sample-event: try synchronous kafka producing (#54748) by @JoshFerge
+- ref(alerts): Don't pass "name" field (#54739) by @ceorourke
+- chore(issues): Cleanup apply_rule logs and add some more for regressions (#54455) by @snigdhas
+- feat(crons): Implement fallback clock pulse task (#54647) by @evanpurkhiser
+- fix(actionable-items): Add scraping as hidden error (#54648) by @roggenkemper
+
+_Plus 424 more_
+
+23.7.2
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54001)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53645, #53541)
+
+### Various fixes & improvements
+
+- feat(tracing-without-performance): Returned orphan errors with trace … (#54103) by @Abdkhan14
+- feat(profiling): use color pallete on chart (#54101) by @JonasBa
+- feat(issue-platform): Add an experimental frame drop issue type (#54028) by @phacops
+- feat(backup): Add DateAddedComparator (#54009) by @azaslavsky
+- feat(opsgenie): refactor validation (#53996) by @mifu67
+- Declare events.save_event_highcpu queue (#54041) by @hubertsentry
+- fix(escalating): Add reason to feedback analytic (#54082) by @scttcper
+- deps(ui): Update jest dependencies (#54065) by @scttcper
+- feat(discord): Add metrics (#54072) by @spalmurray
+- fix(starfish): Handle free text search (#54060) by @wmak
+- fix(github-comments): update comment copy (#54104) by @cathteng
+- fix(most-helpful-event): One event dropdown disabled (#54070) by @17hogeju
+- feat(most-helpful-event): Add option in user settings to change default issue event (#54048) by @17hogeju
+- ref(metrics-layer): Test the span metric charts too (#54045) by @wmak
+- fix(metrics-layer): Incorrect metrics layer tests (#54046) by @wmak
+- fix(notification-actions): allow org and team admins to modify (#53797) by @cathteng
+- ref(starfish): Show 3 significant digits for queries per minute try 2 (#54100) by @AbhiPrasad
+- ref(hc): Mark silo stable tests stable (#54074) by @mrduncan
+- feat(profiling): add react native onboarding wizard (#54096) by @JonasBa
+- fix(mypy): fix mypy errors for src/sentry/api/serializers/models (part 1) (#53905) by @hubertsentry
+- Revert "ref(starfish): Show 3 significant digits for queries per minute (#54033)" (dd75a2cb) by @getsentry-bot
+- ref(starfish): Show 3 significant digits for queries per minute (#54033) by @AbhiPrasad
+- chore(grouping): Kill grouping levels endpoints (#54073) by @lobsterkatie
+- xfail flakey test (#54081) by @JoshFerge
+
+_Plus 400 more_
+
+23.7.1
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#53011)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52774)
+
+### Various fixes & improvements
+
+- chore(replay): Remove unicode from slack View Replays link (#53518) by @ryan953
+- feat(starfish): Replaces usage of p95 in the Database Module with avg (#53515) by @edwardgou-sentry
+- Revert "feat(profiling): Deobfuscate Android methods' signature (#53427)" (af3ae3b7) by @getsentry-bot
+- feat(integration-slack): store request error counts and disable on broken (#52994) by @chloeho7
+- ref(grouping): Clean up message normalization (#53479) by @lobsterkatie
+- ref(projects): Redirect after project transfer (#53466) by @ceorourke
+- feat(secrecy): enable data secrecy for organizations (#53322) by @cathteng
+- feat(perf-detector-threshold-configuration) Added option for new Cons… (#53461) by @Abdkhan14
+- fix(ci): Increase codecov `comment.after_n_builds` value (#53488) by @lobsterkatie
+- test(ui): Reset api mocks between EventDetails tests (#53497) by @scttcper
+- ref(hybrid-cloud): Fix a few tests in split silo mode (#53482) by @mikejihbe
+- feat(profiling): Deobfuscate Android methods' signature (#53427) by @phacops
+- feat(perf-detector-threshold-configuration) Added new thresholds and … (#53460) by @Abdkhan14
+- fix(starfish): clicking endpoint in span summary replaces groupId with 'db' in url (#53517) by @DominikB2014
+- feat(starfish): add transaction.op:http.server to webservice queries (#53355) by @DominikB2014
+- fix(starfish): add quotes around transaction name (#53516) by @DominikB2014
+- ref(redis): Configure default 3s socket timeout (#53513) by @beezz
+- feat(dynamic-sampling): Add project slug to response of AM2 check (#53514) by @iambriccardo
+- feat(dnd-worldmap-removal) Added null checks for columns and fields. (#53475) by @Abdkhan14
+- Implement ArtifactBundle flat file indexing (#53505) by @Swatinem
+- chore(ts): Improve Starfish span metrics typing (#53453) by @gggritso
+- ref(feature): Remove no longer used heartbeat feature flag (#53510) by @priscilawebdev
+- ref(feature): Remove heartbeat feature (#53509) by @priscilawebdev
+- feat(dynamic-sampling): Improve check am2 compatibility (#53414) by @iambriccardo
+
+_Plus 399 more_
+
 23.7.0
 ------
 

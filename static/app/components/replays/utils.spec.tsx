@@ -4,10 +4,8 @@ import {
   flattenFrames,
   formatTime,
   getFramesByColumn,
-  relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
-// import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
@@ -257,16 +255,6 @@ describe('flattenFrames', () => {
   });
 
   const diffMs = 1652309918676;
-  describe('relativeTimeinMs', () => {
-    it('returns relative time in MS', () => {
-      expect(relativeTimeInMs('2022-05-11T23:04:27.576000Z', diffMs)).toEqual(348900);
-    });
-
-    it('returns invalid date if date string is malformed', () => {
-      expect(relativeTimeInMs('202223:04:27.576000Z', diffMs)).toEqual(NaN);
-    });
-  });
-
   describe('showPlayerTime', () => {
     it('returns time formatted for player', () => {
       expect(showPlayerTime('2022-05-11T23:04:27.576000Z', diffMs)).toEqual('05:48');

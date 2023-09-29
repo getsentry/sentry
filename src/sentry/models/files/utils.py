@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time
 from contextlib import contextmanager
@@ -6,6 +8,7 @@ from hashlib import sha1
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 
+from sentry import options
 from sentry.locks import locks
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -46,12 +49,21 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
 
 
 @contextmanager
+def lock_blob(checksum: str, name: str, metric_instance: str | None = None):
+    if not options.get("fileblob.upload.use_lock"):
+        yield
+        return
+
+    lock = locks.get(f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME, name=name)
+    with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance=metric_instance)(lock.acquire):
+        yield
+
+
+@contextmanager
 def locked_blob(file_blob_model, checksum, logger=nooplogger):
     logger.debug("_locked_blob.start", extra={"checksum": checksum})
-    lock = locks.get(
-        f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME, name="fileblob_upload_model"
-    )
-    with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
+    lock = lock_blob(checksum, "fileblob_upload_model", metric_instance="lock.fileblob.upload")
+    with lock:
         logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
         try:

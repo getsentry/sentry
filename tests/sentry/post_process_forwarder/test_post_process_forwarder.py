@@ -11,9 +11,12 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.post_process_forwarder import PostProcessForwarder
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
+
+pytestmark = [requires_kafka]
 
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
 SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")

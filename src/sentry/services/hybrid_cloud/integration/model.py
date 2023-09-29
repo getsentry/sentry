@@ -7,7 +7,11 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.base import (
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationProvider,
+)
 from sentry.services.hybrid_cloud import RpcModel
 
 
@@ -22,16 +26,26 @@ class RpcIntegration(RpcModel):
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_provider(self) -> IntegrationProvider:
-        from sentry import integrations
-
-        return integrations.get(self.provider)
-
     def get_status_display(self) -> str:
         for status_id, display in ObjectStatus.as_choices():
             if status_id == self.status:
                 return display
         return "disabled"
+
+    def get_provider(self) -> IntegrationProvider:
+        from sentry.models.integrations.utils import get_provider
+
+        return get_provider(instance=self)
+
+    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
+        from sentry.models.integrations.utils import get_installation
+
+        return get_installation(instance=self, organization_id=organization_id, **kwargs)
+
+    def has_feature(self, feature: IntegrationFeatures) -> bool:
+        from sentry.models.integrations.utils import has_feature
+
+        return has_feature(instance=self, feature=feature)
 
 
 class RpcOrganizationIntegration(RpcModel):
@@ -51,3 +65,12 @@ class RpcOrganizationIntegration(RpcModel):
             if status_id == self.status:
                 return display
         return "disabled"
+
+
+class RpcIntegrationExternalProject(RpcModel):
+    id: int
+    organization_integration_id: int
+    name: str
+    external_id: str
+    resolved_status: str
+    unresolved_status: str

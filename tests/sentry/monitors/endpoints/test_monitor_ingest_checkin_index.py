@@ -7,10 +7,11 @@ from uuid import UUID
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from freezegun import freeze_time
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -20,8 +21,8 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
@@ -83,9 +84,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
             # Confirm next check-in is populated with config and expected time
@@ -154,9 +158,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
     def test_disabled(self):
@@ -176,9 +183,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             # is disabled
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
     def test_pending_deletion(self):
@@ -234,7 +244,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
 
-    def test_monitor_creation_and_update_via_checkin(self):
+    def test_monitor_upsert_via_checkin(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"my-new-monitor-{i}"
             path = path_func(slug)
@@ -277,6 +287,31 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 2
 
+    def test_monitor_upsert_checkin_margin_zero(self):
+        """
+        As part of GH-56526 we changed the minimum value allowed for the
+        checkin_margin to 1 from 0. Some monitors may still be upserting with a
+        0 set, we transform it to None in those cases.
+        """
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            resp = self.client.post(
+                path,
+                {
+                    "status": "ok",
+                    "monitor_config": {
+                        "schedule_type": "crontab",
+                        "schedule": "5 * * * *",
+                        "checkin_margin": 0,
+                    },
+                },
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+            assert Monitor.objects.get(slug=slug).config["checkin_margin"] == 1
+
     def test_monitor_creation_invalid_slug(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"@my-new-monitor-{i}"
@@ -291,10 +326,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content
-            assert (
-                resp.data["slug"][0]
-                == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
-            )
+            assert resp.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_creation_over_limit(self):
@@ -324,7 +356,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorLimitsExceeded" in resp.data.keys()
 
             Monitor.objects.filter(organization_id=self.organization.id).delete()
@@ -356,7 +388,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentLimitsExceeded" in resp.data.keys()
 
     def test_monitor_environment_validation(self):
@@ -375,7 +407,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentValidationFailed" in resp.data.keys()
 
     def test_with_dsn_auth_and_guid(self):

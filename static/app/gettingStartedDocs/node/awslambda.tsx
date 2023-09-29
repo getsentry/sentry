@@ -1,40 +1,38 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {
+  getDefaulServerlessImports,
+  getDefaultInitParams,
+  getInstallSnippet,
+  getProductInitParams,
+  getProductIntegrations,
+  getProductSelectionMap,
+  joinWithIndentation,
+} from 'sentry/utils/gettingStartedDocs/node';
 
-type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
-  sentryInitContent: string;
-};
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`;
+interface StepsParams {
+  importContent: string;
+  initContent: string;
+  installSnippet: string;
+  sourceMapStep: StepProps;
+}
 
 export const steps = ({
-  sentryInitContent,
-  ...props
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+  installSnippet,
+  importContent,
+  initContent,
+  sourceMapStep,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Serverless SDK as a dependency:'),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/serverless
-
-# Using npm
-npm install --save @sentry/serverless
-        `,
+        code: installSnippet,
       },
     ],
   },
@@ -51,23 +49,20 @@ npm install --save @sentry/serverless
       {
         language: 'javascript',
         code: `
-        const Sentry = require("@sentry/serverless");
+${importContent}
 
-        Sentry.AWSLambda.init({
-          ${sentryInitContent},
-        });
+Sentry.AWSLambda.init({
+${initContent}
+});
 
-        exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
-          // Your handler code
-        });
-        `,
+exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
+  // Your handler code
+});
+`,
       },
     ],
   },
-  getUploadSourceMapsStep({
-    guideLink: 'https://docs.sentry.io/platforms/node/sourcemaps/',
-    ...props,
-  }),
+  sourceMapStep,
   {
     type: StepType.VERIFY,
     description: t(
@@ -88,24 +83,51 @@ npm install --save @sentry/serverless
 
 export function GettingStartedWithAwsLambda({
   dsn,
-  organization,
   newOrg,
   platformKey,
+  activeProductSelection = [],
+  organization,
   projectId,
+  ...props
 }: ModuleProps) {
-  const sentryInitContent: string[] = [`dsn: "${dsn}",`, performanceOtherConfig];
+  const productSelection = getProductSelectionMap(activeProductSelection);
+
+  const installSnippet = getInstallSnippet({
+    productSelection,
+    basePackage: '@sentry/serverless',
+  });
+  const imports = getDefaulServerlessImports({productSelection});
+  const integrations = getProductIntegrations({productSelection});
+
+  const integrationParam =
+    integrations.length > 0
+      ? `integrations: [\n${joinWithIndentation(integrations)}\n],`
+      : null;
+
+  const initContent = joinWithIndentation([
+    ...getDefaultInitParams({dsn}),
+    ...(integrationParam ? [integrationParam] : []),
+    ...getProductInitParams({productSelection}),
+  ]);
 
   return (
     <Layout
       steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
+        installSnippet,
+        importContent: imports.join('\n'),
+        initContent,
+        sourceMapStep: getUploadSourceMapsStep({
+          guideLink:
+            'https://docs.sentry.io/platforms/node/guides/aws-lambda/sourcemaps/',
+          organization,
+          platformKey,
+          projectId,
+          newOrg,
+        }),
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

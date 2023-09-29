@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Sequence, Tuple
 
 import sentry_sdk
 
 from sentry import analytics
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -17,7 +21,7 @@ def find_commit_context_for_event(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frame: Mapping[str, Any],
     extra: Mapping[str, Any],
-) -> List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]]:
+) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
     """
 
     Get all the Commit Context for an event frame using a source code integration for all the matching code mappings
@@ -75,9 +79,7 @@ def find_commit_context_for_event(
         integration = integration_service.get_integration(
             organization_integration_id=code_mapping.organization_integration_id
         )
-        install = integration_service.get_installation(
-            integration=integration, organization_id=code_mapping.organization_id
-        )
+        install = integration.get_installation(organization_id=code_mapping.organization_id)
         if installation is None and install is not None:
             installation = install
         try:
@@ -107,7 +109,12 @@ def find_commit_context_for_event(
                 },
             )
 
-        if commit_context:
+        # Only return suspect commits that are less than a year old
+        if commit_context and is_date_less_than_year(commit_context["committedDate"]):
             result.append((commit_context, code_mapping))
 
     return result, installation
+
+
+def is_date_less_than_year(date: datetime):
+    return date > datetime.now(tz=timezone.utc) - timedelta(days=365)

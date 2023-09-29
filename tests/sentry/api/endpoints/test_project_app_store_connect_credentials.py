@@ -9,8 +9,8 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
 from sentry.lang.native.appconnect import AppStoreConnectConfig
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 class TestAppStoreUpdateCredentialsSerializer:

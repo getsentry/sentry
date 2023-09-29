@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
 from typing import Any, Mapping, Tuple
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
-from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
@@ -232,6 +233,9 @@ class GitlabWebhookMixin:
 
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "gitlab"

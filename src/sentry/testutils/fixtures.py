@@ -13,13 +13,13 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    User,
 )
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -120,6 +120,9 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_user_auth_token(self, *args, **kwargs):
+        return Factories.create_user_auth_token(*args, **kwargs)
+
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
 
@@ -127,8 +130,7 @@ class Fixtures:
         if organization is None:
             organization = self.organization
 
-        with outbox_runner():
-            return Factories.create_team(organization=organization, **kwargs)
+        return Factories.create_team(organization=organization, **kwargs)
 
     def create_environment(self, project=None, **kwargs):
         if project is None:
@@ -136,7 +138,8 @@ class Fixtures:
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault("teams", [self.team])
+        if "teams" not in kwargs:
+            kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
@@ -228,6 +231,19 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
+    def create_usersocialauth(
+        self,
+        user: User | None = None,
+        provider: str | None = None,
+        uid: str | None = None,
+        extra_data: Mapping[str, Any] | None = None,
+    ):
+        if not user:
+            user = self.user
+        return Factories.create_usersocialauth(
+            user=user, provider=provider, uid=uid, extra_data=extra_data
+        )
+
     def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)
 
@@ -268,6 +284,9 @@ class Fixtures:
 
     def create_internal_integration_token(self, *args, **kwargs):
         return Factories.create_internal_integration_token(*args, **kwargs)
+
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
 
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
@@ -322,6 +341,9 @@ class Fixtures:
         return self.create_incident_activity(
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
+
+    def create_incident_trigger(self, incident, alert_rule_trigger, status):
+        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
 
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
@@ -443,6 +465,9 @@ class Fixtures:
 
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
+
+    def create_basic_auth_header(self, *args, **kwargs):
+        return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)

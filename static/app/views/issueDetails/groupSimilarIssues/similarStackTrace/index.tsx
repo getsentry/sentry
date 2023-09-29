@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
@@ -55,7 +56,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     if (hasSimilarityFeature) {
       reqs.push({
-        endpoint: `/issues/${groupId}/similar/?${qs.stringify({
+        endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
         })}`,
@@ -64,7 +65,7 @@ function SimilarStackTrace({params, location, project}: Props) {
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, hasSimilarityFeature]);
+  }, [location.query, groupId, orgId, hasSimilarityFeature]);
 
   const onGroupingChange = useCallback(
     ({
@@ -131,22 +132,20 @@ function SimilarStackTrace({params, location, project}: Props) {
   }, [params, location.query, items]);
 
   const hasSimilarItems =
-    hasSimilarityFeature &&
-    (items.similar.length > 0 || items.filtered.length > 0) &&
-    status === 'ready';
+    hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
 
   const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process merges.'
-          )}
-        </Alert>
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
+          <small>
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
+            )}
+          </small>
         </HeaderWrapper>
         {status === 'loading' && <LoadingIndicator />}
         {status === 'error' && (
@@ -155,7 +154,14 @@ function SimilarStackTrace({params, location, project}: Props) {
             onRetry={fetchData}
           />
         )}
-        {hasSimilarItems && (
+        {status === 'ready' && !hasSimilarItems && (
+          <Panel>
+            <EmptyStateWarning>
+              <p>{t("There don't seem to be any similar issues.")}</p>
+            </EmptyStateWarning>
+          </Panel>
+        )}
+        {status === 'ready' && hasSimilarItems && (
           <IssuesReplayCountProvider groupIds={groupsIds}>
             <List
               items={items.similar}
@@ -176,12 +182,13 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  margin-bottom: 0;
+  margin-bottom: ${space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: ${space(2)};
+
+  small {
+    color: ${p => p.theme.subText};
+  }
 `;

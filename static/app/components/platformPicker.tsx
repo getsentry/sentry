@@ -5,17 +5,19 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import categoryList, {
+  deprecatedPlatforms,
+  filterAliases,
+} from 'sentry/data/platformCategories';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export const PLATFORM_CATEGORIES: {
@@ -23,6 +25,8 @@ export const PLATFORM_CATEGORIES: {
   name: string;
   platforms?: PlatformKey[];
 }[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
+
+const activePlatforms = platforms.filter(({id}) => !deprecatedPlatforms.has(id));
 
 const PlatformList = styled('div')`
   display: grid;
@@ -81,20 +85,10 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         return true;
       }
 
-      // Symfony was no appering under the server category
-      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
-      // does not contain the suffix 2.
-      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
-      if (
-        (platform.id as any) === 'php-symfony' &&
-        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
-      ) {
-        return true;
-      }
       return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
     };
 
-    const filtered = platforms
+    const filtered = activePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -177,14 +171,17 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
               {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
                 ),
               }
             )}

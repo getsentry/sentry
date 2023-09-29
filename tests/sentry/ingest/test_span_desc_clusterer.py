@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -29,9 +28,10 @@ from sentry.ingest.transaction_clusterer.tasks import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config import get_project_config
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
@@ -161,7 +161,11 @@ def test_record_span_desc_url(mocked_record, default_organization):
 
 
 def test_sort_rules():
-    rules = {"/a/*/**": 1, "/a/**": 2, "/a/*/c/**": 3}
+    rules = {
+        ReplacementRule("/a/*/**"): 1,
+        ReplacementRule("/a/**"): 2,
+        ReplacementRule("/a/*/c/**"): 3,
+    }
     assert ProjectOptionRuleStore(ClustererNamespace.SPANS)._sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
@@ -342,8 +346,7 @@ def test_span_descs_clusterer_generates_rules(default_project):
     def _get_projconfig_span_desc_rules(project: Project):
         return (
             get_project_config(project, full_config=True)
-            .to_dict()
-            .get("config")
+            .to_dict()["config"]
             .get("spanDescriptionRules")
         )
 
@@ -353,7 +356,7 @@ def test_span_descs_clusterer_generates_rules(default_project):
     with Feature({feature: True}):
         assert _get_projconfig_span_desc_rules(default_project) is None
 
-    rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
+    rules = {ReplacementRule("/rule/*/0/**"): 0, ReplacementRule("/rule/*/1/**"): 1}
     ProjectOptionRuleStore(ClustererNamespace.SPANS).write(default_project, rules)
 
     with Feature({feature: False}):
@@ -496,6 +499,26 @@ def test_dont_store_inexisting_rules(_, default_organization):
 
 
 @django_db_all
+def test_record_span_descriptions_no_databag(default_organization):
+    """Verify a `None` databag doesn't break the span description clusterer."""
+    with Feature("projects:span-metrics-extraction"), override_options(
+        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    ):
+        payload = {
+            "spans": [
+                {
+                    "description": "GET a",
+                    "op": "http.client",
+                    "data": None,
+                }
+            ],
+        }
+
+        project = Project(id=123, name="project", organization_id=default_organization.id)
+        record_span_descriptions(project, payload)
+
+
+@django_db_all
 def test_stale_rules_arent_saved(default_project):
     assert len(get_sorted_rules(ClustererNamespace.SPANS, default_project)) == 0
 
@@ -518,7 +541,9 @@ def test_stale_rules_arent_saved(default_project):
 def test_bump_last_used():
     """Redis update works and does not delete other keys in the set."""
     project1 = Project(id=123, name="project1")
-    RedisRuleStore(namespace=ClustererNamespace.SPANS).write(project1, {"foo": 1, "bar": 2})
+    RedisRuleStore(namespace=ClustererNamespace.SPANS).write(
+        project1, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2}
+    )
     assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"foo": 1, "bar": 2}
     with freeze_time("2000-01-01 01:00:00"):
         bump_last_used(ClustererNamespace.SPANS, project1, "bar")

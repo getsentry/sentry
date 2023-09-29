@@ -56,6 +56,7 @@ def query(
                 transform_alias_to_input_format,
                 has_metrics,
                 use_metrics_layer,
+                on_demand_metrics_enabled,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -130,6 +131,7 @@ def timeseries_query(
                 comparison_delta,
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -184,6 +186,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

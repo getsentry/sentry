@@ -6,9 +6,7 @@ import Trace from 'sentry/views/replays/detail/trace/trace';
 
 jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
-const mockUseTransactionData = useTransactionData as jest.MockedFunction<
-  typeof useTransactionData
->;
+const mockUseTransactionData = jest.mocked(useTransactionData);
 
 const mockTraceFullDetailed = {} as TraceFullDetailed;
 

@@ -11,7 +11,7 @@ from sentry.api.bases.sentryapps import (
     SentryAppPermission,
     add_integration_platform_metric_tag,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

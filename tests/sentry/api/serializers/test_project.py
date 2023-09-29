@@ -26,7 +26,8 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -36,7 +37,7 @@ TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -172,20 +173,20 @@ class ProjectSerializerTest(TestCase):
         req = self.make_request()
         req.user = self.user
         req.superuser.set_logged_in(req.user)
-        env.request = req
 
-        result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
+        with mock.patch.object(env, "request", req):
+            result = serialize(self.project, self.user)
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        result = serialize(self.project, self.user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
+            self.organization.flags.allow_joinleave = False
+            self.organization.save()
+            result = serialize(self.project, self.user)
+            # after changing to allow_joinleave=False
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
 
     def test_member_on_owner_team(self):
         organization = self.create_organization()
@@ -295,7 +296,7 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -650,7 +651,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert check_has_health_data.call_count == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -666,7 +667,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -691,8 +692,19 @@ class DetailedProjectSerializerTest(TestCase):
         assert result["platform"] == self.project.platform
         assert result["latestRelease"] == {"version": self.release.version}
 
+    def test_symbol_sources(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key="sentry:symbol_sources",
+            value='[{"id":"1","name":"hello","password":"password",}]',
+        )
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
 
-@region_silo_test
+        assert "sentry:token" not in result["options"]
+        assert "sentry:symbol_sources" not in result["options"]
+
+
+@region_silo_test(stable=True)
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):

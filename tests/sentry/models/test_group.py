@@ -1,5 +1,6 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -19,12 +20,16 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.models.release import _get_cache_key
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.replays.testutils import mock_replay
+from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = requires_snuba
 
 
 @region_silo_test(stable=True)
@@ -421,3 +426,73 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         group_event = group.get_latest_event()
         assert group_event.event_id == event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
+
+
+class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
+    def test_simple(self):
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
+        self.project.flags.has_replays = True
+        self.project.save()
+        self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                datetime.now() - timedelta(minutes=60),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        group = Group.objects.first()
+        assert group.has_replays() is True
+
+        # test caching
+        with mock.patch(
+            "sentry.models.group.metrics.incr",
+        ) as incr:
+            assert group.has_replays() is True
+            incr.assert_any_call(
+                "group.has_replays.cached",
+                tags={
+                    "has_replays": True,
+                },
+            )
+
+    def test_no_replay_project(self):
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group.has_replays() is False
+
+    def test_no_replay_on_issue(self):
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+
+        group = event.group
+        assert group.has_replays() is False
+
+        # test caching
+        with mock.patch(
+            "sentry.models.group.metrics.incr",
+        ) as incr:
+            assert group.has_replays() is False
+            incr.assert_any_call(
+                "group.has_replays.cached",
+                tags={
+                    "has_replays": False,
+                },
+            )

@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  GoCronQuickStart,
   NodeJSCronQuickStart,
   PHPCronQuickStart,
   PHPLaravelCronQuickStart,
@@ -23,7 +25,6 @@ import {Monitor} from '../types';
 
 interface Props {
   monitor: Monitor;
-  orgId: string;
 }
 
 interface OnboardingGuide {
@@ -66,7 +67,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   php: {
     label: 'PHP',
     Guide: PHPCronQuickStart,
-    platforms: new Set(['php', 'php-monolog', 'php-symfony2']),
+    platforms: new Set(['php', 'php-monolog', 'php-symfony']),
   },
   phpLaravel: {
     label: 'Laravel',
@@ -78,13 +79,20 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     Guide: NodeJSCronQuickStart,
     platforms: new Set(['node']),
   },
+  go: {
+    label: 'Go',
+    Guide: GoCronQuickStart,
+    platforms: new Set(['go']),
+  },
 };
 
 const guideToSelectOption = ({key, label}) => ({label, value: key});
 
-export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
+export default function MonitorQuickStartGuide({monitor}: Props) {
+  const org = useOrganization();
+
   const {data: projectKeys} = useApiQuery<Array<ProjectKey>>(
-    [`/projects/${orgId}/${monitor.project.slug}/keys/`],
+    [`/projects/${org.slug}/${monitor.project.slug}/keys/`],
     {staleTime: Infinity}
   );
 
@@ -103,8 +111,8 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
     {label: t('Generic'), options: genericGuides.map(guideToSelectOption)},
   ];
 
-  const platformSpecific = platformGuides.filter(guide =>
-    guide.platforms?.has(monitor.project.platform ?? 'other')
+  const platformSpecific = platformGuides.filter(
+    guide => guide.platforms?.has(monitor.project.platform ?? 'other')
   );
 
   const defaultExample = platformSpecific.length > 0 ? platformSpecific[0].key : 'cli';
@@ -119,7 +127,14 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
       />
-      <Guide slug={monitor.slug} orgSlug={orgId} dsnKey={projectKeys?.[0].dsn.public} />
+      <Guide
+        slug={monitor.slug}
+        orgSlug={org.slug}
+        orgId={org.id}
+        projectId={monitor.project.id}
+        publicKey={projectKeys?.[0].public}
+        dsnKey={projectKeys?.[0].dsn.public}
+      />
     </Container>
   );
 }

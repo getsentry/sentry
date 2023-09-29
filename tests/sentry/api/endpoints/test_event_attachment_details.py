@@ -1,10 +1,13 @@
 from io import BytesIO
 
 from sentry.models import EventAttachment, File
-from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class CreateAttachmentMixin:
@@ -80,7 +83,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
         super().setUp()

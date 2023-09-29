@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
-from sentry.models import Activity, NotificationSetting, Organization, Team, User
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.models import Activity, NotificationSetting, Organization, Team
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
+    GroupSubscriptionReason,
+    NotificationSettingEnum,
+)
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 from ...utils.participants import ParticipantMap
 from .base import GroupActivityNotification
 
 
-def _get_user_option(assignee_id: int | None) -> User | None:
-    try:
-        return User.objects.get_from_cache(id=assignee_id)
-    except User.DoesNotExist:
+def _get_user_option(assignee_id: int | None) -> RpcUser | None:
+    if assignee_id is None:
         return None
+    return user_service.get_user(user_id=assignee_id)
 
 
 def _get_team_option(assignee_id: int | None, organization: Organization) -> Team | None:
@@ -82,11 +90,27 @@ class AssignedActivityNotification(GroupActivityNotification):
             assignee_team = _get_team_option(assignee_id, self.organization)
 
             if assignee_team:
-                teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-                    parent=self.project,
-                    recipients=[assignee_team],
-                    type=self.notification_setting_type,
-                )
+                teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+                if should_use_notifications_v2(self.project.organization):
+                    setting_type = NotificationSettingEnum(
+                        NOTIFICATION_SETTING_TYPES[self.notification_setting_type]
+                    )
+                    controller = NotificationController(
+                        recipients=[assignee_team],
+                        organization_id=self.project.organization_id,
+                        project_ids=[self.project.id],
+                        type=setting_type,
+                    )
+                    teams_by_provider = controller.get_notification_recipients(
+                        type=setting_type, actor_type=ActorType.TEAM
+                    )
+                else:
+                    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+                        parent=self.project,
+                        recipients=[assignee_team],
+                        type=self.notification_setting_type,
+                    )
+
                 actors_by_provider = ParticipantMap()
                 actors_by_provider.update(users_by_provider)
                 for provider, teams in teams_by_provider.items():

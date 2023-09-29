@@ -6,7 +6,6 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -28,7 +27,8 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
@@ -44,8 +44,8 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
-@freeze_time(BASETIME)
 @control_silo_test(stable=True)
+@freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()

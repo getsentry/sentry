@@ -5,15 +5,14 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
-from sentry.integrations.base import (
-    IntegrationFeatures,
-    IntegrationInstallation,
-    IntegrationProvider,
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
 )
-from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -91,6 +90,7 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
@@ -130,6 +130,19 @@ class IntegrationService(RpcService):
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
         return ois[0] if len(ois) > 0 else None
+
+    def find_pagerduty_service(
+        self, *, organization_id: int, integration_id: int, service_id: Union[str, int]
+    ) -> Optional[PagerDutyServiceDict]:
+        org_integration = self.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
+        if not org_integration:
+            return None
+        try:
+            return OrganizationIntegration.find_service(org_integration.config, service_id)
+        except StopIteration:
+            return None
 
     @rpc_method
     @abstractmethod
@@ -181,6 +194,15 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def add_organization(
+        self, *, integration_id: int, org_ids: List[int]
+    ) -> Optional[RpcIntegration]:
+        """
+        Adds organizations to an existing integration
+        """
+
+    @rpc_method
+    @abstractmethod
     def update_integration(
         self,
         *,
@@ -229,39 +251,6 @@ class IntegrationService(RpcService):
         """
         pass
 
-    # The following methods replace instance methods of the ORM objects!
-
-    def get_installation(
-        self,
-        *,
-        integration: Union[RpcIntegration, Integration],
-        organization_id: int,
-    ) -> IntegrationInstallation:
-        """
-        Returns the IntegrationInstallation class for a given integration.
-        Intended to replace calls of `integration.get_installation`.
-        See src/sentry/models/integrations/integration.py
-        """
-        from sentry import integrations
-
-        provider = integrations.get(integration.provider)
-        installation: IntegrationInstallation = provider.get_installation(
-            model=integration,
-            organization_id=organization_id,
-        )
-        return installation
-
-    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
-        """
-        Returns True if the IntegrationProvider subclass contains a given feature
-        Intended to replace calls of `integration.has_feature`.
-        See src/sentry/models/integrations/integration.py
-        """
-        from sentry import integrations
-
-        int_provider: IntegrationProvider = integrations.get(provider)
-        return feature in int_provider.features
-
     @rpc_method
     @abstractmethod
     def send_incident_alert_notification(
@@ -272,21 +261,29 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: Optional[str] = None,
+    ) -> bool:
         pass
 
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
-    ) -> None:
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
+    ) -> bool:
         raise NotImplementedError
 
     @rpc_method
     @abstractmethod
     def delete_integration(self, *, integration_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> Optional[RpcIntegrationExternalProject]:
         pass
 
 

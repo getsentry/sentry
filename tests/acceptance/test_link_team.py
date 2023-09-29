@@ -2,12 +2,12 @@ from urllib.parse import urlparse
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class SlackLinkTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -57,13 +57,11 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.click('[name="team"]')
         self.browser.click(f'[value="{self.team.id}"]')
-        self.browser.snapshot(name="slack link team select team")
         self.browser.click('[type="submit"]')
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot(name="slack post linked team")
 
         assert ExternalActor.objects.filter(
-            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.org,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,

@@ -10,11 +10,13 @@ from sentry.auth.providers.saml2.forms import (
     process_metadata,
 )
 from sentry.auth.view import AuthView, ConfigureView
+from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.http import absolute_uri
 
 
 class SAML2ConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, provider):
+    def dispatch(self, request: Request, organization: RpcOrganization, provider: RpcAuthProvider):
         sp_metadata_url = absolute_uri(
             reverse("sentry-auth-organization-saml-metadata", args=[organization.slug])
         )
@@ -25,11 +27,14 @@ class SAML2ConfigureView(ConfigureView):
         else:
             saml_form = SAMLForm(request.POST)
             attr_mapping_form = AttributeMappingForm(request.POST)
-
             if saml_form.is_valid() and attr_mapping_form.is_valid():
                 provider.config["idp"] = saml_form.cleaned_data
                 provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
-                provider.save()
+                auth_service.update_provider_config(
+                    organization_id=organization.id,
+                    auth_provider_id=provider.id,
+                    config=provider.config,
+                )
 
         return self.render(
             "sentry_auth_saml2/configure.html",

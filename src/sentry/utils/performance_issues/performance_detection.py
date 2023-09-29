@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -14,12 +14,6 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
-    ConsecutiveHTTPSpanDetectorExtended,
-)
-from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
-    NPlusOneAPICallsDetectorExtended,
-)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -162,6 +156,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "consecutive_http_spans_min_time_saved_threshold": options.get(
+            "performance.issues.consecutive_http.min_time_saved_threshold"
+        ),
         "large_http_payload_size_threshold": options.get(
             "performance.issues.large_http_payload.size_threshold"
         ),
@@ -182,6 +179,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         ),
         "http_request_delay_threshold": options.get(
             "performance.issues.http_overhead.http_request_delay_threshold"
+        ),
+        "n_plus_one_api_calls_total_duration_threshold": options.get(
+            "performance.issues.n_plus_one_api_calls.total_duration"
         ),
     }
 
@@ -265,17 +265,11 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 50,  # ms
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
-        DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
-            "total_duration": 300,  # ms
-            "concurrency_threshold": 5,  # ms
-            "count": 10,
-            "allowed_span_ops": ["http.client"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
@@ -293,17 +287,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": settings[
                 "consecutive_http_spans_span_duration_threshold"
             ],  # ms
+            "min_time_saved": settings["consecutive_http_spans_min_time_saved_threshold"],  # ms
             "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
             "max_duration_between_spans": settings[
                 "consecutive_http_spans_max_duration_between_spans"
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
-        },
-        DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
-            "span_duration_threshold": 500,  # ms
-            "min_time_saved": 2000,  # time saved by running all queries in parallel
-            "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 1000,  # ms
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
@@ -316,54 +305,15 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     }
 
 
-# Settings used to test out the effect of lowering default thresholds, on metrics.
-def get_dry_run_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
-    settings = get_merged_settings(project_id)
-
-    return {
-        DetectorType.N_PLUS_ONE_DB_QUERIES: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": 50,  # ms
-            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-        },
-        DetectorType.SLOW_DB_QUERY: [
-            {
-                "duration_threshold": 500,  # ms
-                "allowed_span_ops": ["db"],
-                "detection_enabled": settings["slow_db_queries_detection_enabled"],
-            },
-        ],
-        DetectorType.UNCOMPRESSED_ASSETS: {
-            "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
-            "duration_threshold": 300,  # ms
-            "allowed_span_ops": ["resource.css", "resource.script"],
-            "detection_enabled": settings["uncompressed_assets_detection_enabled"],
-        },
-        DetectorType.LARGE_HTTP_PAYLOAD: {
-            "payload_size_threshold": 300000,  # in bytes
-            "detection_enabled": settings["large_http_payload_detection_enabled"],
-        },
-        DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
-            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
-            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
-            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
-            "minimum_size_bytes": 500000,  # in bytes
-            "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
-        },
-    }
-
-
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = cast(int, project.id)
 
-    detection_settings = get_detection_settings(project_id)
+    detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
-        ConsecutiveHTTPSpanDetectorExtended(detection_settings, data),
         DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
@@ -371,7 +321,6 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
-        NPlusOneAPICallsDetectorExtended(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
@@ -384,24 +333,7 @@ def _detect_performance_problems(
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
-    # TODO Abdullah Khan: Remove code after dry run evaluating changes in detection ---------------------
-    detection_dry_run_settings = get_dry_run_detection_settings(project_id)
-    dry_run_detectors: List[PerformanceDetector] = [
-        NPlusOneDBSpanDetector(detection_dry_run_settings, data),
-        UncompressedAssetSpanDetector(detection_dry_run_settings, data),
-        LargeHTTPPayloadDetector(detection_dry_run_settings, data),
-        SlowDBQueryDetector(detection_dry_run_settings, data),
-        RenderBlockingAssetSpanDetector(detection_dry_run_settings, data),
-    ]
-
-    for dry_run_detector in dry_run_detectors:
-        run_detector_on_data(dry_run_detector, data)
-
-    report_metrics_for_detectors(
-        data, event_id, dry_run_detectors, sdk_span, project.organization, True
-    )
-
-    organization = cast(Organization, project.organization)
+    organization = project.organization
     if project is None or organization is None:
         return []
 
@@ -455,7 +387,6 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
-    is_dry_run: bool = False,
 ):
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -504,7 +435,6 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
-        "is_dry_run": is_dry_run,
     }
 
     event_integrations = event.get("sdk", {}).get("integrations", []) or []

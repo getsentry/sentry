@@ -4,7 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import CommitAuthor, PullRequest, Release, Repository
 from sentry.plugins.base import bindings
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class PullRequestSerializerTest(TestCase):

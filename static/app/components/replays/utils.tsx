@@ -5,24 +5,12 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 
-/**
- * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
- * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
- * @returns Unix timestamp of the adjusted timestamp, in milliseconds
- */
-export function relativeTimeInMs(
-  timestamp: ConstructorParameters<typeof Date>[0],
-  diffMs: number
-): number {
-  return Math.abs(new Date(timestamp).getTime() - diffMs);
-}
-
 export function showPlayerTime(
   timestamp: ConstructorParameters<typeof Date>[0],
   relativeTimeMs: number,
   showMs: boolean = false
 ): string {
-  return formatTime(relativeTimeInMs(timestamp, relativeTimeMs), showMs);
+  return formatTime(Math.abs(new Date(timestamp).getTime() - relativeTimeMs), showMs);
 }
 
 export function formatTime(ms: number, showMs?: boolean): string {

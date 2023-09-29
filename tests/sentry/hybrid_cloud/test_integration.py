@@ -3,11 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List
 
-from freezegun import freeze_time
-
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import PagerDutyService
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -20,7 +17,8 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
@@ -71,20 +69,26 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[RpcIntegration | RpcOrganizationIntegration],
-        expected: List[Integration | OrganizationIntegration],
+        result: List[RpcIntegration] | List[RpcOrganizationIntegration],
+        expected: List[Integration] | List[OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
         assert len(result) == len(expected)
         result_ids = [api_item.id for api_item in result]
         assert all([item.id in result_ids for item in expected])
 
-    def verify_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_integration_result(self, result: RpcIntegration | None, expected: Integration):
+        assert result is not None
         serialized_fields = ["id", "provider", "external_id", "name", "metadata", "status"]
         for field in serialized_fields:
             assert getattr(result, field) == getattr(expected, field)
 
-    def verify_org_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_org_integration_result(
+        self,
+        result: RpcIntegration | RpcOrganizationIntegration | None,
+        expected: Integration | OrganizationIntegration,
+    ):
+        assert result is not None
         serialized_fields = [
             "id",
             "default_auth_id",
@@ -169,10 +173,9 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_get_installation(self):
         api_integration1 = serialize_integration(integration=self.integration1)
-        api_install = integration_service.get_installation(
-            integration=api_integration1, organization_id=self.organization.id
-        )
+        api_install = api_integration1.get_installation(organization_id=self.organization.id)
         install = self.integration1.get_installation(organization_id=self.organization.id)
+        assert api_install.org_integration is not None
         assert api_install.org_integration.id == self.org_integration1.id
         assert api_install.__class__ == install.__class__
 
@@ -180,9 +183,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         for feature in IntegrationFeatures:
             api_integration2 = serialize_integration(integration=self.integration2)
             integration_has_feature = self.integration2.has_feature(feature)
-            api_integration_has_feature = integration_service.has_feature(
-                provider=api_integration2.provider, feature=feature
-            )
+            api_integration_has_feature = api_integration2.has_feature(feature=feature)
             assert integration_has_feature == api_integration_has_feature
 
 
@@ -258,20 +259,14 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration_id=integration.id
             )
-            id1 = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
+            pds = org_integration.add_pagerduty_service(
                 integration_key="key1",
                 service_name="service1",
-            ).id
-            id2 = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
+            )
+            pds2 = org_integration.add_pagerduty_service(
                 integration_key="key2",
-                service_name="service2",
-            ).id
+                service_name="service1",
+            )
 
         result = integration_service.get_organization_integration(
             integration_id=integration.id,
@@ -279,24 +274,14 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result
         assert result.config["pagerduty_services"] == [
-            dict(
-                integration_key="key1",
-                service_name="service1",
-                id=id1,
-                integration_id=integration.id,
-            ),
-            dict(
-                integration_key="key2",
-                service_name="service2",
-                id=id2,
-                integration_id=integration.id,
-            ),
+            pds,
+            pds2,
         ]
 
     def test_get_organization_context(self):
         new_org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = self.integration3.add_organization(new_org)
+            org_integration = self.integration3.add_organization(new_org.id)
 
         result_integration, result_org_integration = integration_service.get_organization_context(
             organization_id=new_org.id,

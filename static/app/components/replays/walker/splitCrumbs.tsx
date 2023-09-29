@@ -5,12 +5,11 @@ import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem
 import TextOverflow from 'sentry/components/textOverflow';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
-import {getDescription} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-type MaybeOnClickHandler = null | ((frame: Crumb | ReplayFrame) => void);
+type MaybeOnClickHandler = null | ((frame: ReplayFrame) => void);
 
 function splitCrumbs({
   frames,
@@ -41,19 +40,19 @@ function splitCrumbs({
         key="first"
         frames={firstFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="summary"
         frames={summarizedFrames}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="last"
         frames={lastFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
     ];
   }
@@ -63,31 +62,31 @@ function splitCrumbs({
       key={i}
       frames={[frame]}
       startTimestampMs={startTimestampMs}
-      handleOnClick={onClick}
+      onClick={onClick}
     />
   ));
 }
 
 function SummarySegment({
   frames,
-  handleOnClick,
+  onClick,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
-  handleOnClick: MaybeOnClickHandler;
+  onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const summaryItems = (
     <ScrollingList>
       {frames.map((frame, i) => (
         <li key={i}>
           <BreadcrumbItem
-            crumb={frame}
-            onClick={handleOnClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            frame={frame}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             startTimestampMs={startTimestampMs}
           />
         </li>
@@ -97,7 +96,7 @@ function SummarySegment({
 
   const label =
     frames.length === 1
-      ? getDescription(frames[0])
+      ? getFrameDetails(frames[0]).description
       : tn('%s Page', '%s Pages', frames.length);
   return (
     <Span>
@@ -124,7 +123,7 @@ const Span = styled('span')`
 
 const HalfPaddingHovercard = styled(
   ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
-    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+    <Hovercard bodyClassName={(bodyClassName ?? '') + ' half-padding'} {...props}>
       {children}
     </Hovercard>
   )

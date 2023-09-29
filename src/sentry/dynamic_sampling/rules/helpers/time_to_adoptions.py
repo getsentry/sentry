@@ -91,7 +91,6 @@ LATEST_RELEASE_TTAS = {
     "php": 12112,
     "php-laravel": 12382,
     "php-symfony": 13781,
-    "php-symfony2": 3817,
     "python": 4358,
     "python-aiohttp": 4048,
     "python-asgi": 3999,

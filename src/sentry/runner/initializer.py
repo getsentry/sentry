@@ -373,6 +373,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     validate_regions(settings)
 
+    validate_outbox_config()
+
     monkeypatch_django_migrations()
 
     patch_silo_aware_atomic()
@@ -756,3 +758,13 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
                 settings.SENTRY_EVENTSTREAM,
             )
         )
+
+
+def validate_outbox_config():
+    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
+        ControlOutboxBase.from_outbox_name(outbox_name)
+
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
+        RegionOutboxBase.from_outbox_name(outbox_name)

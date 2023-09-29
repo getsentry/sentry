@@ -1,4 +1,4 @@
-import React, {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -455,7 +455,6 @@ function TrendsListItem(props: TrendsListItemProps) {
                   </span>
                 </TooltipContent>
               }
-              disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
             >
               <RadioLineItem index={index} role="radio">
                 <Radio
@@ -627,7 +626,11 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
 
   const handleClick = useCallback(() => {
     onTransactionSelection(transaction.transaction);
-  }, [onTransactionSelection, transaction.transaction]);
+    trackAnalytics('performance_views.performance_change_explorer.open', {
+      organization,
+      transaction: transaction.transaction,
+    });
+  }, [onTransactionSelection, transaction.transaction, organization]);
 
   if (organization.features.includes('performance-change-explorer')) {
     return (

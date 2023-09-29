@@ -6,10 +6,9 @@ from django.utils import timezone
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
-from sentry.sentry_apps import expand_events
-from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_apps.apps import SentryAppUpdater, expand_events
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -37,7 +36,7 @@ class TestUpdater(TestCase):
             scopes=("project:read",), organization=self.org
         )
         updater = SentryAppUpdater(sentry_app=sentry_app)
-        updater.scopes = ("project:read", "project:write")
+        updater.scopes = ["project:read", "project:write"]
         updater.run(user=self.user)
         assert sentry_app.get_scopes() == ["project:read", "project:write"]
         assert ApiToken.objects.get(application=sentry_app.application).get_scopes() == [
@@ -61,7 +60,7 @@ class TestUpdater(TestCase):
             scope_list=self.sentry_app.scope_list,
             expires_at=(timezone.now() - timedelta(hours=1)),
         )
-        self.updater.scopes = ("project:read", "project:write")
+        self.updater.scopes = ["project:read", "project:write"]
         self.updater.run(user=self.user)
         assert self.sentry_app.get_scopes() == ["project:read", "project:write"]
         tokens = ApiToken.objects.filter(application=self.sentry_app.application).order_by(
@@ -75,7 +74,7 @@ class TestUpdater(TestCase):
             name="sentry", organization=self.org, scopes=("project:read",), published=True
         )
         updater = SentryAppUpdater(sentry_app=sentry_app)
-        updater.scopes = ("project:read", "project:write")
+        updater.scopes = ["project:read", "project:write"]
 
         with pytest.raises(APIError):
             updater.run(self.user)
@@ -96,7 +95,7 @@ class TestUpdater(TestCase):
             name="sentry", organization=self.org, scopes=("project:read",)
         )
         updater = SentryAppUpdater(sentry_app=sentry_app)
-        updater.events = ("issue",)
+        updater.events = ["issue"]
         with pytest.raises(APIError):
             updater.run(self.user)
 
@@ -199,7 +198,7 @@ class TestUpdater(TestCase):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
-        updater.events = ("issue",)
+        updater.events = ["issue"]
         updater.run(self.user)
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)

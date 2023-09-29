@@ -9,9 +9,11 @@ import {
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-/*
-  Component to handle switching component-style queries over to state. This should be temporary to make it easier to switch away from waterfall style api components.
-*/
+/**
+ * Component to handle switching component-style queries over to state. This
+ * should be temporary to make it easier to switch away from waterfall style
+ * api components.
+ */
 export function QueryHandler<T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T>
 ) {

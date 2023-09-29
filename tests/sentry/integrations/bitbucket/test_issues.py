@@ -5,11 +5,14 @@ import responses
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -29,9 +32,11 @@ class BitbucketIssueTest(APITestCase):
                 "subject": self.subject,
             },
         )
-        self.org_integration = integration_service.get_organization_integration(
+        org_integration = integration_service.get_organization_integration(
             integration_id=self.integration.id, organization_id=self.organization.id
         )
+        assert org_integration is not None
+        self.org_integration = org_integration
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={

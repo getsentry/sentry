@@ -12,6 +12,7 @@ export function User(params: Partial<UserType> = {}): UserType {
       timezone: 'UTC',
       language: 'en',
       theme: 'system',
+      defaultIssueEvent: 'recommended',
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
     },

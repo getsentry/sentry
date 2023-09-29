@@ -226,7 +226,7 @@ class VitalCard extends Component<Props, State> {
               })}
             onClick={this.trackOpenAllEventsClicked}
           >
-            {t('View All Events')}
+            {t('View Sampled Events')}
           </Button>
         </div>
       </CardSummary>
@@ -294,7 +294,7 @@ class VitalCard extends Component<Props, State> {
       max,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: formatAbbreviatedNumber,
+        formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };
 

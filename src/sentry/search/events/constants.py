@@ -43,6 +43,9 @@ HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 SPAN_MODULE_ALIAS = "span.module"
+SPAN_DOMAIN_ALIAS = "span.domain"
+SPAN_DOMAIN_SEPARATOR = ","
+UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 
 
 class ThresholdDict(TypedDict):
@@ -236,16 +239,11 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
-METRICS_FUNCTION_ALIASES = {
-    "tps_percent_change": "eps_percent_change",
-    "tpm_percent_change": "epm_percent_change",
-}
+METRICS_FUNCTION_ALIASES: Dict[str, str] = {}
 
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
-    "sps_percent_change": "eps_percent_change",
-    "spm_percent_change": "epm_percent_change",
 }
 
 # Mapping of public aliases back to the metrics identifier
@@ -330,6 +328,8 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "min",
         "sum",
         "percentile",
+        "http_error_count",
+        "http_error_rate",
     ],
     "generic_set": [
         "count_miserable",

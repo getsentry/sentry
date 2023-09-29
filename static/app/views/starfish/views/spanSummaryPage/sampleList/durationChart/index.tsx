@@ -3,16 +3,22 @@ import {useTheme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import {P95_COLOR} from 'sentry/views/starfish/colours';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {isNearBaseline} from 'sentry/views/starfish/components/samplesTable/common';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  crossIconPath,
+  downwardPlayIconPath,
+  upwardPlayIconPath,
+} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/symbol';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
@@ -36,25 +42,26 @@ function DurationChart({
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
+  const pageFilter = usePageFilters();
 
   const getSampleSymbol = (
     duration: number,
-    p95: number
+    compareToDuration: number
   ): {color: string; symbol: string} => {
-    if (isNearBaseline(duration, p95)) {
+    if (isNearAverage(duration, compareToDuration)) {
       return {
-        symbol: 'path://M 0 0 V -8 L 5 0 L 0 8 L -5 0 L 0 -8',
-        color: theme.gray300,
+        symbol: crossIconPath,
+        color: theme.gray500,
       };
     }
 
-    return duration > p95
+    return duration > compareToDuration
       ? {
-          symbol: 'path://M 5 4 L 0 -4 L -5 4 L 5 4',
+          symbol: upwardPlayIconPath,
           color: theme.red300,
         }
       : {
-          symbol: 'path://M -5 -4 L 0 4 L 5 -4 L -5 -4',
+          symbol: downwardPlayIconPath,
           color: theme.green300,
         };
   };
@@ -64,20 +71,20 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`],
+    [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'api.starfish.span-summary-panel-samples-table-p95'
+    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    'api.starfish.span-summary-panel-samples-table-avg'
   );
 
-  const p95 = spanMetrics?.[`p95(${SPAN_SELF_TIME})`] || 0;
+  const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
   const {
     data: spans,
@@ -89,20 +96,22 @@ function DurationChart({
     transactionMethod,
   });
 
-  const baselineP95Series: Series = {
-    seriesName: 'Baseline P95',
+  const baselineAvgSeries: Series = {
+    seriesName: 'Average',
     data: [],
     markLine: {
-      data: [{valueDim: 'x', yAxis: p95}],
+      data: [{valueDim: 'x', yAxis: avg}],
       symbol: ['none', 'none'],
       lineStyle: {
         color: theme.gray400,
       },
       emphasis: {disabled: true},
       label: {
-        fontSize: 11,
         position: 'insideEndBottom',
-        formatter: () => 'Baseline P95',
+        formatter: () => 'Average',
+        fontSize: 14,
+        color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
     },
   };
@@ -113,18 +122,21 @@ function DurationChart({
       [SPAN_SELF_TIME]: duration,
       'transaction.id': transaction_id,
       span_id,
-    }) => ({
-      data: [
-        {
-          name: timestamp,
-          value: duration,
-        },
-      ],
-      symbol: getSampleSymbol(duration, p95).symbol,
-      color: getSampleSymbol(duration, p95).color,
-      symbolSize: span_id === highlightedSpanId ? 15 : 10,
-      seriesName: transaction_id.substring(0, 8),
-    })
+    }) => {
+      const {symbol, color} = getSampleSymbol(duration, avg);
+      return {
+        data: [
+          {
+            name: timestamp,
+            value: duration,
+          },
+        ],
+        symbol,
+        color,
+        symbolSize: span_id === highlightedSpanId ? 19 : 14,
+        seriesName: transaction_id.substring(0, 8),
+      };
+    }
   );
 
   const getSample = (timestamp: string, duration: number) => {
@@ -168,30 +180,32 @@ function DurationChart({
     setPageError(t('An error has occured while loading chart data'));
   }
 
+  const subtitle = pageFilter.selection.datetime.period
+    ? t('Last %s', pageFilter.selection.datetime.period)
+    : t('Last period');
+
   return (
-    <div onMouseLeave={handleMouseLeave}>
-      <h5>{DataTitles.p95}</h5>
-      <Chart
-        statsPeriod="24h"
-        height={140}
-        onClick={handleChartClick}
-        onHighlight={handleChartHighlight}
-        aggregateOutputFormat="duration"
-        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`], baselineP95Series]}
-        start=""
-        end=""
-        loading={isLoading}
-        scatterPlot={
-          areSpanSamplesLoading || areSpanSamplesRefetching
-            ? undefined
-            : sampledSpanDataSeries
-        }
-        utc={false}
-        chartColors={[P95_COLOR, 'black']}
-        isLineChart
-        definedAxisTicks={4}
-      />
-    </div>
+    <ChartPanel title={t('Average Duration')} subtitle={subtitle}>
+      <div onMouseLeave={handleMouseLeave}>
+        <Chart
+          height={140}
+          onClick={handleChartClick}
+          onHighlight={handleChartHighlight}
+          aggregateOutputFormat="duration"
+          data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
+          loading={isLoading}
+          scatterPlot={
+            areSpanSamplesLoading || areSpanSamplesRefetching
+              ? undefined
+              : sampledSpanDataSeries
+          }
+          utc={false}
+          chartColors={[AVG_COLOR, 'black']}
+          isLineChart
+          definedAxisTicks={4}
+        />
+      </div>
+    </ChartPanel>
   );
 }
 

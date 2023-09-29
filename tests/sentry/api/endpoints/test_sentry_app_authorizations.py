@@ -6,8 +6,11 @@ from django.utils import timezone
 from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models import ApiApplication, ApiToken
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @control_silo_test(stable=True)

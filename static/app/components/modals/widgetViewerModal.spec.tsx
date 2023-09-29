@@ -1,4 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -263,8 +264,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('renders Discover area chart widget viewer', async function () {
         mockEvents();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        await renderModal({initialData, widget: mockWidget});
       });
 
       it('redirects user to Discover when clicking Open in Discover', async function () {
@@ -373,7 +373,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('renders highlighted query text and multiple queries in select dropdown', async function () {
         mockEvents();
-        const {container} = await renderModal({
+        await renderModal({
           initialData,
           widget: {
             ...mockWidget,
@@ -383,7 +383,6 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(
           screen.getByText('/organizations/:orgId/performance/summary/')
         );
-        expect(container).toSnapshot();
       });
 
       it('renders widget chart minimap', async function () {
@@ -725,8 +724,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders Discover topn chart widget viewer', async function () {
         mockEventsStats();
         mockEvents();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        await renderModal({initialData, widget: mockWidget});
       });
 
       it('sorts table when a sortable column header is clicked', async function () {
@@ -921,100 +919,6 @@ describe('Modals -> WidgetViewerModal', function () {
             {}
           );
         });
-      });
-    });
-
-    describe('World Map Chart Widget', function () {
-      let mockQuery, mockWidget;
-
-      const eventsMockData = [
-        {
-          'geo.country_code': 'ES',
-          p75_measurements_lcp: 2000,
-        },
-        {
-          'geo.country_code': 'SK',
-          p75_measurements_lcp: 3000,
-        },
-        {
-          'geo.country_code': 'CO',
-          p75_measurements_lcp: 4000,
-        },
-      ];
-
-      function mockEventsGeo() {
-        return MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-geo/',
-          body: {
-            data: eventsMockData,
-            meta: {
-              'geo.country_code': 'string',
-              p75_measurements_lcp: 'duration',
-            },
-          },
-        });
-      }
-      function mockEvents() {
-        return MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-          body: {
-            data: eventsMockData,
-            meta: {
-              fields: {
-                'geo.country_code': 'string',
-                p75_measurements_lcp: 'duration',
-              },
-            },
-          },
-        });
-      }
-
-      beforeEach(function () {
-        mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
-          fields: ['p75(measurements.lcp)'],
-          aggregates: ['p75(measurements.lcp)'],
-          columns: [],
-          id: '1',
-          name: 'Query Name',
-          orderby: '',
-        };
-        mockWidget = {
-          title: 'Test Widget',
-          displayType: DisplayType.WORLD_MAP,
-          interval: '5m',
-          queries: [mockQuery],
-          widgetType: WidgetType.DISCOVER,
-        };
-      });
-
-      it('renders Discover topn chart widget viewer', async function () {
-        mockEvents();
-        mockEventsGeo();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
-      });
-
-      it('uses provided tableData and does not make an events requests', async function () {
-        const eventsGeoMock = mockEventsGeo();
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget, tableData: []});
-        expect(eventsGeoMock).not.toHaveBeenCalled();
-      });
-
-      it('always queries geo.country_code in the table chart', async function () {
-        const eventsMock = mockEvents();
-        mockEventsGeo();
-        await renderModal({initialData: initialDataWithFlag, widget: mockWidget});
-        expect(eventsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              field: ['geo.country_code', 'p75(measurements.lcp)'],
-            }),
-          })
-        );
-        expect(await screen.findByText('geo.country_code')).toBeInTheDocument();
       });
     });
 
@@ -1239,9 +1143,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Issue table widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
+      await renderModal({initialData, widget: mockWidget});
       await screen.findByText('Error: Failed');
-      expect(container).toSnapshot();
     });
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
@@ -1373,7 +1276,7 @@ describe('Modals -> WidgetViewerModal', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
-        body: TestStubs.MetricsTotalCountByReleaseIn24h(),
+        body: MetricsTotalCountByReleaseIn24h(),
         headers: {
           link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -1418,9 +1321,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Release widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
+      await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
 
     it('renders pagination buttons', async function () {

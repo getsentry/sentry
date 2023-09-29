@@ -3,12 +3,15 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from fixtures.integrations.jira import MockJira
+from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models import ExternalIssue, Integration, Rule
-from sentry.testutils import RuleTestCase
+from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+
+pytestmark = [requires_snuba]
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):

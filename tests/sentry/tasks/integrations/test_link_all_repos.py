@@ -9,13 +9,14 @@ from django.utils import timezone
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.silo import SiloMode
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
@@ -65,7 +66,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 2
 
         for repo in repos:
@@ -106,7 +108,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 1
 
         assert repos[0].organization_id == self.organization.id
@@ -183,10 +186,10 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
-    @patch("sentry_sdk.capture_exception")
     @patch("sentry.models.Repository.objects.create")
+    @patch("sentry.tasks.integrations.link_all_repos.metrics")
     @responses.activate
-    def test_link_all_repos_repo_creation_error(self, mock_repo, mock_capture_exception, _):
+    def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, _):
         mock_repo.side_effect = IntegrityError
 
         self._add_responses()
@@ -197,4 +200,22 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        assert mock_capture_exception.called
+        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
+
+    @patch("sentry.services.hybrid_cloud.repository.repository_service.create_repository")
+    @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
+    @responses.activate
+    def test_link_all_repos_repo_creation_exception(
+        self, mock_delete_repo, mock_create_repository, _
+    ):
+        mock_create_repository.return_value = None
+        mock_delete_repo.side_effect = Exception
+
+        self._add_responses()
+
+        with pytest.raises(Exception):
+            link_all_repos(
+                integration_key=self.key,
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )

@@ -12,6 +12,8 @@ import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
 enum SessionMetric {
+  ANR_RATE = 'session.anr_rate',
+  FOREGROUND_ANR_RATE = 'session.foreground_anr_rate',
   SESSION = 'sentry.sessions.session',
   SESSION_DURATION = 'sentry.sessions.session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
@@ -45,6 +47,8 @@ export enum DerivedStatusFields {
 }
 
 export const FIELD_TO_METRICS_EXPRESSION = {
+  'foreground_anr_rate()': SessionMetric.FOREGROUND_ANR_RATE,
+  'anr_rate()': SessionMetric.ANR_RATE,
   'count_healthy(session)': SessionMetric.SESSION_HEALTHY,
   'count_healthy(user)': SessionMetric.USER_HEALTHY,
   'count_abnormal(session)': SessionMetric.SESSION_ABNORMAL,
@@ -85,6 +89,8 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
       'count_abnormal',
       'count_crashed',
       'count_errored',
+      'anr_rate',
+      'foreground_anr_rate',
     ],
     type: 'integer',
   },
@@ -111,6 +117,14 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
 export const SESSIONS_OPERATIONS: Readonly<
   Record<SessionsOperation, SessionAggregationColumn>
 > = {
+  anr_rate: {
+    outputType: 'percentage',
+    parameters: [],
+  },
+  foreground_anr_rate: {
+    outputType: 'percentage',
+    parameters: [],
+  },
   sum: {
     outputType: 'integer',
     parameters: [

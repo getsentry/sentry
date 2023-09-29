@@ -10,7 +10,7 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {BaseGroup, Project, ResolutionStatus} from 'sentry/types';
+import {BaseGroup, GroupStatus, Project} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
@@ -166,7 +166,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -198,7 +198,7 @@ function ActionSet({
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-              onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+              onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });
@@ -252,6 +252,8 @@ function ActionSet({
           anySelected={anySelected}
           params={{
             hasRelease: false,
+            multipleProjectsSelected: true,
+            disabled: true,
             confirm,
             label,
           }}

@@ -7,8 +7,9 @@ import pytest
 import responses
 from django.urls import reverse
 
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import (
     ExternalIssue,
     GroupLink,
@@ -20,16 +21,19 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.jira.plugin import JiraPlugin
 
 from . import get_integration
 
-DFAULT_PROJECT_ID = 10000
+pytestmark = [requires_snuba]
+
+DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000
 
 
@@ -42,7 +46,9 @@ class JiraServerIntegrationTest(APITestCase):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.integration = get_integration(self.organization, self.user)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_get_create_issue_config(self):
@@ -405,6 +411,65 @@ class JiraServerIntegrationTest(APITestCase):
                 "updatesForm": True,
             }
 
+    @responses.activate
+    def test_get_create_issue_config_with_default_project_issue_types_erroring(self):
+        """Test that if you have a default project set that's returning an error when
+        we try to get the issue types we try a second project
+        """
+        event = self.store_event(
+            data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
+        )
+        group = event.group
+        assert group is not None
+        assert self.installation.org_integration is not None
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {}}},
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/project",
+            content_type="json",
+            body="""[
+                {"id": "10000", "key": "SAAH"},
+                {"id": "10001", "key": "SAMP"},
+                {"id": "10002", "key": "SAHM"}
+            ]""",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/issue/createmeta/10000/issuetypes",
+            content_type="json",
+            status=400,
+            body="",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes",
+            body=StubService.get_stub_json("jira", "issue_types_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.GET,
+            f"https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            body=StubService.get_stub_json("jira", "issue_fields_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/priority",
+            body=StubService.get_stub_json("jira", "priorities_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/project/10002/versions",
+            body=StubService.get_stub_json("jira", "versions_response.json"),
+            content_type="json",
+        )
+
+        self.installation.get_create_issue_config(event.group, self.user)
+
     @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
     def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
         event = self.store_event(
@@ -440,7 +505,6 @@ class JiraServerIntegrationTest(APITestCase):
 
             fields = self.installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
-
             assert project_field == {
                 "default": "10004",
                 "choices": [("10000", "EX"), ("10001", "ABC")],
@@ -514,14 +578,14 @@ class JiraServerIntegrationTest(APITestCase):
         )
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes",
             body=StubService.get_stub_json("jira", "issue_types_response.json"),
             content_type="json",
         )
         # Fail to return metadata
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             content_type="json",
             status=401,
             body="",
@@ -570,7 +634,7 @@ class JiraServerIntegrationTest(APITestCase):
     def test_create_issue_labels_and_option(self):
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
@@ -952,7 +1016,9 @@ class JiraMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("default_project", "SEN", self.project)
         self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
         self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_migrate_plugin(self):

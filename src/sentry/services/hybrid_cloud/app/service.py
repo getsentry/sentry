@@ -73,6 +73,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
@@ -114,6 +119,25 @@ class AppService(RpcService):
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
     ) -> RpcAlertRuleActionResult:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_published_sentry_apps_for_organization(
+        self, *, organization_id: int
+    ) -> List[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def create_internal_integration_for_channel_request(
+        self,
+        *,
+        organization_id: int,
+        integration_creator: str,
+        integration_name: str,
+        integration_scopes: List[str],
+    ) -> RpcSentryAppInstallation:
         pass
 
 

@@ -7,12 +7,12 @@ export {NodeType} from '@sentry-internal/rrweb-snapshot';
 export {EventType} from '@sentry-internal/rrweb';
 
 import type {
-  BreadcrumbFrame as TRawBreadcrumbFrame,
-  BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  OptionFrameEvent as TOptionFrameEvent,
-  SpanFrame as TRawSpanFrame,
-  SpanFrameEvent as TSpanFrameEvent,
-} from '@sentry/replay';
+  ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
+  ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
+  ReplayOptionFrameEvent as TOptionFrameEvent,
+  ReplaySpanFrame as TRawSpanFrame,
+  ReplaySpanFrameEvent as TSpanFrameEvent,
+} from '@sentry/react';
 import invariant from 'invariant';
 
 /**
@@ -81,8 +81,27 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
   return val;
 }
 
+export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
+  if (frame.category === 'console') {
+    frame.data = frame.data ?? {};
+    return true;
+  }
+  return false;
+}
+
+export function isLCPFrame(frame: SpanFrame): frame is LargestContentfulPaintFrame {
+  return frame.op === 'largest-contentful-paint';
+}
+
+export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
+  return frame.op === 'paint';
+}
+
 export function isDeadClick(frame: SlowClickFrame) {
-  return frame.data.endReason === 'timeout';
+  return (
+    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.data.endReason === 'timeout'
+  );
 }
 
 export function isDeadRageClick(frame: SlowClickFrame) {
@@ -163,17 +182,20 @@ export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 
-// This list should match each of the categories used in `HydratedBreadcrumb` above.
+// This list must match each of the categories used in `HydratedBreadcrumb` above
+// and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
   'console',
-  'ui.click',
-  'ui.input',
+  'navigation',
+  'replay.init',
   'replay.mutations',
-  'ui.keyDown',
   'ui.blur',
+  'ui.click',
   'ui.focus',
-  'ui.slowClickDetected',
+  'ui.input',
+  'ui.keyDown',
   'ui.multiClick',
+  'ui.slowClickDetected',
 ];
 
 // Spans
@@ -195,31 +217,33 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.script'
 >;
 
-// This list should match each of the operations used in `HydratedSpan` above.
+// This list should match each of the operations used in `HydratedSpan` above
+// And any app-specific types that we hydrate (ie: replay.start & replay.end).
 export const SpanOps = [
-  'navigation.push',
   'largest-contentful-paint',
   'memory',
-  'navigation.navigate',
-  'navigation.reload',
   'navigation.back_forward',
+  'navigation.navigate',
+  'navigation.push',
+  'navigation.reload',
   'paint',
-  'resource.fetch',
-  'resource.xhr',
+  'replay.end',
+  'replay.start',
   'resource.css',
+  'resource.fetch',
   'resource.iframe',
   'resource.img',
   'resource.link',
   'resource.other',
   'resource.script',
+  'resource.xhr',
 ];
 
 /**
  * This is a result of a custom discover query
  */
 export type RawReplayError = {
-  ['error.type']: string[];
-  // ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
+  ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
   ['issue.id']: number;

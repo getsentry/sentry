@@ -4,13 +4,15 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, Mapping, Optional, Union, cast
 
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    RpcAuditLogEntryActor,
     RpcOrganization,
+    RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -61,7 +63,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
@@ -216,7 +218,7 @@ class OrganizationService(RpcService):
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
+    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
@@ -229,21 +231,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        *,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
-    ) -> List[str]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -279,6 +266,27 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

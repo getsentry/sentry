@@ -38,12 +38,15 @@ from sentry.integrations.msteams.card_builder.notifications import (
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus, GroupSubStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class MSTeamsMessageBuilderTest(TestCase):

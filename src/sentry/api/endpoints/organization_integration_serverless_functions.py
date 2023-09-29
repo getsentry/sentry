@@ -4,12 +4,12 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -22,6 +22,11 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(
         self,
         request: Request,
@@ -34,9 +39,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
         """
         integration = self.get_integration(organization.id, integration_id)
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)
@@ -56,9 +59,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
         **kwds: Any,
     ) -> Response:
         integration = self.get_integration(organization.id, integration_id)
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)

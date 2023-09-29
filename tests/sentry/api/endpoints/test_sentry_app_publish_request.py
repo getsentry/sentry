@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryAppAvatar
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

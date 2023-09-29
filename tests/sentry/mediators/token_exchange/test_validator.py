@@ -3,10 +3,10 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import Validator
+from sentry.mediators.token_exchange.validator import Validator
 from sentry.models import SentryApp
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

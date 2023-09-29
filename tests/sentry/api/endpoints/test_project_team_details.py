@@ -2,7 +2,7 @@ from rest_framework import status
 
 from sentry.models import Rule
 from sentry.models.projectteam import ProjectTeam
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
@@ -15,7 +15,7 @@ class ProjectTeamDetailsTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
@@ -75,7 +75,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 

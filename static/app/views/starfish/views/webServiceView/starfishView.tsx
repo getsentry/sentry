@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -15,17 +14,18 @@ import {useTheme} from '@emotion/react';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {SpanGroupBar} from 'sentry/views/starfish/views/webServiceView/spanGroupBar';
 import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
@@ -61,7 +61,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
+        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -89,76 +89,74 @@ export function StarfishView(props: BaseStarfishViewProps) {
 
           return (
             <Fragment>
-              <MiniChartPanel title={DataTitles.p95}>
-                <Chart
-                  statsPeriod={eventView.statsPeriod}
-                  height={71}
-                  data={[percentileData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
-                  loading={loading}
-                  utc={false}
-                  grid={{
-                    left: '0',
-                    right: '0',
-                    top: '8px',
-                    bottom: '0',
-                  }}
-                  definedAxisTicks={2}
-                  isLineChart
-                  chartColors={[P95_COLOR]}
-                  tooltipFormatterOptions={{
-                    valueFormatter: value =>
-                      tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                  }}
-                />
-              </MiniChartPanel>
-              <MiniChartPanel title={DataTitles.throughput}>
-                <Chart
-                  statsPeriod={eventView.statsPeriod}
-                  height={71}
-                  data={[throughputData]}
-                  start=""
-                  end=""
-                  loading={loading}
-                  utc={false}
-                  grid={{
-                    left: '0',
-                    right: '0',
-                    top: '8px',
-                    bottom: '0',
-                  }}
-                  aggregateOutputFormat="rate"
-                  definedAxisTicks={2}
-                  stacked
-                  isLineChart
-                  chartColors={[THROUGHPUT_COLOR]}
-                  tooltipFormatterOptions={{
-                    valueFormatter: value => formatThroughput(value),
-                  }}
-                />
-              </MiniChartPanel>
+              <ChartsContainerItem>
+                <MiniChartPanel title={DataTitles.avg}>
+                  <Chart
+                    height={142}
+                    data={[percentileData]}
+                    loading={loading}
+                    utc={false}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '0',
+                    }}
+                    definedAxisTicks={2}
+                    isLineChart
+                    chartColors={[AVG_COLOR]}
+                    tooltipFormatterOptions={{
+                      valueFormatter: value =>
+                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                    }}
+                  />
+                </MiniChartPanel>
+              </ChartsContainerItem>
+              <ChartsContainerItem>
+                <MiniChartPanel title={DataTitles.throughput}>
+                  <Chart
+                    height={142}
+                    data={[throughputData]}
+                    loading={loading}
+                    utc={false}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '0',
+                    }}
+                    aggregateOutputFormat="rate"
+                    rateUnit={RateUnits.PER_SECOND}
+                    definedAxisTicks={2}
+                    stacked
+                    isLineChart
+                    chartColors={[THROUGHPUT_COLOR]}
+                    tooltipFormatterOptions={{
+                      valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
+                    }}
+                  />
+                </MiniChartPanel>
+              </ChartsContainerItem>
 
-              <MiniChartPanel title={DataTitles.errorCount}>
-                <Chart
-                  statsPeriod={eventView.statsPeriod}
-                  height={71}
-                  data={[errorsData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
-                  loading={loading}
-                  utc={false}
-                  grid={{
-                    left: '0',
-                    right: '0',
-                    top: '8px',
-                    bottom: '0',
-                  }}
-                  definedAxisTicks={2}
-                  isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
-                />
-              </MiniChartPanel>
+              <ChartsContainerItem>
+                <MiniChartPanel title={DataTitles.errorCount}>
+                  <Chart
+                    height={142}
+                    data={[errorsData]}
+                    loading={loading}
+                    utc={false}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '0',
+                    }}
+                    definedAxisTicks={2}
+                    isLineChart
+                    chartColors={theme.charts.getColorPalette(2)}
+                  />
+                </MiniChartPanel>
+              </ChartsContainerItem>
             </Fragment>
           );
         }}
@@ -170,11 +168,9 @@ export function StarfishView(props: BaseStarfishViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <StyledRow minSize={300}>
+      <SpanGroupBar />
+      <StyledRow>
         <ChartsContainer>
-          <ChartsContainerItem>
-            <SpanGroupBreakdownContainer />
-          </ChartsContainerItem>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
         </ChartsContainer>
       </StyledRow>
@@ -184,7 +180,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
   );
 }
 
-const StyledRow = styled(PerformanceLayoutBodyRow)`
+const StyledRow = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
@@ -201,4 +197,7 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: ${space(2)};
 `;

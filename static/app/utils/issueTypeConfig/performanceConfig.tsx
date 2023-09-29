@@ -22,7 +22,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: false},
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
+    replays: {enabled: true},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
@@ -120,6 +120,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
           },
         ],
       },
+    },
+  },
+  [IssueType.PERFORMANCE_HTTP_OVERHEAD]: {
+    resources: {
+      description: t(
+        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence above, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
+      ),
+      links: [
+        {
+          text: t('Sentry Docs: HTTP/1.1 Overhead'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/http-overhead/',
+        },
+      ],
+      linksByPlatform: {},
     },
   },
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
@@ -224,6 +238,34 @@ const performanceConfig: IssueCategoryConfigMapping = {
         {
           text: t('Regex on Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/regex-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FRAME_DROP]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
         },
       ],
       linksByPlatform: {},

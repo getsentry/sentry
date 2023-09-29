@@ -4,7 +4,7 @@ from django.db.models import Field
 from sentry.new_migrations.monkey import SENTRY_MIGRATION_TEMPLATE
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct, original_deconstruct
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class MonkeyTest(TestCase):

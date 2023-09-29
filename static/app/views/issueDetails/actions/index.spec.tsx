@@ -16,7 +16,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
-const project = TestStubs.ProjectDetails({
+const project = TestStubs.Project({
   id: '2448',
   name: 'project name',
   slug: 'project',
@@ -50,7 +50,7 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = render(
+      render(
         <GroupActions
           group={group}
           project={project}
@@ -58,7 +58,6 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 
@@ -273,7 +272,9 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
@@ -295,7 +296,9 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
+      })
     );
   });
 

@@ -15,6 +15,7 @@ from sentry.issues.escalating import (
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
 from sentry.models import Group
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,10 @@ def save_forecast_per_group(
             )
             escalating_group_forecast.save()
 
+            logger.info(
+                "save_forecast_per_group",
+                extra={"group_id": group_id, "group_counts": group_count},
+            )
     analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
@@ -65,6 +70,7 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.generate_and_save_missing_forecasts",
     queue="weekly_escalating_forecast",
+    silo_mode=SiloMode.REGION,
 )
 def generate_and_save_missing_forecasts(group_id: int) -> None:
     """

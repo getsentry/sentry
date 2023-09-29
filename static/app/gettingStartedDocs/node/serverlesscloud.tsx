@@ -1,10 +1,8 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;
@@ -30,7 +28,6 @@ tracesSampleRate: 1.0, `;
 
 export const steps = ({
   sentryInitContent,
-  ...props
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
@@ -46,13 +43,7 @@ export const steps = ({
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct('Sentry should be initialized as early in your app as possible.', {
-          code: <code />,
-        })}
-      </p>
-    ),
+    description: t('Sentry should be initialized as early in your app as possible.'),
     configurations: [
       {
         language: 'javascript',
@@ -93,11 +84,6 @@ api.use(function onError(err, req, res, next) {
       },
     ],
   },
-  getUploadSourceMapsStep({
-    guideLink:
-      'https://docs.sentry.io/platforms/node/guides/serverless-cloud/sourcemaps/',
-    ...props,
-  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -118,10 +104,9 @@ api.use(function onError(err, req, res, next) {
 
 export function GettingStartedWithServerlesscloud({
   dsn,
-  organization,
   newOrg,
   platformKey,
-  projectId,
+  ...props
 }: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -140,13 +125,10 @@ export function GettingStartedWithServerlesscloud({
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

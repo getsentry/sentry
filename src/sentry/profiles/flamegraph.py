@@ -57,10 +57,10 @@ def get_profile_ids(
 
 
 def get_span_intervals(
-    project_id: str,
-    span_group: str,
+    project_id: int,
+    span_filter: Condition,
     transaction_ids: List[str],
-    organization_id: str,
+    organization_id: int,
     params: ParamsType,
 ) -> List[Dict[str, Any]]:
     query = Query(
@@ -75,9 +75,9 @@ def get_span_intervals(
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("transaction_id"), Op.IN, transaction_ids),
-            Condition(Column("group_raw"), Op.EQ, span_group),
             Condition(Column("timestamp"), Op.GTE, params["start"]),
             Condition(Column("timestamp"), Op.LT, params["end"]),
+            span_filter,
         ],
     )
 
@@ -111,7 +111,7 @@ def get_span_intervals(
 
 
 def get_span_intervals_from_nodestore(
-    project_id: str,
+    project_id: int,
     span_group: str,
     transaction_ids: List[str],
 ) -> List[Dict[str, Any]]:
@@ -138,8 +138,8 @@ def get_span_intervals_from_nodestore(
 
 
 def get_profile_ids_with_spans(
-    organization_id: str,
-    project_id: str,
+    organization_id: int,
+    project_id: int,
     params: ParamsType,
     span_group: str,
     backend: str,
@@ -169,7 +169,7 @@ def get_profile_ids_with_spans(
     elif backend == "indexed_spans":
         data = get_span_intervals(
             project_id,
-            span_group,
+            Condition(Column("group_raw"), Op.EQ, span_group),
             list(transaction_to_prof.keys()),
             organization_id,
             params,
@@ -188,3 +188,89 @@ def get_profile_ids_with_spans(
     spans = [tup[1] for tup in transaction_to_prof.values()]
 
     return {"profile_ids": profile_ids, "spans": spans}
+
+
+def get_profile_ids_for_span_op(
+    organization_id: int,
+    project_id: int,
+    params: ParamsType,
+    span_op: str,
+    backend: str,
+    query: Optional[str] = None,
+):
+    data = query_profiles_data(
+        params,
+        Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
+        selected_columns=["id", "profile.id"],
+        query=query,
+        additional_conditions=[
+            # Check if span op is in the the indexed transactions spans.op array
+            Condition(Function("has", [Column("spans.op"), span_op]), Op.EQ, 1)
+        ],
+    )
+
+    # map {transaction_id: (profile_id, [span intervals])}
+
+    transaction_to_prof: Dict[str, Tuple[str, List[Dict[str, str]]]] = {
+        row["id"]: (row["profile.id"], []) for row in data
+    }
+
+    if not transaction_to_prof:
+        return {"profile_ids": [], "spans": []}
+
+    # Note: "op" is not a part of the indexed spans orderby so this is
+    # is probably not a very efficient filter. This is just to
+    # build a little PoC for now, if it needs to be used more extensively
+    # in production, we can optimize it.
+    data = get_span_intervals(
+        project_id,
+        Condition(Column("op"), Op.EQ, span_op),
+        list(transaction_to_prof.keys()),
+        organization_id,
+        params,
+    )
+
+    for row in data:
+        transaction_to_prof[row["transaction_id"]][1].append(
+            {"start": row["start_ns"], "end": row["end_ns"]}
+        )
+
+    profile_ids = [tup[0] for tup in transaction_to_prof.values()]
+    spans = [tup[1] for tup in transaction_to_prof.values()]
+
+    return {"profile_ids": profile_ids, "spans": spans}
+
+
+def get_profiles_with_function(
+    organization_id: int,
+    project_id: int,
+    function_fingerprint: int,
+    params: ParamsType,
+):
+    query = Query(
+        match=Entity(EntityKey.Functions.value),
+        select=[
+            Function("groupUniqArrayMerge(100)", [Column("examples")], "profile_ids"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, params["start"]),
+            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("fingerprint"), Op.EQ, function_fingerprint),
+        ],
+    )
+
+    request = Request(
+        dataset=Dataset.Functions.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+            "organization_id": organization_id,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+    )["data"]
+    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"]))}

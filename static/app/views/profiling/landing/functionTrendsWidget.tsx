@@ -120,7 +120,11 @@ export function FunctionTrendsWidget({
         )}
         {!isError && !isLoading && !hasTrends && (
           <EmptyStateWarning>
-            <p>{t('No functions found')}</p>
+            {trendType === 'regression' ? (
+              <p>{t('No regressed functions detected')}</p>
+            ) : (
+              <p>{t('No improved functions detected')}</p>
+            )}
           </EmptyStateWarning>
         )}
         {hasTrends && (
@@ -428,7 +432,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       height: 150,
       grid: {
         top: '10px',
-        bottom: '0px',
+        bottom: '10px',
         left: '10px',
         right: '10px',
       },
@@ -439,7 +443,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         },
       },
       xAxis: {
-        show: false,
+        type: 'time' as const,
       },
       tooltip: {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),

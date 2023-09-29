@@ -19,6 +19,7 @@ from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncident
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
+from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMissingMembersNudgeView
 from sentry.web.frontend.debug.debug_new_processing_issues_email import (
     DebugNewProcessingIssuesEmailView,
     DebugNewProcessingIssuesNoReprocessingEmailView,
@@ -26,6 +27,7 @@ from sentry.web.frontend.debug.debug_new_processing_issues_email import (
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+from sentry.web.frontend.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,
@@ -55,6 +57,9 @@ from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailVie
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
+)
+from sentry.web.frontend.debug.debug_sentry_app_notify_disable import (
+    DebugSentryAppNotifyDisableView,
 )
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug.debug_sso_link_email import (
@@ -113,6 +118,7 @@ urlpatterns = [
     ),
     re_path(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     re_path(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
+    re_path(r"^debug/mail/missing-members-nudge/$", DebugMissingMembersNudgeView.as_view()),
     re_path(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
     re_path(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
     re_path(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
@@ -149,4 +155,6 @@ urlpatterns = [
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
+    re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
 ]

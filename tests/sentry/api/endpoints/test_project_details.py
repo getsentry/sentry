@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest import mock
 
-import pytz
 from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -25,17 +25,19 @@ from sentry.models import (
     OrganizationOption,
     Project,
     ProjectBookmark,
-    ProjectOwnership,
     ProjectRedirect,
+    RegionScheduledDeletion,
     Rule,
-    ScheduledDeletion,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.silo import unguarded_write
-from sentry.testutils import APITestCase
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -111,7 +113,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -146,8 +148,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["stats"]["unresolved"] == 1
 
     def test_has_alert_integration(self):
-        integration = Integration.objects.create(provider="msteams")
-        integration.add_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="msteams")
+            integration.add_organization(self.organization)
 
         project = self.create_project()
         self.create_group(project=project)
@@ -161,8 +164,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["hasAlertIntegrationInstalled"]
 
     def test_no_alert_integration(self):
-        integration = Integration.objects.create(provider="jira")
-        integration.add_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="jira")
+            integration.add_organization(self.organization)
 
         project = self.create_project()
         self.create_group(project=project)
@@ -205,23 +209,25 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, method="put", slug="foobar"
         )
 
-        response = self.get_success_response(
-            project.organization.slug, project.slug, status_code=302
-        )
-        assert (
-            AuditLogEntry.objects.get(
-                organization_id=project.organization_id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-            ).data.get("old_slug")
-            == project.slug
-        )
-        assert (
-            AuditLogEntry.objects.get(
-                organization_id=project.organization_id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-            ).data.get("new_slug")
-            == "foobar"
-        )
+        with outbox_runner():
+            response = self.get_success_response(
+                project.organization.slug, project.slug, status_code=302
+            )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.get(
+                    organization_id=project.organization_id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                ).data.get("old_slug")
+                == project.slug
+            )
+            assert (
+                AuditLogEntry.objects.get(
+                    organization_id=project.organization_id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                ).data.get("new_slug")
+                == "foobar"
+            )
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
@@ -246,7 +252,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -255,123 +261,177 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         super().setUp()
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
-
-    def test_member_can_read_project_details(self):
-        self.create_member(
-            user=self.user,
-            organization=self.project.organization,
-            teams=[self.project.teams.first()],
-            role="member",
-        )
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
+        self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_slug": self.project.slug,
             },
         )
-        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=authorization)
-        assert response.status_code == 200, response.content
 
-    def test_member_updates_denied_with_token(self):
+        self.platforms = ["rust", "java"]
+
+    def test_member_can_update_limited_project_details(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"isBookmarked": True},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 200
+        assert response.data["isBookmarked"] is True
 
-    def test_admin_updates_allowed_with_correct_token_scope(self):
+    def test_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="admin",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
-        data = {"platform": "rust"}
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 200, response.content
-
-    def test_admin_updates_denied_with_token(self):
+    @with_feature("organizations:team-roles")
+    def test_team_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
-            role="admin",
+            role="member",
+        )
+        self.create_team_membership(user=self.user, team=self.team, role="admin")
+
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_manager_update_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="manager",
         )
 
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_owner_update_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="owner",
+        )
+
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_member_update_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="member",
+        )
+        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
+        )
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_admin_update_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="admin",
+        )
         # even though the user has the 'admin' role, they've issued a token with only a project:read scope
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
-        authorization = f"Bearer {token.token}"
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_empty_token_scopes_denied(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
+        token = self.create_user_auth_token(user=self.user, scope_list=[""])
 
-        token = ApiToken.objects.create(user=self.user, scope_list=[""])
-        authorization = f"Bearer {token.token}"
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -468,13 +528,16 @@ class ProjectUpdateTest(APITestCase):
         assert project.name == "hello world"
 
     def test_slug(self):
-        self.get_success_response(self.org_slug, self.proj_slug, slug="foobar")
+        with outbox_runner():
+            self.get_success_response(self.org_slug, self.proj_slug, slug="foobar")
         project = Project.objects.get(id=self.project.id)
         assert project.slug == "foobar"
         assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.proj_slug)
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
@@ -486,6 +549,16 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="1234",
+            status_code=400,
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_reserved_slug(self):
         self.get_error_response(
@@ -528,26 +601,32 @@ class ProjectUpdateTest(APITestCase):
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
         }
-        with self.feature("projects:custom-inbound-filters"):
+        with self.feature("projects:custom-inbound-filters"), outbox_runner():
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:origins", []) == options["sentry:origins"].split("\n")
         assert project.get_option("sentry:resolve_age", 0) == options["sentry:resolve_age"]
         assert project.get_option("sentry:scrub_data", True) == options["sentry:scrub_data"]
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:scrub_defaults", True) == options["sentry:scrub_defaults"]
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert (
             project.get_option("sentry:sensitive_fields", []) == options["sentry:sensitive_fields"]
         )
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
             project.get_option("sentry:store_crash_reports")
@@ -558,9 +637,11 @@ class ProjectUpdateTest(APITestCase):
             project.get_option("sentry:relay_pii_config", "") == options["sentry:relay_pii_config"]
         )
         assert project.get_option("sentry:grouping_config", "") == options["sentry:grouping_config"]
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert (
             project.get_option("sentry:csp_ignored_sources_defaults", True)
             == options["sentry:csp_ignored_sources_defaults"]
@@ -575,47 +656,65 @@ class ProjectUpdateTest(APITestCase):
             "*: integer division by modulo or zero",
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:resolve_age", 1)
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert (
             project.get_option("sentry:scrub_ip_address", True)
             == options["sentry:scrub_ip_address"]
         )
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:origins", "*")
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert (
             project.get_option("sentry:scrape_javascript", False)
             == options["sentry:scrape_javascript"]
         )
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:token", "*")
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:token_header", "*")
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("feedback:branding") == "0"
-        assert AuditLogEntry.objects.filter(
-            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
 
     def test_bookmarks(self):
@@ -626,21 +725,23 @@ class ProjectUpdateTest(APITestCase):
 
     def test_subscription(self):
         self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        value0 = NotificationSetting.objects.get_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            user_id=self.user.id,
-            project=self.project,
-        )
-        assert value0 == NotificationSettingOptionValues.ALWAYS
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            value0 = NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user_id=self.user.id,
+                project=self.project,
+            )
+            assert value0 == NotificationSettingOptionValues.ALWAYS
 
         self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        value1 = NotificationSetting.objects.get_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            user_id=self.user.id,
-            project=self.project,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            value1 = NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                user_id=self.user.id,
+                project=self.project,
+            )
         assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
@@ -1007,7 +1108,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1025,7 +1126,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_feature(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": False}):
+        with Feature({"organizations:recap-server": False}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1043,7 +1144,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1063,7 +1164,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
 
             assert resp.status_code == 200
@@ -1077,7 +1178,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1271,12 +1372,12 @@ class CopyProjectSettingsTest(APITestCase):
             copy_from_project=self.other_project.id,
             status_code=409,
         )
-        assert resp.data == {"detail": ["Copy project settings failed."]}
+        assert resp.data["detail"] == "Copy project settings failed."
         self.assert_settings_not_copied(project)
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1291,7 +1392,9 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=0):
             self.get_success_response(project.organization.slug, project.slug, status_code=204)
 
-        assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Project", object_id=project.id
+        ).exists()
 
         deleted_project = Project.objects.get(id=project.id)
         assert deleted_project.status == ObjectStatus.PENDING_DELETION
@@ -1311,7 +1414,7 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=project.id):
             self.get_error_response(project.organization.slug, project.slug, status_code=403)
 
-        assert not ScheduledDeletion.objects.filter(
+        assert not RegionScheduledDeletion.objects.filter(
             model_name="Project", object_id=project.id
         ).exists()
 
@@ -1330,14 +1433,16 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     def _apply_old_date_to_project_and_org(self):
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
-        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        old_date = datetime.now(tz=timezone.utc) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1
+        )
         # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
         # copy is mutated.
         self.project.organization.update(date_added=old_date)
         self.project.update(date_added=old_date)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1351,7 +1456,8 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             },
         )
         self.login_as(user=self.user, superuser=True)
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
     @mock.patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
@@ -1420,7 +1526,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             assert "dynamicSamplingRules" not in response.data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1434,7 +1540,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
         )
         self.login_as(user=self.user)
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
     def test_get_dynamic_sampling_default_biases(self):
@@ -1524,7 +1631,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         )
         self.login_as(self.user)
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         url = reverse(
@@ -1535,7 +1643,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
         )
 
-        with Feature({self.new_ds_flag: True}):
+        with Feature({self.new_ds_flag: True}), outbox_runner():
             self.client.put(
                 url,
                 format="json",
@@ -1547,6 +1655,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
             )
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
                 organization_id=self.project.organization_id,
                 event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
@@ -1568,7 +1677,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         )
         self.login_as(self.user)
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         url = reverse(
@@ -1579,7 +1689,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
         )
 
-        with Feature({self.new_ds_flag: True}):
+        with Feature({self.new_ds_flag: True}), outbox_runner():
             self.client.put(
                 url,
                 format="json",
@@ -1592,6 +1702,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
             )
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
                 organization_id=self.project.organization_id,
                 event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
@@ -1612,7 +1723,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             data={"dynamicSamplingBiases": DEFAULT_BIASES},
         )
         assert response.status_code == 403
-        assert response.json()["detail"] == ["dynamicSamplingBiases is not a valid field"]
+        assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 
     def test_put_new_dynamic_sampling_rules_with_correct_flags(self):
         """

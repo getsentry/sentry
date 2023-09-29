@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
-from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -26,7 +25,7 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
@@ -41,15 +40,16 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_sample_rate_source,
-    log_task_execution,
-    log_task_timeout,
-)
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models import Organization
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -94,9 +94,10 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     max_retries=5,
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
-@dynamic_sampling_task
-def boost_low_volume_transactions() -> None:
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_transactions(context: TaskContext) -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )
@@ -104,62 +105,41 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    context = TaskContext(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_transactions", MAX_TASK_SECONDS
-    )
-
-    # create global timers for the internal iterators since they are created multiple times,
-    # and we are interested in the total time.
-    get_totals_timer = Timer()
-    get_small_transactions_timer = Timer()
-    get_big_transactions_timer = Timer()
     get_totals_name = "GetTransactionTotals"
     get_volumes_small = "GetTransactionVolumes(small)"
     get_volumes_big = "GetTransactionVolumes(big)"
 
-    try:
-        orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
-        for orgs in orgs_iterator:
-            # get the low and high transactions
-            totals_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionTotals(orgs),
-                name=get_totals_name,
-                timer=get_totals_timer,
-            )
-            small_transactions_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionVolumes(
-                    orgs,
-                    large_transactions=False,
-                    max_transactions=num_small_trans,
-                ),
-                name=get_volumes_small,
-                timer=get_small_transactions_timer,
-            )
-            big_transactions_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionVolumes(
-                    orgs,
-                    large_transactions=True,
-                    max_transactions=num_big_trans,
-                ),
-                name=get_volumes_big,
-                timer=get_big_transactions_timer,
-            )
+    orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
+    for orgs in orgs_iterator:
+        # get the low and high transactions
+        totals_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionTotals(orgs),
+            name=get_totals_name,
+        )
+        small_transactions_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionVolumes(
+                orgs,
+                large_transactions=False,
+                max_transactions=num_small_trans,
+            ),
+            name=get_volumes_small,
+        )
+        big_transactions_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionVolumes(
+                orgs,
+                large_transactions=True,
+                max_transactions=num_big_trans,
+            ),
+            name=get_volumes_big,
+        )
 
-            for project_transactions in transactions_zip(
-                totals_it, big_transactions_it, small_transactions_it
-            ):
-                boost_low_volume_transactions_of_project.delay(project_transactions)
-    except TimeoutException:
-        set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
-        log_task_execution(context)
+        for project_transactions in transactions_zip(
+            totals_it, big_transactions_it, small_transactions_it
+        ):
+            boost_low_volume_transactions_of_project.delay(project_transactions)
 
 
 @instrumented_task(
@@ -169,6 +149,7 @@ def boost_low_volume_transactions() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
@@ -331,7 +312,10 @@ class FetchProjectTransactionTotals:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             data = raw_snql_query(
                 request,
@@ -507,7 +491,10 @@ class FetchProjectTransactionVolumes:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             data = raw_snql_query(
                 request,

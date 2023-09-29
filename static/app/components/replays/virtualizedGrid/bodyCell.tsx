@@ -2,7 +2,6 @@ import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
@@ -69,6 +68,7 @@ export const AvatarWrapper = styled('div')`
   align-self: center;
 `;
 
-export const StyledTimestampButton = styled(TimestampButton)`
+export const ButtonWrapper = styled('div')`
+  align-items: center;
   padding-inline: ${space(1.5)};
 `;

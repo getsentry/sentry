@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
@@ -22,6 +23,10 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 
 @all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -95,7 +100,7 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                with transaction.atomic(router.db_for_write(type(option))):
+                with transaction.atomic(router.db_for_write(options.default_store.model)):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)
                     else:

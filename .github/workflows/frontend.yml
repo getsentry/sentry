@@ -15,6 +15,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   files-changed:
@@ -110,7 +111,7 @@ jobs:
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
-        uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38 # main
+        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: apply eslint style fixes'
@@ -136,8 +137,6 @@ jobs:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
 
-    env:
-      VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         name: Checkout sentry
@@ -160,9 +159,6 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
-      - name: Build CSS
-        run: NODE_ENV=production yarn build-css
-
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -181,19 +177,6 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
-
-      - name: Save HTML artifacts
-        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
-        with:
-          retention-days: 14
-          name: jest-html
-          path: .artifacts/visual-snapshots/jest
-
-      - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
-        with:
-          base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.

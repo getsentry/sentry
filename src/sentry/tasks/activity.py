@@ -1,5 +1,6 @@
 import logging
 
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context
@@ -27,7 +28,9 @@ def get_activity_notifiers(project):
 
 
 @instrumented_task(
-    name="sentry.tasks.activity.send_activity_notifications", queue="activity.notify"
+    name="sentry.tasks.activity.send_activity_notifications",
+    queue="activity.notify",
+    silo_mode=SiloMode.REGION,
 )
 def send_activity_notifications(activity_id):
     from sentry.models import Activity, Organization

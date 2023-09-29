@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -14,12 +15,17 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
+
+pytestmark = [requires_snuba]
 
 
 class BaseDeriveCodeMappings(TestCase):
+    platform: str
+
     def setUp(self):
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
@@ -325,7 +331,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
-        self.test_data = {
+        self.test_data: dict[str, Any] = {
             "platform": "python",
             "stacktrace": {
                 "frames": [
@@ -438,6 +444,8 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             source_root="src/sentry/models",
             repository=repository,
             organization_integration_id=organization_integration.id,
+            integration_id=organization_integration.integration_id,
+            organization_id=organization_integration.organization_id,
         )
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()

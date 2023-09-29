@@ -1,9 +1,12 @@
+import {MetricRule} from 'sentry-fixture/metricRule';
+
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
+
+import {getMetricRuleDiscoverQuery} from './getMetricRuleDiscoverUrl';
 
 describe('getMetricRuleDiscoverQuery', () => {
   it('should use metric aggregate in discover query', () => {
-    const rule = TestStubs.MetricRule({
+    const rule = MetricRule({
       aggregate: 'failure_rate()',
       dataset: Dataset.TRANSACTIONS,
     });
@@ -18,7 +21,7 @@ describe('getMetricRuleDiscoverQuery', () => {
         end: new Date().toISOString(),
       },
     });
-    expect(query.valueOf()).toEqual(
+    expect(query!.valueOf()).toEqual(
       expect.objectContaining({
         statsPeriod: '7d',
         fields: [

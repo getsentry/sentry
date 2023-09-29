@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
@@ -9,8 +10,11 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 def additional_attachment_generator(integration, organization):
@@ -23,9 +27,6 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def setUp(self):
         self.integration = install_slack(self.get_event().project.organization)
-
-    def tearDown(self):
-        manager.attachment_generators[ExternalProviders.SLACK] = None
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -109,20 +110,21 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps(
+                {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
+            ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         form = rule.get_form_instance()
@@ -135,20 +137,12 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
 
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -176,14 +170,12 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        channels = {"ok": "true", "channels": [{"name": "other-chann", "id": "chan-id"}]}
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
@@ -205,25 +197,20 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_rate_limited_response(self):
         """Should surface a 429 from Slack to the frontend form"""
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=429,
-            content_type="application/json",
-            body=json.dumps(
-                {
-                    "ok": "false",
-                    "error": "ratelimited",
-                }
-            ),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
+        )
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -321,11 +308,11 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channels": []}),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -364,34 +351,66 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    def test_additional_attachment(self):
-        manager.attachment_generators[ExternalProviders.SLACK] = additional_attachment_generator
-        event = self.get_event()
+    @mock.patch("sentry.analytics.record")
+    def test_additional_attachment(self, mock_record):
+        with mock.patch.dict(
+            manager.attachment_generators,
+            {ExternalProviders.SLACK: additional_attachment_generator},
+        ):
+            event = self.get_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+            rule = self.get_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "channel": "#my-channel",
+                    "channel_id": "123",
+                }
+            )
 
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 1
+            notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
+            results = list(
+                rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
+            )
+            assert len(results) == 1
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
+            responses.add(
+                method=responses.POST,
+                url="https://slack.com/api/chat.postMessage",
+                body='{"ok": true}',
+                status=200,
+                content_type="application/json",
+            )
 
-        # Trigger rule callback
-        results[0].callback(event, futures=[])
-        data = parse_qs(responses.calls[0].request.body)
+            # Trigger rule callback
+            results[0].callback(event, futures=[])
+            data = parse_qs(responses.calls[0].request.body)
 
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
+            assert "attachments" in data
+            attachments = json.loads(data["attachments"][0])
 
-        assert len(attachments) == 2
-        assert attachments[0]["title"] == event.title
-        assert attachments[1]["title"] == self.organization.slug
-        assert attachments[1]["text"] == self.integration.id
+            assert len(attachments) == 2
+            assert attachments[0]["title"] == event.title
+            assert attachments[1]["title"] == self.organization.slug
+            assert attachments[1]["text"] == self.integration.id
+            mock_record.assert_called_with(
+                "alert.sent",
+                provider="slack",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                external_id="123",
+                notification_uuid=notification_uuid,
+            )
+            mock_record.assert_any_call(
+                "integrations.slack.notification_sent",
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            )
 
     @responses.activate
     def test_multiple_integrations(self):

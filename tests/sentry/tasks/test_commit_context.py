@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -14,13 +15,14 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.commit_context import process_commit_context
-from sentry.testutils import TestCase
-from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.helpers import with_feature
+from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
+
+pytestmark = [requires_snuba]
 
 
 class TestCommitContextMixin(TestCase):
@@ -85,7 +87,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -143,11 +145,47 @@ class TestCommitContext(TestCommitContextMixin):
             error_message="integration_failed",
         )
 
+    @patch("sentry.tasks.commit_context.logger")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=370)),
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "admin@localhost",
+        },
+    )
+    def test_found_commit_is_too_old(self, mock_get_commit_context, mock_logger):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert mock_logger.info.call_count == 1
+        mock_logger.info.assert_called_with(
+            "process_commit_context.find_commit_context",
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.group.project.organization_id,
+                "reason": "could_not_fetch_commit_context",
+                "code_mappings_count": 1,
+                "fallback": True,
+            },
+        )
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "asdfasdf",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -172,7 +210,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -257,7 +295,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -298,7 +336,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -339,7 +377,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -425,7 +463,7 @@ class TestCommitContext(TestCommitContextMixin):
     Mock(
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -477,7 +515,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
         )
 
-    @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_not_github(self, mock_comment_workflow):
         """Non github repos shouldn't be commented on"""
         self.repo.provider = "integrations:gitlab"
@@ -493,20 +530,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    def test_gh_comment_feature_flag(self, mock_comment_workflow):
-        """No comments on org with feature flag disabled"""
-        with self.tasks():
-            event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
-            assert not mock_comment_workflow.called
-
-    @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_org_option(self, mock_comment_workflow):
         """No comments on org with organization option disabled"""
         OrganizationOption.objects.set_value(
@@ -524,7 +547,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_api(self, get_jwt, mock_comment_workflow):
@@ -554,7 +576,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry_sdk.capture_exception")
     @responses.activate
@@ -585,7 +606,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert mock_capture_exception.called
             assert not mock_comment_workflow.called
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
@@ -614,7 +634,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_query(self, get_jwt, mock_comment_workflow):
@@ -634,12 +653,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
-        """No comment on pr that's older than 30 days"""
-        self.pull_request.date_added = iso_format(before_now(days=8))
+        """No comment on pr that's older than PR_COMMENT_WINDOW"""
+        self.pull_request.date_added = iso_format(before_now(days=PR_COMMENT_WINDOW + 1))
         self.pull_request.save()
 
         self.add_responses()
@@ -656,7 +674,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow):
@@ -678,7 +695,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued(self, get_jwt, mock_comment_workflow):
@@ -702,7 +718,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued_existing_pr_commit(self, get_jwt, mock_comment_workflow):
@@ -729,7 +744,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0] == pr_commit
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow):
@@ -753,7 +767,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_no_repo(self, mock_comment_workflow):
         """No comments on suspect commit if no repo row exists"""
         self.repo.delete()
@@ -769,7 +782,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow):

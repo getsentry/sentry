@@ -1,8 +1,9 @@
 import pytest
+from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):
@@ -33,7 +34,34 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         with pytest.raises(ExportError):
             DiscoverProcessor.get_projects(organization_id=self.org.id, query={"project": [-1]})
 
-    def test_handle_fields(self):
+    def test_handle_issue_id_fields(self):
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
+        assert processor.header_fields == ["count_id", "fake_field", "issue"]
+        result_list = [{"issue": self.group.id, "issue.id": self.group.id}]
+        new_result_list = processor.handle_fields(result_list)
+        assert new_result_list[0] != result_list
+        assert new_result_list[0]["issue"] == self.group.qualified_short_id
+
+    def test_handle_transaction_status_fields(self):
+        self.discover_query = {
+            **self.discover_query,
+            "field": ["title", "event.type", "transaction.status"],
+        }
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
+        assert processor.header_fields == ["title", "event.type", "transaction.status"]
+        result_list = [
+            {"transaction.status": SPAN_STATUS_NAME_TO_CODE.get("ok")},
+            {"transaction.status": SPAN_STATUS_NAME_TO_CODE.get("not_found")},
+        ]
+        new_result_list = processor.handle_fields(result_list)
+        assert new_result_list[0]["transaction.status"] == "ok"
+        assert new_result_list[1]["transaction.status"] == "not_found"
+
+    def test_handle__fields(self):
         processor = DiscoverProcessor(
             organization_id=self.org.id, discover_query=self.discover_query
         )

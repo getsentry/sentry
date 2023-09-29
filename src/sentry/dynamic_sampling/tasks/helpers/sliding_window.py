@@ -1,8 +1,7 @@
 from calendar import IllegalMonthError, monthrange
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-import pytz
 import sentry_sdk
 
 from sentry import options
@@ -131,8 +130,8 @@ def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
         return None
 
     # Get current year and month
-    year = datetime.now(tz=pytz.UTC).year
-    month = datetime.now(tz=pytz.UTC).month
+    year = datetime.now(tz=timezone.utc).year
+    month = datetime.now(tz=timezone.utc).month
 
     try:
         # Get number of days in the month.

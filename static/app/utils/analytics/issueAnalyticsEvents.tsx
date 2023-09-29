@@ -14,7 +14,24 @@ type SourceMapDebugParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
+type ActionableItemDebugParam = {
+  type: string;
+  group_id?: string;
+} & BaseEventAnalyticsParams;
+
+type SourceMapWizardParam = {
+  project_id: string;
+  group_id?: string;
+} & BaseEventAnalyticsParams;
+
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
+
+interface EventDropdownParams {
+  event_id: string;
+  from_event_type: string;
+  group_id: string;
+  selected_event_type: string;
+}
 
 interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_provider: string;
@@ -22,6 +39,7 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 export type IssueEventParameters = {
+  'actionable_items.expand_clicked': ActionableItemDebugParam;
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -39,6 +57,9 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'integrations.integration_reinstall_clicked': {
+    provider: string;
+  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -49,16 +70,20 @@ export type IssueEventParameters = {
   'issue_details.escalating_issues_banner_feedback_received': {
     group_id: string;
     should_be_escalating: boolean;
+    reason?: string;
   };
   'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.event_dropdown_option_selected': EventDropdownParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
-  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
+  'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
+  'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -152,9 +177,6 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
-  'issues_stream.issue_category_dropdown_changed': {
-    category: string;
-  };
   'issues_stream.paginate': {
     direction: string;
   };
@@ -238,8 +260,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
-  'issues_stream.issue_category_dropdown_changed':
-    'Issues Stream: Issue Category Dropdown Changed',
   'issue.shared_publicly': 'Issue Shared Publicly',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',
@@ -263,6 +283,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags.bar.hovered': 'Issue Group Details: Tags value bar hovered',
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
+  'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
@@ -271,8 +292,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Hidden Spans Expanded',
   'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
+  'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.event_dropdown_option_selected':
+    'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
@@ -282,6 +306,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',
-  'issue_details.open_replay_details_clicked':
-    'Issue Details: Open Replay Details Clicked',
+  'issue_details.sourcemap_wizard_dismiss': 'Issue Details: Sourcemap Wizard Dismiss',
+  'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
+  'issue_details.sourcemap_wizard_learn_more':
+    'Issue Details: Sourcemap Wizard Learn More',
 };

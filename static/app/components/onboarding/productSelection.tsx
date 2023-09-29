@@ -1,7 +1,9 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
@@ -10,6 +12,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -18,23 +22,170 @@ export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
+  PROFILING = 'profiling',
 }
 
-export type DisabledProduct = {
-  product: ProductSolution;
-  reason: string;
+interface DisabledProduct {
+  reason: ReactNode;
   onClick?: () => void;
-};
+}
+
+export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
+
+function getDisabledProducts(organization: Organization): DisabledProducts {
+  const disabledProducts: DisabledProducts = {};
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const hasPerformance = organization.features.includes('performance-view');
+  const hasProfiling = organization.features.includes('profiling-view');
+
+  const reason = t('This feature is not enabled on your Sentry installation.');
+  const createClickHandler = (feature: string, featureName: string) => () => {
+    openModal(deps => (
+      <FeatureDisabledModal {...deps} features={[feature]} featureName={featureName} />
+    ));
+  };
+
+  if (!hasSessionReplay) {
+    disabledProducts[ProductSolution.SESSION_REPLAY] = {
+      reason,
+      onClick: createClickHandler('organizations:session-replay', 'Session Replay'),
+    };
+  }
+  if (!hasPerformance) {
+    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
+      reason,
+      onClick: createClickHandler(
+        'organizations:performance-view',
+        'Performance Monitoring'
+      ),
+    };
+  }
+  if (!hasProfiling) {
+    disabledProducts[ProductSolution.PROFILING] = {
+      reason,
+      onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
+    };
+  }
+  return disabledProducts;
+}
+
+// This is the list of products that are available for each platform
+// Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
+// NOTE: Please keep the prefix in alphabetical order
+export const platformProductAvailability = {
+  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  bun: [ProductSolution.PERFORMANCE_MONITORING],
+  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-vue': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-angular': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-ember': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-gatsby': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-remix': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-svelte': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-azurefunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
+  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-serverless': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
+} as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
+  /**
+   * If the product is checked. This information is grabbed from the URL.
+   */
   checked: boolean;
-  disabled: boolean;
+  /**
+   * The name of the product
+   */
   label: string;
+  /**
+   * Brief product description
+   */
+  description?: ReactNode;
+  /**
+   * If the product is disabled. It contains a reason and an optional onClick handler
+   */
+  disabled?: DisabledProduct;
+  /**
+   * Link of the product documentation. Rendered if there is also a description.
+   */
+  docLink?: string;
+  /**
+   * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
+   */
   onClick?: () => void;
+  /**
+   * A permanent disabled product is always disabled and cannot be enabled.
+   */
   permanentDisabled?: boolean;
 };
 
-function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+function Product({
+  disabled,
+  permanentDisabled,
+  checked,
+  label,
+  onClick,
+  docLink,
+  description,
+}: ProductProps) {
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
@@ -42,151 +193,210 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
     : ProductButtonWrapper;
 
   return (
-    <ProductWrapper
-      onClick={onClick}
-      disabled={onClick ?? permanentDisabled ? false : disabled}
-      priority={permanentDisabled || checked ? 'primary' : 'default'}
-      aria-label={label}
+    <Tooltip
+      title={
+        disabled?.reason ??
+        (description && (
+          <TooltipDescription>
+            {description}
+            {docLink && <ExternalLink href={docLink}>{t('Read the Docs')}</ExternalLink>}
+          </TooltipDescription>
+        ))
+      }
+      delay={500}
+      isHoverable
     >
-      <ProductButtonInner>
-        <Checkbox
-          checked={checked}
-          disabled={permanentDisabled ? false : disabled}
-          aria-label={label}
-          size="xs"
-          readOnly
-        />
-        <span>{label}</span>
-        <IconQuestion size="xs" color="subText" />
-      </ProductButtonInner>
-    </ProductWrapper>
+      <ProductWrapper
+        onClick={disabled?.onClick ?? onClick}
+        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        priority={permanentDisabled || checked ? 'primary' : 'default'}
+        aria-label={label}
+      >
+        <ProductButtonInner>
+          <Checkbox
+            checked={checked}
+            disabled={permanentDisabled ? false : !!disabled}
+            aria-label={label}
+            size="xs"
+            readOnly
+          />
+          <span>{label}</span>
+          <IconQuestion size="xs" color="subText" />
+        </ProductButtonInner>
+      </ProductWrapper>
+    </Tooltip>
   );
 }
 
 export type ProductSelectionProps = {
-  defaultSelectedProducts?: ProductSolution[];
-  disabledProducts?: DisabledProduct[];
+  /**
+   * The current organization
+   */
+  organization: Organization;
+  /**
+   * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
+   */
+  disabledProducts?: DisabledProducts;
+  /**
+   * If true, the loader script is used instead of the npm/yarn guide.
+   */
   lazyLoader?: boolean;
+  /**
+   * The platform key of the project (e.g. javascript-react, python-django, etc.)
+   */
+  platform?: PlatformKey;
+  /**
+   * A custom list of products per platform. If not provided, the default list is used.
+   */
+  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
   skipLazyLoader?: () => void;
+  /**
+   * If true, the component has a bottom margin of 20px
+   */
+  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
-  defaultSelectedProducts,
-  disabledProducts,
+  disabledProducts: disabledProductsProp,
   lazyLoader,
+  organization,
+  platform,
+  productsPerPlatform = platformProductAvailability,
   skipLazyLoader,
 }: ProductSelectionProps) {
   const router = useRouter();
-  const products = decodeList(router.location.query.product);
+  const urlProducts = decodeList(router.location.query.product);
+  const products: ProductSolution[] | undefined = platform
+    ? productsPerPlatform[platform]
+    : undefined;
+
+  const disabledProducts = useMemo(
+    () => disabledProductsProp ?? getDisabledProducts(organization),
+    [organization, disabledProductsProp]
+  );
+  const defaultProducts = useMemo(() => {
+    return products?.filter(product => !(product in disabledProducts)) ?? [];
+  }, [products, disabledProducts]);
 
   useEffect(() => {
-    if (!defaultSelectedProducts) {
-      return;
-    }
     router.replace({
       pathname: router.location.pathname,
       query: {
         ...router.location.query,
-        product: defaultSelectedProducts,
+        product: defaultProducts,
       },
     });
-    // Adding defaultSelectedProducts to the dependency array causes an max-depth error
+    // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
+      const newProduct = new Set(
+        urlProducts.includes(product)
+          ? urlProducts.filter(p => p !== product)
+          : [...urlProducts, product]
+      );
+
+      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+        // Ensure that if profiling is enabled, performance monitoring is also enabled
+        if (
+          product === ProductSolution.PROFILING &&
+          newProduct.has(ProductSolution.PROFILING)
+        ) {
+          newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
+        } else if (
+          product === ProductSolution.PERFORMANCE_MONITORING &&
+          !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
+        ) {
+          newProduct.delete(ProductSolution.PROFILING);
+        }
+      }
+
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: products.includes(product)
-            ? products.filter(p => p !== product)
-            : [...products, product],
+          product: [...newProduct],
         },
       });
     },
-    [router, products]
+    [router, urlProducts, defaultProducts]
   );
 
-  const performanceProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-  );
+  if (!products) {
+    // if the platform does not support any product, we don't render anything
+    return null;
+  }
 
-  const sessionReplayProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.SESSION_REPLAY
-  );
+  // TODO(aknaus): clean up
+  // The package manager info is only shown for javascript platforms
+  // until we improve multi snippet suppport
+  const showPackageManagerInfo =
+    platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0;
 
   return (
     <Fragment>
-      <TextBlock>
-        {lazyLoader
-          ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
-              loaderScript: <strong>Loader Script</strong>,
-            })
-          : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-              npm: <strong>npm</strong>,
-              yarn: <strong>yarn</strong>,
-            })}
-      </TextBlock>
+      {showPackageManagerInfo && (
+        <TextBlock>
+          {lazyLoader
+            ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
+                loaderScript: <strong>Loader Script</strong>,
+              })
+            : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+                npm: <strong>npm</strong>,
+                yarn: <strong>yarn</strong>,
+              })}
+        </TextBlock>
+      )}
       <Products>
-        <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product disabled checked permanentDisabled label={t('Error Monitoring')} />
-        </Tooltip>
-        <Tooltip
-          title={
-            performanceProductDisabled?.reason ?? (
-              <TooltipDescription>
-                {t(
-                  'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            )
-          }
-          isHoverable
-        >
+        <Product
+          label={t('Error Monitoring')}
+          disabled={{reason: t("Let's admit it, we all have errors.")}}
+          checked
+          permanentDisabled
+        />
+        {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            onClick={
-              performanceProductDisabled
-                ? performanceProductDisabled?.onClick
-                : () => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)
-            }
-            disabled={!!performanceProductDisabled}
-            checked={products.includes(ProductSolution.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
+            description={t(
+              'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
+            disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
+            checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
           />
-        </Tooltip>
-        <Tooltip
-          title={
-            sessionReplayProductDisabled?.reason ?? (
-              <TooltipDescription>
-                {t(
-                  'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            )
-          }
-          isHoverable
-        >
+        )}
+        {products.includes(ProductSolution.SESSION_REPLAY) && (
           <Product
-            onClick={
-              sessionReplayProductDisabled
-                ? sessionReplayProductDisabled?.onClick
-                : () => handleClickProduct(ProductSolution.SESSION_REPLAY)
-            }
-            disabled={!!sessionReplayProductDisabled}
-            checked={products.includes(ProductSolution.SESSION_REPLAY)}
             label={t('Session Replay')}
+            description={t(
+              'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
+            onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+            disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+            checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
           />
-        </Tooltip>
+        )}
+        {products.includes(ProductSolution.PROFILING) && (
+          <Product
+            label={t('Profiling')}
+            description={tct(
+              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+              {
+                strong: <strong />,
+              }
+            )}
+            docLink="https://docs.sentry.io/platforms/python/profiling/"
+            onClick={() => handleClickProduct(ProductSolution.PROFILING)}
+            disabled={disabledProducts[ProductSolution.PROFILING]}
+            checked={urlProducts.includes(ProductSolution.PROFILING)}
+          />
+        )}
       </Products>
-      {lazyLoader && (
+      {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
           {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
             npm: <strong />,
@@ -199,7 +409,6 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider />
     </Fragment>
   );
 }
@@ -252,13 +461,6 @@ const ProductButtonInner = styled('div')`
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Divider = styled('hr')`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
 `;
 
 const TooltipDescription = styled('div')`

@@ -4,9 +4,9 @@ export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
 export interface TimeWindowOptions {
   /**
-   * The time format used for the cursor label
+   * The time format used for the cursor label and job tick tooltip
    */
-  cursorLabelFormat: string;
+  dateLabelFormat: string;
   /**
    * Props to pass to <DateTime> when displaying a time marker
    */
@@ -21,9 +21,10 @@ export interface TimeWindowOptions {
   timeMarkerInterval: number;
 }
 
-export type TimeWindowData = Record<TimeWindow, TimeWindowOptions>;
+// TODO(davidenwang): Remove this type as its a little too specific
+export type MonitorBucketData = MonitorBucket[];
 
-export type MonitorBucketData = [timestamp: number, envData: MonitorBucketEnvMapping][];
+export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
 
 export interface JobTickData {
   endTs: number;
@@ -35,6 +36,7 @@ export interface JobTickData {
 }
 
 export type StatsBucket = {
+  [CheckInStatus.IN_PROGRESS]: number;
   [CheckInStatus.OK]: number;
   [CheckInStatus.MISSED]: number;
   [CheckInStatus.TIMEOUT]: number;

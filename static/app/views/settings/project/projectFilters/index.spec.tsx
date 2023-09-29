@@ -1,3 +1,6 @@
+import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {Tombstones} from 'sentry-fixture/tombstones';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -35,18 +38,18 @@ describe('ProjectFilters', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `${PROJECT_URL}stats/`,
+      url: `/organizations/${organization.slug}/stats_v2/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}filters/`,
-      body: TestStubs.ProjectFilters(),
+      body: ProjectFiltersFixture(),
     });
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: TestStubs.Tombstones(),
+      body: Tombstones(),
     });
   });
 

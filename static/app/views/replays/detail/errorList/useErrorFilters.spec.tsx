@@ -13,10 +13,7 @@ import useErrorFilters, {
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
->;
+const mockUseLocation = jest.mocked(useLocation);
 
 const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
   hydrateErrors(
@@ -54,7 +51,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
 
 describe('useErrorFilters', () => {
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {

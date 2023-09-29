@@ -73,7 +73,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events_snql",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         cols = self.__get_columns(dataset)
@@ -164,7 +164,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
@@ -189,7 +189,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
@@ -214,7 +214,7 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         assert filter, "You must provide a filter"
@@ -394,11 +394,11 @@ class SnubaEventStorage(EventStorage):
 
     def _get_dataset_for_event(self, event):
         if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
-            return snuba.Dataset.IssuePlatform
+            return Dataset.IssuePlatform
         elif event.get_event_type() == "transaction":
-            return snuba.Dataset.Transactions
+            return Dataset.Transactions
         else:
-            return snuba.Dataset.Discover
+            return Dataset.Discover
 
     def get_adjacent_event_ids(self, event, filter):
         """
@@ -436,9 +436,7 @@ class SnubaEventStorage(EventStorage):
     def __get_columns(self, dataset: Dataset):
         return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
-    def __get_event_ids_from_filters(
-        self, filters=(), dataset=snuba.Dataset.Discover, tenant_ids=None
-    ):
+    def __get_event_ids_from_filters(self, filters=(), dataset=Dataset.Discover, tenant_ids=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -497,7 +495,7 @@ class SnubaEventStorage(EventStorage):
         Get transactions from Snuba, without node data loaded.
         """
         assert filter, "You must provide a filter"
-        cols = self.__get_columns(snuba.Dataset.Transactions)
+        cols = self.__get_columns(Dataset.Transactions)
         orderby = orderby or DESC_ORDERING
 
         result = snuba.aliased_query(
@@ -510,7 +508,7 @@ class SnubaEventStorage(EventStorage):
             limit=limit,
             offset=offset,
             referrer=referrer,
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             tenant_ids=tenant_ids,
         )
 

@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from uuid import uuid4
 
 import pytest
 from django.urls import reverse
-from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.models import ProjectKey, ProjectKeyStatus
-from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, safe
-from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -29,31 +26,6 @@ def _get_all_keys(config):
         if isinstance(config[key], dict):
             for key in _get_all_keys(config[key]):
                 yield key
-
-
-@pytest.fixture
-def key_pair():
-    return generate_key_pair()
-
-
-@pytest.fixture
-def public_key(key_pair):
-    return key_pair[1]
-
-
-@pytest.fixture
-def private_key(key_pair):
-    return key_pair[0]
-
-
-@pytest.fixture
-def relay_id():
-    return str(uuid4())
-
-
-@pytest.fixture
-def relay(relay_id, public_key):
-    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)

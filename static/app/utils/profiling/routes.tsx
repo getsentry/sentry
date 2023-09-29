@@ -26,7 +26,7 @@ export function generateProfileFlamechartRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamechart/`;
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
 }
 
 export function generateProfileDetailsRoute({

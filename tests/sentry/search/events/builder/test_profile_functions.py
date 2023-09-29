@@ -1,15 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
-from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
@@ -139,6 +139,8 @@ def test_having(params, search, condition):
         params,
         query=search,
         selected_columns=["count()"],
-        use_aggregate_conditions=True,
+        config=QueryBuilderConfig(
+            use_aggregate_conditions=True,
+        ),
     )
     assert condition in builder.having

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -21,15 +24,9 @@ FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -340,7 +337,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
 
         # test validation
-        data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
+        data: dict[str, Any] = {
+            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
+        }
         with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 

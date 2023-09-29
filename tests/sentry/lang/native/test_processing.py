@@ -2,8 +2,9 @@
 This file is intended for unit tests that don't require fixtures or a live
 service. Most tests live in tests/symbolicator/
 """
+from __future__ import annotations
 
-
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -14,12 +15,12 @@ from sentry.lang.native.processing import (
     process_native_stacktraces,
 )
 from sentry.models.eventerror import EventError
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 
 def test_merge_symbolicator_image_empty():
-    data = {}
+    data: dict[str, Any] = {}
     _merge_image({}, {}, None, data)
     assert not data.get("errors")
 
@@ -34,7 +35,7 @@ def test_merge_symbolicator_image_basic():
         "arch": "unknown",
     }
 
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -57,7 +58,7 @@ def test_merge_symbolicator_image_basic_success():
         "other2": "bar",
         "arch": "foo",
     }
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -76,7 +77,7 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     raw_image = {"instruction_addr": 0xFEEBEE}
     sdk_info = {"sdk_name": "linux"}
     complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -107,7 +108,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
         "other2": "bar",
         "arch": "unknown",
     }
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 

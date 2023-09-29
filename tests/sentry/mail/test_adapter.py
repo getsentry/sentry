@@ -1,16 +1,17 @@
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
+from unittest.mock import ANY
 
 import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
@@ -29,7 +30,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOption,
-    ProjectOwnership,
     Repository,
     Rule,
     User,
@@ -37,6 +37,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -47,12 +48,13 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
@@ -60,7 +62,9 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
-from tests.sentry.mail import make_event_data, send_notification
+from tests.sentry.mail import make_event_data, mock_notify
+
+pytestmark = requires_snuba
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
@@ -170,7 +174,8 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
-    def test_simple_notification(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple_notification(self, mock_record):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -188,6 +193,32 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
+        assert "notification_uuid" in msg.body
+        mock_record.assert_any_call(
+            "integrations.email.notification_sent",
+            category="issue_alert",
+            target_type=ANY,
+            target_identifier=None,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            group_id=event.group_id,
+            actor_id=ANY,
+            user_id=ANY,
+            id=ANY,
+            actor_type="User",
+            notification_uuid=ANY,
+            alert_id=rule.id,
+        )
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=rule.id,
+            alert_type="issue_alert",
+            external_id=ANY,
+            notification_uuid=ANY,
+        )
 
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
@@ -384,6 +415,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
+        assert "notification_uuid" in msg.body
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
@@ -405,7 +437,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_notify_users_does_email(self, mock_func):
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
@@ -443,7 +475,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
@@ -502,7 +534,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
         assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_multiline_error(self, mock_func):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
@@ -550,8 +582,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=pytz.utc)
-        local_timestamp_s = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        timestamp = datetime.now(tz=timezone.utc)
+        local_timestamp_s = django_timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
@@ -689,6 +721,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_integration(self):
         project = self.project
@@ -712,6 +745,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             not in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_plugin(self):
         project = self.project
@@ -785,8 +819,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         self.create_member(user=user2, organization=organization, teams=[team])
         self.group = self.create_group(
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
+            first_seen=django_timezone.now(),
+            last_seen=django_timezone.now(),
             project=project,
             message="hello  world",
             logger="root",
@@ -1183,13 +1217,13 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
 
-class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
+class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
@@ -1217,16 +1251,23 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         message = mail.outbox[0]
         assert "List-ID" in message.message()
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_replay_id(self, notify):
         project = self.project
+        self.project.flags.has_replays = True
+        self.project.save()
+
         timestamp = iso_format(before_now(minutes=1))
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         event = self.store_event(
             data={
                 "timestamp": timestamp,
                 "fingerprint": ["group-1"],
-                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+                "contexts": {"replay": {"replay_id": replay1_id}},
             },
             project_id=project.id,
         )
@@ -1234,9 +1275,17 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
             data={
                 "timestamp": timestamp,
                 "fingerprint": ["group-2"],
-                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+                "contexts": {"replay": {"replay_id": replay1_id}},
             },
             project_id=project.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                datetime.now() - timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
         )
 
         rule = project.rule_set.all()[0]
@@ -1254,6 +1303,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         message = mail.outbox[0]
         assert "View Replays" in message.message().as_string()
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):
@@ -1515,6 +1567,19 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
 
+    def test_notify_includes_uuid(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        futures = [RuleFuture(rule, {})]
+        notification_uuid = str(uuid.uuid4())
+        with mock.patch.object(self.adapter, "notify") as notify:
+            self.adapter.rule_notify(
+                event, futures, ActionTargetType.ISSUE_OWNERS, notification_uuid=notification_uuid
+            )
+            notify.assert_called_once_with(
+                mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, notification_uuid
+            )
+
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
@@ -1541,6 +1606,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_assignment_team(self):
         NotificationSetting.objects.update_settings(
@@ -1567,6 +1633,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_note(self):
         user_foo = self.create_user("foo@example.com")
@@ -1596,6 +1663,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
 
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
@@ -1639,6 +1707,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_user_feedback__enhanced_privacy(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
@@ -1672,3 +1741,4 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body

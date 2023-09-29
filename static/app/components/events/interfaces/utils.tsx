@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformType} from 'sentry/types';
+import {Frame, PlatformType, StacktraceType} from 'sentry/types';
 import {Image} from 'sentry/types/debugImage';
 import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -18,6 +18,103 @@ import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtens
  */
 function escapeBashString(v: string) {
   return v.replace(/(["$`\\])/g, '\\$1');
+}
+interface ImageForAddressProps {
+  addrMode: Frame['addrMode'];
+  address: Frame['instructionAddr'];
+  event: Event;
+}
+
+interface HiddenFrameIndicesProps {
+  data: StacktraceType;
+  frameCountMap: {[frameIndex: number]: number};
+  toggleFrameMap: {[frameIndex: number]: boolean};
+}
+
+export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
+  const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
+
+  if (!images || !address) {
+    return null;
+  }
+
+  const image = images.find((img, idx) => {
+    if (!addrMode || addrMode === 'abs') {
+      const [startAddress, endAddress] = getImageRange(img);
+      return address >= (startAddress as any) && address < (endAddress as any);
+    }
+
+    return addrMode === `rel:${idx}`;
+  });
+
+  return image;
+}
+
+export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
+  if (!nextFrame) {
+    return false;
+  }
+  return (
+    frame.lineNo === nextFrame.lineNo &&
+    frame.instructionAddr === nextFrame.instructionAddr &&
+    frame.package === nextFrame.package &&
+    frame.module === nextFrame.module &&
+    frame.function === nextFrame.function
+  );
+}
+
+export function getRepeatedFrameIndices(data: StacktraceType) {
+  const repeats: number[] = [];
+  (data.frames ?? []).forEach((frame, frameIdx) => {
+    const nextFrame = (data.frames ?? [])[frameIdx + 1];
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+
+    if (repeatedFrame) {
+      repeats.push(frameIdx);
+    }
+  });
+  return repeats;
+}
+
+export function getHiddenFrameIndices({
+  data,
+  toggleFrameMap,
+  frameCountMap,
+}: HiddenFrameIndicesProps) {
+  const repeatedIndeces = getRepeatedFrameIndices(data);
+  let hiddenFrameIndices: number[] = [];
+  Object.keys(toggleFrameMap)
+    .filter(frameIndex => toggleFrameMap[frameIndex] === true)
+    .forEach(indexString => {
+      const index = parseInt(indexString, 10);
+      const indicesToBeAdded: number[] = [];
+      let i = 1;
+      let numHidden = frameCountMap[index];
+      while (numHidden > 0) {
+        if (!repeatedIndeces.includes(index - i)) {
+          indicesToBeAdded.push(index - i);
+          numHidden -= 1;
+        }
+        i += 1;
+      }
+      hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
+    });
+  return hiddenFrameIndices;
+}
+
+export function getLastFrameIndex(frames: Frame[]) {
+  const inAppFrameIndexes = frames
+    .map((frame, frameIndex) => {
+      if (frame.inApp) {
+        return frameIndex;
+      }
+      return undefined;
+    })
+    .filter(frame => frame !== undefined);
+
+  return !inAppFrameIndexes.length
+    ? frames.length - 1
+    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
 }
 
 // TODO(dcramer): support cookies

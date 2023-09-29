@@ -1,3 +1,6 @@
+import {SentryApp} from 'sentry-fixture/sentryApp';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -10,8 +13,8 @@ import {
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
-  const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp({
+  const {organization: org, routerProps, router} = initializeOrg();
+  const sentryApp = SentryApp({
     scopes: [
       'team:read',
       'project:releases',
@@ -26,31 +29,18 @@ describe('Organization Developer Settings', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const router = TestStubs.router();
-
   describe('when no Apps exist', () => {
     it('displays empty state', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      const {container} = render(
-        <OrganizationDeveloperSettings
-          organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          location={router.location}
-          routes={router.routes}
-        />
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
         ).toBeInTheDocument();
       });
-      expect(container).toSnapshot();
     });
   });
 
@@ -63,18 +53,9 @@ describe('Organization Developer Settings', function () {
     });
 
     it('internal integrations list is empty', () => {
-      render(
-        <OrganizationDeveloperSettings
-          organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          location={router.location}
-          routes={router.routes}
-        />,
-        {organization: org}
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />, {
+        organization: org,
+      });
       expect(
         screen.getByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -83,12 +64,8 @@ describe('Organization Developer Settings', function () {
     it('public integrations list contains 1 item', () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: org}
@@ -105,12 +82,8 @@ describe('Organization Developer Settings', function () {
       });
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />
       );
@@ -140,12 +113,8 @@ describe('Organization Developer Settings', function () {
 
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />
       );
@@ -180,9 +149,8 @@ describe('Organization Developer Settings', function () {
         await userEvent.type(element, answer);
       }
 
-      const requestPublishButton = await within(dialog).findByLabelText(
-        'Request Publication'
-      );
+      const requestPublishButton =
+        await within(dialog).findByLabelText('Request Publication');
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
       await userEvent.click(requestPublishButton);
@@ -198,7 +166,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with published apps', () => {
     beforeEach(() => {
-      const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+      const publishedSentryApp = SentryApp({status: 'published'});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [publishedSentryApp],
@@ -207,12 +175,8 @@ describe('Organization Developer Settings', function () {
     it('shows the published status', () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />
       );
@@ -222,12 +186,8 @@ describe('Organization Developer Settings', function () {
     it('trash button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />
       );
@@ -238,12 +198,8 @@ describe('Organization Developer Settings', function () {
     it('publish button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />
       );
@@ -254,7 +210,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with Internal Integrations', () => {
     beforeEach(() => {
-      const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+      const internalIntegration = SentryApp({status: 'internal'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
@@ -263,33 +219,13 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(
-        <OrganizationDeveloperSettings
-          organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          location={router.location}
-          routes={router.routes}
-        />
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
     it('publish button does not exist', () => {
-      render(
-        <OrganizationDeveloperSettings
-          organization={org}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          location={router.location}
-          routes={router.routes}
-        />
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -305,12 +241,8 @@ describe('Organization Developer Settings', function () {
     it('trash button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={newOrg}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: newOrg}
@@ -322,12 +254,8 @@ describe('Organization Developer Settings', function () {
     it('publish button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
+          {...routerProps}
           organization={newOrg}
-          router={router}
-          route={router.routes[0]}
-          params={router.params}
-          routeParams={router.params}
-          routes={router.routes}
           location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: newOrg}

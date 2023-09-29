@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest import TestCase
 
 from sentry.api.base import Endpoint
@@ -88,9 +90,11 @@ class TestGetRateLimitValue(TestCase):
 
     def test_multiple_inheritance(self):
         class ParentEndpoint(Endpoint):
+            rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
             rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
 
         class Mixin:
+            rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
             rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 4)}}
 
         class ChildEndpoint(ParentEndpoint, Mixin):

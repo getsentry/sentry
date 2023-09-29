@@ -8,7 +8,7 @@ import re
 import sys
 import time
 import zlib
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from io import BytesIO
 from itertools import groupby
@@ -18,7 +18,6 @@ from urllib.parse import urlsplit
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from requests.utils import get_encoding_from_headers
 from symbolic.sourcemap import SourceView

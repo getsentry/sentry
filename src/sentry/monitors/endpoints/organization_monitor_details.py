@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
@@ -19,17 +20,10 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    RegionScheduledDeletion,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    ScheduledDeletion,
-)
+from sentry.models import RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
-from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
+from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
 from sentry.monitors.validators import MonitorValidator
 
@@ -39,17 +33,21 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
-        operation_id="Retrieve a monitor",
+        operation_id="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],
         responses={
-            200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            200: MonitorSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -70,14 +68,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update a monitor",
+        operation_id="Update a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
-            200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            200: MonitorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -149,7 +147,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor or monitor environments",
+        operation_id="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -240,10 +238,12 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
-                if type(monitor_object) == Monitor:
+                if isinstance(monitor_object, Monitor):
                     monitor_object.update(slug=get_random_string(length=24))
 
-                schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
+                schedule = RegionScheduledDeletion.schedule(
+                    monitor_object, days=0, actor=request.user
+                )
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,

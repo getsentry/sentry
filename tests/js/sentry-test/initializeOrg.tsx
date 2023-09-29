@@ -1,5 +1,6 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
+import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 
 import type {Organization, Project} from 'sentry/types';
 
@@ -46,8 +47,8 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   const organization = TestStubs.Organization({
     projects,
     ...additionalOrg,
-    orgRoleList: TestStubs.OrgRoleList(),
-    teamRoleList: TestStubs.TeamRoleList(),
+    orgRoleList: OrgRoleList(),
+    teamRoleList: TeamRoleList(),
   });
   const router = TestStubs.router({
     ...additionalRouter,

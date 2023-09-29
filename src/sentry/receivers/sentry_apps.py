@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, List, Mapping
 
 from sentry import features
-from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
@@ -112,10 +111,7 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = user_service.serialize_many(
-                filter={"user_ids": [user.id]},
-                serializer=UserSerializer(),
-            )[0]
+            data["user"] = user_service.serialize_many(filter={"user_ids": [user.id]})[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 

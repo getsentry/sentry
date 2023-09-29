@@ -2,15 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -26,32 +22,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {OverviewTable} from './components/overviewTable';
+import {CronsLandingPanel, OldCronsLandingPanel} from './components/cronsLandingPanel';
+import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
-
-function NewMonitorButton(props: ButtonProps) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  return (
-    <Button
-      to={{
-        pathname: `/organizations/${organization.slug}/crons/create/`,
-        query: {project: selection.projects},
-      }}
-      priority="primary"
-      {...props}
-    >
-      {props.children}
-    </Button>
-  );
-}
 
 export default function Monitors() {
   const organization = useOrganization();
@@ -73,15 +51,18 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = router.location.query ?? {};
+    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
     router.push({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
 
-  const monitorsTimelineView = organization.features.includes(
-    'crons-timeline-listing-page'
+  const shouldShowNewOnboarding = organization.features.includes('crons-new-onboarding');
+  const onboardingComponent = shouldShowNewOnboarding ? (
+    <CronsLandingPanel />
+  ) : (
+    <OldCronsLandingPanel />
   );
 
   return (
@@ -126,28 +107,11 @@ export default function Monitors() {
               <LoadingIndicator />
             ) : monitorList?.length ? (
               <Fragment>
-                {monitorsTimelineView ? (
-                  <OverviewTimeline monitorList={monitorList} />
-                ) : (
-                  <OverviewTable monitorList={monitorList} />
-                )}
+                <OverviewTimeline monitorList={monitorList} />
                 {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
               </Fragment>
             ) : (
-              <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
-                <p>
-                  {t(
-                    "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-                  )}
-                </p>
-                <OnboardingActions gap={1}>
-                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-                  <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('Read docs')}
-                  </Button>
-                </OnboardingActions>
-              </OnboardingPanel>
+              onboardingComponent
             )}
           </Layout.Main>
         </Layout.Body>
@@ -161,8 +125,4 @@ const Filters = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
-`;
-
-const OnboardingActions = styled(ButtonBar)`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

@@ -8,7 +8,8 @@ import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Duplicate', function () {
-  beforeAll(function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],

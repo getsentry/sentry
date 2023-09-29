@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.models import DifMeta, File, ProjectDebugFile, debugfile
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.

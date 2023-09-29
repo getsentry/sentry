@@ -1,34 +1,42 @@
 import {CSSProperties} from 'react';
 import {Link} from 'react-router';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 
-type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
+type Keys =
+  | 'transaction_id'
+  | 'timestamp'
+  | 'duration'
+  | 'p95_comparison'
+  | 'avg_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction_id',
     name: 'Event ID',
-    width: 200,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'duration',
     name: 'Span Duration',
-    width: 200,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95_comparison',
-    name: 'Compared to baseline',
-    width: 200,
+    key: 'avg_comparison',
+    name: 'Compared to Average',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
 
@@ -43,9 +51,9 @@ type SpanTableRow = {
 } & SpanSample;
 
 type Props = {
+  avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
-  p95: number;
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
@@ -54,7 +62,7 @@ type Props = {
 export function SpanSamplesTable({
   isLoading,
   data,
-  p95,
+  avg,
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
@@ -74,7 +82,11 @@ export function SpanSamplesTable({
   }
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison' || column.key === 'duration') {
+    if (
+      column.key === 'p95_comparison' ||
+      column.key === 'avg_comparison' ||
+      column.key === 'duration'
+    ) {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -110,12 +122,12 @@ export function SpanSamplesTable({
       );
     }
 
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'avg_comparison') {
       return (
         <DurationComparisonCell
           containerProps={commonProps}
           duration={row['span.self_time']}
-          p95={p95}
+          compareToDuration={avg}
         />
       );
     }

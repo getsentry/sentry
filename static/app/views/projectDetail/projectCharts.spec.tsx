@@ -1,3 +1,5 @@
+import {SessionsField} from 'sentry-fixture/sessions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -46,9 +48,7 @@ describe('ProjectDetail > ProjectCharts', () => {
     mockSessions = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsField(`sum(session)`),
     });
   });
 

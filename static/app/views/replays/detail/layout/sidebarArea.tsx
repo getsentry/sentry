@@ -14,7 +14,7 @@ function SidebarArea() {
     default:
       return (
         <Breadcrumbs
-          breadcrumbs={replay?.getNonConsoleCrumbs()}
+          frames={replay?.getChapterFrames()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );

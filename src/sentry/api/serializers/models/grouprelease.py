@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+from typing import Dict, List
 
 from django.utils import timezone
 
@@ -54,7 +55,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items = {}
+        items: Dict[str, List[str]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
@@ -64,7 +65,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             since = self.since or until - (segments * interval)
 
             try:
-                stats = tsdb.get_frequency_series(
+                stats = tsdb.backend.get_frequency_series(
                     model=TSDBModel.frequent_releases_by_group,
                     items=items,
                     start=since,

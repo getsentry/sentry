@@ -4,8 +4,8 @@ import dataclasses
 from logging import Logger
 from typing import Dict, Optional
 
+from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
-from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import AuthIdentity, AuthProvider, User, UserEmail
@@ -20,7 +20,7 @@ from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(
-    request: Request, member_id: int, token: str, organization_id: int
+    request: HttpRequest, member_id: int, token: str, organization_id: int
 ) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token
@@ -28,7 +28,7 @@ def add_invite_details_to_session(
     request.session["invite_organization_id"] = organization_id
 
 
-def remove_invite_details_from_session(request: Request) -> None:
+def remove_invite_details_from_session(request: HttpRequest) -> None:
     """Deletes invite details from the request session"""
     request.session.pop("invite_member_id", None)
     request.session.pop("invite_token", None)
@@ -42,7 +42,7 @@ class InviteDetails:
     invite_organization_id: Optional[int]
 
 
-def get_invite_details(request: Request) -> InviteDetails:
+def get_invite_details(request: HttpRequest) -> InviteDetails:
     """Returns tuple of (token, member_id) from request session"""
     return InviteDetails(
         invite_token=request.session.get("invite_token", None),
@@ -55,7 +55,7 @@ class ApiInviteHelper:
     @classmethod
     def from_session_or_email(
         cls,
-        request: Request,
+        request: HttpRequest,
         organization_id: int,
         email: str,
         logger: Logger | None = None,
@@ -99,7 +99,7 @@ class ApiInviteHelper:
     @classmethod
     def from_session(
         cls,
-        request: Request,
+        request: HttpRequest,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
         invite_details = get_invite_details(request)
@@ -128,7 +128,7 @@ class ApiInviteHelper:
 
     def __init__(
         self,
-        request: Request,
+        request: HttpRequest,
         invite_context: RpcUserInviteContext,
         token: str | None,
         logger: Logger | None = None,

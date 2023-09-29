@@ -1,5 +1,6 @@
 .env
 .cache/
+.code-workspace
 .coverage*
 .DS_Store
 .venv

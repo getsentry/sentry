@@ -1,31 +1,27 @@
 import math
 import uuid
-from base64 import b64encode
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
-from freezegun import freeze_time
-from pytz import utc
+from django.utils import timezone as django_timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import ApiKey, ProjectTransactionThreshold, ReleaseStages
+from sentry.models import ProjectTransactionThreshold, ReleaseStages
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
@@ -90,7 +86,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -113,9 +109,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -123,7 +117,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert response.status_code == 200, response.content
@@ -1300,13 +1294,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -4136,7 +4130,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -4201,9 +4195,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
 
         query = {
             "field": ["project.name", "environment"],
@@ -4219,7 +4211,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 url,
                 query,
                 format="json",
-                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
 
         _, kwargs = mock.call_args
@@ -6065,6 +6057,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         query = {
             "field": ["title", "release", "environment", "user.display", "timestamp"],
@@ -6138,6 +6131,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         features = {
             "organizations:discover-basic": True,

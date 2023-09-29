@@ -1,8 +1,4 @@
-import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
-
-import {Organization} from 'sentry/types';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
@@ -112,49 +108,27 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
-// Sync with ReplayListRecord above
-export function getReplayListFields(organization: Organization) {
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-  return hasDeadRageCols
-    ? [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_dead_clicks',
-        'count_errors',
-        'count_rage_clicks',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ]
-    : [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_errors',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ];
-}
+// Sync with ReplayListRecord below
+export const REPLAY_LIST_FIELDS = [
+  'activity',
+  'browser.name',
+  'browser.version',
+  'count_dead_clicks',
+  'count_errors',
+  'count_rage_clicks',
+  'duration',
+  'finished_at',
+  'id',
+  'is_archived',
+  'os.name',
+  'os.version',
+  'project_id',
+  'started_at',
+  'urls',
+  'user',
+];
 
-// Sync with REPLAY_LIST_FIELDS below
+// Sync with REPLAY_LIST_FIELDS above
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
@@ -181,43 +155,6 @@ export type ReplaySegment = {
 };
 
 /**
- * Highlight Replay Plugin types
- *
- * See also HighlightParams in static/app/components/replays/replayContext.tsx
- */
-export interface Highlight {
-  nodeId: number;
-  text: string;
-  color?: string;
-}
-
-export type RecordingEvent = eventWithTime;
-
-export interface ReplaySpan<T = Record<string, any>> {
-  data: T;
-  endTimestamp: number;
-  id: string;
-  op: string;
-  startTimestamp: number;
-  timestamp: number;
-  description?: string;
-}
-
-export type MemorySpan = ReplaySpan<{
-  memory: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}>;
-
-export type NetworkSpan = ReplaySpan;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
-export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
-
-/**
  * This is a result of a custom discover query
  */
 export interface ReplayError {
@@ -229,4 +166,28 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
   title: string;
+}
+
+export type DeadRageSelectorItem = {
+  aria_label: string;
+  dom_element: string;
+  element: string;
+  count_dead_clicks?: number;
+  count_rage_clicks?: number;
+};
+
+export type DeadRageSelectorListResponse = {
+  data: {count_dead_clicks: number; count_rage_clicks: number; dom_element: string}[];
+};
+
+export interface DeadRageSelectorQueryParams {
+  isWidgetData: boolean;
+  cursor?: string | string[] | undefined | null;
+  per_page?: number;
+  prefix?: string;
+  sort?:
+    | 'count_dead_clicks'
+    | '-count_dead_clicks'
+    | 'count_rage_clicks'
+    | '-count_rage_clicks';
 }

@@ -3,12 +3,16 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
 
@@ -61,6 +65,7 @@ def get_title_link(
     notification: BaseNotification | None,
     provider: ExternalProviders = ExternalProviders.SLACK,
     rule_id: int | None = None,
+    notification_uuid: str | None = None,
 ) -> str:
     other_params = {}
     # add in rule id if we have it
@@ -77,7 +82,18 @@ def get_title_link(
 
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
-        url = group.get_absolute_url(params={"referrer": referrer, **other_params})
+        notification_uuid = notification.notification_uuid
+        url = group.get_absolute_url(
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+        )
+    elif notification_uuid:
+        url = group.get_absolute_url(
+            params={
+                "referrer": EXTERNAL_PROVIDERS[provider],
+                "notification_uuid": notification_uuid,
+                **other_params,
+            }
+        )
     else:
         url = group.get_absolute_url(
             params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
@@ -105,6 +121,22 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     return None
 
 
+def build_attachment_replay_link(
+    group: Group, event: GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
+) -> str | None:
+    has_replay = features.has("organizations:session-replay", group.organization)
+    has_slack_links = features.has(
+        "organizations:session-replay-slack-new-issue", group.organization
+    )
+    if has_replay and has_slack_links and group.has_replays():
+        referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
+        replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
+
+        return f"\n\n{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+
+    return None
+
+
 def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
@@ -122,9 +154,41 @@ def build_footer(
     footer = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += f" via {url_format.format(text=rules[0].label, url=rule_url)}"
+        # If this notification is triggered via the "Send Test Notification"
+        # button then the label is not defined, but the url works.
+        text = rules[0].label if rules[0].label else "Test Alert"
+        footer += f" via {url_format.format(text=text, url=rule_url)}"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
 
     return footer
+
+
+def get_timestamp(group: Group, event: GroupEvent | None) -> float:
+    ts = group.last_seen
+    return to_timestamp(max(ts, event.datetime) if event else ts)
+
+
+def get_color(
+    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
+) -> str:
+    if notification:
+        if not isinstance(notification, AlertRuleNotification):
+            return "info"
+    if event_for_tags:
+        color: str | None = event_for_tags.get_tag("level")
+        if (
+            hasattr(event_for_tags, "occurrence")
+            and event_for_tags.occurrence is not None
+            and event_for_tags.occurrence.level is not None
+        ):
+            color = event_for_tags.occurrence.level
+        if color and color in LEVEL_TO_COLOR.keys():
+            return color
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
+        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
+        return "info"
+
+    return "error"

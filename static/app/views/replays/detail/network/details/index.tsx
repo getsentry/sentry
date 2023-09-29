@@ -6,6 +6,7 @@ import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
@@ -13,11 +14,10 @@ import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/c
 import NetworkDetailsTabs, {
   TabKey,
 } from 'sentry/views/replays/detail/network/details/tabs';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
   isSetup: boolean;
-  item: null | NetworkSpan;
+  item: null | SpanFrame;
   onClose: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
@@ -46,10 +46,10 @@ function NetworkDetails({
       <StyledStacked>
         <StyledNetworkDetailsTabs underlined={false} />
         <StyledSplitDivider
-          isHeld={isHeld}
+          data-is-held={isHeld}
+          data-slide-direction="updown"
           onDoubleClick={onDoubleClick}
           onMouseDown={onMouseDown}
-          slideDirection="updown"
         />
         <CloseButtonWrapper>
           <Button
@@ -119,10 +119,9 @@ const CloseButtonWrapper = styled('div')`
   align-items: center;
 `;
 
-const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
-  height: 100%;
-  ${p => (p.isHeld ? `z-index: ${p.theme.zIndex.initial + 1};` : '')}
-  :hover {
+const StyledSplitDivider = styled(SplitDivider)`
+  :hover,
+  &[data-is-held='true'] {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
 `;

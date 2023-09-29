@@ -9,6 +9,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -22,7 +23,12 @@ class OrganizationJoinRequest extends Component<Props, State> {
   };
 
   handleSubmitSuccess = () => {
+    const {params, location} = this.props;
     this.setState({submitSuccess: true});
+    trackAnalytics('join_request.created', {
+      organization: params.orgId,
+      referrer: location.query.referrer,
+    });
   };
 
   handleSubmitError() {

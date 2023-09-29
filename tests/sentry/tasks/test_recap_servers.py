@@ -11,9 +11,12 @@ from sentry.tasks.recap_servers import (
     poll_project_recap_server,
     poll_recap_servers,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 crash_payload = {
     "_links": {
@@ -96,7 +99,7 @@ class PollRecapServersTest(TestCase):
 class PollProjectRecapServerTest(TestCase):
     @pytest.fixture(autouse=True)
     def initialize(self):
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             yield  # Run test case
 
     def setUp(self):
@@ -115,7 +118,7 @@ class PollProjectRecapServerTest(TestCase):
         poll_project_recap_server(self.project.id)  # should not error
 
     def test_poll_project_recap_server_disabled_feature(self):
-        with Feature({"projects:recap-server": False}):
+        with Feature({"organizations:recap-server": False}):
             self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
             poll_project_recap_server(self.project.id)  # should not error
 

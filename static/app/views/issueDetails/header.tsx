@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
@@ -14,25 +13,31 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization, Project} from 'sentry/types';
+import {
+  Event,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupActions from './actions';
+import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
 import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
@@ -61,6 +66,7 @@ function GroupHeaderTabs({
   const organization = useOrganization();
 
   const replaysCount = useReplaysCount({
+    issueCategory: group.issueCategory,
     groupIds: group.id,
     organization,
   })[group.id];
@@ -69,7 +75,8 @@ function GroupHeaderTabs({
 
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasReplaySupport = organizationFeatures.has('session-replay');
+  const hasReplaySupport =
+    organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
 
@@ -127,7 +134,9 @@ function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
-        {t('All Events')}
+        {group.issueCategory === IssueCategory.ERROR
+          ? t('All Events')
+          : t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.MERGED}
@@ -227,26 +236,8 @@ function GroupHeader({
 
   const disableActions = !!disabledTabs.length;
 
-  const shortIdBreadCrumb = group.shortId && (
-    <GuideAnchor target="issue_number" position="bottom">
-      <ShortIdBreadrcumb>
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-        <Tooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId shortId={group.shortId} />
-        </Tooltip>
-      </ShortIdBreadrcumb>
-    </GuideAnchor>
+  const shortIdBreadcrumb = (
+    <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
   return (
@@ -259,7 +250,7 @@ function GroupHeader({
                 label: 'Issues',
                 to: `/organizations/${organization.slug}/issues/${location.search}`,
               },
-              {label: shortIdBreadCrumb},
+              {label: shortIdBreadcrumb},
             ]}
           />
           <GroupActions
@@ -293,26 +284,30 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper>
+          <StatsWrapper
+            hasGrid={group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION}
+          >
             <div className="count">
               <h6 className="nav-header">{t('Events')}</h6>
               <Link disabled={disableActions} to={eventRoute}>
                 <Count className="count" value={group.count} />
               </Link>
             </div>
-            <div className="count">
-              <h6 className="nav-header">{t('Users')}</h6>
-              {userCount !== 0 ? (
-                <Link
-                  disabled={disableActions}
-                  to={`${baseUrl}tags/user/${location.search}`}
-                >
-                  <Count className="count" value={userCount} />
-                </Link>
-              ) : (
-                <span>0</span>
-              )}
-            </div>
+            {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+              <div className="count">
+                <h6 className="nav-header">{t('Users')}</h6>
+                {userCount !== 0 ? (
+                  <Link
+                    disabled={disableActions}
+                    to={`${baseUrl}tags/user/${location.search}`}
+                  >
+                    <Count className="count" value={userCount} />
+                  </Link>
+                ) : (
+                  <span>0</span>
+                )}
+              </div>
+            )}
           </StatsWrapper>
         </HeaderRow>
         {/* Environment picker for mobile */}
@@ -333,18 +328,6 @@ const BreadcrumbActionWrapper = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const ShortIdBreadrcumb = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`
@@ -374,10 +357,14 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, min-content);
-  gap: calc(${space(3)} + ${space(3)});
+const StatsWrapper = styled('div')<{hasGrid?: boolean}>`
+  ${p =>
+    p.hasGrid &&
+    `
+    display: grid;
+    grid-template-columns: repeat(2, min-content);
+    gap: calc(${space(3)} + ${space(3)});
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;

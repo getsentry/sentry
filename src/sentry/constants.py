@@ -9,10 +9,10 @@ from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, cast
 
-import sentry_relay
+import sentry_relay.consts
+import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeAlias
 
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
@@ -64,7 +64,6 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
@@ -134,6 +133,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "guide",
         "help",
         "ingest",
+        "ingest-beta",
         "integration-platform",
         "integrations",
         "invoice",
@@ -272,6 +272,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -301,7 +302,7 @@ SENTRY_APP_ACTIONS = frozenset(
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
 # See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
-VALID_PLATFORMS = sentry_relay.VALID_PLATFORMS
+VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -396,7 +397,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
-    "symfony": "php-symfony2",
+    "symfony": "php-symfony",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
     "dotnet": "csharp",
@@ -459,12 +460,11 @@ def get_integration_id_for_event(
 
 
 class ObjectStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
-    ACTIVE = 0
     DISABLED = 1
 
     @classmethod
@@ -631,14 +631,14 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
-GITHUB_PR_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-DataCategory: TypeAlias = sentry_relay.DataCategory
+DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
@@ -700,3 +700,205 @@ HEALTH_CHECK_GLOBS = [
     "*/healthz",
     "*/ping",
 ]
+
+# Generated from https://raw.githubusercontent.com/github-linguist/linguist/master/lib/linguist/languages.yml and our list of platforms/languages
+EXTENSION_LANGUAGE_MAP = {
+    "c": "c",
+    "cats": "c",
+    "h": "objective-c",
+    "idc": "c",
+    "cs": "c#",
+    "cake": "coffeescript",
+    "csx": "c#",
+    "linq": "c#",
+    "cpp": "c++",
+    "c++": "c++",
+    "cc": "c++",
+    "cp": "c++",
+    "cppm": "c++",
+    "cxx": "c++",
+    "h++": "c++",
+    "hh": "c++",
+    "hpp": "c++",
+    "hxx": "c++",
+    "inc": "php",
+    "inl": "c++",
+    "ino": "c++",
+    "ipp": "c++",
+    "ixx": "c++",
+    "re": "c++",
+    "tcc": "c++",
+    "tpp": "c++",
+    "txx": "c++",
+    "chs": "c2hs haskell",
+    "clj": "clojure",
+    "bb": "clojure",
+    "boot": "clojure",
+    "cl2": "clojure",
+    "cljc": "clojure",
+    "cljs": "clojure",
+    "cljs.hl": "clojure",
+    "cljscm": "clojure",
+    "cljx": "clojure",
+    "hic": "clojure",
+    "coffee": "coffeescript",
+    "_coffee": "coffeescript",
+    "cjsx": "coffeescript",
+    "iced": "coffeescript",
+    "cfm": "coldfusion",
+    "cfml": "coldfusion",
+    "cfc": "coldfusion cfc",
+    "cr": "crystal",
+    "dart": "dart",
+    "ex": "elixir",
+    "exs": "elixir",
+    "fs": "f#",
+    "fsi": "f#",
+    "fsx": "f#",
+    "go": "go",
+    "groovy": "groovy",
+    "grt": "groovy",
+    "gtpl": "groovy",
+    "gvy": "groovy",
+    "gsp": "groovy server pages",
+    "hcl": "hcl",
+    "nomad": "hcl",
+    "tf": "hcl",
+    "tfvars": "hcl",
+    "workflow": "hcl",
+    "hs": "haskell",
+    "hs-boot": "haskell",
+    "hsc": "haskell",
+    "java": "java",
+    "jav": "java",
+    "jsh": "java",
+    "jsp": "java server pages",
+    "tag": "java server pages",
+    "js": "javascript",
+    "_js": "javascript",
+    "bones": "javascript",
+    "cjs": "javascript",
+    "es": "javascript",
+    "es6": "javascript",
+    "frag": "javascript",
+    "gs": "javascript",
+    "jake": "javascript",
+    "javascript": "javascript",
+    "jsb": "javascript",
+    "jscad": "javascript",
+    "jsfl": "javascript",
+    "jslib": "javascript",
+    "jsm": "javascript",
+    "jspre": "javascript",
+    "jss": "javascript",
+    "jsx": "javascript",
+    "mjs": "javascript",
+    "njs": "javascript",
+    "pac": "javascript",
+    "sjs": "javascript",
+    "ssjs": "javascript",
+    "xsjs": "javascript",
+    "xsjslib": "javascript",
+    "js.erb": "javascript+erb",
+    "kt": "kotlin",
+    "ktm": "kotlin",
+    "kts": "kotlin",
+    "litcoffee": "literate coffeescript",
+    "coffee.md": "literate coffeescript",
+    "lhs": "literate haskell",
+    "lua": "lua",
+    "fcgi": "ruby",
+    "nse": "lua",
+    "p8": "lua",
+    "pd_lua": "lua",
+    "rbxs": "lua",
+    "rockspec": "lua",
+    "wlua": "lua",
+    "numpy": "numpy",
+    "numpyw": "numpy",
+    "numsc": "numpy",
+    "ml": "ocaml",
+    "eliom": "ocaml",
+    "eliomi": "ocaml",
+    "ml4": "ocaml",
+    "mli": "ocaml",
+    "mll": "ocaml",
+    "mly": "ocaml",
+    "m": "objective-c",
+    "mm": "objective-c++",
+    "cl": "opencl",
+    "opencl": "opencl",
+    "php": "php",
+    "aw": "php",
+    "ctp": "php",
+    "php3": "php",
+    "php4": "php",
+    "php5": "php",
+    "phps": "php",
+    "phpt": "php",
+    "pl": "perl",
+    "al": "perl",
+    "cgi": "python",
+    "perl": "perl",
+    "ph": "perl",
+    "plx": "perl",
+    "pm": "perl",
+    "psgi": "perl",
+    "t": "perl",
+    "py": "python",
+    "gyp": "python",
+    "gypi": "python",
+    "lmi": "python",
+    "py3": "python",
+    "pyde": "python",
+    "pyi": "python",
+    "pyp": "python",
+    "pyt": "python",
+    "pyw": "python",
+    "rpy": "python",
+    "spec": "ruby",
+    "tac": "python",
+    "wsgi": "python",
+    "xpy": "python",
+    "rb": "ruby",
+    "builder": "ruby",
+    "eye": "ruby",
+    "gemspec": "ruby",
+    "god": "ruby",
+    "jbuilder": "ruby",
+    "mspec": "ruby",
+    "pluginspec": "ruby",
+    "podspec": "ruby",
+    "prawn": "ruby",
+    "rabl": "ruby",
+    "rake": "ruby",
+    "rbi": "ruby",
+    "rbuild": "ruby",
+    "rbw": "ruby",
+    "rbx": "ruby",
+    "ru": "ruby",
+    "ruby": "ruby",
+    "thor": "ruby",
+    "watchr": "ruby",
+    "rs": "rust",
+    "rs.in": "rust",
+    "scala": "scala",
+    "kojo": "scala",
+    "sbt": "scala",
+    "sc": "scala",
+    "smk": "snakemake",
+    "snakefile": "snakemake",
+    "swift": "swift",
+    "tsx": "tsx",
+    "ts": "typescript",
+    "cts": "typescript",
+    "mts": "typescript",
+    "upc": "unified parallel c",
+    "vb": "visual basic .net",
+    "vbhtml": "visual basic .net",
+    "bas": "visual basic 6.0",
+    "cls": "visual basic 6.0",
+    "ctl": "visual basic 6.0",
+    "dsr": "visual basic 6.0",
+    "frm": "visual basic 6.0",
+}

@@ -29,8 +29,10 @@ class SiloRouter:
 
     Within Siloed there are are two flavours:
 
-    - simulated - If the application is configured with `control` and `region`
+    - simulated - If the application is configured with `control` and `default`
       connections, then we are in 'simulated' silo environment (like our testsuite).
+      We'll also use simulated mode for the time period after the database is split
+      but before the application instances are separated.
     - isolated - If there are no control/region connections we map the `default`
       connection to be the region/control database and assume the
       'other' silo is inaccessible.
@@ -43,6 +45,7 @@ class SiloRouter:
     }
 
     __table_to_silo = {}
+    """Memoized results of table : silo pairings"""
 
     __is_simulated = False
     """Whether or not we're operating in a simulated silo environment"""
@@ -62,6 +65,16 @@ class SiloRouter:
     """
     We use a bunch of django contrib models that don't have silo annotations.
     For now they are put in control silo.
+    """
+
+    historical_silo_assignments = {
+        "sentry_pagerdutyservice": SiloMode.REGION,
+    }
+    """
+    When we remove models, we are no longer able to resolve silo assignments
+    because the model classes are removed. Losing silo assignments means historical
+    migrations for a model can no longer run. By preserving the historical silo assignments
+    we can provide compatibility for existing migrations.
     """
 
     def __init__(self):
@@ -117,14 +130,16 @@ class SiloRouter:
         if silo_limit:
             return silo_limit
 
-        if not silo_limit and model._meta.db_table in self.contrib_models:
+        db_table = model._meta.db_table
+        if not silo_limit and db_table in self.contrib_models:
             return ModelSiloLimit(SiloMode.CONTROL)
 
         # If we didn't find a silo_limit we could be working with __fake__ model
         # from django, so we need to locate the real class by table.
-        real_model = self._find_model(model._meta.db_table, model._meta.app_label)
+        real_model = self._find_model(db_table, model._meta.app_label)
         if real_model:
             return getattr(real_model._meta, "silo_limit", None)
+
         return None
 
     def _db_for_model(self, model: Model):
@@ -143,6 +158,10 @@ class SiloRouter:
             # Incrementally build up our result cache so we don't
             # have to scan through models more than once.
             self.__table_to_silo[table] = self._db_for_model(model)
+        elif table in self.historical_silo_assignments:
+            silo_mode = self.historical_silo_assignments[table]
+            connection = self._resolve_silo_connection([silo_mode], table=table)
+            self.__table_to_silo[table] = connection
         else:
             # We no longer have the model and can't determine silo assignment.
             # Default to None for sentry/getsentry app_label as models

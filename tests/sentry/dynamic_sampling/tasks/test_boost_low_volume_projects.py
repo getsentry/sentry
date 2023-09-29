@@ -2,16 +2,15 @@ from datetime import timedelta
 from typing import List, cast
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.models import Organization, Project
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -26,7 +25,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
     def test_simple_one_org_one_project(self):
         context = TaskContext("rebalancing", 20)
-        timer = Timer()
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -48,13 +46,12 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, timer, org_ids=[org1.id]
+            context, org_ids=[org1.id]
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
     def test_complex(self):
         context = TaskContext("rebalancing", 20)
-        timer = Timer()
         org1 = self.create_organization("test-org1")
         p1_1 = self.create_project(organization=org1, name="p1_1")
         p1_2 = self.create_project(organization=org1, name="p1_2")
@@ -91,7 +88,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     org_id=org.id,
                 )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, timer, org_ids=[org1.id, org2.id]
+            context, org_ids=[org1.id, org2.id]
         )
 
         assert len(results) == 2  # two orgs

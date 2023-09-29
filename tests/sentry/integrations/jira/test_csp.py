@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils.http import absolute_uri
 
 

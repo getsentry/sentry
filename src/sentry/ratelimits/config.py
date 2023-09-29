@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
 from typing import Mapping, Union
@@ -85,8 +87,8 @@ class RateLimitConfig:
 
     @classmethod
     def from_rate_limit_override_dict(
-        cls, rate_limit_override_dict: Union["RateLimitConfig", RateLimitOverrideDict]
-    ) -> "RateLimitConfig":
+        cls, rate_limit_override_dict: Union[RateLimitConfig, RateLimitOverrideDict]
+    ) -> RateLimitConfig:
         if isinstance(rate_limit_override_dict, cls):
             return rate_limit_override_dict
         elif isinstance(rate_limit_override_dict, dict):

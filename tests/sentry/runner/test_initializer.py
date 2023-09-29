@@ -1,3 +1,5 @@
+import types
+
 import pytest
 
 from sentry.runner.importer import ConfigurationError
@@ -7,17 +9,14 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 @pytest.fixture
 def settings():
-    class Settings:
-        pass
-
-    s = Settings()
-    s.TIME_ZONE = "UTC"
-    s.ALLOWED_HOSTS = []
-    s.SENTRY_FEATURES = {}
-    s.SENTRY_OPTIONS = {}
-    s.SENTRY_DEFAULT_OPTIONS = {}
-    s.SENTRY_EMAIL_BACKEND_ALIASES = {"dummy": "alias-for-dummy"}
-    return s
+    return types.SimpleNamespace(
+        TIME_ZONE="UTC",
+        ALLOWED_HOSTS=[],
+        SENTRY_FEATURES={},
+        SENTRY_OPTIONS={},
+        SENTRY_DEFAULT_OPTIONS={},
+        SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
+    )
 
 
 @pytest.fixture

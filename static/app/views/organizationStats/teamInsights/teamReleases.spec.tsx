@@ -1,8 +1,13 @@
+import {TeamReleaseCounts} from 'sentry-fixture/teamReleaseCounts';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamReleases from './teamReleases';
 
 describe('TeamReleases', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
   it('should compare selected past release count with current week', async () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
@@ -10,7 +15,7 @@ describe('TeamReleases', () => {
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.TeamReleaseCounts(),
+      body: TeamReleaseCounts(),
     });
 
     render(
@@ -30,6 +35,10 @@ describe('TeamReleases', () => {
   });
 
   it('should render no release counts', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/team-slug/release-count/`,
+      body: TeamReleaseCounts(),
+    });
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
     const noReleaseProject = TestStubs.Project({id: 321});
@@ -54,7 +63,7 @@ describe('TeamReleases', () => {
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.TeamReleaseCounts(),
+      body: TeamReleaseCounts(),
     });
 
     render(

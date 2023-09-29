@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import User, UserEmail, UserOption
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

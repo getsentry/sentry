@@ -107,7 +107,8 @@ function FilterToken({
   }, [hasLeft, isActive]);
 
   const showInvalid = hasLeft && !!filter.invalid;
-  const showTooltip = showInvalid && isActive;
+  const showWarning = hasLeft && !!filter.warning;
+  const showTooltip = (showInvalid || showWarning) && isActive;
 
   const reduceMotion = useReducedMotion();
 
@@ -132,7 +133,7 @@ function FilterToken({
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason}
+      title={filter.invalid?.reason ?? filter.warning}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
@@ -141,6 +142,7 @@ function FilterToken({
         ref={filterElementRef}
         active={isActive}
         invalid={showInvalid}
+        warning={showWarning}
         data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
       >
         {filter.negated && <Negation>!</Negation>}
@@ -264,15 +266,19 @@ function NumberToken({token}: {token: TokenResult<Token.VALUE_NUMBER>}) {
 type TokenGroupProps = {
   active: boolean;
   invalid: boolean;
+  warning?: boolean;
 };
 
 const colorType = (p: TokenGroupProps) =>
-  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
+  `${p.invalid ? 'invalid' : p.warning ? 'warning' : 'valid'}${
+    p.active ? 'Active' : ''
+  }` as const;
 
 const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
-  --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
+  --token-value-color: ${p =>
+    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.blue400};
 
   position: relative;
   animation-name: ${shakeAnimation};

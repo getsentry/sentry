@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 import random
+from base64 import b64encode
 from binascii import hexlify
 from contextlib import contextmanager
 from datetime import datetime
@@ -91,8 +92,8 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -117,6 +118,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from social_auth.models import UserSocialAuth
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -357,6 +359,15 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_auth_token(user, scope_list: List[str], **kwargs) -> ApiToken:
+        return ApiToken.objects.create(
+            user=user,
+            scope_list=scope_list,
+            **kwargs,
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_team(organization, **kwargs):
         if not kwargs.get("name"):
@@ -411,18 +422,30 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project_rule(project, action_data=None, condition_data=None):
-        action_data = action_data or [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "mail",
-                "name": "Send a notification via mail",
-            },
-        ]
+    def create_project_rule(
+        project,
+        action_data=None,
+        allow_no_action_data=False,
+        condition_data=None,
+        name="",
+        action_match="all",
+        filter_match="all",
+        **kwargs,
+    ):
+        actions = None
+        if not allow_no_action_data:
+            action_data = action_data or [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "mail",
+                    "name": "Send a notification via mail",
+                },
+            ]
+            actions = action_data
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -433,9 +456,19 @@ class Factories:
                 "name": "The event occurs",
             },
         ]
+        data = {
+            "conditions": condition_data,
+            "action_match": action_match,
+            "filter_match": filter_match,
+        }
+        if actions:
+            data["actions"] = actions
+
         return Rule.objects.create(
+            label=name,
             project=project,
-            data={"conditions": condition_data, "actions": action_data, "action_match": "all"},
+            data=data,
+            **kwargs,
         )
 
     @staticmethod
@@ -629,6 +662,8 @@ class Factories:
             project=project,
             repository=repo,
             organization_integration_id=organization_integration.id,
+            integration_id=organization_integration.integration_id,
+            organization_id=organization_integration.organization_id,
             **kwargs,
         )
 
@@ -731,6 +766,22 @@ class Factories:
         useremail.save()
 
         return useremail
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_usersocialauth(
+        user: User,
+        provider: str | None = None,
+        uid: str | None = None,
+        extra_data: Mapping[str, Any] | None = None,
+    ):
+        if not provider:
+            provider = "asana"
+        if not uid:
+            uid = "abc-123"
+        usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
+        usa.save()
+        return usa
 
     @staticmethod
     def inject_performance_problems(jobs, _):
@@ -932,6 +983,20 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(organization, user, scopes, **kwargs):
+        sentry_app = Factories.create_sentry_app(
+            name="Org Token",
+            organization=organization,
+            scopes=scopes,
+        )
+
+        install = Factories.create_sentry_app_installation(
+            organization=organization, slug=sentry_app.slug, user=user
+        )
+        return Factories.create_internal_integration_token(install=install, user=user)
+
+    @staticmethod
     def _sentry_app_kwargs(**kwargs):
         _kwargs = {
             "user": kwargs.get("user", Factories.create_user()),
@@ -1058,7 +1123,7 @@ class Factories:
         }
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
         if not actor:
             actor = Factories.create_user()
@@ -1368,8 +1433,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        actor_id = get_actor_id_for_user(user)
-        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
+        return ExternalActor.objects.create(user_id=user.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1377,7 +1441,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(actor=team.actor, **kwargs)
+        return ExternalActor.objects.create(team_id=team.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1531,6 +1595,10 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    def create_basic_auth_header(username: str, password: str = "") -> str:
+        return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

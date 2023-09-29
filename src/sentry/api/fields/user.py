@@ -7,7 +7,6 @@ from rest_framework import serializers
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.auth import find_users
 
 
 class UserField(serializers.Field):
@@ -24,6 +23,6 @@ class UserField(serializers.Field):
                 return user
 
         try:
-            return find_users(data)[0]
+            return user_service.get_by_username(username=data)[0]
         except IndexError:
             raise serializers.ValidationError("Unable to find user")

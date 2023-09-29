@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
 import {JobTickTooltip} from './jobTickTooltip';
-import {MonitorBucketData, TimeWindow} from './types';
+import {MonitorBucketData, TimeWindowOptions} from './types';
 
-interface Props {
+export interface CheckInTimelineProps {
   bucketedData: MonitorBucketData;
   end: Date;
+  environment: string;
   start: Date;
-  timeWindow: TimeWindow;
+  timeWindowConfig: TimeWindowOptions;
   width: number;
 }
 
@@ -26,13 +26,13 @@ function getBucketedCheckInsPosition(
   return elapsedSinceStart / msPerPixel;
 }
 
-export function CheckInTimeline(props: Props) {
-  const {bucketedData, start, end, timeWindow, width} = props;
+export function CheckInTimeline(props: CheckInTimelineProps) {
+  const {bucketedData, start, end, timeWindowConfig, width, environment} = props;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
 
-  const jobTicks = mergeBuckets(bucketedData);
+  const jobTicks = mergeBuckets(bucketedData, environment);
 
   return (
     <TimelineContainer>
@@ -50,7 +50,7 @@ export function CheckInTimeline(props: Props) {
         return (
           <JobTickTooltip
             jobTick={jobTick}
-            timeWindow={timeWindow}
+            timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
           >
@@ -69,8 +69,7 @@ export function CheckInTimeline(props: Props) {
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
-  margin: ${space(2)} 0;
+  height: 100%;
 `;
 
 const JobTick = styled('div')<{

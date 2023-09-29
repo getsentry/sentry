@@ -1,11 +1,9 @@
 import {Fragment} from 'react';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
-import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
@@ -41,45 +39,6 @@ import {
 } from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type OrganizationSelectHeaderProps = {
-  handleOrgChange: Function;
-  organizationId: string;
-  organizations: Organization[];
-};
-
-export function OrganizationSelectHeader({
-  handleOrgChange,
-  organizationId,
-  organizations,
-}: OrganizationSelectHeaderProps) {
-  const getOrganizationOptions = () => {
-    return organizations.map(org => {
-      return {
-        label: org.name,
-        value: org.id,
-      };
-    });
-  };
-
-  return (
-    <Fragment>
-      {t('Settings for Organization')}
-      <SelectControl
-        options={getOrganizationOptions()}
-        onChange={handleOrgChange}
-        // getOptionValue={option => option.value}
-        value={organizationId}
-        styles={{
-          container: (provided: {[x: string]: string | number | boolean}) => ({
-            ...provided,
-            minWidth: `300px`,
-          }),
-        }}
-      />
-    </Fragment>
-  );
-}
 
 type Props = {
   notificationType: string;
@@ -119,7 +78,6 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
       notificationSettings: {},
       identities: [],
       organizationIntegrations: [],
-      organizationId: null,
     };
   }
 
@@ -360,10 +318,6 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
     });
   };
 
-  handleOrgChange = (option: {label: string; value: string}) => {
-    this.setState({organizationId: option.value});
-  };
-
   renderBody() {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
@@ -396,28 +350,23 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
             fields={this.getFields()}
           />
         </Form>
-        {!isEverythingDisabled(notificationType, notificationSettings) && (
-          <Panel>
-            {isGroupedByProject(notificationType) ? (
-              <NotificationSettingsByProjects
-                notificationType={notificationType}
-                notificationSettings={notificationSettings}
-                onChange={this.getStateToPutForParent}
-                onSubmitSuccess={() => this.trackTuningUpdated('project')}
-                organizations={this.props.organizations}
-                organizationId={this.state.organizationId}
-                handleOrgChange={this.handleOrgChange}
-              />
-            ) : (
-              <NotificationSettingsByOrganization
-                notificationType={notificationType}
-                notificationSettings={notificationSettings}
-                onChange={this.getStateToPutForParent}
-                onSubmitSuccess={() => this.trackTuningUpdated('organization')}
-              />
-            )}
-          </Panel>
-        )}
+        {!isEverythingDisabled(notificationType, notificationSettings) &&
+          (isGroupedByProject(notificationType) ? (
+            <NotificationSettingsByProjects
+              notificationType={notificationType}
+              notificationSettings={notificationSettings}
+              onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('project')}
+              organizations={this.props.organizations}
+            />
+          ) : (
+            <NotificationSettingsByOrganization
+              notificationType={notificationType}
+              notificationSettings={notificationSettings}
+              onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('organization')}
+            />
+          ))}
       </Fragment>
     );
   }

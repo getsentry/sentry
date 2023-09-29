@@ -1,7 +1,5 @@
 import {Component, createRef, VFC} from 'react';
-import TextareaAutosize from 'react-autosize-textarea';
 import {WithRouterProps} from 'react-router';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -48,7 +46,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import getDynamicComponent from 'sentry/utils/getDynamicComponent';
+import SearchBoxTextArea from 'sentry/utils/search/searchBoxTextArea';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -215,6 +213,11 @@ type Props = WithRouterProps &
      */
     excludedTags?: string[];
     /**
+     * A function that returns a warning message for a given filter key
+     * will only show a render a warning if the value is truthy
+     */
+    getFilterWarning?: (key) => React.ReactNode;
+    /**
      * List user's recent searches
      */
     hasRecentSearches?: boolean;
@@ -360,6 +363,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
@@ -389,19 +393,23 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query, customPerformanceMetrics, actionBarItems} = this.props;
+    const {query, customPerformanceMetrics, actionBarItems, disallowWildcard} =
+      this.props;
     const {
       query: lastQuery,
       customPerformanceMetrics: lastCustomPerformanceMetrics,
       actionBarItems: lastAcionBarItems,
+      disallowWildcard: lastDisallowWildcard,
     } = prevProps;
 
     if (
       (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
       customPerformanceMetrics !== lastCustomPerformanceMetrics
     ) {
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
+    } else if (disallowWildcard !== lastDisallowWildcard) {
+      // Re-parse query to apply new options (without resetting it to the query prop value)
+      this.setState(this.makeQueryState(this.state.query));
     }
 
     if (lastAcionBarItems?.length !== actionBarItems?.length) {
@@ -422,6 +430,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   makeQueryState(query: string) {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
@@ -1885,6 +1894,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
+        maxRows={query ? undefined : 1}
       />
     );
 
@@ -2099,15 +2109,7 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(
-  getDynamicComponent<typeof TextareaAutosize>({
-    value: TextareaAutosize,
-    fixed: 'textarea',
-  }),
-  {
-    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-  }
-)`
+const SearchInput = styled(SearchBoxTextArea)`
   position: relative;
   display: flex;
   resize: none;
@@ -2128,6 +2130,11 @@ const SearchInput = styled(
   }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
+  }
+  :placeholder-shown {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   [disabled] {

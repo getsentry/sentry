@@ -100,7 +100,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
-    // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
@@ -136,11 +135,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
       'AbortError: Fetch is aborted',
-      /**
-       * Thrown when firefox prevents an add-on from refrencing a DOM element
-       * that has been removed.
-       */
-      "TypeError: can't access dead object",
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page

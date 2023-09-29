@@ -4,20 +4,21 @@ from datetime import timedelta
 from operator import itemgetter
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 from snuba_sdk import Column, Function
 from snuba_sdk.conditions import Condition, Op
 
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -44,10 +45,12 @@ def random_transactions_snuba_query(
         orderby=None,
         limit=requested_sample_size,
         equations=[],
-        auto_fields=True,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
-        functions_acl=["random_number", "modulo"],
+        config=QueryBuilderConfig(
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["random_number", "modulo"],
+        ),
     )
 
     query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
@@ -92,12 +95,14 @@ def project_stats_snuba_query(query, updated_start_time, updated_end_time, proje
         ],
         equations=[],
         orderby=None,
-        auto_fields=True,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
         limit=20,
         offset=0,
-        equation_config={"auto_add": False},
+        config=QueryBuilderConfig(
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            equation_config={"auto_add": False},
+        ),
     )
     snuba_query = builder.get_snql_query().query
     assert snuba_query.select is not None
@@ -120,7 +125,45 @@ def project_stats_snuba_query(query, updated_start_time, updated_end_time, proje
     return snuba_query
 
 
-@region_silo_test
+@region_silo_test(stable=True)
+class ProjectDynamicSamplingTest(APITestCase):
+    @property
+    def endpoint(self):
+        return reverse(
+            "sentry-api-0-project-dynamic-sampling-rate",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+    def test_permission(self):
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+
+        response = self.client.get(self.endpoint)
+        assert response.status_code == 403
+
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.get_guarded_blended_sample_rate")
+    def test_get_project_sample_rate_success(self, mock_get_sample_rate):
+        mock_get_sample_rate.return_value = 1.0
+
+        self.login_as(self.user)
+
+        response = self.client.get(f"{self.endpoint}")
+
+        assert mock_get_sample_rate.call_count == 1
+        assert response.status_code == 200
+        assert response.data["sampleRate"] == 1.0
+
+    def test_get_project_sample_rate_fail(self):
+        self.login_as(self.user)
+
+        response = self.client.get(f"{self.endpoint}")
+        assert response.status_code == 400
+
+
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionTest(APITestCase):
     @property
     def endpoint(self):
@@ -190,7 +233,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
     def generate_fetch_transactions_count_query(
         self,
@@ -216,13 +259,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 offset=0,
                 limit=requested_sample_size,
                 equations=[],
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
                 auto_fields=True,
                 auto_aggregations=True,
                 allow_metric_aggregates=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
             ),
         ]
         if extra_call_trace_ids is not None:
@@ -247,13 +290,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                     offset=0,
                     limit=20,
                     equations=[],
+                    referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN.value,
                     auto_fields=True,
                     auto_aggregations=True,
                     allow_metric_aggregates=True,
                     use_aggregate_conditions=True,
                     transform_alias_to_input_format=True,
                     functions_acl=None,
-                    referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN.value,
                 )
             )
         return calls
@@ -765,13 +808,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 offset=0,
                 limit=1,
                 equations=[],
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
                 auto_fields=True,
                 auto_aggregations=True,
                 allow_metric_aggregates=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
             ),
         ]
         snuba_query_random_transactions = random_transactions_snuba_query(
@@ -1080,6 +1123,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
+    @pytest.mark.skip(reason="broken test: https://github.com/getsentry/sentry/issues/57136")
     def test_when_no_transactions_in_last_hour_but_exists_in_last_30_days(
         self,
     ):

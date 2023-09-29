@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 
 
@@ -17,7 +19,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         ]
 
         # in bulk
-        model_list = (
+        for m in (
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
@@ -50,13 +52,8 @@ class ProjectDeletionTask(ModelDeletionTask):
             DiscoverSavedQueryProject,
             IncidentProject,
             QuerySubscription,
-        )
-        relations.extend(
-            [
-                ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask)
-                for m in model_list
-            ]
-        )
+        ):
+            relations.append(ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask))
         relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(models.Group, {"project_id": instance.id}))
         relations.append(
@@ -68,12 +65,10 @@ class ProjectDeletionTask(ModelDeletionTask):
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        model_list = (
+        for m in (
             models.ReleaseProject,
             models.ReleaseProjectEnvironment,
             models.ProjectDebugFile,
-        )
-        relations.extend(
-            [ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask) for m in model_list]
-        )
+        ):
+            relations.append(ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask))
         return relations

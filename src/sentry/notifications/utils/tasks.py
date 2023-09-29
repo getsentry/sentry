@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def async_send_notification(
-    NotificationClass: BaseNotification, *args: Iterable[Any], **kwargs: Iterable[Any]
+    NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:
     """
     This function takes a notification class and arguments to instantiate

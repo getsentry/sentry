@@ -5,10 +5,10 @@ import mapValues from 'lodash/mapValues';
 
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -23,15 +23,20 @@ import {
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import KeyValueList from '../keyValueList';
-import {RawSpanType} from '../spans/types';
+import {ProcessedSpanType, RawSpanType} from '../spans/types';
+import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 import {TraceContextSpanProxy} from './spanEvidence';
+
+const formatter = new SQLishFormatter();
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
   data?: any;
@@ -86,6 +91,7 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
       [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
+      [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
     }[issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -167,6 +173,25 @@ function LargeHTTPPayloadSpanEvidence({
             getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
               getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
+function HTTPOverheadSpanEvidence({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+
+          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans)),
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -395,7 +420,7 @@ const makeRow = (
   };
 };
 
-function getSpanEvidenceValue(span: Span | null): string {
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -408,8 +433,25 @@ function getSpanEvidenceValue(span: Span | null): string {
     return span.op;
   }
 
+  if (span.op === 'db' && span.description) {
+    return (
+      <StyledCodeSnippet language="sql">
+        {formatter.toString(span.description)}
+      </StyledCodeSnippet>
+    );
+  }
+
   return `${span.op} - ${span.description}`;
 }
+
+const StyledCodeSnippet = styled(CodeSnippet)`
+  pre {
+    /* overflow is set to visible in global styles so need to enforce auto here */
+    overflow: auto !important;
+  }
+
+  z-index: 0;
+`;
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],
@@ -431,6 +473,22 @@ const getConsecutiveDbTimeSaved = (
   return (
     totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
   );
+};
+
+const getHTTPOverheadMaxTime = (offendingSpans: Span[]): string | null => {
+  const slowestSpanTimings = getSpanSubTimings(
+    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType
+  );
+  if (!slowestSpanTimings) {
+    return null;
+  }
+  const waitTimeTiming = slowestSpanTimings.find(
+    timing => timing.name === SpanSubTimingName.WAIT_TIME
+  );
+  if (!waitTimeTiming) {
+    return null;
+  }
+  return getPerformanceDuration(waitTimeTiming.duration * 1000);
 };
 
 const sumSpanDurations = (spans: Span[]) => {
@@ -488,15 +546,16 @@ function getSpanFieldBytes(span: Span, field: string) {
 
 type ParameterLookup = Record<string, string[]>;
 
-/** Extracts changing URL query parameters from a list of `http.client` spans.
+/**
+ * Extracts changing URL query parameters from a list of `http.client` spans.
  * e.g.,
  *
  * https://service.io/r?id=1&filter=none
  * https://service.io/r?id=2&filter=none
  * https://service.io/r?id=3&filter=none
-
-  * @returns A condensed string describing the query parameters changing
-  * between the URLs of the given span. e.g., "id:{1,2,3}"
+ *
+ * @returns A condensed string describing the query parameters changing
+ * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
 function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
   const URLs = spans
@@ -519,10 +578,12 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
   return pairs;
 }
 
-/** Parses the span data and pulls out the URL. Accounts for different SDKs and
-     different versions of SDKs formatting and parsing the URL contents
-     differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
-     and instead it should use the data provided by the backend */
+/**
+ * Parses the span data and pulls out the URL. Accounts for different SDKs and
+ * different versions of SDKs formatting and parsing the URL contents
+ * differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
+ * and instead it should use the data provided by the backend
+ */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   let URLString;
 

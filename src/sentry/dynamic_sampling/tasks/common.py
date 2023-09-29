@@ -27,15 +27,11 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_SECONDS,
     RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
-    extrapolate_monthly_volume,
-    get_sliding_window_org_sample_rate,
-    get_sliding_window_size,
-)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -79,9 +75,10 @@ def timed_function(name=None):
             func_name = inner.__name__
 
         @wraps(inner)
-        def wrapped(context: TaskContext, timer: Timer, *args, **kwargs):
+        def wrapped(context: TaskContext, *args, **kwargs):
             if time.monotonic() > context.expiration_time:
                 raise TimeoutException(context)
+            timer = context.get_timer(func_name)
             with timer:
                 state = context.get_function_state(func_name)
                 val = inner(state, *args, **kwargs)
@@ -135,7 +132,6 @@ class TimedIterator(Iterator[Any]):
         context: TaskContext,
         inner: ContextIterator,
         name: Optional[str] = None,
-        timer: Optional[Timer] = None,
     ):
         self.context = context
         self.inner = inner
@@ -143,11 +139,6 @@ class TimedIterator(Iterator[Any]):
         if name is None:
             name = inner.__class__.__name__
         self.name = name
-
-        if timer is None:
-            self.iterator_execution_time = Timer()
-        else:
-            self.iterator_execution_time = timer
 
         # in case the iterator is part of a logical state spanning multiple instantiations
         # pick up where you last left of
@@ -159,10 +150,11 @@ class TimedIterator(Iterator[Any]):
     def __next__(self):
         if time.monotonic() > self.context.expiration_time:
             raise TimeoutException(self.context)
-        with self.iterator_execution_time:
+        timer = self.context.get_timer(self.name)
+        with timer:
             val = next(self.inner)
             state = self.inner.get_current_state()
-            state.execution_time = self.iterator_execution_time.current()
+            state.execution_time = timer.current()
             self.context.set_function_state(self.name, state)
             return val
 
@@ -245,7 +237,10 @@ class GetActiveOrgs:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(
@@ -354,8 +349,10 @@ class GetActiveOrgsVolumes:
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
+        orgs: Optional[List[int]] = None,
     ):
         self.include_keep = include_keep
+        self.orgs = orgs
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -400,6 +397,15 @@ class GetActiveOrgsVolumes:
             Column("org_id"),
         ]
 
+        where = [
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("metric_id"), Op.EQ, self.metric_id),
+        ]
+
+        if self.orgs:
+            where.append(Condition(Column("org_id"), Op.IN, self.orgs))
+
         if self.include_keep:
             select.append(self.keep_count_column)
 
@@ -412,23 +418,16 @@ class GetActiveOrgsVolumes:
                     groupby=[
                         Column("org_id"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                    ],
-                    granularity=self.granularity,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                    ],
+                    where=where,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(
@@ -561,6 +560,25 @@ def fetch_orgs_with_total_root_transactions_count(
     return aggregated_projects
 
 
+def get_organization_volume(
+    org_id: int,
+    time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+    granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
+) -> Optional[OrganizationDataVolume]:
+    """
+    Specialized version of GetActiveOrgsVolumes that returns a single org
+    """
+    for org_volumes in GetActiveOrgsVolumes(
+        max_orgs=1,
+        time_interval=time_interval,
+        granularity=granularity,
+        orgs=[org_id],
+    ):
+        if org_volumes:
+            return org_volumes[0]
+    return None
+
+
 def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
     """
     Converts a sample rate to a float or returns None in case the conversion failed.
@@ -588,7 +606,11 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
 
 
 def compute_guarded_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+    org_id: int,
+    project_id: Optional[int],
+    total_root_count: int,
+    window_size: int,
+    context: TaskContext,
 ) -> Optional[float]:
     """
     Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
@@ -597,14 +619,16 @@ def compute_guarded_sliding_window_sample_rate(
     try:
         # We want to compute the sliding window sample rate by considering a window of time.
         # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
+        return compute_sliding_window_sample_rate(
+            org_id, project_id, total_root_count, window_size, context
+        )
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return None
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int, context
 ) -> Optional[float]:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
@@ -613,7 +637,12 @@ def compute_sliding_window_sample_rate(
     The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
     enabled in the first place for that project.
     """
-    extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+    func_name = "extrapolate_monthly_volume"
+    with context.get_timer(func_name):
+        extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+        state = context.get_function_state(func_name)
+        state.num_iterations += 1
+        context.set_function_state(func_name, state)
     if extrapolated_volume is None:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("org_id", org_id)
@@ -627,9 +656,14 @@ def compute_sliding_window_sample_rate(
         org_id, project_id, total_root_count, extrapolated_volume, window_size
     )
 
-    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
-        org_id, extrapolated_volume
-    )
+    func_name = "get_transaction_sampling_tier_for_volume"
+    with context.get_timer(func_name):
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
+            org_id, extrapolated_volume
+        )
+        state = context.get_function_state(func_name)
+        state.num_iterations += 1
+        context.set_function_state(func_name, state)
     if sampling_tier is None:
         return None
 
@@ -639,29 +673,3 @@ def compute_sliding_window_sample_rate(
 
     # We assume that the sample_rate is a float.
     return float(sample_rate)
-
-
-def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
-    """
-    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
-    it synchronously.
-    """
-    # We first try to get from cache the sliding window org sample rate.
-    sample_rate = get_sliding_window_org_sample_rate(org_id)
-    if sample_rate is not None:
-        return sample_rate
-
-    # In case we didn't find the value in cache, we want to compute it synchronously.
-    window_size = get_sliding_window_size()
-    # In case the size is None it means that we disabled the sliding window entirely.
-    if window_size is not None:
-        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
-        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
-            org_ids=[org_id], window_size=window_size
-        )
-        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_guarded_sliding_window_sample_rate(
-                org_id, None, org_total_root_count, window_size
-            )
-
-    return None

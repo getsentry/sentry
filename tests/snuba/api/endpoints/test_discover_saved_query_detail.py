@@ -2,7 +2,7 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

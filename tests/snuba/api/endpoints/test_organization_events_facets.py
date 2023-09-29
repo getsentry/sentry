@@ -1,14 +1,13 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import requests
 from django.urls import reverse
-from django.utils import timezone
-from pytz import utc
+from django.utils import timezone as django_timezone
 from rest_framework.exceptions import ParseError
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -272,7 +271,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,
@@ -603,7 +602,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
             self.client.get(
@@ -913,3 +912,21 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
         assert len(response.data) == 4  # 4 because projects and levels were added to the base 22
+
+    def test_get_all_tags(self):
+        test_project = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": test_project.id, "includeAll": True}
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 23

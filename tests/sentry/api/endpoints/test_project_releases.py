@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
@@ -20,10 +18,13 @@ from sentry.models import (
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
+from sentry.testutils.cases import APITestCase, ReleaseCommitPatchTest, TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -731,10 +732,12 @@ class ReleaseSerializerTest(TestCase):
 
         result = serializer.validated_data
         assert result["version"] == self.version
-        assert result["owner"] == self.user
+        assert result["owner"]
+        assert result["owner"].id == self.user.id
+        assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from datadog.util.hostname import get_hostname
 
 from sentry.metrics.datadog import DatadogMetricsBackend
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DatadogMetricsBackendTest(TestCase):

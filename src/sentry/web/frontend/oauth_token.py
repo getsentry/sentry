@@ -1,14 +1,15 @@
 import logging
-import secrets
 from typing import Optional
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 from sentry.utils import json, metrics
@@ -19,7 +20,7 @@ logger = logging.getLogger("sentry.api.oauth_token")
 
 class OAuthTokenView(View):
     @csrf_exempt
-    @never_cache
+    @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
@@ -42,7 +43,7 @@ class OAuthTokenView(View):
             json.dumps({"error": name}), content_type="application/json", status=status
         )
 
-    @never_cache
+    @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
@@ -116,17 +117,14 @@ class OAuthTokenView(View):
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
         token_data = {"token": ApiToken.from_grant(grant=grant)}
-        id_token = None
-        if grant.has_scope("openid"):
-            id_token = OpenIDToken(
+        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
+            open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
-                # Encrypt with a random secret until we implement secure shared secrets in prod
-                secrets.token_urlsafe(),
+                options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
             )
-            token_data["id_token"] = id_token.get_encrypted_id_token(grant=grant)
-
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
         return token_data
 
     def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:

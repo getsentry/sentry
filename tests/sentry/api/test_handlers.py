@@ -5,7 +5,7 @@ from django.urls import re_path
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -20,8 +20,8 @@ class RateLimitedEndpoint(Endpoint):
 urlpatterns = [re_path(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test")]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
 @control_silo_test(stable=True)
+@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
 class TestRateLimited(APITestCase):
     endpoint = "sentry-test"
 

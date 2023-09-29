@@ -4,11 +4,20 @@ import abc
 import logging
 import string
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generator,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
-import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -33,6 +42,8 @@ logger = logging.getLogger(__name__)
 
 # Keys in the event payload we do not want to send to the event stream / snuba.
 EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
+# Keys in the event metadata we do not want to include in the event's `search_message`
+SEARCH_MESSAGE_SKIPPED_KEYS = frozenset(["in_app_frame_mix"])
 
 if TYPE_CHECKING:
     from sentry.interfaces.user import User
@@ -104,11 +115,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def datetime(self) -> datetime:
         column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
-            return parse_date(self._snuba_data[column]).replace(tzinfo=pytz.utc)
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         timestamp = self.data.get("timestamp")
         date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=pytz.utc)
+        date = date.replace(tzinfo=timezone.utc)
         return date
 
     @property
@@ -318,9 +329,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_hashes(self, force_config: str | Mapping[str, Any] | None = None) -> CalculatedHashes:
         """
         Returns _all_ information that is necessary to group an event into
-        issues. It returns two lists of hashes, `(flat_hashes,
-
-        hierarchical_hashes)`:
+        issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
 
         1. First, `hierarchical_hashes` is walked
            *backwards* (end to start) until one hash has been found that matches
@@ -557,7 +566,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
             message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
-            for value in event_metadata.values():
+            for key, value in event_metadata.items():
+                if key in SEARCH_MESSAGE_SKIPPED_KEYS or isinstance(value, (bool, int, float)):
+                    continue
+
                 value_u = force_str(value, errors="replace")
                 if value_u not in message:
                     message = f"{message} {value_u}"
@@ -674,7 +686,7 @@ class Event(BaseEvent):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
-    def build_group_events(self):
+    def build_group_events(self) -> Generator[GroupEvent, None, None]:
         """
         Yields a GroupEvent for each Group associated with this Event.
         """

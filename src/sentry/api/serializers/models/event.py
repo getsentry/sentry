@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import datetime
-from typing import Any, Dict, Sequence
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Sequence
 
 import sentry_sdk
 import sqlparse
-from django.utils import timezone
-from sentry_relay import meta_with_chunks
+from sentry_relay.processing import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
@@ -16,6 +15,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models import EventAttachment, EventError, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -430,11 +430,24 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
+    def _get_resolved_with(self, obj: Event) -> List[str]:
+        stacktraces = find_stacktraces_in_data(obj.data)
+
+        frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
+        frame_data = [frame.get("data") for frame_list in frame_lists for frame in frame_list]
+
+        unique_resolution_methods = {
+            frame.get("resolved_with") for frame in frame_data if frame is not None
+        }
+
+        return list(unique_resolution_methods)
+
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
+        result["resolvedWith"] = self._get_resolved_with(obj)
         return result
 
 

@@ -1,12 +1,12 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -15,7 +15,7 @@ from . import FireTest
 
 @freeze_time()
 @region_silo_test(stable=True)
-class SlackActionHandlerTest(FireTest, TestCase):
+class SlackActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -28,13 +28,20 @@ class SlackActionHandlerTest(FireTest, TestCase):
         self.channel_id = "some_id"
         self.channel_name = "#hello"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": self.channel_name[1:], "id": self.channel_id}]}
+                {"ok": "true", "channel": self.channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
         self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.channel_name,
@@ -63,6 +70,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
+        assert isinstance(slack_body, dict)
         attachments = json.loads(data["attachments"][0])
         assert attachments[0]["color"] == slack_body["color"]
         assert attachments[0]["blocks"][0] in slack_body["blocks"]
@@ -143,3 +151,17 @@ class SlackActionHandlerTest(FireTest, TestCase):
             handler.fire(metric_value, IncidentStatus(incident.status))
 
         assert len(responses.calls) == 1
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="slack",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )

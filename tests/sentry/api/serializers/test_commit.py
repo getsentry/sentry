@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from sentry.api.serializers import serialize
 from sentry.models import Commit, CommitAuthor, Release, ReleaseCommit, Repository
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CommitSerializerTest(TestCase):

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
@@ -8,7 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import region_silo_endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
@@ -20,21 +22,112 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
 from sentry.constants import ObjectStatus
+from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
 from sentry.models.rule import RuleSource
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 from sentry.utils.cursors import Cursor, StringCursor
 
 from .utils import parse_team_params
 
 
+class AlertRuleIndexMixin(Endpoint):
+    def fetch_metric_alert(self, request, organization, project=None):
+        if not features.has("organizations:incidents", organization, actor=request.user):
+            raise ResourceDoesNotExist
+
+        if not project:
+            projects = self.get_projects(request, organization)
+            alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+        else:
+            alert_rules = AlertRule.objects.fetch_for_project(project)
+        if not features.has("organizations:performance-view", organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        return self.paginate(
+            request,
+            queryset=alert_rules,
+            order_by="-date_added",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+            default_per_page=25,
+        )
+
+    def create_metric_alert(self, request, organization, project=None):
+        if not features.has("organizations:incidents", organization, actor=request.user):
+            raise ResourceDoesNotExist
+
+        data = deepcopy(request.data)
+        if project:
+            data["projects"] = [project.slug]
+
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": organization,
+                "access": request.access,
+                "user": request.user,
+                "ip_address": request.META.get("REMOTE_ADDR"),
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=organization.id
+                ),
+            },
+            data=data,
+        )
+        if serializer.is_valid():
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+            if get_slack_actions_with_async_lookups(organization, request.user, request.data):
+                # need to kick off an async job for Slack
+                client = RedisRuleStatus()
+                task_args = {
+                    "organization_id": organization.id,
+                    "uuid": client.uuid,
+                    "data": request.data,
+                    "user_id": request.user.id,
+                }
+                find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                return Response({"uuid": client.uuid}, status=202)
+            else:
+                alert_rule = serializer.save()
+                referrer = request.query_params.get("referrer")
+                session_id = request.query_params.get("sessionId")
+                duplicate_rule = request.query_params.get("duplicateRule")
+                wizard_v3 = request.query_params.get("wizardV3")
+                subscriptions = alert_rule.snuba_query.subscriptions.all()
+                for sub in subscriptions:
+                    alert_rule_created.send_robust(
+                        user=request.user,
+                        project=sub.project,
+                        rule=alert_rule,
+                        rule_type="metric",
+                        sender=self,
+                        referrer=referrer,
+                        session_id=session_id,
+                        is_api_token=request.auth is not None,
+                        duplicate_rule=duplicate_rule,
+                        wizard_v3=wizard_v3,
+                    )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
-        Fetches alert rules and legacy rules for an organization
+        Fetches (metric) alert rules and legacy (issue alert) rules for an organization
         """
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
@@ -74,7 +167,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
-            status=ObjectStatus.ACTIVE,
+            status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
             project__in=projects,
         )
@@ -155,46 +248,21 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 @region_silo_endpoint
-class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
+class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAlertRulePermission,)
 
     def get(self, request: Request, organization) -> Response:
         """
-        Fetches alert rules for an organization
+        Fetches metric alert rules for an organization
         """
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
-        projects = self.get_projects(request, organization)
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
-        return self.paginate(
-            request,
-            queryset=alert_rules,
-            order_by="-date_added",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
-            default_per_page=25,
-        )
+        return self.fetch_metric_alert(request, organization)
 
     def post(self, request: Request, organization) -> Response:
         """
-        Create an alert rule
+        Create a metric alert rule
         """
-
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
-        serializer = AlertRuleSerializer(
-            context={"organization": organization, "access": request.access, "user": request.user},
-            data=request.data,
-        )
-
-        if serializer.is_valid():
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.create_metric_alert(request, organization)

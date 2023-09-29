@@ -1,21 +1,68 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, Callable, ClassVar, Iterable, List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from rest_framework.authentication import BasicAuthentication, get_authorization_header
+from rest_framework.authentication import (
+    BaseAuthentication,
+    BasicAuthentication,
+    SessionAuthentication,
+    get_authorization_header,
+)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import UnpackError
+from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models import ApiApplication, ApiKey, ApiToken, OrgAuthToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import compare_signature
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+
+class AuthenticationSiloLimit(SiloLimit):
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, *args: Any, **kwargs: Any) -> Any:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"{type(obj)} used for an endpoint in {current_mode} mode."
+                f"This authenticator is available only in: {mode_str}"
+            )
+            raise self.AvailabilityError(message)
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if issubclass(decorated_obj, BaseAuthentication):
+                constructor_override = self.create_override(decorated_obj.__init__)
+                new_class = type(
+                    decorated_obj.__name__,
+                    (decorated_obj,),
+                    {
+                        "__init__": constructor_override,
+                        "silo_limit": self,
+                    },
+                )
+                new_class.__module__ = decorated_obj.__module__
+                return new_class
+
+        raise ValueError(
+            "`@AuthenticationSiloLimit` can decorate only BaseAuthentication subclasses"
+        )
 
 
 def is_internal_relay(request, public_key):
@@ -75,15 +122,18 @@ def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    def authenticate_header(self, request: Request):
+    def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 class StandardAuthentication(QuietBasicAuthentication):
-    token_name = None
+    token_name: ClassVar[bytes]
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return auth and auth[0].lower() == self.token_name
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        raise NotImplementedError
 
     def authenticate(self, request: Request):
         auth = get_authorization_header(request).split()
@@ -98,9 +148,10 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, force_str(auth[1]))
+        return self.authenticate_token(request, force_str(auth[1]))
 
 
+@AuthenticationSiloLimit(SiloMode.REGION)
 class RelayAuthentication(BasicAuthentication):
     def authenticate(self, request: Request):
         relay_id = get_header_relay_id(request)
@@ -132,16 +183,32 @@ class RelayAuthentication(BasicAuthentication):
         return (AnonymousUser(), None)
 
 
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return auth and auth[0].lower() == self.token_name
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
+
+    def _authenticate_credentials(self, userid):
+        key = ApiKeyReplica.objects.filter(key=userid).last()
+        if key is None:
+            raise AuthenticationFailed("API key is not valid")
+        if not key.is_active:
+            raise AuthenticationFailed("Key is disabled")
+        with configure_scope() as scope:
+            scope.set_tag("api_key", key.apikey_id)
+        return AuthenticatedToken.from_token(key)
 
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
+
+        if SiloMode.get_current_mode() == SiloMode.REGION or options.get(
+            "hybrid_cloud.authentication.use_api_key_replica"
+        ):
+            return AnonymousUser(), self._authenticate_credentials(userid)
 
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
@@ -157,6 +224,16 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         return (AnonymousUser(), key)
 
 
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+class SessionNoAuthTokenAuthentication(SessionAuthentication):
+    def authenticate(self, request: Request):
+        auth = get_authorization_header(request)
+        if auth:
+            return None
+        return super().authenticate(request)
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL)
 class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
     Authenticates a Sentry Application using its Client ID and Secret
@@ -193,10 +270,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
             raise invalid_pair_error
 
 
+@AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
             return False
 
@@ -208,7 +286,7 @@ class TokenAuthentication(StandardAuthentication):
         token_str = force_str(auth[1])
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
-    def authenticate_credentials(self, request: Request, token_str):
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = SystemToken.from_request(request, token_str)
         try:
             token = (
@@ -237,17 +315,18 @@ class TokenAuthentication(StandardAuthentication):
         return (token.user, token)
 
 
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
 
         token_str = force_str(auth[1])
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
-    def authenticate_credentials(self, request: Request, token_str):
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = None
         token_hashed = hash_token(token_str)
 
@@ -266,10 +345,11 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
+@AuthenticationSiloLimit(SiloMode.REGION)
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
-    def authenticate_credentials(self, request: Request, token):
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
@@ -285,6 +365,7 @@ class DSNAuthentication(StandardAuthentication):
         return (AnonymousUser(), key)
 
 
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class RpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for cross-region RPC requests.
@@ -298,7 +379,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
             return False
         return auth[0].lower() == self.token_name
 
-    def authenticate_credentials(self, request: Request, token: str):
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 

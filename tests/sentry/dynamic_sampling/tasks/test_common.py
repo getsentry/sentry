@@ -2,19 +2,20 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     GetActiveOrgsVolumes,
+    OrganizationDataVolume,
     TimedIterator,
     TimeoutException,
+    get_organization_volume,
     timed_function,
 )
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer
-from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -46,7 +47,7 @@ class FakeContextIterator:
     def __next__(self):
         if self.count < 2:
             self.count += 1
-            self.frozen_time.tick(delta=timedelta(seconds=self.tick_seconds))
+            self.frozen_time.shift(self.tick_seconds)
             return self.count
         raise StopIteration()
 
@@ -156,7 +157,6 @@ def test_timed_function_decorator_updates_state():
     It works with the default function name and also with custom names
 
     """
-    t = Timer()
     context = TaskContext(name="TC", num_seconds=60.0)
 
     @timed_function()
@@ -167,8 +167,8 @@ def test_timed_function_decorator_updates_state():
     def f2(state: DynamicSamplingLogState, x: int, y: str):
         state.num_iterations = 2
 
-    f1(context, t, 1, "x")
-    f2(context, t, 1, "x")
+    f1(context, 1, "x")
+    f2(context, 1, "x")
 
     f1_state = context.get_function_state("f1")
     assert f1_state is not None
@@ -181,43 +181,43 @@ def test_timed_function_decorator_updates_state():
 
 def test_timed_function_correctly_times_inner_function():
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        t = Timer()
         context = TaskContext(name="TC", num_seconds=60.0)
 
         @timed_function()
         def f1(state: DynamicSamplingLogState, x: int, y: str):
             state.num_iterations = 1
-            frozen_time.tick()
+            frozen_time.shift(1)
 
-        f1(context, t, 1, "x")
-        frozen_time.tick()
-        f1(context, t, 1, "x")
+        f1(context, 1, "x")
+        frozen_time.shift(1)
+        f1(context, 1, "x")
 
         # two seconds passed inside f1 ( one for each call)
+        t = context.get_timer("f1")
         assert t.current() == 2.0
 
 
 def test_timed_function_correctly_raises_when_task_expires():
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
-        t = Timer()
         context = TaskContext(name="TC", num_seconds=2.0)
 
         @timed_function()
         def f1(state: DynamicSamplingLogState, x: int, y: str):
             state.num_iterations = 1
-            frozen_time.tick()
+            frozen_time.shift(1)
 
-        f1(context, t, 1, "x")
+        f1(context, 1, "x")
+        t = context.get_timer("f1")
         assert t.current() == 1.0
-        frozen_time.tick()
+        frozen_time.shift(1)
         assert t.current() == 1.0  # timer should not be moving ouside the function
-        f1(context, t, 1, "x")
+        f1(context, 1, "x")
 
         # two seconds passed inside f1 ( one for each call)
         assert t.current() == 2.0
 
         with pytest.raises(TimeoutException):
-            f1(context, t, 1, "x")
+            f1(context, 1, "x")
 
         # the tick should not advance ( the function should not have been called)
         assert t.current() == 2.0
@@ -229,9 +229,11 @@ NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def setUp(self):
+        self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
         for i in range(12):
             org = self.create_organization(f"org-{i}")
+            self.orgs.append(org)
             project = self.create_project(organization=org)
             for decision, value in [("drop", 2), ("keep", 1)]:
                 self.store_performance_metric(
@@ -282,3 +284,19 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
                 assert org.indexed == 1
 
         assert total_orgs == 12
+
+    def test_get_organization_volume_existing_org(self):
+        """
+        gets the volume of one existing organization
+        """
+        org = self.orgs[0]
+        org_volume = get_organization_volume(org.id)
+        assert org_volume == OrganizationDataVolume(org_id=org.id, total=3, indexed=1)
+
+    def test_get_organization_volume_missing_org(self):
+        """
+        calls get_organization_volume for a missing org (should return None)
+        """
+        org_id = 99999999  # can we do better, an id we know for sure is not in the DB?
+        org_volume = get_organization_volume(org_id)
+        assert org_volume is None

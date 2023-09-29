@@ -10,11 +10,14 @@ from django.conf import settings
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
-from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+from sentry.ingest.consumer.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
-from sentry.utils.pytest.fixtures import django_db_all
+
+pytestmark = [requires_snuba, requires_kafka]
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +174,7 @@ def test_ingest_topic_can_be_overridden(
         consumer_type=ConsumerType.Events,
         group_id=random_group_id,
         auto_offset_reset="earliest",
-        strict_offset_reset=None,
+        strict_offset_reset=False,
         max_batch_size=2,
         max_batch_time=5,
         num_processes=1,

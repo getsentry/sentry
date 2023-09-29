@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -16,9 +15,12 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -178,7 +180,7 @@ class UnfurlTest(TestCase):
         self.integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
-        self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))
+        self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
     def tearDown(self):
@@ -189,6 +191,7 @@ class UnfurlTest(TestCase):
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         group2 = event.group
 
         links = [
@@ -207,7 +210,9 @@ class UnfurlTest(TestCase):
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
             unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
+            == SlackIssuesMessageBuilder(
+                group2, next(iter(event.build_group_events())), link_to_event=True
+            ).build()
         )
 
     def test_escape_issue(self):
@@ -919,61 +924,6 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
-
-    @patch(
-        "sentry.snuba.discover.query",
-        return_value={
-            "data": [
-                {"geo.country_code": "AU", "count": 2},
-                {"geo.country_code": "CA", "count": 2},
-            ],
-            "meta": {"geo.country_code": "string", "count": "integer"},
-            "profile": {"bytes": 64, "blocks": 1, "rows": 2, "elapsed": 0.009087800979614258},
-            "trace_output": "",
-            "timing": {
-                "timestamp": 1652998746,
-                "duration_ms": 32,
-                "marks_ms": {
-                    "cache_get": 1,
-                    "cache_set": 2,
-                    "execute": 9,
-                    "get_configs": 0,
-                    "prepare_query": 8,
-                    "rate_limit": 2,
-                    "validate_schema": 8,
-                },
-                "tags": {},
-            },
-        },
-    )
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_world_map(self, mock_generate_chart, _):
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
-        link_type, args = match_link(url)
-
-        if not args or not link_type:
-            raise Exception("Missing link_type/args")
-
-        links = [
-            UnfurlableUrl(url=url, args=args),
-        ]
-
-        with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
-
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
-        )
-        assert len(mock_generate_chart.mock_calls) == 1
-
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_WORLDMAP
-        chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"]["data"]) == 2
-        assert sorted(x["geo.country_code"] for x in chart_data["stats"]["data"]) == ["AU", "CA"]
 
     # patched return value determined by reading events stats output
     @patch(

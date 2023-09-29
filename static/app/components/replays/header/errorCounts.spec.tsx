@@ -5,14 +5,12 @@ import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/useProjects');
 
-const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-
 const replayRecord = TestStubs.ReplayRecord();
 const organization = TestStubs.Organization({});
 
 describe('ErrorCounts', () => {
   beforeEach(() => {
-    mockUseProjects.mockReturnValue({
+    jest.mocked(useProjects).mockReturnValue({
       fetching: false,
       projects: [
         TestStubs.Project({

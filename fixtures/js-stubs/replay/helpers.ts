@@ -1,6 +1,8 @@
-import * as BreadcrumbFrameData from './replayBreadcrumbFrameData';
-import * as ReplayFrameEvents from './replayFrameEvents';
-import * as ReplaySpanFrameData from './replaySpanFrameData';
+import * as BreadcrumbFrameData from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import * as ReplayFrameEvents from 'sentry-fixture/replay/replayFrameEvents';
+import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
+
+import {SlowClickFrame} from 'sentry/utils/replays/types';
 
 export function ConsoleEvent({timestamp, message}: {timestamp: Date; message?: string}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
@@ -25,6 +27,27 @@ export function ClickEvent({timestamp}: {timestamp: Date}) {
           nodeId: 42,
         },
       }),
+    },
+  });
+}
+
+export function DeadClickEvent({timestamp}: {timestamp: Date}) {
+  return ReplayFrameEvents.BreadcrumbFrameEvent({
+    timestamp,
+    data: {
+      payload: BreadcrumbFrameData.SlowClickFrame({
+        timestamp,
+        message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
+        data: {
+          node: {
+            tagName: 'a',
+          },
+          nodeId: 42,
+          url: '',
+          timeAfterClickMs: 7000,
+          endReason: 'timeout',
+        },
+      } as SlowClickFrame),
     },
   });
 }

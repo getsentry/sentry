@@ -5,7 +5,7 @@ from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Granul
 
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
-from sentry.search.events.types import ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
@@ -15,6 +15,22 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        config = kwargs.pop("config", None)
+        if config is None:
+            config = QueryBuilderConfig()
+        parser_config_overrides = (
+            config.parser_config_overrides if config.parser_config_overrides else {}
+        )
+        parser_config_overrides["free_text_key"] = "span.description"
+        config.parser_config_overrides = parser_config_overrides
+        kwargs["config"] = config
+        super().__init__(*args, **kwargs)
 
     def get_field_type(self, field: str) -> Optional[str]:
         if field in self.meta_resolver_map:
@@ -60,9 +76,8 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
-        skip_tag_resolution: bool = False,
+        config: Optional[QueryBuilderConfig] = None,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -72,8 +87,8 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_columns)),
-            functions_acl=functions_acl,
             limit=limit,
+            config=config,
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []

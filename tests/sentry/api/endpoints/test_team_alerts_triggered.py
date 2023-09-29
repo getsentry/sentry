@@ -1,5 +1,4 @@
-from django.utils import timezone
-from freezegun import freeze_time
+from datetime import timezone
 
 from sentry.incidents.models import (
     INCIDENT_STATUS,
@@ -9,13 +8,13 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.models import ActorTuple
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
@@ -186,7 +185,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered-index"
 

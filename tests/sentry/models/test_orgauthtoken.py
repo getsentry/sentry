@@ -2,7 +2,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from sentry.models import Organization, OrgAuthToken
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

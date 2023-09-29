@@ -1,19 +1,26 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
-import pytz
 import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
+from sentry.silo import SiloMode
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
-from sentry.snuba.metrics_enhanced_performance import query as performance_query
+from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
+
+# The time range over which the check script queries the data for determining the compatibility state.
+QUERY_TIME_RANGE_IN_DAYS = 30
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
@@ -46,6 +53,7 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.javascript.node": "7.6.0",
     "sentry.javascript.angular-ivy": "7.6.0",
     "sentry.javascript.sveltekit": "7.6.0",
+    "sentry.javascript.bun": "7.70.0",
     # Apple
     "sentry-cocoa": "7.23.0",
     "sentry-objc": "7.23.0",
@@ -135,6 +143,110 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.go": "0.16.0",
 }
 
+# List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
+# support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
+SDKS_SUPPORTING_PERFORMANCE = {
+    "sentry.aspnetcore",
+    "sentry.aspnetcore",
+    "sentry.dotnet",
+    "sentry.dotnet.android",
+    "sentry.dotnet.aspnet",
+    "sentry.dotnet.aspnetcore",
+    "sentry.dotnet.aspnetcore.grpc",
+    "sentry.dotnet.atlasproper",
+    "sentry.dotnet.cocoa",
+    "sentry.dotnet.ef",
+    "sentry.dotnet.extensions.logging",
+    "sentry.dotnet.google-cloud-function",
+    "sentry.dotnet.log4net",
+    "sentry.dotnet.maui",
+    "sentry.dotnet.nlog",
+    "sentry.dotnet.serilog",
+    "sentry.dotnet.xamarin",
+    "sentry.dotnet.xamarin-forms",
+    "Sentry.Extensions.Logging",
+    "Sentry.NET",
+    "Sentry.UWP",
+    "SentryDotNet",
+    "SentryDotNet.AspNetCore",
+    "sentry-android",
+    "sentry.java.android.timber",
+    "sentry.java.android",
+    "sentry.java.android.timber",
+    "sentry.native.android",
+    "sentry-cocoa",
+    "sentry-objc",
+    "sentry-swift",
+    "sentry.cocoa",
+    "sentry.swift",
+    "SentrySwift",
+    "sentry.dart",
+    "sentry.dart.logging",
+    "sentry.cocoa.flutter",
+    "sentry.dart.flutter",
+    "sentry.java.android.flutter",
+    "sentry.native.android.flutter",
+    "sentry.dart.browser",
+    "sentry-electron",
+    "sentry.javascript.electron",
+    "sentry.go",
+    "sentry-java",
+    "sentry.java",
+    "sentry.java.jul",
+    "sentry.java.log4j2",
+    "sentry.java.logback",
+    "sentry.java.spring",
+    "sentry.java.spring-boot",
+    "sentry.java.spring-boot.jakarta",
+    "sentry-browser",
+    "sentry.javascript.angular",
+    "sentry.javascript.browser",
+    "sentry.javascript.ember",
+    "sentry.javascript.gatsby",
+    "sentry.javascript.nextjs",
+    "sentry.javascript.react",
+    "sentry.javascript.remix",
+    "sentry.javascript.serverless",
+    "sentry.javascript.svelte",
+    "sentry.javascript.vue",
+    "sentry-laravel",
+    "sentry.php.laravel",
+    "sentry.javascript.node",
+    "sentry.javascript.bun",
+    "sentry-php",
+    "sentry.php",
+    "sentry-python",
+    "sentry.python.tornado",
+    "sentry.python.starlette",
+    "sentry.python.flask",
+    "sentry.python.fastapi",
+    "sentry.python.falcon",
+    "sentry.python.django",
+    "sentry.python.bottle",
+    "sentry.python.aws_lambda",
+    "sentry.python.aiohttp",
+    "sentry.python",
+    "sentry-react-native",
+    "sentry.cocoa.react-native",
+    "sentry.java.android.react-native",
+    "sentry.javascript.react-native",
+    "sentry.native.android.react-native",
+    "sentry-ruby",
+    "sentry.ruby",
+    "sentry.ruby.delayed_job",
+    "sentry.ruby.rails",
+    "sentry.ruby.resque",
+    "sentry.ruby.sidekiq",
+    "sentry-rust",
+    "sentry.rust",
+    "sentry-symfony",
+    "sentry.php.symfony",
+    "Symphony.SentryClient",
+    "sentry.cocoa.unity",
+    "sentry.dotnet.unity",
+    "sentry.java.android.unity",
+}
+
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
 
@@ -155,6 +267,9 @@ EXCLUDED_CONDITIONS = [
     # Match multiple tags that contain this.
     "stack.",
     "error.",
+    # Match generic values.
+    "issue",
+    "exception",
 ]
 
 
@@ -176,9 +291,9 @@ class CheckAM2Compatibility:
     @classmethod
     def get_found_sdks_url(cls, org_slug):
         return (
-            f"https://{org_slug}.sentry.io/organizations/{org_slug}/discover/homepage/?field=sdk.version&field=sdk"
-            f".name&field=project&field"
-            f"=count%28%29"
+            f"https://{org_slug}.sentry.io/organizations/{org_slug}/discover/homepage/?field=count%28%29&field"
+            f"=project&field=sdk.name&field=sdk.version&query=event.type%3Atransaction&statsPeriod=30d&yAxis=count%28"
+            f"%29"
         )
 
     @classmethod
@@ -204,7 +319,11 @@ class CheckAM2Compatibility:
 
     @classmethod
     def format_results(
-        cls, organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+        cls,
+        organization,
+        unsupported_widgets,
+        unsupported_alerts,
+        outdated_sdks_per_project,
     ):
         results: Dict[str, Any] = {}
 
@@ -283,6 +402,11 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
+                # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
+                # compatibility, and we also don't return it as unsupported since it will create noise.
+                if sdk_name not in SDKS_SUPPORTING_PERFORMANCE:
+                    continue
+
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
@@ -318,14 +442,14 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
             results = discover_query(
                 selected_columns=selected_columns,
-                query="",
+                query="event.type:transaction",
                 params=params,
                 referrer="api.organization-events",
             )
@@ -338,26 +462,37 @@ class CheckAM2Compatibility:
 
     @classmethod
     def is_metrics_data(cls, organization_id, project_objects, query):
-        # We use the count operation since it's the most generic.
         selected_columns = ["count()"]
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
-            results = performance_query(
-                selected_columns=selected_columns,
+            builder = MetricsQueryBuilder(
+                params,
+                dataset=Dataset.PerformanceMetrics,
                 query=query,
-                params=params,
-                referrer="api.organization-events",
+                selected_columns=selected_columns,
+                config=QueryBuilderConfig(
+                    allow_metric_aggregates=True,
+                    auto_fields=False,
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=False,
+                ),
             )
-
-            return results.get("meta", {}).get("isMetricsData", None)
+            builder.get_snql_query()
+            return True
+        except IncompatibleMetricsQuery:
+            return False
         except Exception:
             return None
+
+    @classmethod
+    def is_on_demand_metrics_data(cls, aggregate, query):
+        return should_use_on_demand_metrics(Dataset.Transactions.value, aggregate, query, True)
 
     @classmethod
     def get_excluded_conditions(cls):
@@ -367,6 +502,7 @@ class CheckAM2Compatibility:
         for condition in EXCLUDED_CONDITIONS:
             # We want to build an AND condition with multiple negated elements.
             qs &= ~Q(conditions__icontains=condition)
+            qs &= ~Q(fields__icontains=condition)
 
         return qs
 
@@ -389,7 +525,7 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset__in=["transactions", "discover"],
+                snuba_query__dataset=Dataset.Transactions.value,
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
@@ -429,7 +565,9 @@ class CheckAM2Compatibility:
 
         unsupported_alerts = []
         for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
-            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
+            supports_metrics = cls.is_on_demand_metrics_data(
+                aggregate, query
+            ) or cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("org_id", organization.id)
@@ -455,7 +593,10 @@ class CheckAM2Compatibility:
             outdated_sdks_per_project = {}
 
         return cls.format_results(
-            organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+            organization,
+            unsupported_widgets,
+            unsupported_alerts,
+            outdated_sdks_per_project,
         )
 
 
@@ -515,6 +656,7 @@ def get_check_results(org_id):
     max_retries=1,  # We don't want the system to retry such computations.
     soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
     time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
+    silo_mode=SiloMode.REGION,
 )
 def run_compatibility_check_async(org_id):
     try:

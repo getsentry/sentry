@@ -6,6 +6,7 @@ from urllib.parse import quote, urljoin, urlparse
 from django.conf import settings
 from django.http import HttpRequest
 from rest_framework.request import Request
+from typing_extensions import TypeGuard
 
 from sentry import options
 
@@ -218,5 +219,11 @@ def percent_encode(val: str) -> str:
     return quote(val).replace("%7E", "~").replace("/", "%2F")
 
 
-def is_using_customer_domain(request: HttpRequest) -> bool:
+class _HttpRequestWithSubdomain(HttpRequest):
+    """typing-only: to help with hinting for `.subdomain`"""
+
+    subdomain: str
+
+
+def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)

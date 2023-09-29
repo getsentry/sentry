@@ -38,7 +38,7 @@ class TestNotificationUtilities(TestCase):
         actual: Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]],
         expected: Mapping[User, Mapping[str, RpcIntegration | Integration]],
     ):
-        assert actual == {RpcActor.from_rpc_user(k): v for (k, v) in expected.items()}
+        assert actual == {RpcActor.from_orm_user(k): v for (k, v) in expected.items()}
 
     def test_simple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(

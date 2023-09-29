@@ -6,9 +6,12 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models import Activity, ExternalIssue, GroupAssignee, GroupLink
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = requires_snuba
 
 
 @region_silo_test(stable=True)

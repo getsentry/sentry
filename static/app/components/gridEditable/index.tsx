@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, Profiler} from 'react';
+import {Component, createRef, Fragment, Profiler, ReactNode} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -115,7 +115,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * - `columnSortBy` is not used at the moment, however it might be better to
    *   move sorting into Grid for performance
    */
-  title?: string;
+  title?: ReactNode;
 };
 
 type GridEditableState = {
@@ -124,7 +124,7 @@ type GridEditableState = {
 
 class GridEditable<
   DataRow extends {[key: string]: any},
-  ColumnKey extends ObjectKey
+  ColumnKey extends ObjectKey,
 > extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
@@ -323,8 +323,8 @@ class GridEditable<
             </GridHeadCellStatic>
           ))}
         {
-          /* Note that this.onResizeMouseDown assumes GridResizer is nested
-            1 levels under GridHeadCell */
+          // Note that this.onResizeMouseDown assumes GridResizer is nested
+          // 1 levels under GridHeadCell
           columnOrder.map((column, i) => (
             <GridHeadCell
               data-test-id="grid-head-cell"

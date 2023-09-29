@@ -1,3 +1,5 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,8 +11,8 @@ describe('GroupTags', function () {
   let tagsMock;
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
-      body: TestStubs.Tags(),
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: Tags(),
     });
   });
 
@@ -26,7 +28,7 @@ describe('GroupTags', function () {
     );
 
     expect(tagsMock).toHaveBeenCalledWith(
-      '/issues/1/tags/',
+      '/organizations/org-slug/issues/1/tags/',
       expect.objectContaining({
         query: {environment: ['dev']},
       })

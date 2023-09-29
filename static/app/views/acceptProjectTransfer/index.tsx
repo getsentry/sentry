@@ -1,12 +1,12 @@
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Project} from 'sentry/types';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -42,9 +42,14 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       },
       success: () => {
         const orgSlug = formData.organization;
-
-        this.props.router.push(normalizeUrl(`/organizations/${orgSlug}/projects/`));
-        addSuccessMessage(t('Project successfully transferred'));
+        const projectSlug = this.state?.transferDetails?.project.slug;
+        const sentryUrl = ConfigStore.get('links').sentryUrl;
+        if (!projectSlug) {
+          window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
+        } else {
+          window.location.href = `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`;
+          // done this way since we need to change subdomains
+        }
       },
       error: error => {
         const errorMsg =

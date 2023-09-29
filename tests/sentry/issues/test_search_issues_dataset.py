@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 

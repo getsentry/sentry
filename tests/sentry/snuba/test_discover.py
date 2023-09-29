@@ -13,9 +13,10 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
 )
+from sentry.search.events.types import HistogramParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import get_array_column_alias
 
@@ -1998,7 +1999,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{array_column}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2023,7 +2024,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{array_column}.bar", f"{array_column}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2070,7 +2071,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2127,7 +2128,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2164,7 +2165,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2201,7 +2202,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2255,7 +2256,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2307,7 +2308,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(4, 25, 0, 100),
+                HistogramParams(4, 25, 0, 100),
                 results,
                 array_column,
             )

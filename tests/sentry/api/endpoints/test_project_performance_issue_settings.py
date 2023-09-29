@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
@@ -14,7 +14,7 @@ PERFORMANCE_ISSUE_FEATURES = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectPerformanceIssueSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-issue-settings"
 
@@ -91,6 +91,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "performance.issues.uncompressed_asset.duration_threshold": 300,
                 "performance.issues.uncompressed_asset.size_threshold": 200000,
                 "performance.issues.consecutive_db.min_time_saved_threshold": 300,
+                "performance.issues.n_plus_one_api_calls.total_duration": 300,
+                "performance.issues.consecutive_http.min_time_saved_threshold": 2000,
             }
         ):
             with self.feature(PERFORMANCE_ISSUE_FEATURES):
@@ -108,6 +110,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["uncompressed_asset_duration_threshold"] == 300
             assert response.data["uncompressed_asset_size_threshold"] == 200000
             assert response.data["consecutive_db_min_time_saved_threshold"] == 300
+            assert response.data["n_plus_one_api_calls_total_duration_threshold"] == 300
+            assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 2000
 
             get_value.return_value = {
                 "n_plus_one_db_duration_threshold": 10000,
@@ -119,6 +123,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "db_on_main_thread_duration_threshold": 50,
                 "file_io_on_main_thread_duration_threshold": 33,
                 "consecutive_db_min_time_saved_threshold": 5000,
+                "n_plus_one_api_calls_total_duration_threshold": 500,
+                "consecutive_http_spans_min_time_saved_threshold": 1000,
             }
 
             with self.feature(PERFORMANCE_ISSUE_FEATURES):
@@ -136,6 +142,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["db_on_main_thread_duration_threshold"] == 50
             assert response.data["file_io_on_main_thread_duration_threshold"] == 33
             assert response.data["consecutive_db_min_time_saved_threshold"] == 5000
+            assert response.data["n_plus_one_api_calls_total_duration_threshold"] == 500
+            assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 1000
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
@@ -153,7 +161,12 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             )
 
         assert response.status_code == 403, response.content
-        assert response.data == {"detail": "Passed options are only modifiable internally"}
+        assert response.data == {
+            "detail": {
+                "message": "Passed options are only modifiable internally",
+                "code": "superuser-required",
+            },
+        }
 
     def test_put_super_user_updates_detection_setting(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):

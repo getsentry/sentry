@@ -4,7 +4,7 @@ import pytest
 
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.models import OrganizationMember, UserEmail
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class EmailResolverTest(TestCase):

@@ -37,10 +37,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 }
 
 describe('Performance > TransactionSummary', function () {
-  beforeAll(function () {
-    // eslint-disable-next-line no-console
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -146,6 +143,11 @@ describe('Performance > TransactionSummary', function () {
     });
   });
 
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+  });
+
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
@@ -174,7 +176,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Sampled Events'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Tags'})).toBeInTheDocument();
 
     ProjectsStore.reset();

@@ -1,4 +1,5 @@
 import Form from 'sentry/components/forms/form';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -31,25 +32,27 @@ function NotificationSettingsByOrganization({
   organizations,
 }: Props) {
   return (
-    <Form
-      saveOnBlur
-      apiMethod="PUT"
-      apiEndpoint="/users/me/notification-settings/"
-      initialData={getParentData(notificationType, notificationSettings, organizations)}
-      onSubmitSuccess={onSubmitSuccess}
-    >
-      <StyledJsonForm
-        title={t('Organizations')}
-        fields={organizations.map(organization => {
-          return getParentField(
-            notificationType,
-            notificationSettings,
-            organization,
-            onChange
-          );
-        })}
-      />
-    </Form>
+    <Panel>
+      <Form
+        saveOnBlur
+        apiMethod="PUT"
+        apiEndpoint="/users/me/notification-settings/"
+        initialData={getParentData(notificationType, notificationSettings, organizations)}
+        onSubmitSuccess={onSubmitSuccess}
+      >
+        <StyledJsonForm
+          title={t('Organizations')}
+          fields={organizations.map(organization => {
+            return getParentField(
+              notificationType,
+              notificationSettings,
+              organization,
+              onChange
+            );
+          })}
+        />
+      </Form>
+    </Panel>
   );
 }
 

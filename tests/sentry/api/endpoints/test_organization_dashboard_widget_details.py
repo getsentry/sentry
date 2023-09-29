@@ -1,8 +1,11 @@
 from django.urls import reverse
 
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

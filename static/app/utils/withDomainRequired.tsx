@@ -16,6 +16,7 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
   // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
   [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
+  [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
 ];
 
 type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;

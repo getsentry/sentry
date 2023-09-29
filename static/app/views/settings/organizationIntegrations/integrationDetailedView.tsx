@@ -26,7 +26,7 @@ import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = {github: ['pr-comment-bot']};
+const integrationFeatures = ['github'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -144,15 +144,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTabs() {
     // TODO: Convert to styled component
-    const {organization} = this.props;
-    // TODO(cathy): remove feature check
-    const tabs =
-      this.provider.key in integrationFeatures &&
-      organization.features.filter(value =>
-        integrationFeatures[this.provider.key].includes(value)
-      )
-        ? this.tabs
-        : this.tabs.filter(tab => tab !== 'features');
+    const tabs = integrationFeatures.includes(this.provider.key)
+      ? this.tabs
+      : this.tabs.filter(tab => tab !== 'features');
 
     return (
       <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
@@ -266,6 +260,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         <AddIntegrationButton
           provider={provider}
           onAddIntegration={this.onInstall}
+          installStatus={this.installationStatus}
           analyticsParams={{
             view: 'integrations_directory_integration_detail',
             already_installed: this.installationStatus !== 'Not Installed',
@@ -343,15 +338,40 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           {
             name: 'githubPRBot',
             type: 'boolean',
-            label: t('Enable Pull Request Bot'),
-            visible: ({features}) => features.includes('pr-comment-bot'),
+            label: t('Enable Comments on Suspect Pull Requests'),
             help: t(
-              'Allow Sentry to comment on pull requests about issues impacting your app.'
+              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
             ),
             disabled: !hasIntegration,
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
+          },
+          {
+            name: 'githubOpenPRBot',
+            type: 'boolean',
+            label: t('Enable Comments on Open Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-open-pr-comment'),
+          },
+          {
+            name: 'githubNudgeInvite',
+            type: 'boolean',
+            label: t('Enable Missing Member Detection'),
+            help: t(
+              'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-gh-invite'),
           },
         ],
       },
@@ -359,6 +379,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     const initialData = {
       githubPRBot: organization.githubPRBot,
+      githubOpenPRBot: organization.githubOpenPRBot,
+      githubNudgeInvite: organization.githubNudgeInvite,
     };
 
     return (

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
@@ -40,9 +41,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             integration = integration_service.get_integration(integration_id=ei.integration_id)
             if integration is None:
                 continue
-            installation = integration_service.get_installation(
-                integration=integration, organization_id=self.group.organization.id
-            )
+            installation = integration.get_installation(organization_id=self.group.organization.id)
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):
@@ -71,6 +70,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user

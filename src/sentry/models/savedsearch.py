@@ -5,6 +5,7 @@ from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
@@ -54,7 +55,7 @@ class SavedSearch(Model):
     A saved search query.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)
     name = models.CharField(max_length=128)

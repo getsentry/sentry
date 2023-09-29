@@ -69,22 +69,50 @@ class NotificationSettingTypes(ValueEqualityEnum):
     # Notifications about spikes
     SPIKE_PROTECTION = 60
 
+    # Nudge notifications
+    MISSING_MEMBERS = 70
 
+    # new for settings v2 but only with helper functions
+    # This value shouldn't be stored in the DB
+    REPORTS = -1
+
+
+class NotificationSettingEnum(Enum):
+    DEFAULT = "default"
+    DEPLOY = "deploy"
+    ISSUE_ALERTS = "alerts"
+    WORKFLOW = "workflow"
+    ACTIVE_RELEASE = "activeRelease"
+    APPROVAL = "approval"
+    QUOTA = "quota"
+    QUOTA_ERRORS = "quotaErrors"
+    QUOTA_TRANSACTIONS = "quotaTransactions"
+    QUOTA_ATTACHMENTS = "quotaAttachments"
+    QUOTA_REPLAYS = "quotaReplays"
+    QUOTA_WARNINGS = "quotaWarnings"
+    QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
+    SPIKE_PROTECTION = "spikeProtection"
+    MISSING_MEMBERS = "missingMembers"
+    REPORTS = "reports"
+
+
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SETTING_TYPES = {
-    NotificationSettingTypes.DEFAULT: "default",
-    NotificationSettingTypes.DEPLOY: "deploy",
-    NotificationSettingTypes.ISSUE_ALERTS: "alerts",
-    NotificationSettingTypes.WORKFLOW: "workflow",
-    NotificationSettingTypes.ACTIVE_RELEASE: "activeRelease",
-    NotificationSettingTypes.APPROVAL: "approval",
-    NotificationSettingTypes.QUOTA: "quota",
-    NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
-    NotificationSettingTypes.QUOTA_REPLAYS: "quotaReplays",
-    NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
-    NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
+    NotificationSettingTypes.DEFAULT: NotificationSettingEnum.DEFAULT.value,
+    NotificationSettingTypes.DEPLOY: NotificationSettingEnum.DEPLOY.value,
+    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingEnum.ISSUE_ALERTS.value,
+    NotificationSettingTypes.WORKFLOW: NotificationSettingEnum.WORKFLOW.value,
+    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingEnum.ACTIVE_RELEASE.value,
+    NotificationSettingTypes.APPROVAL: NotificationSettingEnum.APPROVAL.value,
+    NotificationSettingTypes.QUOTA: NotificationSettingEnum.QUOTA.value,
+    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingEnum.QUOTA_ERRORS.value,
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingEnum.QUOTA_TRANSACTIONS.value,
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingEnum.QUOTA_ATTACHMENTS.value,
+    NotificationSettingTypes.QUOTA_REPLAYS: NotificationSettingEnum.QUOTA_REPLAYS.value,
+    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
+    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
+    NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
 }
 
 
@@ -112,13 +140,37 @@ class NotificationSettingOptionValues(ValueEqualityEnum):
     COMMITTED_ONLY = 40
 
 
+class NotificationSettingsOptionEnum(Enum):
+    DEFAULT = "default"
+    NEVER = "never"
+    ALWAYS = "always"
+    SUBSCRIBE_ONLY = "subscribe_only"
+    COMMITTED_ONLY = "committed_only"
+
+
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SETTING_OPTION_VALUES = {
-    NotificationSettingOptionValues.DEFAULT: "default",
-    NotificationSettingOptionValues.NEVER: "never",
-    NotificationSettingOptionValues.ALWAYS: "always",
-    NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
-    NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
+    NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
+    NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
+    NotificationSettingOptionValues.ALWAYS: NotificationSettingsOptionEnum.ALWAYS.value,
+    NotificationSettingOptionValues.SUBSCRIBE_ONLY: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+    NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
 }
+
+# default is not a choice anymore, we just delete the row if we want to the default
+NOTIFICATION_SETTING_V2_CHOICES = [
+    NotificationSettingsOptionEnum.ALWAYS.value,
+    NotificationSettingsOptionEnum.NEVER.value,
+    NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+    NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
+]
+
+
+class NotificationScopeEnum(Enum):
+    USER = "user"
+    ORGANIZATION = "organization"
+    PROJECT = "project"
+    TEAM = "team"
 
 
 class NotificationScopeType(ValueEqualityEnum):
@@ -128,11 +180,12 @@ class NotificationScopeType(ValueEqualityEnum):
     TEAM = 30
 
 
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SCOPE_TYPE = {
-    NotificationScopeType.USER: "user",
-    NotificationScopeType.ORGANIZATION: "organization",
-    NotificationScopeType.PROJECT: "project",
-    NotificationScopeType.TEAM: "team",
+    NotificationScopeType.USER: NotificationScopeEnum.USER.value,
+    NotificationScopeType.ORGANIZATION: NotificationScopeEnum.ORGANIZATION.value,
+    NotificationScopeType.PROJECT: NotificationScopeEnum.PROJECT.value,
+    NotificationScopeType.TEAM: NotificationScopeEnum.TEAM.value,
 }
 
 
@@ -212,6 +265,14 @@ VALID_VALUES_FOR_KEY = {
     },
 }
 
+VALID_VALUES_FOR_KEY_V2 = {
+    **VALID_VALUES_FOR_KEY,
+    NotificationSettingTypes.REPORTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+}
+
 
 class GroupSubscriptionReason:
     implicit = -1  # not for use as a persisted field value
@@ -271,8 +332,8 @@ class FallthroughChoiceType(Enum):
 
 
 FALLTHROUGH_CHOICES = [
-    (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
     (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Recently Active Members"),
+    (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
     (FallthroughChoiceType.NO_ONE.value, "No One"),
 ]
 

@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -8,7 +9,7 @@ from sentry.models import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from .card_builder.identity import build_unlinked_card
@@ -29,9 +30,10 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
     )
 
 
+@control_silo_view
 class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
             params = unsign(signed_params)

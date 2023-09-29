@@ -17,7 +17,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -33,11 +33,11 @@ def naive_build_integration(data):
     return data
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -436,11 +436,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert call.called
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 

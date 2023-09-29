@@ -1,4 +1,5 @@
 from functools import cached_property
+from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.core import mail
@@ -10,8 +11,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationOption,
 )
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -19,7 +19,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
@@ -208,6 +208,9 @@ class OrganizationInviteRequestCreateTest(
             attachment["text"]
             == f"foo@localhost is requesting to invite eric@localhost into {self.organization.name}"
         )
+        notification_uuid = parse_qs(urlparse(attachment["actions"][2]["url"]).query)[
+            "notification_uuid"
+        ][0]
         assert attachment["actions"] == [
             {
                 "text": "Approve",
@@ -228,13 +231,13 @@ class OrganizationInviteRequestCreateTest(
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}",
                 "type": "button",
             },
         ]
         assert (
             attachment["footer"]
-            == "You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user|Notification Settings>"
+            == f"You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
         assert json.loads(attachment["callback_id"]) == {

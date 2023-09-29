@@ -6,7 +6,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.models import ArtifactBundle, File, ProjectArtifactBundle
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json

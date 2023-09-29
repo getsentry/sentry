@@ -7,9 +7,13 @@ import pytest
 from sentry.models.eventattachment import EventAttachment
 from sentry.spans.grouping.utils import hash_values
 from sentry.tasks.relay import invalidate_project_config
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka
+
+pytestmark = [requires_kafka]
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):

@@ -2,10 +2,13 @@ import logging
 
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.notifications.notification_actions_index import (
@@ -22,6 +25,14 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    owner = ApiOwner.ENTERPRISE
+
     """
     Manages a single NotificationAction via the action_id passed in the path.
     GET: Returns the serialized NotificationAction
@@ -34,7 +45,21 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, action_id: int, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
+        # projects where the user has access
         accessible_projects = self.get_projects(request, organization, project_ids={-1})
+        # projects where the user has project membership
+        projects = self.get_projects(request, organization)
+
+        # team admins and regular org members don't have project:write on an org level
+        if not request.access.has_scope("project:write"):
+            # team admins will have project:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "project:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
+                raise PermissionDenied
+
         try:
             # It must either have no project affiliation, or be accessible to the user...
             action = (

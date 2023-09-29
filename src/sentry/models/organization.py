@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from enum import IntEnum
-from typing import Collection, FrozenSet, Optional, Sequence
+from typing import Any, Collection, FrozenSet, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -10,11 +9,11 @@ from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from typing_extensions import override
 
 from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -23,20 +22,22 @@ from sentry.constants import (
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
-    Model,
     OptionManager,
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.roles.manager import Role
+from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
@@ -61,7 +62,7 @@ class OrganizationStatus(IntEnum):
 
     @property
     def label(self):
-        return OrganizationStatus._labels[self]
+        return OrganizationStatus_labels[self]
 
     @classmethod
     def as_choices(cls):
@@ -77,7 +78,7 @@ class OrganizationStatus(IntEnum):
         return tuple(result)
 
 
-OrganizationStatus._labels = {
+OrganizationStatus_labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
@@ -159,14 +160,19 @@ class OrganizationManager(BaseManager):
 
 
 @region_silo_only_model
-class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
+class Organization(
+    ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin
+):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    category = OutboxCategory.ORGANIZATION_UPDATE
+    replication_version = 2
+
+    __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
-    slug: models.SlugField[str, str] = models.SlugField(unique=True)
+    slug: models.Field[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
@@ -232,10 +238,6 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
 
     snowflake_redis_key = "organization_snowflake_key"
 
-    def save_with_update_outbox(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        Organization.outbox_for_update(self.id).save()
-
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -248,51 +250,42 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        # Run the save + outbox queueing in a transaction to ensure the control-silo is notified
-        # when a change is made to the organization model.
         if SENTRY_USE_SNOWFLAKE:
             self.save_with_snowflake_id(
                 self.snowflake_redis_key,
-                lambda: self.save_with_update_outbox(*args, **kwargs),
+                lambda: super(Organization, self).save(*args, **kwargs),
             )
         else:
-            with outbox_context(transaction.atomic(using=router.db_for_write(Organization))):
-                self.save_with_update_outbox(*args, **kwargs)
-
-    # Override for the default update method to ensure that most atomic updates
-    #  generate an outbox alongside any mutations to ensure data is replicated
-    #  properly to the control silo.
-    @override
-    def update(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
-            results = super().update(*args, **kwargs)
-            Organization.outbox_for_update(self.id).save()
-            return results
+            super().save(*args, **kwargs)
 
     @classmethod
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
-
         if self.is_default:
             raise Exception("You cannot delete the the default organization.")
+        return super().delete(**kwargs)
 
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_organization(self)
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+            update_organization_mapping_from_instance,
+        )
+        from sentry.services.hybrid_cloud.organization_mapping.service import (
+            organization_mapping_service,
+        )
+        from sentry.types.region import get_local_region
 
-        with outbox_context(transaction.atomic(router.db_for_write(Organization)), flush=False):
-            Organization.outbox_for_update(self.id).save()
-            return super().delete(**kwargs)
+        update = update_organization_mapping_from_instance(self, get_local_region())
+        organization_mapping_service.upsert(organization_id=self.id, update=update)
 
-    @staticmethod
-    def outbox_for_update(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.ORGANIZATION_UPDATE,
-            object_identifier=org_id,
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        organization_mapping_service.delete(organization_id=identifier)
+        notifications_service.remove_notification_settings_for_organization(
+            organization_id=identifier
         )
 
     @cached_property
@@ -347,25 +340,25 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
 
     def has_single_owner(self):
         owners = list(
-            self.get_members_with_org_roles([roles.get_top_dog().id]).values_list("id", flat=True)
+            self.get_members_with_org_roles([roles.get_top_dog().id])[:2].values_list(
+                "id", flat=True
+            )
         )
-        return len(owners[:2]) == 1
+        return len(owners) == 1
 
     def get_members_with_org_roles(
         self,
         roles: Collection[str],
         include_null_users: bool = False,
     ):
-        members_with_role = self.member_set.filter(
-            role__in=roles,
-        )
+        members_with_role_query = self.member_set.filter(role__in=roles)
         if not include_null_users:
-            user_ids = members_with_role.filter(
+            user_ids = members_with_role_query.filter(
                 user_id__isnull=False, user_is_active=True
             ).values_list("user_id", flat=True)
-            members_with_role = members_with_role.filter(user_id__in=user_ids)
+            members_with_role_query = members_with_role_query.filter(user_id__in=user_ids)
 
-        members_with_role = set(members_with_role.values_list("id", flat=True))
+        members_with_role = set(members_with_role_query.values_list("id", flat=True))
 
         teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
 
@@ -387,28 +380,6 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
 
         return OrganizationOption.objects
 
-    def send_delete_confirmation(self, audit_log_entry, countdown):
-        from sentry import options
-        from sentry.utils.email import MessageBuilder
-
-        owners = self.get_owners()
-        url = self.absolute_url(reverse("sentry-restore-organization", args=[self.slug]))
-
-        context = {
-            "organization": self,
-            "audit_log_entry": audit_log_entry,
-            "eta": timezone.now() + timedelta(seconds=countdown),
-            "url": url,
-        }
-
-        MessageBuilder(
-            subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
-            template="sentry/emails/org_delete_confirm.txt",
-            html_template="sentry/emails/org_delete_confirm.html",
-            type="org.confirm_delete",
-            context=context,
-        ).send_async([o.email for o in owners])
-
     def _handle_requirement_change(self, request, task):
         from sentry.models.apikey import is_api_key_auth
 
@@ -418,7 +389,14 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         )
         ip_address = request.META["REMOTE_ADDR"]
 
-        task.delay(self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address)
+        # Since we cannot guarantee that a task runs after the transaction completes,
+        #  trigger the task queueing on transaction commit
+        transaction.on_commit(
+            lambda: task.delay(
+                self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address
+            ),
+            using=router.db_for_write(Organization),
+        )
 
     def handle_2fa_required(self, request):
         from sentry.tasks.auth import remove_2fa_non_compliant_members

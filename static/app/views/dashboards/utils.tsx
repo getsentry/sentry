@@ -12,7 +12,6 @@ import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
 import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {
@@ -27,6 +26,7 @@ import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -39,6 +39,7 @@ import {
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
 import {
   DashboardDetails,
   DashboardFilterKeys,
@@ -48,6 +49,11 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import {
+  ThresholdMaxKeys,
+  ThresholdsConfig,
+} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -64,23 +70,14 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: PageFilters,
-  widgetDisplayType?: DisplayType
+  selection: PageFilters
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
-  const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.columns.includes('geo.country_code')
-      ? ['geo.country_code', ...query.columns, ...query.aggregates]
-      : [...query.columns, ...query.aggregates];
-  const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.conditions.includes('has:geo.country_code')
-      ? `${query.conditions} has:geo.country_code`.trim()
-      : query.conditions;
+  const fields = [...query.columns, ...query.aggregates];
+  const conditions = query.conditions;
 
   const {orderby} = query;
   // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
@@ -100,6 +97,29 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
+}
+
+export function getWidgetIndicatorColor(
+  thresholds: ThresholdsConfig,
+  tableData: TableDataWithTitle[]
+): string {
+  const tableMeta = {...tableData[0].meta};
+  const fields = Object.keys(tableMeta);
+  const field = fields[0];
+  const data = Number(tableData[0].data[0][field]);
+  const {max_values} = thresholds;
+
+  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
+  if (greenMax && data <= greenMax) {
+    return theme.green300;
+  }
+
+  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
+  if (yellowMax && data <= yellowMax) {
+    return theme.yellow300;
+  }
+
+  return theme.red300;
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
@@ -157,8 +177,6 @@ export function miniWidget(displayType: DisplayType): string {
       return WidgetBigNumber;
     case DisplayType.TABLE:
       return WidgetTable;
-    case DisplayType.WORLD_MAP:
-      return WidgetWorldMap;
     case DisplayType.LINE:
     default:
       return WidgetLine;
@@ -224,12 +242,7 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[index],
-    selection,
-    widget.displayType
-  );
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
 
   // Pull a max of 3 valid Y-Axis from the widget
@@ -242,9 +255,6 @@ export function getWidgetDiscoverUrl(
 
   // Visualization specific transforms
   switch (widget.displayType) {
-    case DisplayType.WORLD_MAP:
-      discoverLocation.query.display = DisplayModes.WORLDMAP;
-      break;
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;

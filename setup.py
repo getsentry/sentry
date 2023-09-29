@@ -75,22 +75,4 @@ cmdclass = {
     "build_js_sdk_registry": BuildJsSdkRegistryCommand,
 }
 
-
-def get_requirements(env):
-    with open(f"requirements-{env}.txt") as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith(("#", "--"))]
-
-
-# Only include dev requirements in non-binary distributions as we don't want these
-# to be listed in the wheels. Main reason for this is being able to use git/URL dependencies
-# for development, which will be rejected by PyPI when trying to upload the wheel.
-extras_require = {"rabbitmq": ["amqp==2.6.1"]}
-if not sys.argv[1:][0].startswith("bdist"):
-    extras_require["dev"] = get_requirements("dev-frozen")
-
-
-setup(
-    install_requires=get_requirements("frozen"),
-    extras_require=extras_require,
-    cmdclass=cmdclass,
-)
+setup(cmdclass=cmdclass)

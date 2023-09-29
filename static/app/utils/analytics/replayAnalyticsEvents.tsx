@@ -1,7 +1,9 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
+  'replay.dead-click-card.rendered': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -50,6 +52,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
+    referrer_table: ReferrerTableType;
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
@@ -66,19 +69,25 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
+  'replay.rage-click-card.rendered': {};
+  'replay.rage-click-sdk-banner.dismissed': {
+    surface: string;
+  };
+  'replay.rage-click-sdk-banner.rendered': {
+    is_dismissed: boolean;
+    surface: string;
+  };
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
-    /*
-     * What scale is the video as a percent, bucketed into ranges of 10% increments
-     * example:
-     *  - The video is shown at 25% the normal size
-     *  - in CSS we use the statement `transform: scale(0.25);`
-     *  - The logged value is `20`, because the scale is in the range of 20% to 30%.
-     */
+    // What scale is the video as a percent, bucketed into ranges of 10% increments
+    // example:
+    //  - The video is shown at 25% the normal size
+    //  - in CSS we use the statement `transform: scale(0.25);`
+    //  - The logged value is `20`, because the scale is in the range of 20% to 30%.
     scale_bucket: 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
   };
   'replay.search': {
@@ -93,6 +102,7 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay.dead-click-card.rendered': 'Replay Dead Click Card Rendered',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
@@ -107,6 +117,9 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
+  'replay.rage-click-card.rendered': 'Replay Rage Click Card Rendered',
+  'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
+  'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',

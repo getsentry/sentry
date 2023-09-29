@@ -1,8 +1,6 @@
-import {profiling} from 'sentry/data/platformCategories';
 import {Project} from 'sentry/types/project';
 
-export const supportedProfilingPlatforms = profiling;
-export const supportedProfilingPlatformSDKs = [
+const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
   'go',
@@ -16,8 +14,11 @@ export const supportedProfilingPlatformSDKs = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  'react-native',
 ] as const;
-export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
+export type SupportedProfilingPlatform = (typeof supportedProfilingPlatformSDKs)[number];
 export type SupportedProfilingPlatformSDK =
   (typeof supportedProfilingPlatformSDKs)[number];
 
@@ -55,6 +56,12 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'javascript-sveltekit') {
     return 'javascript-sveltekit';
   }
+  if (platform === 'javascript') {
+    return 'javascript';
+  }
+  if (platform === 'javascript-react') {
+    return 'javascript-react';
+  }
 
   // Python
   if (platform.startsWith('python')) {
@@ -66,6 +73,8 @@ export function getDocsPlatformSDKForPlatform(
     return 'php-laravel';
   }
   if (platform === 'php-symfony') {
+    // TODD(aknaus): simplify once we migrate the docs to the sentry repo
+    // php-symfony2 is the name for php-symfony in the docs
     return 'php-symfony2';
   }
   if (platform.startsWith('php')) {
@@ -75,6 +84,11 @@ export function getDocsPlatformSDKForPlatform(
   // Ruby
   if (platform.startsWith('ruby')) {
     return 'ruby';
+  }
+
+  // React native
+  if (platform === 'react-native') {
+    return 'react-native';
   }
 
   return null;

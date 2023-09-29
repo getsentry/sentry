@@ -2,7 +2,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 
 import {ActiveOperationFilter} from './filter';
 import {
@@ -29,6 +29,8 @@ import {
   parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  SpanSubTimingMark,
+  subTimingMarkToTime,
 } from './utils';
 
 export const MIN_SIBLING_GROUP_SIZE = 5;
@@ -143,7 +145,7 @@ class SpanTreeModel {
   };
 
   generateSpanGap(
-    event: Readonly<EventTransaction>,
+    event: Readonly<EventTransaction | AggregateEventTransaction>,
     previousSiblingEndTimestamp: number | undefined,
     treeDepth: number,
     continuingTreeDepths: Array<TreeDepthType>
@@ -187,7 +189,7 @@ class SpanTreeModel {
     addTraceBounds: (bounds: TraceBound) => void;
     continuingTreeDepths: Array<TreeDepthType>;
     directParent: SpanTreeModel | null;
-    event: Readonly<EventTransaction>;
+    event: Readonly<EventTransaction | AggregateEventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     hiddenSpanSubTrees: Set<string>;
@@ -745,15 +747,21 @@ class SpanTreeModel {
               parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
               parsedTrace.traceEndTimestamp > this.span.timestamp
             ) {
-              const startTimeDelta =
-                this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+              const responseStart = subTimingMarkToTime(
+                this.span,
+                SpanSubTimingMark.HTTP_RESPONSE_START
+              ); // Response start is a better approximation
 
-              parsedTrace.traceStartTimestamp += startTimeDelta;
-              parsedTrace.traceEndTimestamp += startTimeDelta;
+              const spanTimeOffset = responseStart
+                ? responseStart - parsedTrace.traceEndTimestamp
+                : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+
+              parsedTrace.traceStartTimestamp += spanTimeOffset;
+              parsedTrace.traceEndTimestamp += spanTimeOffset;
 
               parsedTrace.spans.forEach(span => {
-                span.start_timestamp += startTimeDelta;
-                span.timestamp += startTimeDelta;
+                span.start_timestamp += spanTimeOffset;
+                span.timestamp += spanTimeOffset;
               });
 
               this.isEmbeddedTransactionTimeAdjusted = true;

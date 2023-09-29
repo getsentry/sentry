@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -1,6 +1,9 @@
 from sentry.models import Group, Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
 class SentryManagerTest(TestCase):
@@ -28,21 +31,21 @@ class SentryManagerTest(TestCase):
 
         affected_groups_no_orgs = Group.objects.get_groups_by_external_issue(
             integration,
-            {},
+            [],
             external_issue_key,
         )
         assert set(affected_groups_no_orgs) == set()
 
         affected_groups_wrong_key = Group.objects.get_groups_by_external_issue(
             integration,
-            {group.organization},
+            [group.organization],
             "invalid",
         )
         assert set(affected_groups_wrong_key) == set()
 
         affected_groups = Group.objects.get_groups_by_external_issue(
             integration,
-            {group.organization},
+            [group.organization],
             external_issue_key,
         )
         assert set(affected_groups) == {group}

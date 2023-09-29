@@ -11,7 +11,8 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -21,19 +22,27 @@ class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
         user = self.create_user()
+        team = self.create_team()
 
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
+
+        GroupSubscription.objects.subscribe(group=group, subscriber=team)
+
+        assert GroupSubscription.objects.filter(group=group, team=team).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe(group=group, subscriber=team)
 
     def test_bulk(self):
         group = self.create_group()
 
         user_ids = []
-        for i in range(20):
+        for _ in range(20):
             user = self.create_user()
             user_ids.append(user.id)
 
@@ -62,6 +71,75 @@ class SubscribeTest(TestCase):
 
         assert len(GroupSubscription.objects.filter(group=group)) == 1
 
+    @with_feature("organizations:team-workflow-notifications")
+    def test_bulk_teams(self):
+        group = self.create_group()
+
+        team_ids = []
+        for _ in range(20):
+            team = self.create_team()
+            team_ids.append(team.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
+
+        assert len(GroupSubscription.objects.filter(group=group)) == 20
+
+        one_more = self.create_team()
+        team_ids.append(one_more.id)
+
+        # should not error
+        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
+
+        assert len(GroupSubscription.objects.filter(group=group)) == 21
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_bulk_teams_dupes(self):
+        group = self.create_group()
+
+        team_ids = []
+
+        team = self.create_team()
+        team_ids.append(team.id)
+        team_ids.append(team.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
+
+        assert len(GroupSubscription.objects.filter(group=group)) == 1
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_bulk_users_and_teams(self):
+        group = self.create_group()
+
+        user_ids = []
+        team_ids = []
+
+        for _ in range(10):
+            user = self.create_user()
+            user_ids.append(user.id)
+            team = self.create_team()
+            team_ids.append(team.id)
+
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
+
+        assert len(GroupSubscription.objects.filter(group=group)) == 20
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_bulk_user_on_team(self):
+        """
+        Test that ensures bulk_subscribe subscribes users and teams individually, even if one of those users is part of one of those teams.
+        """
+        group = self.create_group()
+        team = self.create_team()
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="member", teams=[team])
+
+        team_ids = [team.id]
+        user_ids = [user.id]
+
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
+
+        assert len(GroupSubscription.objects.filter(group=group)) == 2
+
     def test_actor_user(self):
         group = self.create_group()
         user = self.create_user()
@@ -84,6 +162,23 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_subscribe_team(self):
+        org = self.create_organization()
+        group = self.create_group()
+        user = self.create_user(email="foo@example.com")
+        team = self.create_team(organization=org)
+        self.create_member(user=user, organization=org, role="owner", teams=[team])
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+        assert not GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+        assert GroupSubscription.objects.filter(group=group, team=team).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)

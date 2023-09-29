@@ -4,15 +4,16 @@ import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export const useDismissReqRespBodiesAlert = () => {
   const organization = useOrganization();
@@ -116,7 +117,7 @@ export function Setup({
   showSnippet,
   visibleTab,
 }: {
-  item: NetworkSpan;
+  item: SpanFrame;
   projectId: string;
   showSnippet: Output;
   visibleTab: TabKey;
@@ -130,7 +131,7 @@ export function Setup({
     organization,
     projectId: [projectId],
   });
-  const sdkNeedsUpdate = !isFetching && needsUpdate;
+  const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
 
   const url = item.description || 'http://example.com';
 
@@ -172,8 +173,12 @@ function SetupInstructions({
     );
   }
 
+  function trimUrl(oldUrl: string): string {
+    return oldUrl.substring(0, oldUrl.indexOf('?'));
+  }
+
   const urlSnippet = `
-      networkDetailAllowUrls: ['${url}'],`;
+      networkDetailAllowUrls: ['${trimUrl(url)}'],`;
   const headersSnippet = `
       networkRequestHeaders: ['X-Custom-Header'],
       networkResponseHeaders: ['X-Custom-Header'],`;
@@ -211,14 +216,17 @@ function SetupInstructions({
           }
         )}
       </p>
-      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
-        <Alert type="warning">
-          {tct('Add [url] to your [field] list to start capturing data.', {
-            url: <code>{url}</code>,
-            field: <code>networkDetailAllowUrls</code>,
-          })}
-        </Alert>
-      )}
+      <NetworkUrlWrapper>
+        {showSnippet === Output.URL_SKIPPED &&
+          url !== '[Filtered]' &&
+          tct(
+            'Add the following to your [field] list to start capturing data: [alert] ',
+            {
+              field: <code>networkDetailAllowUrls</code>,
+              alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
+            }
+          )}
+      </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
           {tct('Enable [field] to capture both Request and Response bodies.', {
@@ -246,6 +254,14 @@ function SetupInstructions({
     </StyledInstructions>
   );
 }
+
+const StyledTextCopyInput = styled(TextCopyInput)`
+  margin-top: ${space(0.5)};
+`;
+
+const NetworkUrlWrapper = styled('div')`
+  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(0)};
+`;
 
 const NoMarginAlert = styled(Alert)`
   margin: 0;

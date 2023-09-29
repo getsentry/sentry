@@ -8,29 +8,39 @@ import {
   parseFunction,
   Sort,
 } from 'sentry/utils/discover/fields';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Options = {
   column: GridColumnHeader<string>;
   location?: Location;
   sort?: Sort;
+  sortParameterName?:
+    | QueryParameterNames.ENDPOINTS_SORT
+    | QueryParameterNames.SPANS_SORT
+    | typeof DEFAULT_SORT_PARAMETER_NAME;
 };
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const DEFAULT_SORT_PARAMETER_NAME = 'sort';
+
+const {SPAN_SELF_TIME} = SpanMetricsField;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = SpanFunction;
 
 export const SORTABLE_FIELDS = new Set([
+  `avg(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
-  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-  'sps()',
-  'sps_percent_change()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
-  'http_error_count_percent_change()',
+  `p75(transaction.duration)`,
+  `transaction.duration`,
+  'transaction',
+  `count()`,
+  `${SPS}()`,
+  `${SPM}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
-export const renderHeadCell = ({column, location, sort}: Options) => {
+export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {
   const {key, name} = column;
   const alignment = getAlignment(key);
 
@@ -54,7 +64,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
           ...location,
           query: {
             ...location?.query,
-            [QueryParameterNames.SORT]: newSort,
+            [sortParameterName ?? DEFAULT_SORT_PARAMETER_NAME]: newSort,
           },
         };
       }}

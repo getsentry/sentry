@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import re
 import sys
-import unittest.result
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -18,6 +18,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    cast,
 )
 from unittest import TestCase
 
@@ -31,8 +32,10 @@ from django.test import override_settings
 from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
-from sentry.models import Actor, NotificationSetting
+from sentry.models.actor import Actor
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -41,7 +44,7 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 TestMethod = Callable[..., None]
 
 _DEFAULT_TEST_REGIONS = (
-    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
     Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 )
@@ -56,40 +59,8 @@ def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     return silo_limit
 
 
-class _SiloModeTestCase(TestCase):
-    """A test case that is expected to work in a particular silo mode.
-
-    This class is meant to be extended by test cases tagged with a
-    SiloModeTestDecorator. It should not be declared explicitly as a superclass,
-    but is used to dynamically generate a new test case class (see
-    SiloModeTestDecorator._add_siloed_test_classes_to_module).
-
-    The subclass will apply the silo mode context to the entire test run, including
-    setup.
-    """
-
-    # Expect these class-level attributes to be set when a subclass is
-    # dynamically generated
-    silo_mode: SiloMode
-    regions: Sequence[Region]
-    is_acceptance_test: bool
-
-    def run(
-        self, result: unittest.result.TestResult | None = None
-    ) -> unittest.result.TestResult | None:
-        with override_settings(
-            SILO_MODE=self.silo_mode,
-            SINGLE_SERVER_SILO_MODE=self.is_acceptance_test,
-            SENTRY_SUBNET_SECRET="secret",
-            SENTRY_CONTROL_ADDRESS="http://controlserver/",
-        ):
-            with override_regions(self.regions):
-                if self.silo_mode == SiloMode.REGION:
-                    with override_settings(SENTRY_REGION=self.regions[0].name):
-                        return super().run(result)
-                else:
-                    with override_settings(SENTRY_MONOLITH_REGION=self.regions[0].name):
-                        return super().run(result)
+class AncestorAlreadySiloDecoratedException(Exception):
+    pass
 
 
 class SiloModeTestDecorator:
@@ -117,25 +88,50 @@ class SiloModeTestDecorator:
         self.silo_modes = frozenset(sm for sm in silo_modes if sm != SiloMode.MONOLITH)
 
     @staticmethod
-    def _is_acceptance_test(test_class: type) -> bool:
-        from sentry.testutils import AcceptanceTestCase
+    @contextmanager
+    def test_config(regions: Sequence[Region] | None, silo_mode: SiloMode):
+        final_regions = tuple(regions or _DEFAULT_TEST_REGIONS)
 
-        return issubclass(test_class, AcceptanceTestCase)
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                override_settings(
+                    SILO_MODE=silo_mode,
+                    SENTRY_SUBNET_SECRET="secret",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
+                    SENTRY_MONOLITH_REGION=final_regions[0].name,
+                )
+            )
+            stack.enter_context(override_regions(final_regions))
+            if silo_mode == SiloMode.REGION:
+                stack.enter_context(override_settings(SENTRY_REGION=final_regions[0].name))
+
+            yield
 
     def _add_siloed_test_classes_to_module(
-        self, test_class: type, regions: Sequence[Region] | None
-    ) -> type:
-        is_acceptance_test = self._is_acceptance_test(test_class)
+        self, test_class: Type[TestCase], regions: Sequence[Region] | None
+    ) -> Type[TestCase]:
+        def create_overriding_test_class(name: str, silo_mode: SiloMode) -> Type[TestCase]:
+            def decorate_with_context(callable: Callable[..., Any]) -> Callable[..., Any]:
+                def wrapper(*args, **kwds):
+                    with SiloModeTestDecorator.test_config(regions, silo_mode):
+                        return callable(*args, **kwds)
 
-        def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
-            return type(
-                name,
-                (test_class, _SiloModeTestCase),
-                {
-                    "silo_mode": silo_mode,
-                    "regions": tuple(regions or _DEFAULT_TEST_REGIONS),
-                    "is_acceptance_test": is_acceptance_test,
-                },
+                functools.update_wrapper(wrapper, callable)
+                return wrapper
+
+            # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
+            # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
+            # test method in order to use override_settings correctly in django test cases.
+            return cast(
+                Type[TestCase],
+                type(
+                    name,
+                    (test_class,),
+                    dict(
+                        _callSetUp=decorate_with_context(test_class._callSetUp),  # type: ignore
+                        _callTestMethod=decorate_with_context(test_class._callTestMethod),  # type: ignore
+                    ),
+                ),
             )
 
         for silo_mode in self.silo_modes:
@@ -148,13 +144,7 @@ class SiloModeTestDecorator:
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
         # Return the value to be wrapped by the original decorator
-        if regions is None:
-            # Pass the original class through, with no modification
-            return test_class
-        else:
-            # Override without changing the original name. We don't need to change
-            # the silo mode, but we do need to override the region config.
-            return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
+        return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
 
     def __call__(
         self,
@@ -173,17 +163,10 @@ class SiloModeTestDecorator:
     def _mark_parameterized_by_silo_mode(
         self, test_method: TestMethod, regions: Sequence[Region] | None
     ) -> TestMethod:
-        regions = tuple(regions or _DEFAULT_TEST_REGIONS)
-
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
-            with override_settings(SILO_MODE=silo_mode):
-                with override_regions(regions):
-                    if silo_mode == SiloMode.REGION:
-                        with override_settings(SENTRY_REGION=regions[0].name):
-                            test_method(*args, **kwargs)
-                    else:
-                        test_method(*args, **kwargs)
+            with SiloModeTestDecorator.test_config(regions, silo_mode):
+                test_method(*args, **kwargs)
 
         orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)
@@ -193,9 +176,9 @@ class SiloModeTestDecorator:
             )
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
-        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes, key=str))(
-            new_test_method
-        )
+        return pytest.mark.parametrize(
+            "silo_mode", sorted(self.silo_modes | frozenset([SiloMode.MONOLITH]), key=str)
+        )(new_test_method)
 
     def _call(self, decorated_obj: Any, stable: bool, regions: Sequence[Region] | None) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
@@ -203,6 +186,11 @@ class SiloModeTestDecorator:
 
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
+
+        if is_test_case_class:
+            self._validate_that_no_ancestor_is_silo_decorated(decorated_obj)
+            # _silo_modes is used to mark the class as silo decorated in the above validation
+            decorated_obj._silo_modes = self.silo_modes
 
         # Only run non monolith tests when they are marked stable or we are explicitly running for that mode.
         if not (stable or settings.FORCE_SILOED_TESTS):
@@ -214,11 +202,50 @@ class SiloModeTestDecorator:
 
         return self._mark_parameterized_by_silo_mode(decorated_obj, regions)
 
+    def _validate_that_no_ancestor_is_silo_decorated(self, object_to_validate: Any):
+        class_queue = [object_to_validate]
+
+        # Do a breadth-first traversal of all base classes to ensure that the
+        #  object does not inherit from a class which has already been decorated,
+        #  even in multi-inheritance scenarios.
+        while len(class_queue) > 0:
+            current_class = class_queue.pop(0)
+            if getattr(current_class, "_silo_modes", None):
+                raise AncestorAlreadySiloDecoratedException(
+                    f"Cannot decorate class '{object_to_validate.__name__}', which inherits from a silo decorated class"
+                )
+            class_queue.extend(current_class.__bases__)
+
 
 all_silo_test = SiloModeTestDecorator(SiloMode.CONTROL, SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass in CONTROL, REGION and MONOLITH modes.
+"""
+
 no_silo_test = SiloModeTestDecorator()
+"""
+Apply to test functions/classes to indicate that tests are
+free of silo mode logic and hybrid cloud service usage.
+"""
+
 control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to CONTROL.
+
+When the stable=True parameter is provided tests will be
+run twice as both CONTROL and MONOLITH modes.
+"""
+
 region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to REGION.
+
+When the stable=True parameter is provided tests will be
+run twice as both REGION and MONOLITH modes.
+"""
 
 
 @contextmanager
@@ -276,17 +303,22 @@ def get_protected_operations() -> List[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+            if issubclass(model, ReplicatedControlModel) or issubclass(
+                model, ReplicatedRegionModel
+            ):
+                _protected_operations.append(protected_table(model._meta.db_table, "insert"))
+                _protected_operations.append(protected_table(model._meta.db_table, "update"))
+                _protected_operations.append(protected_table(model._meta.db_table, "delete"))
 
     # Protect inserts/updates that require outbox messages.
     _protected_operations.extend(
         [
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),
-            protected_table("sentry_organization", "insert"),
-            protected_table("sentry_organization", "update"),
-            protected_table("sentry_organizationmapping", "insert"),
-            protected_table("sentry_organizationmapping", "update"),
             protected_table("sentry_organizationmembermapping", "insert"),
         ]
     )
@@ -445,6 +477,8 @@ def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
 ) -> Set[Any]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
     seen: Set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):

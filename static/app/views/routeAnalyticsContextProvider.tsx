@@ -1,4 +1,4 @@
-import React, {createContext, useMemo} from 'react';
+import {createContext, useMemo} from 'react';
 import type {RouteContextInterface} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';

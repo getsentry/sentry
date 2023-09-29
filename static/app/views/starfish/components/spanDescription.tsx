@@ -1,43 +1,34 @@
 import styled from '@emotion/styled';
 
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
-const {SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} = SpanMetricsFields;
-
-type SpanMeta = {
-  'span.action': string;
-  'span.description': string;
-  'span.domain': string;
-  'span.op': string;
+type Props = {
+  span: Pick<
+    MetricsResponse,
+    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
+  >;
 };
 
-export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
-  if (spanMeta['span.op'].startsWith('db')) {
-    return <DatabaseSpanDescription spanMeta={spanMeta} />;
+export function SpanDescription({span}: Props) {
+  if (span[SpanMetricsField.SPAN_OP].startsWith('db')) {
+    return <DatabaseSpanDescription span={span} />;
   }
 
-  return <DescriptionWrapper>{spanMeta[SPAN_DESCRIPTION]}</DescriptionWrapper>;
+  return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
 }
 
-function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
+function DatabaseSpanDescription({span}: Props) {
+  const formatter = new SQLishFormatter();
+
   return (
-    <CodeWrapper>
-      <FormattedCode>
-        {highlightSql(spanMeta[SPAN_DESCRIPTION] || '', {
-          action: spanMeta[SPAN_ACTION] || '',
-          domain: spanMeta[SPAN_DOMAIN] || '',
-        })}
-      </FormattedCode>
-    </CodeWrapper>
+    <CodeSnippet language="sql">
+      {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
+    </CodeSnippet>
   );
 }
 
-const CodeWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const DescriptionWrapper = styled('div')`
+const WordBreak = styled('div')`
   word-break: break-word;
 `;

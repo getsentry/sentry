@@ -378,6 +378,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
     invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -388,6 +390,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
     invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
 
   /**
@@ -905,6 +909,9 @@ const commonTheme = {
 
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
+
+  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
+  barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
 
   demo: {
     headerSize: '70px',

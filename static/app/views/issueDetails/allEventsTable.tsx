@@ -1,23 +1,31 @@
 import {useEffect, useState} from 'react';
 import {Location} from 'history';
 
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
 import {
   PlatformCategory,
-  PlatformKey,
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EventTransaction, Group, IssueCategory, Organization} from 'sentry/types';
+import {
+  EventTransaction,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  PlatformKey,
+} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
-export interface Props {
+interface Props {
   group: Group;
   issueId: string;
   location: Location;
@@ -70,13 +78,32 @@ function AllEventsTable(props: Props) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const idQuery =
-    group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked
-      ? `performance.issue_ids:${issueId} event.type:transaction`
-      : `issue.id:${issueId}`;
+  eventView.statsPeriod = '90d';
+
+  let idQuery = `issue.id:${issueId}`;
+  if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
+    idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
+  } else if (
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+    groupIsOccurrenceBacked
+  ) {
+    const {transaction, aggregateRange2, breakpoint, requestEnd} =
+      data?.occurrence?.evidenceData ?? {};
+
+    // Surface the "bad" events that occur after the breakpoint
+    idQuery = getSampleEventQuery({
+      transaction,
+      durationBaseline: aggregateRange2,
+      addUpperBound: false,
+    });
+
+    eventView.dataset = DiscoverDatasets.DISCOVER;
+    eventView.start = new Date(breakpoint * 1000).toISOString();
+    eventView.end = new Date(requestEnd * 1000).toISOString();
+    eventView.statsPeriod = undefined;
+  }
   eventView.project = [parseInt(group.project.id, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
-  eventView.statsPeriod = '90d';
 
   if (error || isLoadingError) {
     return (
@@ -107,7 +134,9 @@ type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
 const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled = organization.features.includes('session-replay');
+  const isReplayEnabled =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(group.project);
 
   // profiles only exist on transactions, so this only works with
   // performance issues, and not errors

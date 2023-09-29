@@ -99,6 +99,10 @@ _POST_PROCESS_FORWARDER_OPTIONS = [
 ]
 
 
+_INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
+    click.Option(["--output-topic", "output_topic"], type=str, default="snuba-spans"),
+]
+
 # consumer name -> consumer definition
 # XXX: default_topic is needed to lookup the schema even if the actual topic name has been
 # overridden. This is because the current topic override mechanism means the default topic name
@@ -173,7 +177,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "events",
@@ -181,7 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "attachments",
@@ -189,7 +193,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": settings.KAFKA_INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "transactions",
@@ -248,6 +252,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
+    "ingest-spans": {
+        "click_options": _INGEST_SPANS_OPTIONS,
+        "topic": settings.KAFKA_INGEST_SPANS,
+        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
+    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
@@ -275,6 +284,7 @@ def get_stream_processor(
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
     validate_schema: bool = False,
+    group_instance_id: Optional[str] = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -328,6 +338,13 @@ def get_stream_processor(
 
         if max_poll_interval_ms is not None:
             consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
+            # HACK: If the max poll interval is less than 45 seconds, set the session timeout
+            # to the same. (it's default is 45 seconds and it must be <= to max.poll.interval.ms)
+            if max_poll_interval_ms < 45000:
+                consumer_config["session.timeout.ms"] = max_poll_interval_ms
+
+        if group_instance_id is not None:
+            consumer_config["group.instance.id"] = group_instance_id
 
         return consumer_config
 

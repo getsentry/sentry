@@ -1,51 +1,47 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {t} from 'sentry/locale';
+import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
 import {Monitor} from '../../types';
-import {scheduleAsText} from '../../utils';
 
+import {ResolutionSelector} from './resolutionSelector';
+import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
   monitorList: Monitor[];
 }
 
 export function OverviewTimeline({monitorList}: Props) {
-  const {replace, location} = useRouter();
+  const {location} = useRouter();
   const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const handleResolutionChange = useCallback(
-    (value: TimeWindow) => {
-      replace({...location, query: {...location.query, timeWindow: value}});
-    },
-    [location, replace]
-  );
-
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
+  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -66,118 +62,122 @@ export function OverviewTimeline({monitorList}: Props) {
     }
   );
 
+  const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
+    const success = await deleteMonitorEnvironment(
+      api,
+      organization.slug,
+      monitor.slug,
+      env
+    );
+    if (!success) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      if (oldMonitorIdx < 0) {
+        return oldMonitorList;
+      }
+
+      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
+      const newMonitor = {
+        ...oldMonitor,
+        environments: newEnvList,
+      };
+
+      return [
+        ...oldMonitorList.slice(0, oldMonitorIdx),
+        newMonitor,
+        ...oldMonitorList.slice(oldMonitorIdx + 1),
+      ];
+    });
+  };
+
   return (
     <MonitorListPanel>
-      <ListFilters>
-        <SegmentedControl<TimeWindow>
-          value={timeWindow}
-          onChange={handleResolutionChange}
-          size="xs"
-          aria-label={t('Time Scale')}
-        >
-          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </ListFilters>
       <TimelineWidthTracker ref={elementRef} />
-      <GridLineTimeLabels
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
-      />
+      <StickyResolutionSelector>
+        <ResolutionSelector />
+      </StickyResolutionSelector>
+      <StickyGridLineTimeLabels>
+        <BorderlessGridLineTimeLabels
+          timeWindowConfig={timeWindowConfig}
+          start={start}
+          end={nowRef.current}
+          width={timelineWidth}
+        />
+      </StickyGridLineTimeLabels>
       <GridLineOverlay
+        stickyCursor
         showCursor={!isLoading}
-        timeWindow={timeWindow}
+        timeWindowConfig={timeWindowConfig}
+        start={start}
         end={nowRef.current}
         width={timelineWidth}
       />
 
       {monitorList.map(monitor => (
-        <TimelineRow key={monitor.id}>
-          <MonitorDetails monitor={monitor} />
-          {isLoading || !monitorStats ? (
-            <Placeholder />
-          ) : (
-            <div>
-              <CheckInTimeline
-                timeWindow={timeWindow}
-                bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
-                start={start}
-                width={timelineWidth}
-              />
-            </div>
-          )}
-        </TimelineRow>
+        <TimelineTableRow
+          key={monitor.id}
+          monitor={monitor}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
+          bucketedData={monitorStats?.[monitor.slug]}
+          end={nowRef.current}
+          width={timelineWidth}
+          onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+        />
       ))}
     </MonitorListPanel>
   );
 }
 
-function MonitorDetails({monitor}: {monitor: Monitor}) {
-  const organization = useOrganization();
-  const schedule = scheduleAsText(monitor.config);
-
-  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
-
-  return (
-    <DetailsContainer to={monitorDetailUrl}>
-      <Name>{monitor.name}</Name>
-      <Schedule>{schedule}</Schedule>
-    </DetailsContainer>
-  );
-}
-
 const MonitorListPanel = styled(Panel)`
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 350px 135px 1fr;
 `;
 
-const TimelineRow = styled('div')`
-  display: contents;
-
-  &:nth-child(odd) > * {
-    background: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:hover > * {
-    background: ${p => p.theme.backgroundTertiary};
-  }
-
-  > * {
-    transition: background 50ms ease-in-out;
-  }
-`;
-
-const DetailsContainer = styled(Link)`
-  color: ${p => p.theme.textColor};
-  padding: ${space(2)};
-  border-right: 1px solid ${p => p.theme.border};
-  border-radius: 0;
-`;
-
-const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
-`;
-
-const Schedule = styled('small')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const ListFilters = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+const StickyResolutionSelector = styled(Sticky)`
+  z-index: 1;
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  grid-column: 1/3;
+  background: ${p => p.theme.background};
+  border-top-left-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
+    margin-left: -1px;
+  }
+`;
+
+// We don't need border here because it is already accomplished via box-shadow below
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
+`;
+
+const StickyGridLineTimeLabels = styled(Sticky)`
+  > * {
+    height: 100%;
+  }
+  z-index: 1;
+  background: ${p => p.theme.background};
+  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-right: 1px solid ${p => p.theme.border};
+    margin-right: -1px;
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 2;
+  grid-column: 3;
 `;

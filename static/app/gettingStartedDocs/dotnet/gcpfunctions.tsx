@@ -11,9 +11,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -26,20 +27,38 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
-        code: 'Install-Package Sentry.Google.Cloud.Functions -Version 3.34.0',
+        code: `Install-Package Sentry.Google.Cloud.Functions -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
+                ?.version ?? '3.34.0'
+        }`,
       },
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or .NET Core CLI:'),
-        code: 'dotnet add package Sentry.Google.Cloud.Functions -v 3.34.0',
+        code: `dotnet add package Sentry.Google.Cloud.Functions -v ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
+                ?.version ?? '3.34.0'
+        }`,
       },
       {
         language: 'xml',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or, manually add the Sentry dependency into your csproj file:'),
         code: `
 <ItemGroup>
-  <PackageReference Include="Sentry.Google.Cloud.Functions" Version="3.34.0"/>
+  <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']?.version ??
+        '3.34.0'
+  }"/>
 </ItemGroup>
         `,
       },
@@ -162,8 +181,12 @@ public Task HandleAsync(HttpContext context)
 ];
 // Configuration End
 
-export function GettingStartedWithGCPFunctions({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithGCPFunctions({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithGCPFunctions;

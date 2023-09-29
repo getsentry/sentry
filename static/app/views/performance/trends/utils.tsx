@@ -454,3 +454,7 @@ export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   query.setFilterValues('tpm()', ['>0.1']);
   trendView.query = query.formatString();
 }
+
+export function getTopTrendingEvents(location: Location) {
+  return decodeScalar(location?.query?.topEvents);
+}

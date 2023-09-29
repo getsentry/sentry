@@ -16,9 +16,10 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
 
@@ -801,6 +802,6 @@ class GetPermissionsForUserTest(TestCase):
         role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
         role.users.add(user)
 
-        assert sorted(access.get_permissions_for_user(user.id)) == sorted(
+        assert sorted(access_service.get_permissions_for_user(user.id)) == sorted(
             ["test.permission", "test.permission-role"]
         )

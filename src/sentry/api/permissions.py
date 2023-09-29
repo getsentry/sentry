@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any, Sequence
 from rest_framework import permissions
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.api.exceptions import (
+    DataSecrecyError,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -107,7 +109,7 @@ class SentryPermission(ScopedPermission):
     def determine_access(
         self,
         request: Request,
-        organization: RpcUserOrganizationContext | Organization | RpcOrganization | int,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
     ) -> None:
         from sentry.api.base import logger
 
@@ -121,6 +123,14 @@ class SentryPermission(ScopedPermission):
 
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
+
+        organization = org_context.organization
+        if (
+            request.user
+            and request.user.is_superuser
+            and features.has("organizations:enterprise-data-secrecy", org_context.organization)
+        ):
+            raise DataSecrecyError()
 
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
@@ -165,7 +175,9 @@ class SentryPermission(ScopedPermission):
                 ):
                     after_login_redirect = None
 
-                raise SsoRequired(organization, after_login_redirect=after_login_redirect)
+                raise SsoRequired(
+                    organization=organization, after_login_redirect=after_login_redirect
+                )
 
             if self.is_not_2fa_compliant(request, org_context.organization):
                 logger.info(

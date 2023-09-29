@@ -25,12 +25,10 @@ from ..types import Span
 class ProblemIndicator:
     """
     Keep span data that will be used to store the problem together.
-    Has a monotonic queue depth to know if spans hit the parallel limit without walking all spans again.
     """
 
     span: Span
     delay: float
-    queue_depth: int = 0
 
 
 class HTTPOverheadDetector(PerformanceDetector):
@@ -85,28 +83,25 @@ class HTTPOverheadDetector(PerformanceDetector):
             # shouldn't be possible, but these values are browser reported
             return
 
-        indicators = self.location_to_indicators[location]
-        recent_beginning_of_chain = next(
-            filter(lambda i: i.queue_depth == 0, reversed(indicators)), None
-        )
-        recent_end_of_chain = indicators[-1] if indicators else None
+        indicator_chains = self.location_to_indicators[location]
+        if len(indicator_chains) == 0:
+            indicator_chains += [[]]
+        recent_chain = indicator_chains[-1]
+        recent_beginning_of_chain = recent_chain[0] if len(recent_chain) > 0 else None
 
         if not recent_beginning_of_chain:
-            self.location_to_indicators[location] += [ProblemIndicator(span, request_delay, 0)]
+            recent_chain += [ProblemIndicator(span, request_delay)]
             return
 
         previous_delay = recent_beginning_of_chain.delay
         previous_span = recent_beginning_of_chain.span
-        previous_monotonic = recent_end_of_chain.queue_depth if recent_end_of_chain else 0
 
         is_overlapping = does_overlap_previous_span(previous_span, span)
-        new_monotonic = (
-            previous_monotonic + 1 if request_delay >= previous_delay and is_overlapping else 0
-        )
+        if request_delay < previous_delay or not is_overlapping:
+            recent_chain = []
+            indicator_chains += [recent_chain]
 
-        self.location_to_indicators[location] += [
-            ProblemIndicator(span, request_delay, new_monotonic)
-        ]
+        recent_chain += [ProblemIndicator(span, request_delay)]
 
     def _is_span_eligible(self, span: Span) -> bool:
         span_op = span.get("op", None)
@@ -122,24 +117,27 @@ class HTTPOverheadDetector(PerformanceDetector):
     def _store_performance_problem(self, location: str) -> None:
         delay_threshold = self.settings.get("http_request_delay_threshold")
 
-        # This isn't a threshold, it reduces noise in offending spans.
-        indicators = [
-            indicator
-            for indicator in self.location_to_indicators[location]
-            if indicator.delay > 100
-        ]
+        max_delay = -1
+        chain = None
+        for indicator_chain in self.location_to_indicators[location]:
+            # Browsers queue past 4-6 connections.
+            if len(indicator_chain) < 6:
+                continue
 
-        location_spans = [indicator.span for indicator in indicators]
-        meets_min_queued = any(
-            indicator.queue_depth >= 5 for indicator in indicators
-        )  # Browsers queue past 4-6 connections.
-        exceeds_delay_threshold = any(indicator.delay > delay_threshold for indicator in indicators)
+            end_of_chain = indicator_chain[-1]
+            exceeds_delay_threshold = end_of_chain.delay > delay_threshold
+            if end_of_chain.delay > max_delay and exceeds_delay_threshold:
+                max_delay = end_of_chain.delay
+                chain = indicator_chain
 
-        if not exceeds_delay_threshold or not meets_min_queued or not location_spans:
+        if not chain:
             return
 
+        # Remove any offending spans below 100ms for display purposes
+        location_spans = [indicator.span for indicator in chain if indicator.delay > 100]
+
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
-        example_span = location_spans[0]
+        example_span = location_spans[-1]
         desc: str = example_span.get("description", None)
 
         location_span_ids = [span.get("span_id", None) for span in location_spans]

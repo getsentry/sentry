@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
@@ -11,7 +11,7 @@ JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
@@ -25,7 +25,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.create_project(teams=[team], name="baz")
 
         response = self.get_success_response(self.organization.slug, project1.slug)
-        assert len(response.data["actions"]) == 7
+        assert len(response.data["actions"]) == 9
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
@@ -117,7 +117,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 8
+        assert len(response.data["actions"]) == 10
         assert {
             "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
             "label": "Send a notification via {service}",
@@ -147,7 +147,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         )
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 8
+        assert len(response.data["actions"]) == 10
         assert {
             "id": SENTRY_APP_ALERT_ACTION,
             "service": sentry_app.slug,
@@ -163,9 +163,24 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data["actions"]) == 7
+        assert len(response.data["actions"]) == 9
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
         filter_ids = {f["id"] for f in response.data["filters"]}
         assert IssueCategoryFilter.id in filter_ids
+
+    def test_issue_severity_filter_feature(self):
+        # Hide the issue severity filter when issue-severity-alerts is off
+        with self.feature({"projects:first-event-severity-alerting": False}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" not in [
+                filter["id"] for filter in response.data["filters"]
+            ]
+
+        # Show the issue severity filter when issue-severity-alerts is on
+        with self.feature({"projects:first-event-severity-alerting": True}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
+                filter["id"] for filter in response.data["filters"]
+            ]

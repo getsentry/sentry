@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from io import BytesIO
 from time import time
@@ -27,9 +29,12 @@ from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.pytest.fixtures import django_db_all
+
+pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):
@@ -118,7 +123,7 @@ def test_basic(
     from sentry import eventstream
 
     tombstone_calls = []
-    old_tombstone_fn = eventstream.tombstone_events_unsafe
+    old_tombstone_fn = eventstream.backend.tombstone_events_unsafe
 
     def tombstone_called(*args, **kwargs):
         tombstone_calls.append((args, kwargs))
@@ -126,15 +131,16 @@ def test_basic(
 
     monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
 
-    # Replace this with an int and nonlocal when we have Python 3
-    abs_count = []
+    abs_count = 0
 
     @register_event_preprocessor
     def event_preprocessor(data):
+        nonlocal abs_count
+
         tags = data.setdefault("tags", [])
         assert all(not x or x[0] != "processing_counter" for x in tags)
-        tags.append(("processing_counter", f"x{len(abs_count)}"))
-        abs_count.append(None)
+        tags.append(("processing_counter", f"x{abs_count}"))
+        abs_count += 1
 
         if change_groups:
             data["fingerprint"] = [uuid.uuid4().hex]
@@ -319,7 +325,6 @@ def test_max_events(
 
     burst(max_jobs=100)
 
-    event = None
     for i, event_id in enumerate(event_ids):
         event = eventstore.backend.get_event_by_id(default_project.id, event_id)
         if max_events is not None and i < (len(event_ids) - max_events):
@@ -430,7 +435,7 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
-    logs = []
+    logs: list[str] = []
     monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)
 
     event_id = process_and_save({"message": "hello world", "platform": "python"})

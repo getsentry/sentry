@@ -3,9 +3,8 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;
@@ -73,19 +72,30 @@ npm install --save @sentry/electron
   {
     type: StepType.VERIFY,
     description: t(
-      `One way to verify your setup is by intentionally causing an error that breaks your application.
-      Calling an undefined function will throw an exception:`
+      `One way to verify your setup is by intentionally causing an error that breaks your application.`
     ),
     configurations: [
       {
+        description: t(
+          `Calling an undefined function will throw a JavaScript exception:`
+        ),
         language: 'javascript',
         code: `
         myUndefinedFunction();
         `,
       },
+      {
+        description: t(
+          `With Electron you can test native crash reporting by triggering a crash:`
+        ),
+        language: 'javascript',
+        code: `
+        process.crash();
+      `,
+      },
     ],
     additionalInfo: t(
-      'You may want to try inserting this code snippet into both your main and any renderer processes to verify Sentry is operational in both.'
+      'You may want to try inserting these code snippets into both your main and any renderer processes to verify Sentry is operational in both.'
     ),
   },
 ];
@@ -98,6 +108,7 @@ export function GettingStartedWithElectron({
   platformKey,
   projectId,
   newOrg,
+  ...props
 }: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -113,6 +124,7 @@ export function GettingStartedWithElectron({
       nextSteps={[]}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

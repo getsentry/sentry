@@ -18,7 +18,7 @@ LEAVE_GUILD_URL = (
 )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class DiscordUninstallTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "delete"

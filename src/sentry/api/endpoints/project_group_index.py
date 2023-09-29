@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
@@ -27,14 +28,19 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 @region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(3, 1),
-            RateLimitCategory.USER: RateLimit(3, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
         }
     }
 
@@ -194,7 +200,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         The following attributes can be modified and are supplied as
         JSON object in the body:
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be mutated.  This
@@ -257,7 +263,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This

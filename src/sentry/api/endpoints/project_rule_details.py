@@ -1,20 +1,35 @@
 from __future__ import annotations
 
-from django.db.models import Q
-from rest_framework import status
+import logging
+
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
+from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
+from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    NeglectedRule,
     RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
@@ -26,28 +41,93 @@ from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.utils import metrics
 from sentry.web.decorators import transaction_start
 
+logger = logging.getLogger(__name__)
 
+
+class ProjectRuleDetailsPutSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    actionMatch = serializers.ChoiceField(
+        choices=(
+            ("all", "All conditions must evaluate to true."),
+            ("any", "At least one of the conditions must evaluate to true."),
+            ("none", "All conditions must evaluate to false."),
+        ),
+        help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
+    )
+    conditions = serializers.ListField(
+        child=RuleNodeField(type="condition/event"),
+        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid conditions.",
+    )
+    actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"),
+        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
+    )
+    frequency = serializers.IntegerField(
+        min_value=5,
+        max_value=60 * 24 * 30,
+        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
+    )
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
+    filterMatch = serializers.ChoiceField(
+        choices=(
+            ("all", "All filters must evaluate to true."),
+            ("any", "At least one of the filters must evaluate to true."),
+            ("none", "All filters must evaluate to false."),
+        ),
+        required=False,
+        help_text="A string determining which filters need to be true before any actions take place.",
+    )
+    filters = serializers.ListField(
+        child=RuleNodeField(type="filter/event"),
+        required=False,
+        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid filters.",
+    )
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+
+
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="Retrieve an Issue Alert Rule for a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        responses={
+            200: RuleSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueAlertExamples.GET_PROJECT_RULE,
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
-        Retrieve a rule
+        Return details on an individual issue alert rule.
 
-        Return details on an individual rule.
-
-            {method} {path}
-
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers - specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-
         # Serialize Rule object
         serialized_rule = serialize(
             rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
@@ -91,41 +171,34 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if len(errors):
             serialized_rule["errors"] = errors
 
-        rule_snooze = RuleSnooze.objects.filter(
-            Q(user_id=request.user.id) | Q(user_id=None), rule=rule
-        )
-        if rule_snooze.exists():
-            serialized_rule["snooze"] = True
-            snooze = rule_snooze[0]
-            if request.user.id == snooze.owner_id:
-                created_by = "You"
-            else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
-            serialized_rule["snoozeCreatedBy"] = created_by
-            serialized_rule["snoozeForEveryone"] = snooze.user_id is None
-        else:
-            serialized_rule["snooze"] = False
-
         return Response(serialized_rule)
 
+    @extend_schema(
+        operation_id="Update an Issue Alert Rule",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        request=ProjectRuleDetailsPutSerializer,
+        responses={
+            200: RuleSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:
         """
-        Update a rule
+        Updates an issue alert rule.
+        > Please note that this endpoint rewrites the specified issue alert rule completely.
 
-        Update various attributes for the given rule.
-
-            {method} {path}
-            {{
-              "name": "My rule name",
-              "conditions": [],
-              "filters": [],
-              "actions": [],
-              "actionMatch": "all",
-              "filterMatch": "all"
-            }}
-
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers - specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
@@ -135,6 +208,56 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         if serializer.is_valid():
             data = serializer.validated_data
+
+            # this is temporary for opting out of a migration of rules that haven't been
+            # interacted with by the user for x period of time
+            explicit_opt_out = request.data.get("optOutExplicit")
+            edit_opt_out = request.data.get("optOutEdit")
+            if explicit_opt_out or edit_opt_out:
+                try:
+                    neglected_rule = NeglectedRule.objects.get(
+                        rule=rule.id, organization=project.organization, opted_out=False
+                    )
+                    neglected_rule.opted_out = True
+                    neglected_rule.save()
+
+                    analytics_data = {
+                        "rule_id": rule.id,
+                        "user_id": request.user.id,
+                        "organization_id": project.organization.id,
+                    }
+
+                    if explicit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.explicit",
+                            **analytics_data,
+                        )
+                    if edit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.edit",
+                            **analytics_data,
+                        )
+                except NeglectedRule.DoesNotExist:
+                    pass
+
+                except NeglectedRule.MultipleObjectsReturned:
+                    logger.info(
+                        "rule_disable_opt_out.multiple",
+                        extra={
+                            "rule_id": rule.id,
+                            "org_id": project.organization.id,
+                        },
+                    )
+
+            if not data.get("actions", []):
+                return Response(
+                    {
+                        "actions": [
+                            "You must add an action for this alert to fire.",
+                        ]
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # combine filters and conditions into one conditions criteria for the rule object
             conditions = data.get("conditions", [])
@@ -151,6 +274,18 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
+            duplicate_rule = find_duplicate_rule(project=project, rule_data=kwargs, rule_id=rule.id)
+            if duplicate_rule:
+                return Response(
+                    {
+                        "name": [
+                            f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
+                        ],
+                        "ruleId": [duplicate_rule.id],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             owner = data.get("owner")
             if owner:
                 try:
@@ -160,6 +295,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         "Could not resolve owner",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+            if rule.status == ObjectStatus.DISABLED:
+                rule.status = ObjectStatus.ACTIVE
+                rule.save()
+                analytics.record(
+                    "rule_reenable.edit",
+                    rule_id=rule.id,
+                    user_id=request.user.id,
+                    organization_id=project.organization.id,
+                )
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()
@@ -171,8 +316,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
-            if rule.data["conditions"] != kwargs["conditions"]:
-                metrics.incr("sentry.issue_alert.conditions.edited", sample_rate=1.0)
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
@@ -198,10 +341,29 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        operation_id="Delete an Issue Alert Rule",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        responses={
+            202: RESPONSE_ACCEPTED,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request: Request, project, rule) -> Response:
         """
-        Delete a rule
+        Delete a specific issue alert rule.
+
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         rule.update(status=ObjectStatus.PENDING_DELETION)
         RuleActivity.objects.create(

@@ -1,22 +1,15 @@
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Event, EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 import {ContextType} from './utils';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
@@ -25,7 +18,7 @@ const renderQuickContextContent = (
 ) => {
   const organization = TestStubs.Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper
         dataRow={dataRow}
         contextType={contextType}
@@ -49,7 +42,6 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 };
 
 jest.mock('sentry/utils/useLocation');
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
@@ -62,9 +54,8 @@ describe('Quick Context', function () {
     });
 
     afterEach(() => {
-      queryClient.clear();
       MockApiClient.clearMockResponses();
-      mockUseLocation.mockReset();
+      jest.mocked(useLocation).mockReset();
     });
 
     it('Renders child', async () => {

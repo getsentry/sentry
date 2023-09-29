@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,7 +10,7 @@ from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 
 
-def is_considered_sudo(request):
+def is_considered_sudo(request: Request) -> bool:
     # Right now, only password reauthentication (django-sudo) is supported,
     # so if a user doesn't have a password (for example, only has github auth)
     # then we shouldn't prompt them for the password they don't have.
@@ -40,7 +41,7 @@ def sudo_required(func):
 def email_verification_required(func):
     @wraps(func)
     def wrapped(self, request: Request, *args, **kwargs) -> Response:
-        if not request.user.has_verified_emails():
+        if isinstance(request.user, AnonymousUser) or not request.user.has_verified_emails():
             raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 

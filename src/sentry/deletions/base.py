@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import logging
 import re
 
 from sentry.constants import ObjectStatus
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
@@ -237,14 +241,9 @@ class ModelDeletionTask(BaseDeletionTask):
                     },
                 )
 
-    def get_actor(self):
-        from sentry.models import User
-
+    def get_actor(self) -> RpcUser | None:
         if self.actor_id:
-            try:
-                return User.objects.get_from_cache(id=self.actor_id)
-            except User.DoesNotExist:
-                pass
+            return user_service.get_user(user_id=self.actor_id)
         return None
 
     def mark_deletion_in_progress(self, instance_list):

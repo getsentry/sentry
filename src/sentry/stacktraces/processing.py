@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import Any, Callable, NamedTuple, Optional, Set
+from datetime import datetime, timezone
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
 
 import sentry_sdk
-from django.utils import timezone
 
-from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
@@ -19,9 +17,9 @@ op = "stacktrace_processing"
 
 
 class StacktraceInfo(NamedTuple):
-    stacktrace: Any
-    container: Any
-    platforms: Any
+    stacktrace: dict[str, Any]
+    container: dict[str, Any]
+    platforms: set[str]
     is_exception: bool
 
     def __hash__(self) -> int:
@@ -32,6 +30,16 @@ class StacktraceInfo(NamedTuple):
 
     def __ne__(self, other: object) -> bool:
         return self is not other
+
+    def get_frames(self) -> Sequence[dict[str, Any]]:
+        return _safe_get_frames(self.stacktrace)
+
+
+def _safe_get_frames(stacktrace) -> Sequence[dict[str, Any]]:
+    frames = []
+    if stacktrace and stacktrace.get("frames"):
+        frames = [frame for frame in stacktrace.get("frames") if frame]
+    return frames
 
 
 class ProcessableFrame:
@@ -178,27 +186,39 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData, include_raw: bool = False, with_exceptions: bool = False
+    data: Mapping[str, Any], include_raw: bool = False, include_empty_exceptions: bool = False
 ) -> list[StacktraceInfo]:
-    """Finds all stacktraces in a given data blob and returns it
-    together with some meta information.
+    """
+    Finds all stacktraces in a given data blob and returns them together with some meta information.
 
     If `include_raw` is True, then also raw stacktraces are included.
 
-    If `with_exceptions` is set to `True` then stacktraces of the exception
-    are always included and the `is_exception` flag is set on that stack
-    info object.
+    If `include_empty_exceptions` is set to `True` then null/empty stacktraces and stacktraces with
+    no or only null/empty frames are included (where they otherwise would not be), with the
+    `is_exception` flag is set on their `StacktraceInfo` object.
     """
     rv = []
 
-    def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
-        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
+    def _append_stacktrace(
+        stacktrace: Any,
+        # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
+        # or None for top-level stacktraces
+        container: Any = None,
+        # Whether or not the container is from `exception.values`
+        is_exception: bool = False,
+        # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
+        # stacktraces are always skipped)
+        include_empty_exceptions: bool = False,
+    ) -> None:
+        frames = _safe_get_frames(stacktrace)
+
+        if is_exception and include_empty_exceptions:
+            # win-fast bypass of null/empty check
+            pass
+        elif not stacktrace or not frames:
             return
 
-        platforms = {
-            frame.get("platform") or data.get("platform")
-            for frame in get_path(stacktrace, "frames", filter=True, default=())
-        }
+        platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -210,21 +230,35 @@ def find_stacktraces_in_data(
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
+        _append_stacktrace(
+            exc.get("stacktrace"),
+            container=exc,
+            is_exception=True,
+            include_empty_exceptions=include_empty_exceptions,
+        )
 
     # Look for stacktraces under the key `stacktrace`
-    _append_stacktrace(data.get("stacktrace"), None)
+    _append_stacktrace(data.get("stacktrace"))
 
     # The native family includes stacktraces under threads
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _append_stacktrace(thread.get("stacktrace"), thread)
+        _append_stacktrace(thread.get("stacktrace"), container=thread)
 
     if include_raw:
+        # Iterate over a copy of rv, otherwise, it will infinitely append to itself
         for info in rv[:]:
             if info.container is not None:
-                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
+                # We don't set `is_exception` to `True` here, even if `info.is_exception` is set,
+                # because otherwise we'd end up processing each exception container twice in
+                # `process_stacktraces`
+                _append_stacktrace(info.container.get("raw_stacktrace"), container=info.container)
 
     return rv
+
+
+def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: str) -> set[str]:
+    """Create a set of platforms involved"""
+    return {frame.get("platform", fallback_platform) for frame in frames}
 
 
 def _has_system_frames(frames):
@@ -239,33 +273,50 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: list[dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
-    Ensures consistent values of in_app across a stacktrace.
+    Ensures consistent values of in_app across a stacktrace. Returns a classification of the
+    stacktrace as either "in-app-only", "system-only", or "mixed", for use in metrics.
     """
+    has_in_app_frames = False
+    has_system_frames = False
+
     # Default to false in all cases where processors or grouping enhancers
     # have not yet set in_app.
     for frame in stacktrace:
         if frame.get("in_app") is None:
             set_in_app(frame, False)
 
+        if frame.get("in_app"):
+            has_in_app_frames = True
+        else:
+            has_system_frames = True
 
-def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -> None:
+    if has_in_app_frames and has_system_frames:
+        return "mixed"
+    elif has_in_app_frames:
+        return "in-app-only"
+    else:
+        return "system-only"
+
+
+def normalize_stacktraces_for_grouping(
+    data: MutableMapping[str, Any], grouping_config=None
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
 
     stacktrace_frames = []
-    stacktrace_exceptions = []
+    stacktrace_containers = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-            # XXX: We already do this within find_stacktraces_in_data
-            frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+            frames = stacktrace_info.get_frames()
             if frames:
                 stacktrace_frames.append(frames)
-                stacktrace_exceptions.append(
+                stacktrace_containers.append(
                     stacktrace_info.container if stacktrace_info.is_exception else None
                 )
 
@@ -287,15 +338,30 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_exceptions):
+            for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, exception_data
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
-    # normalize in-app
+    # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
+    # we can track the mix with a metric in cases where this event creates a new group
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
+        frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
+
         for frames in stacktrace_frames:
-            _normalize_in_app(frames)
+            stacktrace_frame_mix = _normalize_in_app(frames)
+            frame_mixes[stacktrace_frame_mix] += 1
+
+        event_metadata = data.get("metadata") or {}
+        event_metadata["in_app_frame_mix"] = (
+            "in-app-only"
+            if frame_mixes["in-app-only"] == len(stacktrace_frames)
+            else "system-only"
+            if frame_mixes["system-only"] == len(stacktrace_frames)
+            else "mixed"
+        )
+        data["metadata"] = event_metadata
 
 
 def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
@@ -321,8 +387,8 @@ def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
 def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
-    platforms: Set[str] = set()
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
@@ -341,7 +407,7 @@ def should_process_for_stacktraces(data):
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins.base import plugins
 
-    platforms: Set[str] = set()
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
 
@@ -369,7 +435,7 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    frames = stacktrace_info.get_frames()
     frame_count = len(frames)
     rv: list[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
@@ -389,7 +455,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     processed_frames = []
     all_errors: list[Any] = []
 
-    bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    bare_frames = stacktrace_info.get_frames()
     frame_count = len(bare_frames)
     processable_frames = {frame.idx: frame for frame in processable_frames}
 
@@ -520,7 +586,7 @@ def dedup_errors(errors):
 
 
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
     else:

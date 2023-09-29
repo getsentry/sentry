@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import urlencode
@@ -7,8 +6,7 @@ from django.test import override_settings
 
 from sentry.models import Authenticator, AuthProvider
 from sentry.models.authidentity import AuthIdentity
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
@@ -38,7 +36,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:admin".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "admin"),
         )
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
@@ -47,7 +45,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:foobar".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "foobar"),
         )
         assert response.status_code == 401
 

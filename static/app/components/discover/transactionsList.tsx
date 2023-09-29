@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useContext, useEffect} from 'react';
+import {Component, Fragment, useContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -299,7 +299,7 @@ class _TransactionsList extends Component<Props> {
                 size="xs"
                 data-test-id="transaction-events-open"
               >
-                {t('View All Events')}
+                {t('View Sampled Events')}
               </Button>
             </GuideAnchor>
           ) : (

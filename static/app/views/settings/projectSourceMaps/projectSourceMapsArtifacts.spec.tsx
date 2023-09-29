@@ -1,3 +1,7 @@
+import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
+import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
+import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -19,8 +23,8 @@ function renderReleaseBundlesMockRequests({
     body: empty
       ? []
       : [
-          TestStubs.SourceMapArchive(),
-          TestStubs.SourceMapArchive({
+          SourceMapArchive(),
+          SourceMapArchive({
             id: 2,
             name: 'abc',
             fileCount: 3,
@@ -31,7 +35,7 @@ function renderReleaseBundlesMockRequests({
 
   const sourceMapsFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/releases/bea7335dfaebc0ca6e65a057/files/`,
-    body: empty ? [] : [TestStubs.SourceMapArtifact()],
+    body: empty ? [] : [SourceMapArtifact()],
   });
 
   return {sourceMaps, sourceMapsFiles};
@@ -48,7 +52,7 @@ function renderDebugIdBundlesMockRequests({
 }) {
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
-    body: empty ? {} : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
+    body: empty ? {} : SourceMapsDebugIDBundlesArtifacts(),
   });
 
   return {artifactBundlesFiles};
@@ -57,7 +61,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerContext, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -78,12 +82,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -118,7 +118,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerProps, project, routerContext} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -135,12 +135,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -158,7 +154,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -182,12 +178,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -232,7 +224,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -252,12 +244,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,

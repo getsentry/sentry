@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -69,7 +70,7 @@ class ExternalIssueManager(BaseManager):
 
 @region_silo_only_model
 class ExternalIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     # The foreign key here is an `int`, not `bigint`.
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
@@ -96,6 +97,4 @@ class ExternalIssue(Model):
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
 
-        return integration_service.get_installation(
-            integration=integration, organization_id=self.organization_id
-        )
+        return integration.get_installation(organization_id=self.organization_id)

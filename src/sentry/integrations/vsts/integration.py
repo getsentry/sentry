@@ -6,9 +6,8 @@ from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext as _
-from rest_framework.request import Request
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -29,7 +28,6 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
-    Repository,
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -151,7 +149,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
         return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client(base_url=self.instance)
         try:
             # since we don't actually use webhooks for vsts commits,
@@ -528,7 +526,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponse:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(

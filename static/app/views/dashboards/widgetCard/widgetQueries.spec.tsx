@@ -1,3 +1,5 @@
+import {EventsStats} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -449,65 +451,6 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
-  it('can send world map result queries', async function () {
-    const tableMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
-    });
-
-    let childProps: GenericWidgetQueriesChildrenProps | undefined;
-    renderWithProviders(
-      <WidgetQueries
-        api={new MockApiClient()}
-        widget={{
-          title: 'SDK',
-          interval: '5m',
-          displayType: DisplayType.WORLD_MAP,
-          queries: [
-            {
-              conditions: 'event.type:error',
-              fields: ['count()'],
-              aggregates: [],
-              columns: ['count()'],
-              name: 'sdk',
-              orderby: '',
-            },
-          ],
-        }}
-        organization={initialData.organization}
-        selection={selection}
-      >
-        {props => {
-          childProps = props;
-          return <div data-test-id="child" />;
-        }}
-      </WidgetQueries>
-    );
-
-    // Child should be rendered and 1 requests should be sent.
-    await screen.findByTestId('child');
-    expect(tableMock).toHaveBeenCalledTimes(1);
-    expect(tableMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-geo/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          referrer: 'api.dashboards.worldmapwidget',
-          query: 'event.type:error',
-          field: ['count()'],
-          statsPeriod: '14d',
-          environment: ['prod'],
-          project: [1],
-        }),
-      })
-    );
-    expect(childProps?.timeseriesResults).toBeUndefined();
-    expect(childProps?.tableResults?.[0].data).toHaveLength(1);
-    expect(childProps?.tableResults?.[0].meta).toBeDefined();
-  });
-
   it('stops loading state once all queries finish even if some fail', async function () {
     const firstQuery = MockApiClient.addMockResponse({
       statusCode: 500,
@@ -711,7 +654,7 @@ describe('Dashboards > WidgetQueries', function () {
   it('does not re-query events and sets name in widgets', async function () {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
     const lineWidget = {
       ...singleQueryWidget,

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.signals import issue_mark_reviewed, issue_unignored
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class SignalsTest(TestCase, SnubaTestCase):

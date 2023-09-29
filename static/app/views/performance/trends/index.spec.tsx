@@ -31,13 +31,6 @@ const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
-jest.mock(
-  'sentry/utils/getDynamicComponent',
-  () =>
-    ({fixed}) =>
-      fixed
-);
-
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment');
   moment.now = jest.fn().mockReturnValue(1601251200000);
@@ -261,6 +254,9 @@ describe('Performance > Trends', function () {
             'p95()': 1010.9232499999998,
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
+            'count()': 34872349,
+            'failure_rate()': 0.43428379,
+            'examples()': ['djk3w308er', '3298a9ui3h'],
           },
         ],
         meta: {
@@ -268,17 +264,28 @@ describe('Performance > Trends', function () {
             'p95()': 'duration',
             '950()': 'duration',
             'tps()': 'number',
+            'count()': 'number',
+            'failure_rate()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
+            'count()': null,
+            'failure_rate()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},
           dataset: 'metrics',
         },
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
     });
   });
 
@@ -370,7 +377,7 @@ describe('Performance > Trends', function () {
       expect(screen.getByText('Throughput')).toBeInTheDocument();
       expect(screen.getByText('P95')).toBeInTheDocument();
       expect(screen.getByText('P50')).toBeInTheDocument();
-      expect(screen.getByText('Errors')).toBeInTheDocument();
+      expect(screen.getByText('Failure Rate')).toBeInTheDocument();
     });
   });
 

@@ -1,9 +1,11 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
+from typing import Mapping
 
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.models import (
     Activity,
     Group,
@@ -14,6 +16,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.silo import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -27,13 +30,14 @@ ONE_HOUR = 3600
     queue="auto_transition_issue_states",
     time_limit=75,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 @log_error_if_queue_has_items
 def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
-    opts_by_project = defaultdict(dict)
+    opts_by_project: Mapping[int, dict] = defaultdict(dict)
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
@@ -57,6 +61,7 @@ def schedule_auto_resolution():
     queue="auto_transition_issue_states",
     time_limit=75,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
@@ -100,6 +105,15 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
+
+            analytics.record(
+                "issue.auto_resolved",
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
             )
 
     if might_have_more:

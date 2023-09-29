@@ -4,14 +4,16 @@ import re
 from collections import defaultdict
 from typing import (
     Any,
+    Callable,
     Dict,
-    List,
     Mapping,
     MutableMapping,
+    MutableSequence,
     NamedTuple,
     Optional,
     Sequence,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -26,6 +28,9 @@ from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
+from sentry import options
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
@@ -35,14 +40,15 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_NAME_LENGTH = 200
-MAX_TAG_KEY_LENGTH = 200
-MAX_TAG_VALUE_LENGTH = 200
+# Do not change these values without also changing the corresponding MAX_INDEXED_COLUMN_LENGTH to
+# ensure that the database can store the data.
+MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
+Headers = MutableSequence[Tuple[str, bytes]]
 
 
 class PartitionIdxOffset(NamedTuple):
@@ -64,17 +70,6 @@ def _should_sample_debug_log() -> bool:
     return (rate > 0) and random.random() <= rate
 
 
-def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
-    invalid_strs: List[str] = []
-    for key, value in tags.items():
-        if key is None or len(key) > MAX_TAG_KEY_LENGTH:
-            invalid_strs.append(key)
-        if value is None or len(value) > MAX_TAG_VALUE_LENGTH:
-            invalid_strs.append(value)
-
-    return invalid_strs
-
-
 # TODO: Move this to where we do use case registration
 def extract_use_case_id(mri: str) -> UseCaseID:
     """
@@ -94,11 +89,13 @@ class IndexerBatch:
         should_index_tag_values: bool,
         is_output_sliced: bool,
         input_codec: Optional[Codec[Any]],
+        tags_validator: Callable[[Mapping[str, str]], bool],
     ) -> None:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
         self.__input_codec = input_codec
+        self.tags_validator = tags_validator
 
         self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
@@ -106,15 +103,31 @@ class IndexerBatch:
 
         self._extract_messages()
 
+    def _extract_namespace(self, headers: Headers) -> Optional[str]:
+        for string, endcoded in headers:
+            if string == "namespace":
+                return endcoded.decode("utf-8")
+        metrics.incr("sentry-metrics.indexer.killswitch.no-namespace-in-header")
+        return None
+
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, ParsedMessage] = {}
 
+        disabled_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
+
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
 
+            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
+                "sentry-metrics.indexer.disabled-namespaces"
+            ):
+                assert namespace
+                self.skipped_offsets.add(partition_offset)
+                disabled_msgs_cnt[namespace] += 1
+                continue
             try:
                 parsed_payload: ParsedMessage = json.loads(
                     msg.payload.value.decode("utf-8"), use_rapid_json=True
@@ -168,6 +181,13 @@ class IndexerBatch:
             _: IngestMetric = parsed_payload
 
             self.parsed_payloads_by_offset[partition_offset] = parsed_payload
+
+        for namespace, cnt in disabled_msgs_cnt.items():
+            metrics.incr(
+                "process_messages.namespace_disabled",
+                amount=cnt,
+                tags={"namespace": namespace},
+            )
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
@@ -235,7 +255,7 @@ class IndexerBatch:
                 self.skipped_offsets.add(partition_offset)
                 continue
 
-            if invalid_strs := invalid_metric_tags(tags):
+            if self.tags_validator(tags) is False:
                 # sentry doesn't seem to actually capture nested logger.error extra args
                 sentry_sdk.set_extra("all_metric_tags", tags)
                 logger.error(
@@ -244,7 +264,7 @@ class IndexerBatch:
                         "use_case_id": use_case_id,
                         "org_id": org_id,
                         "metric_name": metric_name,
-                        "invalid_tags": invalid_strs,
+                        "tags": tags,
                         "partition": partition_idx,
                         "offset": offset,
                     },
@@ -442,6 +462,9 @@ class IndexerBatch:
                     "value": old_payload_value["value"],
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
+                if aggregation_option := get_aggregation_option(old_payload_value["name"]):
+                    new_payload_v2["aggregation_option"] = aggregation_option.value
+
                 new_payload_value = new_payload_v2
 
             kafka_payload = KafkaPayload(

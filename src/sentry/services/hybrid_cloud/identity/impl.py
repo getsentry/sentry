@@ -74,13 +74,11 @@ class DatabaseBackedIdentityService(IdentityService):
     def delete_identities(self, user_id: int, organization_id: int) -> None:
         """
         Deletes the set of identities associated with a user and organization context.
-        :param user_id:
-        :param organization_id:
-        :return:
         """
-        AuthIdentity.objects.filter(
+        for ai in AuthIdentity.objects.filter(
             user_id=user_id, auth_provider__organization_id=organization_id
-        ).delete()
+        ):
+            ai.delete()
 
     def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
         identity: Optional[Identity] = Identity.objects.filter(id=identity_id).first()
@@ -92,7 +90,9 @@ class DatabaseBackedIdentityService(IdentityService):
     class _IdentityFilterQuery(
         FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
-        def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
+        def apply_filters(
+            self, query: QuerySet[Identity], filters: IdentityFilterArgs
+        ) -> QuerySet[Identity]:
             if "id" in filters:
                 query = query.filter(id=filters["id"])
             if "user_id" in filters:
@@ -107,7 +107,7 @@ class DatabaseBackedIdentityService(IdentityService):
                 query = query.filter(idp__type=filters["provider_type"])
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[Identity]:
             return Identity.objects
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:

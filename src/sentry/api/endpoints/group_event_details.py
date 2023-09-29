@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from snuba_sdk import Condition, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import eventstore, features
+from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
@@ -94,6 +95,9 @@ def issue_search_query_to_conditions(
 
 @region_silo_endpoint
 class GroupEventDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -121,41 +125,34 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id == "helpful":
-            if features.has(
-                "organizations:issue-details-most-helpful-event",
-                group.project.organization,
-                actor=request.user,
-            ):
-                query = request.GET.get("query")
-                if query:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "helpful", "query": True},
-                    ):
-                        try:
-                            conditions = issue_search_query_to_conditions(
-                                query, group, request.user, environments
-                            )
-                            event = group.get_helpful_event_for_environments(
-                                environments, conditions
-                            )
-                        except ValidationError:
-                            return Response(status=400)
-                        except Exception:
-                            logging.error(
-                                "group_event_details:get_helpful",
-                                exc_info=True,
-                            )
-                            return Response(status=500)
-                else:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "helpful", "query": False},
-                    ):
-                        event = group.get_helpful_event_for_environments(environments)
+        elif event_id in ("helpful", "recommended"):
+            query = request.GET.get("query")
+            if query:
+                with metrics.timer(
+                    "api.endpoints.group_event_details.get",
+                    tags={"type": "helpful", "query": True},
+                ):
+                    try:
+                        conditions = issue_search_query_to_conditions(
+                            query, group, request.user, environments
+                        )
+                        event = group.get_recommended_event_for_environments(
+                            environments, conditions
+                        )
+                    except ValidationError:
+                        return Response(status=400)
+                    except Exception:
+                        logging.error(
+                            "group_event_details:get_helpful",
+                            exc_info=True,
+                        )
+                        return Response(status=500)
             else:
-                return Response(status=404)
+                with metrics.timer(
+                    "api.endpoints.group_event_details.get",
+                    tags={"type": "helpful", "query": False},
+                ):
+                    event = group.get_recommended_event_for_environments(environments)
         else:
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(

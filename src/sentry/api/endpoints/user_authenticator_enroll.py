@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
@@ -105,6 +107,12 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     @sudo_required
     def get(self, request: Request, user, interface_id) -> HttpResponse:
         """

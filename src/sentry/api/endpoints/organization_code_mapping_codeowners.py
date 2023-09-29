@@ -4,6 +4,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import RepositoryProjectPathConfig
@@ -16,14 +17,15 @@ def get_codeowner_contents(config):
         raise NotFound(detail="No associated integration")
 
     integration = integration_service.get_integration(integration_id=config.integration_id)
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
     return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 
 @region_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):

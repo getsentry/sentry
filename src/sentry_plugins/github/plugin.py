@@ -12,12 +12,14 @@ from sentry.locks import locks
 from sentry.models import Integration, Organization, OrganizationOption, Repository
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.plugins.providers import RepositoryProvider
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
-from social_auth.models import UserSocialAuth
 
 from .client import GithubPluginAppsClient, GithubPluginClient
 
@@ -469,9 +471,10 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
     def link_auth(self, user, organization, data):
         integration_id = data["integration_id"]
 
-        try:
-            integration = Integration.objects.get(provider=self.auth_provider, id=integration_id)
-        except Integration.DoesNotExist:
+        integration = integration_service.get_integration(
+            integration_id=integration_id, provider=self.auth_provider
+        )
+        if not integration:
             raise PluginError("Invalid integration id")
 
         # check that user actually has access to add
@@ -479,7 +482,9 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if int(integration.external_id) not in allowed_gh_installations:
             raise PluginError("You do not have access to that integration")
 
-        integration.add_organization(organization)
+        integration_service.add_organization(
+            integration_id=integration.id, org_ids=[organization.id]
+        )
 
         for repo in self.get_repositories(integration):
             # TODO(jess): figure out way to migrate from github --> github apps
@@ -509,8 +514,10 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-
-        client = GithubPluginAppsClient(Integration.objects.get(id=integration_id))
+        integration = integration_service.get_integration(
+            integration_id=integration_id, provider=self.auth_provider
+        )
+        client = GithubPluginAppsClient(integration=integration)
 
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -529,11 +536,12 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
             else:
                 return self._format_commits(repo, res["commits"])
 
-    def get_installations(self, actor):
-        if not actor.is_authenticated:
+    def get_installations(self, user):
+        if not user.is_authenticated:
             raise PluginError(API_ERRORS[401])
-
-        auth = UserSocialAuth.objects.filter(user=actor, provider="github_apps").first()
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": "github_apps"}
+        )
 
         if not auth:
             self.logger.warning("get_installations.no-linked-auth")
@@ -544,7 +552,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
 
         return [install["id"] for install in res["installations"]]
 
-    def get_repositories(self, integration):
+    def get_repositories(self, integration: RpcIntegration):
         client = GithubPluginAppsClient(integration)
 
         res = client.get_repositories()

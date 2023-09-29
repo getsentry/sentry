@@ -331,13 +331,13 @@ def test_reuse_existing_grouping_results() -> None:
                 SpanBuilder()
                 .with_span_id("b" * 16)
                 .with_description("hi")
-                .with_fingerprint("a")
+                .with_fingerprint(["a"])
                 .build(),
                 SpanBuilder().with_span_id("c" * 16).with_description("hi").build(),
                 SpanBuilder()
                 .with_span_id("d" * 16)
                 .with_description("bye")
-                .with_fingerprint("a")
+                .with_fingerprint(["a"])
                 .build(),
             ],
             {"b" * 16: "a", "c" * 16: "hi", "d" * 16: "a"},

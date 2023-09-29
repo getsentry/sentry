@@ -1,5 +1,7 @@
-from copy import copy
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 
 import msgpack
@@ -58,11 +60,11 @@ def test_adjust_instruction_addr_sample_format():
         {"instruction_addr": "0xbeefdead"},
         {"instruction_addr": "0xfeedface"},
     ]
-    profile = {
+    profile: dict[str, Any] = {
         "version": "1",
         "platform": "cocoa",
         "profile": {
-            "frames": copy(original_frames),
+            "frames": original_frames.copy(),
             "stacks": [[1, 0], [0, 1, 2]],
         },
         "debug_meta": {"images": []},

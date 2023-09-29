@@ -1,9 +1,10 @@
-import React, {Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -52,9 +53,12 @@ function getErrorMessage(
     if (docPlatform === 'react-native') {
       return 'https://docs.sentry.io/platforms/react-native/troubleshooting/#source-maps';
     }
-    return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
+    return (
+      `${baseSourceMapDocsLink}troubleshooting_js/legacy-uploading-methods/` +
+      (section ? `#${section}` : '')
+    );
   }
-  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
+  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -153,16 +157,9 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
-    case SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE:
-      return [
-        {
-          title: t('Sentry not part of build pipeline'),
-          desc: t(
-            'Integrate Sentry into your build pipeline using a tool like Webpack or the CLI.'
-          ),
-          docsLink: defaultDocsLink,
-        },
-      ];
+    // Need to return something but this does not need to follow the pattern since it uses a different alert
+    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
+      return [{title: 'Debug Id but no Sourcemaps'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -281,6 +278,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       type,
     });
   };
+
+  if (
+    errorMessages.filter(
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
+    ).length > 0
+  ) {
+    return <SourceMapsWizard analyticsParams={analyticsParams} />;
+  }
 
   return (
     <Alert

@@ -2,8 +2,11 @@ import pytest
 
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @pytest.fixture(autouse=True)

@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from uuid import uuid4
 
 import jsonschema
 import pytz
-from croniter import croniter
-from dateutil import rrule
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry import features
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -30,28 +29,16 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.issues.grouptype import (
-    MonitorCheckInFailure,
-    MonitorCheckInMissed,
-    MonitorCheckInTimeout,
-)
+from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
-from sentry.models import Environment, Organization, Rule, RuleSource
+from sentry.models import Environment, Rule, RuleSource
+from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models import Project
-
-SCHEDULE_INTERVAL_MAP = {
-    "year": rrule.YEARLY,
-    "month": rrule.MONTHLY,
-    "week": rrule.WEEKLY,
-    "day": rrule.DAILY,
-    "hour": rrule.HOURLY,
-    "minute": rrule.MINUTELY,
-}
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -62,9 +49,12 @@ MONITOR_CONFIG = {
         "schedule_type": {"type": "integer"},
         "schedule": {"type": ["string", "array"]},
         "alert_rule_id": {"type": ["integer", "null"]},
+        "failure_issue_threshold": {"type": ["integer", "null"]},
+        "recovery_threshold": {"type": ["integer", "null"]},
     },
-    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
-    "required": ["checkin_margin", "max_runtime", "schedule"],
+    # TODO(davidenwang): Old monitors may not have timezone, it should be added
+    # here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
 
@@ -81,44 +71,6 @@ class MonitorEnvironmentLimitsExceeded(Exception):
 
 class MonitorEnvironmentValidationFailed(Exception):
     pass
-
-
-def get_next_schedule(last_checkin, schedule_type, schedule):
-    if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, last_checkin)
-        next_schedule = itr.get_next(datetime)
-    elif schedule_type == ScheduleType.INTERVAL:
-        interval, unit_name = schedule
-        rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
-        )
-        if rule[0] > last_checkin:
-            next_schedule = rule[0]
-        else:
-            next_schedule = rule[1]
-    else:
-        raise NotImplementedError("unknown schedule_type")
-
-    # Ensure we clamp the expected time down to the minute, that is the level
-    # of granularity we're able to support
-    next_schedule = next_schedule.replace(second=0, microsecond=0)
-
-    return next_schedule
-
-
-def get_monitor_environment_context(monitor_environment):
-    config = monitor_environment.monitor.config.copy()
-    if "schedule_type" in config:
-        config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()
-
-    return {
-        "id": str(monitor_environment.monitor.guid),
-        "slug": monitor_environment.monitor.slug,
-        "name": monitor_environment.monitor.name,
-        "config": monitor_environment.monitor.config,
-        "status": monitor_environment.get_status_display(),
-        "type": monitor_environment.monitor.get_type_display(),
-    }
 
 
 class MonitorStatus:
@@ -196,7 +148,7 @@ class CheckInStatus:
 
 class MonitorType:
     # In the future we may have other types of monitors such as health check
-    # monitors. But for now we just have CRON_JOB style moniotors.
+    # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
 
@@ -212,12 +164,6 @@ class MonitorType:
         return dict(cls.as_choices())[value]
 
 
-class MonitorFailure:
-    UNKNOWN = "unknown"
-    MISSED_CHECKIN = "missed_checkin"
-    DURATION = "duration"
-
-
 class ScheduleType:
     UNKNOWN = 0
     CRONTAB = 1
@@ -225,7 +171,7 @@ class ScheduleType:
 
     @classmethod
     def as_choices(cls):
-        return ((cls.UNKNOWN, "unknown"), (cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
+        return ((cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
 
     @classmethod
     def get_name(cls, value):
@@ -234,7 +180,7 @@ class ScheduleType:
 
 @region_silo_only_model
 class Monitor(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
     slug = models.SlugField()
@@ -248,7 +194,7 @@ class Monitor(Model):
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
-    config = JSONField(default=dict)
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -272,23 +218,44 @@ class Monitor(Model):
                 )
         return super().save(*args, **kwargs)
 
+    @property
+    def schedule(self) -> Union[CrontabSchedule, IntervalSchedule]:
+        schedule_type = self.config["schedule_type"]
+        schedule = self.config["schedule"]
+
+        if schedule_type == ScheduleType.CRONTAB:
+            return CrontabSchedule(crontab=schedule)
+        if schedule_type == ScheduleType.INTERVAL:
+            return IntervalSchedule(interval=schedule[0], unit=schedule[1])
+
+        raise NotImplementedError("unknown schedule_type")
+
     def get_schedule_type_display(self):
-        return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))
+        return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin):
-        tz = pytz.timezone(self.config.get("timezone") or "UTC")
-        schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
-        next_checkin = get_next_schedule(
-            last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
-        )
-        return next_checkin
+    def get_next_expected_checkin(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the next expected checkin time given the most recent checkin time
+        """
+        from sentry.monitors.schedule import get_next_schedule
 
-    def get_next_scheduled_checkin_with_margin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin(last_checkin)
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+        tz = pytz.timezone(self.config.get("timezone") or "UTC")
+        return get_next_schedule(last_checkin.astimezone(tz), self.schedule)
+
+    def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the latest time we will expect the next checkin at given the
+        most recent checkin time. This is determined by the user-configured
+        margin.
+        """
+        next_checkin = self.get_next_expected_checkin(last_checkin)
+        # TODO(epurkhiser): We should probably just set this value as a
+        # `default` in the validator for the config instead of having the magic
+        # default number here
+        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
@@ -307,7 +274,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.error(f"Monitor: {self.id} invalid config: {self.config}")
+            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")
@@ -360,6 +327,17 @@ class Monitor(Model):
 
         return None
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID.
+        self.guid = uuid4()
+        return old_pk
+
 
 @receiver(pre_save, sender=Monitor)
 def check_organization_monitor_limits(sender, instance, **kwargs):
@@ -375,27 +353,71 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
     monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
+    """
+    XXX(epurkhiser): Currently unused
+    """
     status = BoundedPositiveIntegerField(
-        default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
+        default=CheckInStatus.UNKNOWN,
+        choices=CheckInStatus.as_choices(),
+        db_index=True,
     )
-    config = JSONField(default=dict)
+    """
+    The status of the check-in
+    """
+
     duration = BoundedPositiveIntegerField(null=True)
+    """
+    The total number in milliseconds that the check-in took to execute. This is
+    generally computed from the difference between the opening and closing
+    check-in.
+    """
+
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    """
+    Represents the time the checkin was made. This CAN BE back-dated in some
+    cases, and does not necessarily represent the insertion time of the row in
+    the database.
+    """
+
     date_updated = models.DateTimeField(default=timezone.now)
-    attachment_id = BoundedBigIntegerField(null=True)
-    # Holds the time we expected to receive this check-in without factoring in margin
+    """
+    Currently only updated when a in_progress check-in is sent with this
+    check-in's guid. Can be used to extend the lifetime of a check-in so that
+    it does not time out.
+    """
+
     expected_time = models.DateTimeField(null=True)
-    # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
+    """
+    Holds the exact time we expected to receive this check-in
+    """
+
     timeout_at = models.DateTimeField(null=True)
+    """
+    Holds the exact time when a check-in would be considered to have timed out.
+    This is computed as the sum of date_updated and the user configured
+    max_runtime.
+    """
+
     monitor_config = JSONField(null=True)
+    """
+    A snapshot of the monitor configuration at the time of the check-in.
+    """
+
     trace_id = UUIDField(null=True)
+    """
+    Trace ID associated during this check-in. Useful to find associated events
+    that occurred during the check-in.
+    """
+
+    attachment_id = BoundedBigIntegerField(null=True)
+    config = JSONField(default=dict)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -405,7 +427,7 @@ class MonitorCheckIn(Model):
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            models.Index(fields=["timeout_at", "status"]),
+            models.Index(fields=["status", "timeout_at"]),
             models.Index(fields=["trace_id"]),
         ]
 
@@ -426,7 +448,7 @@ class MonitorCheckIn(Model):
 
 @region_silo_only_model
 class MonitorLocation(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
@@ -442,7 +464,7 @@ class MonitorLocation(Model):
 
 class MonitorEnvironmentManager(BaseManager):
     """
-    A manager that consolidates logic for monitor enviroment updates
+    A manager that consolidates logic for monitor environment updates
     """
 
     def ensure_environment(
@@ -464,16 +486,44 @@ class MonitorEnvironmentManager(BaseManager):
 
 @region_silo_only_model
 class MonitorEnvironment(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor")
     environment = FlexibleForeignKey("sentry.Environment")
-    status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
-    )
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    status = BoundedPositiveIntegerField(
+        default=MonitorStatus.ACTIVE,
+        choices=MonitorStatus.as_choices(),
+    )
+    """
+    The MonitorStatus of the monitor. This is denormalized from the check-ins
+    list, since it would be possible to determine this by looking at recent
+    check-ins. It is denormalized for simplicity.
+    """
+
+    next_checkin = models.DateTimeField(null=True)
+    """
+    The expected time that the next-checkin will occur
+    """
+
+    next_checkin_latest = models.DateTimeField(null=True)
+    """
+    The latest expected time that the next-checkin can occur without generating
+    a missed check-in. This is computed using the user-configured margin for
+    the monitor.
+    """
+
+    last_checkin = models.DateTimeField(null=True)
+    """
+    date_added time of the most recent user-check in. This does not include
+    auto-generated missed check-ins.
+    """
+
+    last_state_change = models.DateTimeField(null=True)
+    """
+    The last time that the monitor changed state. Used for issue fingerprinting.
+    """
 
     objects = MonitorEnvironmentManager()
 
@@ -481,6 +531,9 @@ class MonitorEnvironment(Model):
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment"),)
+        indexes = [
+            models.Index(fields=["status", "next_checkin_latest"]),
+        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -494,176 +547,32 @@ class MonitorEnvironment(Model):
             .first()
         )
 
-    def mark_failed(
-        self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
-    ):
-        from sentry.signals import monitor_environment_failed
-
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-        elif reason == MonitorFailure.DURATION:
-            new_status = MonitorStatus.TIMEOUT
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
+    @property
+    def incident_grouphash(self):
+        # TODO(rjo100): Check to see if there's an active incident
+        # if not, use last_state_change as fallback
+        active_incident = (
+            MonitorIncident.objects.filter(
+                monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
+            .order_by("-date_added")
+            .first()
         )
-        if not affected:
-            return False
+        if active_incident:
+            return active_incident.grouphash
 
-        # Do not create event if monitor is disabled
-        if self.monitor.status == ObjectStatus.DISABLED:
-            return True
-
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
-
-        use_issue_platform = False
-        try:
-            organization = Organization.objects.get(id=self.monitor.organization_id)
-            use_issue_platform = features.has(
-                "organizations:issue-platform", organization=organization
-            )
-        except Organization.DoesNotExist:
-            pass
-
-        if use_issue_platform:
-            from sentry.grouping.utils import hash_from_values
-            from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-            from sentry.issues.producer import produce_occurrence_to_kafka
-
-            if not occurrence_context:
-                occurrence_context = {}
-
-            occurrence_data = get_occurrence_data(reason, **occurrence_context)
-
-            # Get last successful check-in to show in evidence display
-            last_successful_checkin_timestamp = "None"
-            last_successful_checkin = self.get_last_successful_checkin()
-            if last_successful_checkin:
-                last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
-
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=self.monitor.project_id,
-                event_id=uuid.uuid4().hex,
-                fingerprint=[
-                    hash_from_values(["monitor", str(self.monitor.guid), occurrence_data["reason"]])
-                ],
-                type=occurrence_data["group_type"],
-                issue_title=f"Monitor failure: {self.monitor.name}",
-                subtitle=occurrence_data["subtitle"],
-                evidence_display=[
-                    IssueEvidence(
-                        name="Failure reason", value=occurrence_data["reason"], important=True
-                    ),
-                    IssueEvidence(name="Environment", value=self.environment.name, important=False),
-                    IssueEvidence(
-                        name="Last successful check-in",
-                        value=last_successful_checkin_timestamp,
-                        important=False,
-                    ),
-                ],
-                evidence_data={},
-                culprit=occurrence_data["reason"],
-                detection_time=current_timestamp,
-                level=occurrence_data["level"],
-            )
-
-            produce_occurrence_to_kafka(
-                occurrence,
-                {
-                    "contexts": {"monitor": get_monitor_environment_context(self)},
-                    "environment": self.environment.name,
-                    "event_id": occurrence.event_id,
-                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
-                    "platform": "other",
-                    "project_id": self.monitor.project_id,
-                    "received": current_timestamp.isoformat(),
-                    "sdk": None,
-                    "tags": {
-                        "monitor.id": str(self.monitor.guid),
-                        "monitor.slug": self.monitor.slug,
-                    },
-                    "timestamp": current_timestamp.isoformat(),
-                },
-            )
-        else:
-            from sentry.coreapi import insert_data_to_database_legacy
-            from sentry.event_manager import EventManager
-            from sentry.models import Project
-
-            event_manager = EventManager(
-                {
-                    "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
-                    "contexts": {"monitor": get_monitor_environment_context(self)},
-                    "fingerprint": ["monitor", str(self.monitor.guid), reason],
-                    "environment": self.environment.name,
-                    # TODO: Both of these values should be get transformed from context to tags
-                    # We should understand why that is not happening and remove these when it correctly is
-                    "tags": {
-                        "monitor.id": str(self.monitor.guid),
-                        "monitor.slug": self.monitor.slug,
-                    },
-                },
-                project=Project(id=self.monitor.project_id),
-            )
-            event_manager.normalize()
-            data = event_manager.get_data()
-            insert_data_to_database_legacy(data)
-
-        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
-
-
-def get_occurrence_data(reason: str, **kwargs):
-    if reason == MonitorFailure.MISSED_CHECKIN:
-        expected_time = kwargs.get("expected_time", "the expected time")
-        return {
-            "group_type": MonitorCheckInMissed,
-            "level": "warning",
-            "reason": "missed_checkin",
-            "subtitle": f"No check-in reported on {expected_time}.",
-        }
-    elif reason == MonitorFailure.DURATION:
-        timeout = kwargs.get("timeout", 30)
-        return {
-            "group_type": MonitorCheckInTimeout,
-            "level": "error",
-            "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
-        }
-
-    return {
-        "group_type": MonitorCheckInFailure,
-        "level": "error",
-        "reason": "error",
-        "subtitle": "An error occurred during the latest check-in.",
-    }
+        # XXX(rjo100): While we migrate monitor issues to using the
+        # Incident stored grouphash we still may have some active issues
+        # that are using the old hashes. We can remove this in the
+        # future once all existing issues are resolved.
+        return hash_from_values(
+            [
+                "monitor",
+                str(self.monitor.guid),
+                self.environment.name,
+                str(self.last_state_change),
+            ]
+        )
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -676,3 +585,33 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+@region_silo_only_model
+class MonitorIncident(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
+    starting_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
+    )
+    starting_timestamp = models.DateTimeField(null=True)
+    """
+    This represents the first failed check-in that we receive
+    """
+
+    resolving_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
+    )
+    resolving_timestamp = models.DateTimeField(null=True)
+    """
+    This represents the final OK check-in that we receive
+    """
+
+    grouphash = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorincident"

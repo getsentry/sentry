@@ -5,6 +5,7 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import (
@@ -52,7 +53,7 @@ class GroupInbox(Model):
     A Group that is in the inbox.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)

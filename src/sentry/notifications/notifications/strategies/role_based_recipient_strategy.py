@@ -42,7 +42,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
     def determine_recipients(
         self,
-    ) -> Iterable[RpcUser]:
+    ) -> list[RpcUser]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:

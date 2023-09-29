@@ -107,7 +107,7 @@ export type QueryFieldValue =
         AggregationKeyWithAlias,
         string,
         AggregationRefinement,
-        AggregationRefinement
+        AggregationRefinement,
       ];
       kind: 'function';
       alias?: string;
@@ -117,6 +117,18 @@ export type QueryFieldValue =
 export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
+
+export enum RateUnits {
+  PER_SECOND = '1/second',
+  PER_MINUTE = '1/minute',
+  PER_HOUR = '1/hour',
+}
+
+export const RATE_UNIT_LABELS = {
+  [RateUnits.PER_SECOND]: '/s',
+  [RateUnits.PER_MINUTE]: '/min',
+  [RateUnits.PER_HOUR]: '/hr',
+};
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
@@ -1172,7 +1184,13 @@ function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunc
   };
 }
 
-const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+const alignedTypes: ColumnValueType[] = [
+  'number',
+  'duration',
+  'integer',
+  'percentage',
+  'percent_change',
+];
 
 export function fieldAlignment(
   columnName: string,

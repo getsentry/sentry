@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint
 from sentry.api.bases.avatar import AvatarMixin
@@ -10,6 +11,10 @@ from sentry.models import SentryAppAvatar
 
 @control_silo_endpoint
 class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     object_type = "sentry_app"
     model = SentryAppAvatar
     serializer_cls = SentryAppAvatarSerializer

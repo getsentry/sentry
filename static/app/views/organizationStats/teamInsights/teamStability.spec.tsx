@@ -1,13 +1,20 @@
+import {SessionStatusCountByProjectInPeriod} from 'sentry-fixture/sessions';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  it('should compare selected past crash rate with current week', async () => {
-    const sessionsApi = MockApiClient.addMockResponse({
+  let sessionsApi: jest.Mock;
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriod(),
     });
+  });
+
+  it('should compare selected past crash rate with current week', async () => {
     const project = TestStubs.Project({hasSessions: true, id: 123});
     render(
       <TeamStability

@@ -4,7 +4,7 @@ from django.test import override_settings
 
 from sentry.models.group import Group
 from sentry.tasks.process_buffer import buffer_incr, process_incr, process_pending
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ProcessIncrTest(TestCase):

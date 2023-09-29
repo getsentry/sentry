@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import datetime
+import secrets
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
 from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -19,6 +20,7 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -28,6 +30,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
@@ -43,6 +46,18 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
+
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+    },
+)
+
 
 INVITE_DAYS_VALID = 30
 
@@ -85,7 +100,7 @@ class OrganizationMemberManager(BaseManager):
             user_id__isnull=False,
         )
 
-    def delete_expired(self, threshold: int) -> None:
+    def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
         from sentry.services.hybrid_cloud.auth import auth_service
 
@@ -182,7 +197,7 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = OrganizationMemberManager()
 
@@ -194,19 +209,7 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
 
-    flags = typed_dict_bitfield(
-        TypedDict(
-            "flags",
-            {
-                "sso:linked": bool,
-                "sso:invalid": bool,
-                "member-limit:restricted": bool,
-                "idp:provisioned": bool,
-                "idp:role-restricted": bool,
-            },
-        ),
-        default=0,
-    )
+    flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
 
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -351,9 +354,9 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def generate_token(self):
-        return uuid4().hex + uuid4().hex
+        return secrets.token_hex(nbytes=32)
 
-    def get_invite_link(self):
+    def get_invite_link(self, referrer: str | None = None):
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
@@ -363,15 +366,18 @@ class OrganizationMember(Model):
                 "token": self.token or self.legacy_token,
             },
         )
-        return self.organization.absolute_url(path)
+        invite_link = self.organization.absolute_url(path)
+        if referrer:
+            invite_link += "?referrer=" + referrer
+        return invite_link
 
-    def send_invite_email(self):
+    def send_invite_email(self, referrer: str | None = None):
         from sentry.utils.email import MessageBuilder
 
         context = {
             "email": self.email,
             "organization": self.organization,
-            "url": self.get_invite_link(),
+            "url": self.get_invite_link(referrer),
         }
 
         msg = MessageBuilder(
@@ -388,19 +394,13 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
-    def send_sso_link_email(self, user_id: int, provider):
+    def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
 
         link_args = {"organization_slug": self.organization.slug}
-
-        email = ""
-        user = user_service.get_user(user_id=user_id)
-        if user:
-            email = user.email
-
         context = {
             "organization": self.organization,
-            "email": email,
+            "actor_email": sending_user_email,
             "provider": provider,
             "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
@@ -439,7 +439,7 @@ class OrganizationMember(Model):
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "disabled_by_email": disabling_user.email,
+            "actor_email": disabling_user.email,
             "provider": provider,
         }
 
@@ -474,10 +474,15 @@ class OrganizationMember(Model):
         if self.user_id:
             if self.user_email:
                 return self.user_email
-            user = user_service.get_user(user_id=self.user_id)
+
+            # This is a fallback case when the org member outbox message from
+            #  the control-silo has not been drained/denormalized, but we need
+            #  to retrieve it, so we skip our rpc-in-transaction validations here.
+            with in_test_hide_transaction_boundary():
+                user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email
-        return self.email
+        return self.email or ""
 
     def get_avatar_type(self):
         if self.user_id:
@@ -644,8 +649,8 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
-        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
-        return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
+        member_scopes = self.get_scopes()
+        return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():

@@ -69,8 +69,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -78,8 +76,6 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -105,7 +101,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -116,8 +112,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={15} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -126,8 +120,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox'));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -146,8 +138,6 @@ describe('IssueListActions', function () {
 
         const modal = screen.getByRole('dialog');
 
-        expect(modal).toSnapshot();
-
         await userEvent.click(
           within(modal).getByRole('button', {name: 'Bulk resolve issues'})
         );
@@ -158,7 +148,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -186,7 +176,7 @@ describe('IssueListActions', function () {
               id: ['1'],
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -234,6 +224,7 @@ describe('IssueListActions', function () {
                 ignoreUserCount: 300,
                 ignoreUserWindow: 10080,
               },
+              substatus: 'archived_until_condition_met',
             },
           })
         );

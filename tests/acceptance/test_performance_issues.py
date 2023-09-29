@@ -1,10 +1,8 @@
 import random
 import string
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from unittest.mock import patch
-
-import pytz
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
@@ -15,9 +13,9 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models import Group
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import AcceptanceTestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 FEATURES = {
@@ -26,6 +24,7 @@ FEATURES = {
 }
 
 
+@no_silo_test(stable=True)
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -69,7 +68,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
@@ -88,11 +87,10 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             group = mock_eventstream.call_args[0][2].group
 
         self.page.visit_issue(self.org.slug, group.id)
-        self.browser.snapshot("performance issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
@@ -103,7 +101,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_n_one_api_call_performance_issue(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
         event_data = self.create_sample_event(
             "n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream",
             mock_now.return_value.timestamp(),
@@ -124,11 +122,10 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             self.store_event(data=event_data, project_id=self.project.id)
             group = mock_eventstream.call_args[0][2].group
         self.page.visit_issue(self.org.slug, group.id)
-        self.browser.snapshot("N+1 API Call issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
 
         # Create identical events with different parent spans
         for _ in range(3):

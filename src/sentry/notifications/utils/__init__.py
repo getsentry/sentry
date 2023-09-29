@@ -42,7 +42,6 @@ from sentry.models import (
     EventError,
     Group,
     GroupLink,
-    Integration,
     Organization,
     Project,
     Release,
@@ -51,7 +50,9 @@ from sentry.models import (
     Rule,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
@@ -152,6 +153,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
@@ -166,6 +168,11 @@ def get_email_link_extra_params(
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
+                    **dict(
+                        []
+                        if notification_uuid is None
+                        else [("notification_uuid", str(notification_uuid))]
+                    ),
                     **dict([] if environment is None else [("environment", environment)]),
                     **kwargs,
                 }
@@ -181,24 +188,35 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> str:
     alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
-    return str(
-        group.get_absolute_url()
-        + (
-            ""
-            if not alert_rule_id
-            else get_email_link_extra_params(
-                referrer, environment, rule_details, alert_timestamp, **kwargs
-            )[alert_rule_id]
-        )
-    )
+    extra_params = ""
+    if alert_rule_id:
+        extra_params = get_email_link_extra_params(
+            referrer,
+            environment,
+            rule_details,
+            alert_timestamp,
+            notification_uuid=notification_uuid,
+            **kwargs,
+        )[alert_rule_id]
+    elif not alert_rule_id and notification_uuid:
+        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
+    return str(group.get_absolute_url() + extra_params)
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
+def get_integration_link(
+    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+) -> str:
+    query_params = {"referrer": "alert_email"}
+    if notification_uuid:
+        query_params.update({"notification_uuid": notification_uuid})
+
     return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        f"/settings/{organization.slug}/integrations/{integration_slug}/",
+        query=urlencode(query_params),
     )
 
 
@@ -254,30 +272,35 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
+@region_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id
-    ).first()
+    organization_integrations = integration_service.get_integrations(
+        organization_id=organization.id, limit=1
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
+    return any(
+        feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
+        for feature in provider.features
+    )
 
 
 def has_alert_integration(project: Project) -> bool:
     org = project.organization
 
     # check integrations
-    providers = filter(is_alert_rule_integration, list(integrations.all()))
-    provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(
-        organizationintegration__organization_id=org.id, provider__in=provider_keys
-    ).exists():
+    provider_keys = [
+        cast(str, provider.key)
+        for provider in integrations.all()
+        if is_alert_rule_integration(provider)
+    ]
+    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
     # check plugins
@@ -418,7 +441,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     shared_context = notification.get_context()
 
     split = participants_by_provider.split_participants_and_context()
-    for (provider, participants, extra_context) in split:
+    for provider, participants, extra_context in split:
         notify(provider, notification, participants, shared_context, extra_context)
 
 

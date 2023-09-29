@@ -1,8 +1,6 @@
 import bisect
 import uuid
-from datetime import datetime
-
-from pytz import utc
+from datetime import datetime, timezone
 
 from sentry.utils import json
 
@@ -78,7 +76,7 @@ class ProjectOptionsManager:
         ProjectOption.objects.set_value(
             project,
             "sentry:relay-rev-lastchange",
-            json.datetime_to_str(datetime.utcnow().replace(tzinfo=utc)),
+            json.datetime_to_str(datetime.utcnow().replace(tzinfo=timezone.utc)),
         )
 
     def register(self, key, default=None, epoch_defaults=None):

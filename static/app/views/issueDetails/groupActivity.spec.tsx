@@ -1,3 +1,5 @@
+import {Repository} from 'sentry-fixture/repository';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -90,7 +92,7 @@ describe('GroupActivity', function () {
 
   it('renders a pr activity', function () {
     const user = TestStubs.User({name: 'Test User'});
-    const repository = TestStubs.Repository();
+    const repository = Repository();
     createWrapper({
       activity: [
         {
@@ -202,7 +204,7 @@ describe('GroupActivity', function () {
               dateCreated: '',
               message: '',
               id: 'komal-commit',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [],
             },
           },
@@ -228,7 +230,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [
                 TestStubs.Release({
                   dateCreated: '2022-05-01',
@@ -260,7 +262,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [
                 TestStubs.Release({
                   dateCreated: '2022-05-01',
@@ -331,7 +333,7 @@ describe('GroupActivity', function () {
 
     beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({
-        url: '/issues/1337/comments/note-1/',
+        url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
       ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
@@ -580,5 +582,130 @@ describe('GroupActivity', function () {
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
     );
+  });
+
+  it('renders resolved in release with semver information', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          project: TestStubs.Project(),
+          data: {
+            version: 'frontend@1.0.0',
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in 1.0.0 (semver)'
+    );
+  });
+
+  it('renders resolved in next release with semver information', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          project: TestStubs.Project(),
+          data: {
+            current_release_version: 'frontend@1.0.0',
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in releases greater than 1.0.0 (semver)'
+    );
+  });
+
+  describe('regression', function () {
+    it('renders basic regression', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {},
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry marked this issue as a regression'
+      );
+    });
+    it('renders regression with version', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@1.0.0',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry marked this issue as a regression in 1.0.0'
+      );
+    });
+    it('renders regression with semver description', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@2.0.0',
+              resolved_in_version: 'frontend@1.0.0',
+              follows_semver: true,
+            },
+            dateCreated,
+          },
+        ],
+      });
+      const activity = screen.getAllByTestId('activity-item').at(-1);
+      expect(activity).toHaveTextContent(
+        'Sentry marked this issue as a regression in 2.0.0'
+      );
+      expect(activity).toHaveTextContent(
+        '2.0.0 is greater than or equal to 1.0.0 compared via semver'
+      );
+    });
+    it('renders regression with non-semver description', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@abc1',
+              resolved_in_version: 'frontend@abc2',
+              follows_semver: false,
+            },
+            dateCreated,
+          },
+        ],
+      });
+      const activity = screen.getAllByTestId('activity-item').at(-1);
+      expect(activity).toHaveTextContent(
+        'Sentry marked this issue as a regression in abc1'
+      );
+      expect(activity).toHaveTextContent(
+        'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
   });
 });

@@ -1,9 +1,9 @@
 import abc
 import logging
+import secrets
 from time import time
 from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
 from django.http import HttpResponse
 from rest_framework.request import Request
@@ -50,7 +50,7 @@ class OAuth2Login(AuthView):
         if "code" in request.GET:
             return helper.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
@@ -123,15 +123,15 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider, abc.ABC):
-    client_id = None
-    client_secret = None
     is_partner = False
 
+    @abc.abstractmethod
     def get_client_id(self):
-        return self.client_id
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def get_client_secret(self):
-        return self.client_secret
+        raise NotImplementedError
 
     def get_auth_pipeline(self):
         return [
@@ -141,7 +141,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
     @abc.abstractmethod
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -171,7 +171,7 @@ class OAuth2Provider(Provider, abc.ABC):
             'data': self.get_oauth_data(data),
         }
         """
-        pass
+        raise NotImplementedError
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not

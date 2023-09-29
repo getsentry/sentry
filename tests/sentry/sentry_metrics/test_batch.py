@@ -10,9 +10,12 @@ import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
+from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -27,7 +30,7 @@ pytestmark = pytest.mark.sentry_metrics
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
-    "name": SessionMRI.SESSION.value,
+    "name": SessionMRI.RAW_SESSION.value,
     "tags": {
         "environment": "production",
         "session.status": "init",
@@ -39,6 +42,7 @@ counter_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+counter_headers = [("namespace", b"sessions")]
 
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
@@ -53,9 +57,10 @@ distribution_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+distribution_headers = [("namespace", b"sessions")]
 
 set_payload = {
-    "name": SessionMRI.ERROR.value,
+    "name": SessionMRI.RAW_ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",
@@ -67,6 +72,7 @@ set_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+set_headers = [("namespace", b"sessions")]
 
 extracted_string_output = {
     MockUseCaseID.SESSIONS: {
@@ -181,6 +187,7 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 @pytest.mark.parametrize(
     "should_index_tag_values, expected",
@@ -228,9 +235,9 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     """
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
     batch = IndexerBatch(
@@ -238,11 +245,13 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         should_index_tag_values,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
 
     assert batch.extract_strings() == expected
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids():
     """
@@ -293,9 +302,9 @@ def test_extract_strings_with_multiple_use_case_ids():
 
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
         ]
     )
     batch = IndexerBatch(
@@ -303,6 +312,7 @@ def test_extract_strings_with_multiple_use_case_ids():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -331,6 +341,155 @@ def test_extract_strings_with_multiple_use_case_ids():
     }
 
 
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_2"]})
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_single_use_case_ids_blocked():
+    """
+    Verify that the extract string method will work normally when a single use case ID is blocked
+    """
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        }
+    }
+
+
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_1", "use_case_2"]})
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_multiple_use_case_ids_blocked():
+    """
+    Verify that the extract string method will work normally when multiple use case IDs are blocked
+    """
+    custom_uc_counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    perf_distribution_payload = {
+        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    custom_uc_set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 2,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (custom_uc_counter_payload, [("namespace", b"use_case_1")]),
+            (perf_distribution_payload, [("namespace", b"transactions")]),
+            (custom_uc_set_payload, [("namespace", b"use_case_2")]),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.TRANSACTIONS: {
+            1: {
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+            }
+        },
+    }
+
+
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_invalid_mri():
     """
@@ -393,10 +552,10 @@ def test_extract_strings_with_invalid_mri():
 
     outer_message = _construct_outer_message(
         [
-            (bad_counter_payload, []),
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (bad_counter_payload, [("namespace", b"")]),
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
         ]
     )
     batch = IndexerBatch(
@@ -404,6 +563,7 @@ def test_extract_strings_with_invalid_mri():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -432,12 +592,14 @@ def test_extract_strings_with_invalid_mri():
     }
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     """
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases and from different orgs
     """
+
     custom_uc_counter_payload = {
         "name": "c:use_case_1/session@none",
         "tags": {
@@ -480,9 +642,9 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
     outer_message = _construct_outer_message(
         [
-            (custom_uc_counter_payload, []),
-            (perf_distribution_payload, []),
-            (custom_uc_set_payload, []),
+            (custom_uc_counter_payload, [("namespace", b"use_case_1")]),
+            (perf_distribution_payload, [("namespace", b"transactions")]),
+            (custom_uc_set_payload, [("namespace", b"use_case_1")]),
         ]
     )
     batch = IndexerBatch(
@@ -490,6 +652,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -520,14 +683,160 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     }
 
 
+@pytest.mark.django_db
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_resolved_with_aggregation_options(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    counter_metric_id = "c:transactions/alert@none"
+    dist_metric_id = "d:transactions/measurements.fcp@millisecond"
+    set_metric_id = "s:transactions/on_demand@none"
+
+    outer_message = _construct_outer_message(
+        [
+            (
+                {
+                    **counter_payload,
+                    "name": counter_metric_id,
+                },
+                [],
+            ),
+            ({**distribution_payload, "name": dist_metric_id}, []),
+            ({**set_payload, "name": set_metric_id}, []),
+        ]
+    )
+
+    batch = IndexerBatch(
+        outer_message,
+        False,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
+    assert batch.extract_strings() == (
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id,
+                    dist_metric_id,
+                    "environment",
+                    set_metric_id,
+                    "session.status",
+                }
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id: 1,
+                    dist_metric_id: 2,
+                    "environment": 3,
+                    set_metric_id: 8,
+                    "session.status": 9,
+                }
+            }
+        },
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id: Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    dist_metric_id: Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    set_metric_id: Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
+            },
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+
+    assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": counter_metric_id,
+                        "3": "environment",
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "init"},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "transactions",
+                "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": dist_metric_id,
+                        "3": "environment",
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "healthy"},
+                "timestamp": ts,
+                "type": "d",
+                "use_case_id": "transactions",
+                "value": [4, 5, 6],
+                "aggregation_option": AggregationOption.HIST.value,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "8": set_metric_id,
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "errored"},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "transactions",
+                "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "s")],
+        ),
+    ]
+
+
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -536,6 +845,7 @@ def test_all_resolved(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -614,7 +924,7 @@ def test_all_resolved(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {
@@ -638,7 +948,7 @@ def test_all_resolved(caplog, settings):
                 "value": [4, 5, 6],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [*distribution_headers, ("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
         (
             {
@@ -662,19 +972,20 @@ def test_all_resolved(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_with_routing_information(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -683,6 +994,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
         True,
         True,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -761,7 +1073,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {"org_id": 1},
@@ -787,6 +1099,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -814,11 +1127,12 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_retention_days_honored(caplog, settings):
     """
@@ -832,9 +1146,9 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload_modified, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload_modified, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -843,6 +1157,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -920,7 +1235,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {
@@ -944,7 +1259,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": [4, 5, 6],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [*distribution_headers, ("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
         (
             {
@@ -968,11 +1283,12 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
@@ -987,9 +1303,9 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -998,6 +1314,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         False,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1062,7 +1379,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"c"), ("metric_type", "c")],
         ),
         (
             {
@@ -1086,6 +1403,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "d"),
             ],
@@ -1112,6 +1430,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "s"),
             ],
@@ -1119,18 +1438,25 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1208,6 +1534,7 @@ def test_metric_id_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"cd"),
                 ("metric_type", "s"),
             ],
@@ -1226,18 +1553,25 @@ def test_metric_id_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1311,18 +1645,25 @@ def test_tag_key_rate_limited(caplog, settings):
     assert _deconstruct_messages(snuba_payloads) == []
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1409,6 +1750,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *counter_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "c"),
             ],
@@ -1436,6 +1778,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -1443,13 +1786,14 @@ def test_tag_value_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            ({**distribution_payload, "org_id": 2}, []),
+            (counter_payload, counter_headers),
+            ({**distribution_payload, "org_id": 2}, distribution_headers),
         ]
     )
 
@@ -1458,6 +1802,7 @@ def test_one_org_limited(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1555,6 +1900,7 @@ def test_one_org_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -1562,6 +1908,7 @@ def test_one_org_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_cardinality_limiter(caplog, settings):
     """
@@ -1576,9 +1923,9 @@ def test_cardinality_limiter(caplog, settings):
 
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1587,6 +1934,7 @@ def test_cardinality_limiter(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
@@ -1659,6 +2007,7 @@ def test_cardinality_limiter(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "s"),
             ],

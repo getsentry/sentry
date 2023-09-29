@@ -89,7 +89,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
 
       <TableWrapper>
         <GroupList
-          orgId={organization.slug}
+          orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           query={`start=${start}&end=${end}&groupStatsPeriod=auto`}

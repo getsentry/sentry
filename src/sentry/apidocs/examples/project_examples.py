@@ -285,7 +285,6 @@ detailed_project = {
             "performance-slow-db-query-post-process-group",
             "session-replay-sdk-errors-only",
             "performance-n-plus-one-db-queries-ingest",
-            "crons-timeline-listing-page",
             "profile-image-decode-main-thread-visible",
             "performance-issues-render-blocking-assets-detector",
             "performance-m-n-plus-one-db-queries-ingest",

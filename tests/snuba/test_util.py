@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
 from sentry.receivers import create_default_projects
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
@@ -21,11 +21,9 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         now = datetime.now()
         year_ago = now - timedelta(days=365)
 
-        issues = None
-        assert snuba.shrink_time_window(issues, year_ago) == year_ago
-
-        issues = []
-        assert snuba.shrink_time_window(issues, year_ago) == year_ago
+        # issues of None / empty list
+        assert snuba.shrink_time_window(None, year_ago) == year_ago
+        assert snuba.shrink_time_window([], year_ago) == year_ago
 
         group1 = self.create_group()
         group1.first_seen = now - timedelta(hours=1)

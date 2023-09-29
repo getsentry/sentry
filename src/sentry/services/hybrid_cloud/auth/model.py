@@ -5,9 +5,23 @@
 
 import base64
 import contextlib
+import datetime
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
+from django.contrib.sessions.backends.base import SessionBase
 from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
@@ -20,8 +34,18 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
 
+class RpcApiKey(RpcModel):
+    id: int = -1
+    organization_id: int = -1
+    key: str = ""
+    status: int = 0
+    allowed_origins: List[str] = Field(default_factory=list)
+    label: str = ""
+    scope_list: List[str] = Field(default_factory=list)
+
+
 class RpcAuthenticatorType(IntEnum):
-    API_KEY_AUTHENTICATION = 0
+    UNUSUED_ONE = 0
     TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
     ORG_AUTH_TOKEN_AUTHENTICATION = 3
@@ -30,14 +54,8 @@ class RpcAuthenticatorType(IntEnum):
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
-        from sentry.api.authentication import (
-            ApiKeyAuthentication,
-            OrgAuthTokenAuthentication,
-            TokenAuthentication,
-        )
+        from sentry.api.authentication import OrgAuthTokenAuthentication, TokenAuthentication
 
-        if auth == ApiKeyAuthentication:
-            return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
             return RpcAuthenticatorType.TOKEN_AUTHENTICATION
         if auth == OrgAuthTokenAuthentication:
@@ -45,14 +63,8 @@ class RpcAuthenticatorType(IntEnum):
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
-        from sentry.api.authentication import (
-            ApiKeyAuthentication,
-            OrgAuthTokenAuthentication,
-            TokenAuthentication,
-        )
+        from sentry.api.authentication import OrgAuthTokenAuthentication, TokenAuthentication
 
-        if self == self.API_KEY_AUTHENTICATION:
-            return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
             return TokenAuthentication()
         if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
@@ -123,31 +135,44 @@ class AuthenticationRequest(RpcModel):
     user_id: Optional[str] = None
     user_hash: Optional[str] = None
     nonce: Optional[str] = None
+
     remote_addr: Optional[str] = None
-    signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
     authorization_b64: Optional[str] = None
 
+    @classmethod
+    def get_attributes_of_session_keys(cls) -> Mapping[str, Any]:
+        return dict(
+            backend="_auth_user_backend",
+            user_id="_auth_user_id",
+            user_hash="_auth_user_hash",
+            nonce="_nonce",
+        )
+
+    def apply_from_session(self, session: SessionBase) -> "AuthenticationRequest":
+        """
+        Copies over attributes from session without changing the existing value for session.accessed
+        Modifies self in place and returns it.
+        """
+        orig = session.accessed
+        for attr, session_key in self.get_attributes_of_session_keys().items():
+            setattr(self, attr, session.get(session_key, None))
+        session.accessed = orig
+        return self
+
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
-    from sentry.utils.linksign import find_signature
-
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
-        backend=request.session.get("_auth_user_backend", None),
-        user_id=request.session.get("_auth_user_id", None),
-        user_hash=request.session.get("_auth_user_hash", None),
-        nonce=request.session.get("_nonce", None),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
         authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
-    )
+    ).apply_from_session(request.session)
 
 
 class AuthenticatedToken(RpcModel):
@@ -159,6 +184,10 @@ class AuthenticatedToken(RpcModel):
     user_id: Optional[int] = None  # only relevant for ApiToken
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
+    _kinds: Dict[str, Set[Type[Any]]] = {}
+
+    def token_has_org_access(self, organization_id: int) -> bool:
+        return self.kind == "api_token" and self.organization_id == organization_id
 
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
@@ -168,8 +197,8 @@ class AuthenticatedToken(RpcModel):
         if isinstance(token, AuthenticatedToken):
             return token
 
-        for kind, kind_cls in cls.get_kinds().items():
-            if isinstance(token, kind_cls):
+        for kind, types in cls._kinds.items():
+            if any(isinstance(token, kind_cls) for kind_cls in types):
                 break
         else:
             raise KeyError(f"Token {token} is a not a registered AuthenticatedToken type!")
@@ -186,16 +215,8 @@ class AuthenticatedToken(RpcModel):
         )
 
     @classmethod
-    def get_kinds(cls) -> Mapping[str, Type[Any]]:
-        return getattr(cls, "_kinds", {})
-
-    @classmethod
     def register_kind(cls, kind_name: str, t: Type[Any]) -> None:
-        kind_map = getattr(cls, "_kinds", {})
-        if kind_name in kind_map:
-            raise ValueError(f"Conflict detected, kind {kind_name} registered twice!")
-        kind_map[kind_name] = t
-        setattr(cls, "_kinds", kind_map)
+        cls._kinds.setdefault(kind_name, set()).add(t)
 
     def get_audit_log_data(self) -> Mapping[str, Any]:
         return self.audit_log_data
@@ -229,7 +250,7 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
+    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an
@@ -244,7 +265,7 @@ class AuthenticationContext(RpcModel):
         if request is None:
             # Contexts that lack a request
             # Note -- if a request is setup in the env after this context manager, you run the risk of bugs.
-            yield
+            yield request
             return
 
         has_user = hasattr(request, "user")
@@ -256,7 +277,7 @@ class AuthenticationContext(RpcModel):
         request.auth = self.auth
 
         try:
-            yield
+            yield request
         finally:
             if has_user:
                 request.user = old_user
@@ -271,7 +292,7 @@ class AuthenticationContext(RpcModel):
 
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
-    user_from_signed_request: bool = False
+    accessed: Set[str] = Field(default_factory=set)
 
 
 class RpcAuthProviderFlags(RpcModel):
@@ -284,16 +305,34 @@ class RpcAuthProvider(RpcModel):
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
+    config: Mapping[str, Any]
+    default_role: int = -1
+    default_global_access: bool = False
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
+
+    def get_audit_log_data(self):
+        return {"provider": self.provider, "config": self.config}
+
+    def get_provider(self):
+        from sentry.auth import manager
+
+        return manager.get(self.provider, **self.config)
+
+    def get_scim_token(self) -> Optional[str]:
+        from sentry.models import get_scim_token
+
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
 
 class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
-    provider_id: int = -1
+    auth_provider_id: int = -1
     ident: str = ""
+    data: Mapping[str, Any] = Field(default_factory=dict)
+    last_verified: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
 
 class RpcOrganizationAuthConfig(RpcModel):

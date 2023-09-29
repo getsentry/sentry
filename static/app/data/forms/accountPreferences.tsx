@@ -62,6 +62,19 @@ const formGroups: JsonFormObject[] = [
         help: t('Choose the default ordering of frames in stack traces'),
         getData: transformOptions,
       },
+      {
+        name: 'defaultIssueEvent',
+        type: 'select',
+        required: false,
+        options: [
+          {value: 'recommended', label: t('Recommended')},
+          {value: 'latest', label: t('Latest')},
+          {value: 'oldest', label: t('Oldest')},
+        ],
+        label: t('Default Issue Event'),
+        help: t('Choose what event gets displayed by default'),
+        getData: transformOptions,
+      },
     ],
   },
 ];

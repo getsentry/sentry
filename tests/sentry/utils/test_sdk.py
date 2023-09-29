@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.models.organization import Organization
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,

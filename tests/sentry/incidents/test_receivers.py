@@ -1,6 +1,4 @@
-from datetime import datetime
-
-import pytz
+from datetime import datetime, timezone
 
 from sentry.incidents.models import (
     AlertRuleTrigger,
@@ -10,11 +8,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Organization
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class AddProjectToIncludeAllRulesTest(TestCase):
     def test_include_all_projects_enabled(self):
         alert_rule = self.create_alert_rule(include_all_projects=True)
@@ -53,8 +51,8 @@ class PreSaveIncidentTriggerTest(TestCase):
             status=IncidentStatus.WARNING.value,
             type=2,
             title="a custom incident title",
-            date_started=datetime.utcnow().replace(tzinfo=pytz.utc),
-            date_detected=datetime.utcnow().replace(tzinfo=pytz.utc),
+            date_started=datetime.utcnow().replace(tzinfo=timezone.utc),
+            date_detected=datetime.utcnow().replace(tzinfo=timezone.utc),
             alert_rule=alert_rule,
         )
         incident_trigger = IncidentTrigger.objects.create(

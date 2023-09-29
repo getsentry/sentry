@@ -9,7 +9,7 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from typing import (
     Any,
@@ -25,7 +25,6 @@ from typing import (
 )
 from urllib.parse import urlparse
 
-import pytz
 import sentry_sdk
 import urllib3
 from dateutil.parser import parse as parse_datetime
@@ -117,6 +116,7 @@ SPAN_COLUMN_MAP = {
     "span.domain": "domain",
     "span.duration": "duration",
     "span.group": "group",
+    "span.group_raw": "group_raw",
     "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
@@ -1530,7 +1530,7 @@ def shrink_time_window(issues, start):
 
 
 def naiveify_datetime(dt):
-    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)
+    return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def quantize_time(time, key_hash, duration=300):

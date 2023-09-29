@@ -2,24 +2,52 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
+  GroupStatus,
   GroupStatusResolution,
+  GroupSubstatus,
   Project,
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  ResolvedStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+
+function SetupReleasesPrompt() {
+  return (
+    <SetupReleases>
+      <IconReleases size="xl" />
+      <div>
+        <SetupReleasesHeader>
+          {t('Resolving is better with Releases')}
+        </SetupReleasesHeader>
+        {t(
+          'Set up Releases so Sentry can bother you when this problem comes back in a future release.'
+        )}
+      </div>
+      <LinkButton
+        priority="primary"
+        external
+        size="xs"
+        href="https://docs.sentry.io/product/releases/setup/"
+        analyticsEventName="Issue Actions: Resolve Release Setup Prompt Clicked"
+        analyticsEventKey="issue_actions.resolve_release_setup_prompt_clicked"
+      >
+        {t('Set up Releases Now')}
+      </LinkButton>
+    </SetupReleases>
+  );
+}
 
 export interface ResolveActionsProps {
   hasRelease: boolean;
@@ -31,6 +59,7 @@ export interface ResolveActionsProps {
   isAutoResolved?: boolean;
   isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
+  multipleProjectsSelected?: boolean;
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
@@ -52,23 +81,24 @@ function ResolveActions({
   disableDropdown,
   priority,
   projectFetchError,
+  multipleProjectsSelected,
   onUpdate,
 }: ResolveActionsProps) {
   const organization = useOrganization();
 
-  function handleCommitResolution(statusDetails: ResolutionStatusDetails) {
+  function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
   }
 
-  function handleAnotherExistingReleaseResolution(
-    statusDetails: ResolutionStatusDetails
-  ) {
+  function handleAnotherExistingReleaseResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
     trackAnalytics('resolve_issue', {
       organization,
@@ -79,10 +109,11 @@ function ResolveActions({
   function handleCurrentReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
+        substatus: null,
       });
     }
 
@@ -95,10 +126,11 @@ function ResolveActions({
   function handleNextReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inNextRelease: true,
         },
+        substatus: null,
       });
     }
 
@@ -125,7 +157,11 @@ function ResolveActions({
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
         />
       </Tooltip>
@@ -137,7 +173,8 @@ function ResolveActions({
       return renderResolved();
     }
 
-    const actionTitle = !hasRelease
+    const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
+    const actionTitle = shouldDisplayCta
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
@@ -151,7 +188,6 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -161,15 +197,12 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label:
-          hasIssueResolveSemver || !latestRelease
-            ? t('The current release')
-            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        label: t('The current release'),
         details: actionTitle
           ? actionTitle
-          : hasIssueResolveSemver && latestRelease
+          : latestRelease
           ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('timestamp')
+              isSemver ? t('semver') : t('non-semver')
             })`
           : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
@@ -189,7 +222,8 @@ function ResolveActions({
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenu
+      <StyledDropdownMenu
+        itemsHidden={shouldDisplayCta}
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
@@ -202,11 +236,13 @@ function ResolveActions({
           />
         )}
         disabledKeys={
-          disabled || !hasRelease
+          multipleProjectsSelected
+            ? ['next-release', 'current-release', 'another-release', 'a-commit']
+            : disabled || !hasRelease
             ? ['next-release', 'current-release', 'another-release']
             : []
         }
-        menuTitle={t('Resolved In')}
+        menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
         isDisabled={isDisabled}
       />
     );
@@ -216,7 +252,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomCommitsResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
@@ -229,7 +265,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
         organization={organization}
@@ -254,7 +290,11 @@ function ResolveActions({
             openConfirmModal({
               bypass: !shouldConfirm,
               onConfirm: () =>
-                onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
+                onUpdate({
+                  status: GroupStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                }),
               message: confirmMessage,
               confirmText: confirmLabel,
             })
@@ -293,4 +333,35 @@ const DropdownTrigger = styled(Button)`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusRight};
   border-left: none;
+`;
+
+/**
+ * Used to hide the list items when prompting to set up releases
+ */
+const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
+  ${p =>
+    p.itemsHidden &&
+    css`
+      ul {
+        display: none;
+      }
+    `}
+`;
+
+const SetupReleases = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  align-items: center;
+  padding: ${space(2)} 0;
+  text-align: center;
+  color: ${p => p.theme.gray400};
+  width: 250px;
+  white-space: normal;
+  font-weight: normal;
+`;
+
+const SetupReleasesHeader = styled('h6')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(1)};
 `;
