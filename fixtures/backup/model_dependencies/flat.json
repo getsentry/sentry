@@ -13,6 +13,7 @@
     "sentry.organizationslugreservation",
     "sentry.user"
   ],
+  "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
