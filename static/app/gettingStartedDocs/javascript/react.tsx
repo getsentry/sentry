@@ -3,7 +3,7 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -43,19 +43,34 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: (
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeYarn:yarn] or [codeNpm:npm]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/react
-
-# Using npm
-npm install --save @sentry/react
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/react',
+          },
+          {
+            label: 'Yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/react',
+          },
+        ],
       },
     ],
   },
