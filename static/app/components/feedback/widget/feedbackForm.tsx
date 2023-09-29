@@ -93,7 +93,7 @@ const Label = styled('label')`
 
 const inputStyles = css`
   box-sizing: border-box;
-  border: 1.5px solid rgba(41, 35, 47, 0.13);
+  border: var(--sentry-feedback-border);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
@@ -119,7 +119,7 @@ const ButtonGroup = styled('div')`
 `;
 
 const BaseButton = styled('button')`
-  border: 1px solid ${p => p.theme.border};
+  border: var(--sentry-feedback-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -142,10 +142,10 @@ const SubmitButton = styled(BaseButton)`
 `;
 
 const CancelButton = styled(BaseButton)`
-  background-color: #fff;
-  color: #231c3d;
+  background-color: transparent;
+  color: var(--sentry-feedback-fg-color);
   font-weight: 500;
   &:hover {
-    background-color: #eee;
+    background-color: var(--sentry-feedback-bg-accent-color);
   }
 `;
