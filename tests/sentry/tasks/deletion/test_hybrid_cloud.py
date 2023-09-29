@@ -6,7 +6,7 @@ from django.apps import apps
 from django.db.models import Max, QuerySet
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import ControlOutbox, OutboxScope, SavedSearch
+from sentry.models import ControlOutbox, OutboxScope, SavedSearch, outbox_context
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     get_watermark,
@@ -100,7 +100,8 @@ def setup_deletable_objects(
     if u_id is None:
         u = Factories.create_user()
         u_id = u.id
-        u.delete()
+        with outbox_context(flush=False):
+            u.delete()
 
     for i in range(count):
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)

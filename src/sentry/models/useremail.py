@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
@@ -12,14 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    control_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
@@ -46,7 +43,7 @@ class UserEmailManager(BaseManager):
 
 
 @control_silo_only_model
-class UserEmail(Model):
+class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
@@ -67,6 +64,17 @@ class UserEmail(Model):
         unique_together = (("user", "email"),)
 
     __repr__ = sane_repr("user_id", "email")
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return [
+            outbox
+            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
+                region_names=regions,
+                shard_identifier=self.user_id,
+                object_identifier=self.user_id,
+            )
+        ]
 
     def set_hash(self):
         self.date_hash_added = timezone.now()
