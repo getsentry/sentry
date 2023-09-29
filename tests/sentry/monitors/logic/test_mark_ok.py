@@ -32,6 +32,8 @@ class MarkOkTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "recovery_threshold": recovery_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(

@@ -43,7 +43,12 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
