@@ -12,6 +12,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorType,
+    ScheduleType,
 )
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
@@ -29,7 +30,12 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
             date_added=timezone.now() - timedelta(minutes=1),
         )
 

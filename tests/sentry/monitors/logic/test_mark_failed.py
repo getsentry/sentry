@@ -38,7 +38,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -68,7 +73,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "error",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -89,7 +99,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -119,7 +134,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "timeout",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -143,7 +163,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "hour"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "hour"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -180,7 +205,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "missed_checkin",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "hour"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "hour"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -201,7 +231,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -269,7 +304,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "error",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -301,6 +341,7 @@ class MarkFailedTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "max_runtime": 10,
+                "checkin_margin": None,
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -366,7 +407,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "timeout",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"], "max_runtime": 10},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": 10,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -397,7 +443,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "hour"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "hour"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -462,7 +513,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "missed_checkin",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "hour"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "hour"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -494,6 +550,8 @@ class MarkFailedTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(

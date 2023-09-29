@@ -26,6 +26,8 @@ class MonitorTestCase(TestCase):
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
             }
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
@@ -53,6 +55,7 @@ class MonitorTestCase(TestCase):
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
                 "checkin_margin": 5,
+                "max_runtime": None,
             }
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
@@ -72,6 +75,8 @@ class MonitorTestCase(TestCase):
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 12 * * *",
                 "timezone": "UTC",
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
@@ -94,6 +99,8 @@ class MonitorTestCase(TestCase):
             config={
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
@@ -109,7 +116,12 @@ class MonitorTestCase(TestCase):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug == "my-awesome-monitor"
@@ -121,7 +133,12 @@ class MonitorTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             slug="my-awesome-monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug == "my-awesome-monitor"
@@ -132,7 +149,12 @@ class MonitorTestCase(TestCase):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug.startswith("my-awesome-monitor-")
@@ -146,7 +168,12 @@ class MonitorTestCase(TestCase):
                 type=MonitorType.CRON_JOB,
                 name=f"Unicron-{i}",
                 slug=f"unicron-{i}",
-                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+                config={
+                    "schedule": [1, "month"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "checkin_margin": None,
+                    "max_runtime": None,
+                },
             )
 
         with pytest.raises(
@@ -159,7 +186,12 @@ class MonitorTestCase(TestCase):
                 type=MonitorType.CRON_JOB,
                 name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
                 slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
-                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+                config={
+                    "schedule": [1, "month"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "checkin_margin": None,
+                    "max_runtime": None,
+                },
             )
 
 
@@ -173,7 +205,12 @@ class MonitorEnvironmentTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR):
@@ -198,6 +235,8 @@ class MonitorEnvironmentTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "alert_rule_id": 1,
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
 
@@ -217,6 +256,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert monitor.config == {
             "schedule": "0 0 1 2 *",
             "schedule_type": ScheduleType.CRONTAB,
+            "checkin_margin": None,
             "max_runtime": 10,
             "alert_rule_id": 1,
         }
