@@ -24,7 +24,7 @@ def get_teams(request, organization, teams=None):
             verified_ids.update(myteams)
 
     for team_id in requested_teams:  # Verify each passed Team id is numeric
-        if type(team_id) is not int and not team_id.isdigit():
+        if not isinstance(team_id, int) and not team_id.isdigit():
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 
