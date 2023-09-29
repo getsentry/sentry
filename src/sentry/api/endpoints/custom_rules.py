@@ -17,7 +17,7 @@ from sentry.models import CustomDynamicSamplingRule, TooManyRules
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import SearchQueryConverter
+from sentry.snuba.metrics.extraction import LogicalRuleCondition, SearchQueryConverter
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
@@ -34,7 +34,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
     """
 
     # the query string in the same format as the Discover query
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=False, allow_blank=True)
     # desired time period for collection (it may be overriden if too long)
     period = serializers.CharField(required=False)
     # list of project ids to collect data from
@@ -167,16 +167,19 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             # no project specified (it is an org rule)
             org_rule = True
 
-        try:
-            tokens = parse_search_query(query)
-        except InvalidSearchQuery as e:
-            return Response({"query": [str(e)]}, status=400)
+        if not query:
+            condition = _get_condition_true()
+        else:
+            try:
+                tokens = parse_search_query(query)
+            except InvalidSearchQuery as e:
+                return Response({"query": [str(e)]}, status=400)
 
-        try:
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
-        except ValueError as e:
-            return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
+            try:
+                converter = SearchQueryConverter(tokens)
+                condition = converter.convert()
+            except ValueError as e:
+                return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
         rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization.id)
 
@@ -216,3 +219,10 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
         "orgId": rule.organization.id,
     }
     return Response(response_data, status=200)
+
+
+def _get_condition_true() -> LogicalRuleCondition:
+    """
+    Returns a condition that is always true
+    """
+    return {"op": "and", "inner": []}

@@ -274,6 +274,7 @@ class CustomRulesEndpoint(APITestCase):
         ("period", "1h", True),
         ("projects", ["abc"], False),
         ("period", "hello", False),
+        ("query", "", True),
     ],
 )
 def test_custom_rule_serializer(what, value, valid):
