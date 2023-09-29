@@ -239,7 +239,7 @@ def _get_entity_of_metric_mri(
         if data:
             return entity_key
 
-    raise InvalidParams(f"Raw metric {get_public_name_from_mri(metric_mri)} does not exit")
+    raise InvalidParams(f"Raw metric {get_public_name_from_mri(metric_mri)} does not exist")
 
 
 def org_id_from_projects(projects: Sequence[Project]) -> int:
