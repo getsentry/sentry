@@ -215,8 +215,8 @@ const Content = styled('div')`
   transition: transform 0.2s ease-in-out;
   transform: translate(0, 0) scale(1);
   dialog:not([open]) & {
-  transform: translate(0, -16px) scale(0.98);
-}
+    transform: translate(0, -16px) scale(0.98);
+  }
 `;
 
 const Header = styled('h2')`
