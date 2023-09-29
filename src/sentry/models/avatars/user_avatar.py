@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 from enum import IntEnum
-from typing import List
+from typing import Any, List, Tuple
 
-from django.db import models
+from django.db import models, router, transaction
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
 
-from ...db.models.outboxes import ControlOutboxProducingModel
 from ...types.region import find_regions_for_user
 from ..outbox import ControlOutboxBase, OutboxCategory
 from . import ControlAvatarBase
@@ -31,7 +31,7 @@ class UserAvatarType(IntEnum):
 
 
 @control_silo_only_model
-class UserAvatar(ControlAvatarBase, ControlOutboxProducingModel):
+class UserAvatar(ControlAvatarBase):
     """
     A UserAvatar associates a User with their avatar photo File
     and contains their preferences for avatar type.
@@ -60,6 +60,33 @@ class UserAvatar(ControlAvatarBase, ControlOutboxProducingModel):
                 object_identifier=self.user_id,
             )
         ]
+
+    @contextlib.contextmanager
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+        from sentry.models.outbox import outbox_context
+
+        with outbox_context(
+            transaction.atomic(router.db_for_write(type(self))),
+            flush=self.default_flush,
+        ):
+            if not outbox_before_super:
+                yield
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            if outbox_before_super:
+                yield
+
+    def save(self, *args: Any, **kwds: Any) -> None:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            super().save(*args, **kwds)
+
+    def update(self, *args: Any, **kwds: Any) -> int:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            return super().update(*args, **kwds)
+
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
+        with self._maybe_prepare_outboxes(outbox_before_super=True):
+            return super().delete(*args, **kwds)
 
     def get_cache_key(self, size):
         return f"avatar:{self.user_id}:{size}"

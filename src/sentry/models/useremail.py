@@ -14,12 +14,13 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import ControlOutboxBase, OutboxCategory, User
+    from sentry.models import User
 
 
 class UserEmailManager(BaseManager):
