@@ -1,4 +1,4 @@
-import {
+import React, {
   Fragment,
   ReactElement,
   useEffect,
@@ -19,10 +19,14 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
+  CanvasScheduler,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {
+  Flamegraph,
+  Flamegraph as FlamegraphModel,
+} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -46,6 +50,11 @@ const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 interface AggregateFlamegraphProps {
   hideSystemFrames: boolean;
   setHideSystemFrames: (hideSystemFrames: boolean) => void;
+  children?: (props: {
+    canvasPoolManager: CanvasPoolManager;
+    flamegraph: Flamegraph;
+    scheduler: CanvasScheduler;
+  }) => React.ReactNode;
   hideToolbar?: boolean;
 }
 
@@ -267,6 +276,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
   return (
     <Fragment>
+      {props.children ? props.children({canvasPoolManager, scheduler, flamegraph}) : null}
       <FlamegraphZoomView
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
