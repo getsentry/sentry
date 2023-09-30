@@ -215,10 +215,6 @@ supportedLocales
   });
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
-const babelLoaderConfig = {
-  loader: 'babel-loader',
-  options: babelOptions,
-};
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -256,7 +252,18 @@ const appConfig: Configuration = {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: babelLoaderConfig,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: babelOptions,
+          },
+          {
+            loader: '@linaria/webpack-loader',
+            options: {
+              sourceMap: process.env.NODE_ENV !== 'production',
+            },
+          },
+        ],
       },
       {
         test: /\.po$/,

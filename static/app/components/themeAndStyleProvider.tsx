@@ -8,6 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {ThemeProvider as LinariaThemeProvider} from 'sentry/utils/theming';
 
 type Props = {
   children: React.ReactNode;
@@ -35,15 +36,17 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
-      <CacheProvider value={cache}>{children}</CacheProvider>
-      {createPortal(
-        <Fragment>
-          <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={theme.sidebar.background} />
-        </Fragment>,
-        document.head
-      )}
+      <LinariaThemeProvider theme={theme}>
+        <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+        <CacheProvider value={cache}>{children}</CacheProvider>
+        {createPortal(
+          <Fragment>
+            <meta name="color-scheme" content={config.theme} />
+            <meta name="theme-color" content={theme.sidebar.background} />
+          </Fragment>,
+          document.head
+        )}
+      </LinariaThemeProvider>
     </ThemeProvider>
   );
 }

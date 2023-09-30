@@ -1,12 +1,15 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
+import {styled as lstyled} from '@linaria/react';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import theme, {Theme} from 'sentry/utils/theme';
+import {withTheme} from 'sentry/utils/theming';
 
 const makeKey = (prefix: string) => `${prefix}-banner-dismissed`;
 
@@ -27,6 +30,7 @@ function useDismissable(bannerKey: string) {
 }
 
 type BannerWrapperProps = {
+  theme: Theme;
   backgroundComponent?: React.ReactNode;
   backgroundImg?: string;
 };
@@ -71,7 +75,7 @@ function Banner({
 
 Banner.dismiss = dismissBanner;
 
-const BannerWrapper = styled('div')<BannerWrapperProps>`
+const BannerWrapper = withTheme(lstyled.div<BannerWrapperProps>`
   ${p =>
     p.backgroundImg
       ? css`
@@ -97,9 +101,9 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     height: 220px;
   }
-`;
+`);
 
-const BannerContent = styled('div')`
+const BannerContent = lstyled.div`
   position: absolute;
   display: grid;
   justify-items: center;
@@ -108,19 +112,19 @@ const BannerContent = styled('div')`
   padding: ${space(4)};
 `;
 
-const BannerTitle = styled('h1')`
+const BannerTitle = lstyled.h1`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${theme.breakpoints.small}) {
     font-size: 40px;
   }
 `;
 
-const BannerSubtitle = styled('div')`
+const BannerSubtitle = lstyled.div`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
+  @media (min-width: ${theme.breakpoints.small}) {
+    font-size: ${theme.fontSizeExtraLarge};
   }
 `;
 

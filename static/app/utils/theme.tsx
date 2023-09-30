@@ -975,7 +975,7 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-type Theme = typeof lightTheme;
+export type Theme = typeof lightTheme;
 
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
