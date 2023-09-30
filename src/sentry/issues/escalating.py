@@ -472,7 +472,7 @@ def _get_group_hourly_count_with_metrics(
 
         if metrics_hourly_count != hourly_count:
             logger.info(
-                "Generics Metrics Backend query results not the same as Errors dataset query.",
+                "_get_group_hourly_count_with_metrics results not the same as Errors dataset query.",
                 extra={
                     "metrics_hourly_count": metrics_hourly_count,
                     "hourly_count": hourly_count,
