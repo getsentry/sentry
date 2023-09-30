@@ -16,7 +16,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -126,5 +126,6 @@ const Blockquote = styled('blockquote')`
     font-size: ${p => p.theme.fontSizeMedium};
     line-height: 1.6;
     padding: 0;
+    word-break: break-word;
   }
 `;
