@@ -45,6 +45,7 @@ class UserEmailManager(BaseManager):
 @control_silo_only_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
+    __relocation_dependencies__ = {"sentry.Email"}
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)

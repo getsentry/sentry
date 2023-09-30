@@ -129,6 +129,7 @@ class ModelRelations:
     dangling: Optional[bool]
     foreign_keys: dict[str, ForeignField]
     model: Type[models.base.Model]
+    relocation_dependencies: set[Type[models.base.Model]]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
     table_name: str
@@ -421,6 +422,8 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 dangling=None,
                 foreign_keys=foreign_keys,
                 model=model,
+                # We'll fill this in after the entire dictionary is populated.
+                relocation_dependencies=set(),
                 relocation_scope=getattr(model, "__relocation_scope__", RelocationScope.Excluded),
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
@@ -491,9 +494,12 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         seen.remove(model_name)
         return model_relations.dangling
 
-    for model_name in model_dependencies_dict.keys():
-        if model_name not in relocation_root_models:
-            resolve_dangling(set(), model_name)
+    for model_name, model_relations in model_dependencies_dict.items():
+        resolve_dangling(set(), model_name)
+        model_relations.relocation_dependencies = {
+            model_dependencies_dict[NormalizedModelName(rd)].model
+            for rd in getattr(model_relations.model, "__relocation_dependencies__", set())
+        }
 
     return model_dependencies_dict
 
@@ -524,7 +530,7 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
         changed = False
         while model_dependencies_dict:
             model_deps = model_dependencies_dict.pop()
-            deps = model_deps.flatten()
+            deps = model_deps.flatten().union(model_deps.relocation_dependencies)
             model = model_deps.model
 
             # If all of the models in the dependency list are either already
