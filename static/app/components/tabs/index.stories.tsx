@@ -122,8 +122,8 @@ export default storyBook(Tabs, story => {
   });
 
   story('Rendering', () => (
-    <Matrix
-      component={props => (
+    <Matrix<typeof Tabs & typeof TabList>
+      render={props => (
         <Tabs orientation={props.orientation}>
           <TabList hideBorder={props.hideBorder}>
             {TABS.map(tab => (
