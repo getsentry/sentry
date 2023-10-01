@@ -81,9 +81,12 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         ).uninstall()
 
         with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
-            updated = OrganizationIntegration.objects.filter(
+            updated = False
+            for oi in OrganizationIntegration.objects.filter(
                 id=org_integration.id, status=ObjectStatus.ACTIVE
-            ).update(status=ObjectStatus.PENDING_DELETION)
+            ):
+                oi.update(status=ObjectStatus.PENDING_DELETION)
+                updated = True
 
             if updated:
                 ScheduledDeletion.schedule(org_integration, days=0, actor=request.user)

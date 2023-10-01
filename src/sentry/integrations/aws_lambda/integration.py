@@ -244,9 +244,10 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         extra: Any | None = None,
     ) -> None:
         default_project_id = extra["default_project_id"]
-        OrganizationIntegration.objects.filter(
+        for oi in OrganizationIntegration.objects.filter(
             organization_id=organization.id, integration=integration
-        ).update(config={"default_project_id": default_project_id})
+        ):
+            oi.update(config={"default_project_id": default_project_id})
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):

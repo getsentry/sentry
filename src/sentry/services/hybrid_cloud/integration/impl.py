@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -288,25 +288,23 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> List[RpcOrganizationIntegration]:
-        ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
-        if not ois.exists():
-            return []
+        ois: List[OrganizationIntegration] = []
+        fields: Set[str] = set()
+        for oi in OrganizationIntegration.objects.filter(id__in=org_integration_ids):
+            if config is not None:
+                oi.config = config
+                fields.add("config")
+            if status is not None:
+                oi.status = status
+                fields.add("status")
+            if grace_period_end is not None or set_grace_period_end_null:
+                gpe_value = grace_period_end if not set_grace_period_end_null else None
+                oi.grace_period_end = gpe_value
+                fields.add("grace_period_end")
+            ois.append(oi)
 
-        oi_kwargs: Dict[str, Any] = {}
-
-        if config is not None:
-            oi_kwargs["config"] = config
-        if status is not None:
-            oi_kwargs["status"] = status
-        if grace_period_end is not None or set_grace_period_end_null:
-            gpe_value = grace_period_end if not set_grace_period_end_null else None
-            oi_kwargs["grace_period_end"] = gpe_value
-
-        if not oi_kwargs:
-            return []
-
-        ois.update(**oi_kwargs)
-
+        if fields:
+            OrganizationIntegration.objects.bulk_update(ois, fields=list(fields))
         return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(

@@ -6,7 +6,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -197,10 +197,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
-            org_member.update(role="owner")
-        region_outbox = org_member.save_outbox_for_update()
-        region_outbox.drain_shard()
+        org_member.update(role="owner")
 
         assert OrganizationMember.objects.all().count() == 2
         with assume_test_silo_mode(SiloMode.CONTROL):

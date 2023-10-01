@@ -25,17 +25,18 @@ class IssueSyncIntegration(TestCase):
             integration = Integration.objects.create(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
-            OrganizationIntegration.objects.filter(
+            for oi in OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -70,17 +71,18 @@ class IssueSyncIntegration(TestCase):
             integration = Integration.objects.create(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
-            OrganizationIntegration.objects.filter(
+            for oi in OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"

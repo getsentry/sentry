@@ -7,7 +7,7 @@ from django.urls import reverse
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.outbox import ControlOutbox
+from sentry.models.outbox import ControlOutbox, OutboxCategory
 from sentry.silo.client import SiloClientError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -69,7 +69,7 @@ class SlackRequestParserTest(TestCase):
             assert mock_response_from_region.called
             assert response == region_response.response
             # No outboxes will be created from the slack request parser
-            assert ControlOutbox.objects.count() == 0
+            assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
 
         # Raises SiloClientError on failure
         with pytest.raises(SiloClientError), patch.object(

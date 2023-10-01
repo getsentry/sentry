@@ -28,7 +28,7 @@ class ApiKeyStatus:
 class ApiKey(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.API_KEY_UPDATE
-    replication_version = 2
+    replication_version = 3
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")

@@ -93,6 +93,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_organizationintegration.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.use_api_key_replica",
     type=Bool,
     default=False,
