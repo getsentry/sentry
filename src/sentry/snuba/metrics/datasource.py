@@ -190,8 +190,8 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
-    # To reduce the number of queries, we scope down the number of entity keys for sessions, since we know that they
-    # are stored separately from all the other entity keys.
+    # To reduce the number of queries, we scope down the number of entity keys, since we know that sessions are stored
+    # separately from all the other entity keys.
     if use_case_id == UseCaseID.SESSIONS:
         entity_keys = {
             EntityKey.MetricsCounters,
