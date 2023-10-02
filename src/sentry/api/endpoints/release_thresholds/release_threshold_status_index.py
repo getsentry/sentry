@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, TypedDict
 
+from dateutil import parser
 from django.db.models import F, Q
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -32,14 +33,14 @@ if TYPE_CHECKING:
 
 class EnrichedThreshold(TypedDict):
     date: datetime
-    end: int
+    end: datetime
     environment: Environment
     is_healthy: bool
     key: str
     project: Project
     project_id: int
     release: str
-    start: int
+    start: datetime
     threshold_type: int
     trigger_type: int
     value: int
@@ -291,23 +292,24 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     """
     total_count = 0
     for i in timeseries:
-        if i.time > ethreshold["end"]:
+        if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
             break
         if (
-            i.time <= ethreshold["start"]
-            or i.time > ethreshold["end"]
-            or i.release != ethreshold["release"]
-            or i.project_id != ethreshold["project_id"]
-            or i.environment != ethreshold["environment"]
+            parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
+            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold ned
+            or i["release"] != ethreshold["release"]  # ts is not our the right release
+            or i["project_id"] != ethreshold["project_id"]  # ts is not the right project
+            or i["environment"] != ethreshold["environment"]  # ts is not the right environment
         ):
             continue
         # else ethreshold.start < i.time <= ethreshold.end
         total_count += i["count()"]
 
     if ethreshold["trigger_type"] == TriggerType.OVER:
-        return total_count > ethreshold["value"]
+        # If total is under the threshold value, then it is healthy
+        return total_count < ethreshold["value"]
 
-    # else if ethreshold.trigger_type == TriggerType.UNDER:
-    return total_count < ethreshold["value"]
+    # Else, if total is over the threshold value, then it is healthy
+    return total_count > ethreshold["value"]

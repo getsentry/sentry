@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 
-from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
-from sentry.models.release_threshold.constants import ReleaseThresholdType
-from sentry.models.release_threshold.release_threshold import (  # is_error_count_healthy,
-    ReleaseThreshold,
+from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
+    EnrichedThreshold,
+    is_error_count_healthy,
 )
+from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.testutils.cases import APITestCase
 
 
@@ -323,12 +325,116 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(r2_keys) == 0
 
 
-class TestErrorCountThresholdCheck:
-    def setup(self):
-        pass
+class TestErrorCountThresholdCheck(APITestCase):
+    def setUp(self):
+        # 3 projects
+        self.project1 = self.create_project(name="foo", organization=self.organization)
+        self.project2 = self.create_project(name="bar", organization=self.organization)
+        self.project3 = self.create_project(name="biz", organization=self.organization)
+
+        # 2 environments
+        self.canary_environment = Environment.objects.create(
+            organization_id=self.organization.id, name="canary"
+        )
+        self.production_environment = Environment.objects.create(
+            organization_id=self.organization.id, name="production"
+        )
+
+        # release created for proj1, and proj2
+        self.release1 = Release.objects.create(version="v1", organization=self.organization)
+        # add_project get_or_creates a ReleaseProject
+        self.release1.add_project(self.project1)
+        self.release1.add_project(self.project2)
 
     def test_threshold_within_timeseries(self):
-        pass
+        """
+        construct a timeseries with:
+        - a single release
+        - a single project
+        - no environment
+        - multiple timestamps both before and after our threshold window
+        """
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+        ]
+        threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": self.project1,
+            "project_id": self.project1.id,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER,
+            "value": 2,
+            "window_in_seconds": 60,
+        }
+        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+
+        threshold_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": self.project1,
+            "project_id": self.project1.id,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.UNDER,
+            "value": 2,
+            "window_in_seconds": 60,
+        }
+        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+
+        threshold_unfinished: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now + timedelta(minutes=5),
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": self.project1,
+            "project_id": self.project1.id,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER,
+            "value": 2,
+            "window_in_seconds": 60,
+        }
+        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
 
     def test_threshold_time_subset_within_timeseries(self):
         pass
