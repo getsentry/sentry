@@ -1,7 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -45,18 +48,40 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   });
 
   return (
-    <div>
-      Most regressed functions
-      <Pagination
-        pageLinks={trendsQuery.getResponseHeader?.('Link')}
-        onCursor={handleRegressedFunctionsCursor}
-        size="xs"
-      />
+    <RegressedFunctionsContainer>
+      <RegressedFunctionsTitleContainer>
+        <RegressedFunctionsTitle>{t('Most regressed functions')}</RegressedFunctionsTitle>
+        <RegressedFunctionsPagination
+          pageLinks={trendsQuery.getResponseHeader?.('Link')}
+          onCursor={handleRegressedFunctionsCursor}
+          size="xs"
+        />
+      </RegressedFunctionsTitleContainer>
       <div>
         {trendsQuery.isLoading && 'Loading...'}
         {!trendsQuery.isLoading &&
-          trendsQuery?.data?.map((t, i) => <div key={i}>{t.function}</div>)}
+          trendsQuery?.data?.map((f, i) => <div key={i}>{f.function}</div>)}
       </div>
-    </div>
+    </RegressedFunctionsContainer>
   );
 }
+
+const RegressedFunctionsContainer = styled('div')`
+  margin-top: ${space(0.5)};
+`;
+
+const RegressedFunctionsPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const RegressedFunctionsTitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const RegressedFunctionsTitle = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.form.md.fontSize};
+  font-weight: 700;
+`;

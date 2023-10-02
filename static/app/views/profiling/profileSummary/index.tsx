@@ -28,6 +28,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
+import {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
@@ -36,6 +37,7 @@ import {
   CanvasScheduler,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -59,6 +61,11 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
 
+const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
+  preferences: {
+    sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
+  },
+};
 interface ProfileSummaryHeaderProps {
   location: Location;
   organization: Organization;
@@ -352,13 +359,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 traceID=""
                 frameFilter={flamegraphFrameFilter}
               >
-                <FlamegraphStateProvider
-                  initialState={{
-                    preferences: {
-                      sorting: 'alphabetical',
-                    },
-                  }}
-                >
+                <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
                   <FlamegraphThemeProvider>
                     <FlamegraphProvider>
                       <AggregateFlamegraphToolbar
@@ -383,6 +384,28 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               </ProfileGroupProvider>
             </ProfileVisualization>
             <ProfileDigest>
+              <ProfileDigestHeader>
+                <div>
+                  <span>Last Seen</span>
+                  <div>@TODO</div>
+                </div>
+                <div>
+                  <span>p75</span>
+                  <div>@TODO</div>
+                </div>
+                <div>
+                  <span>p95</span>
+                  <div>@TODO</div>
+                </div>
+                <div>
+                  <span>p99</span>
+                  <div>@TODO</div>
+                </div>
+                <div>
+                  <span>profiles</span>
+                  <div>@TODO</div>
+                </div>
+              </ProfileDigestHeader>
               <MostRegressedProfileFunctions transaction={transaction} />
               <SlowestProfileFunctions transaction={transaction} />
             </ProfileDigest>
@@ -462,7 +485,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(0.5)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
 `;
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
@@ -475,6 +498,9 @@ const ProfileVisualization = styled('div')`
 
 const ProfileDigest = styled('div')`
   grid-area: digest;
+  border-left: 1px solid ${p => p.theme.border};
+  padding: ${space(0.5)};
+  background-color: ${p => p.theme.background};
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -495,6 +521,18 @@ const ProfileSummaryContainer = styled('div')`
    */
   ~ footer {
     display: none;
+  }
+`;
+
+const ProfileDigestHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+
+  span:first-child {
+    color: ${p => p.theme.textColor};
+    font-size: ${p => p.theme.fontSizeSmall};
+    font-weight: 700;
+    text-transform: uppercase;
   }
 `;
 

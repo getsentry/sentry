@@ -32,7 +32,6 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   const dispatch = useDispatchFlamegraphState();
 
   const flamegraph = useFlamegraph();
-
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
