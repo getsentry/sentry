@@ -16,12 +16,14 @@ import {
 interface StepsParams {
   importContent: string;
   initContent: string;
-  installSnippet: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
   sourceMapStep: StepProps;
 }
 
 export const steps = ({
-  installSnippet,
+  installSnippetYarn,
+  installSnippetNpm,
   importContent,
   initContent,
   sourceMapStep,
@@ -31,8 +33,20 @@ export const steps = ({
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: installSnippet,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -93,7 +107,6 @@ export function GettingStartedWithConnect({
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const installSnippet = getInstallSnippet({productSelection});
   const imports = getDefaultNodeImports({productSelection});
   imports.push('import connect from "connect";');
 
@@ -112,7 +125,8 @@ export function GettingStartedWithConnect({
   return (
     <Layout
       steps={steps({
-        installSnippet,
+        installSnippetNpm: getInstallSnippet({productSelection, packageManager: 'npm'}),
+        installSnippetYarn: getInstallSnippet({productSelection, packageManager: 'yarn'}),
         importContent: imports.join('\n'),
         initContent,
         sourceMapStep: getUploadSourceMapsStep({
