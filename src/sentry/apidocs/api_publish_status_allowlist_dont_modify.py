@@ -605,7 +605,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET"
     },
     "/api/0/projects/{organization_slug}/{project_slug}/dynamic-sampling/rate/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/dynamic-sampling/distribution/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/repo-path-parsing/": {"POST"},
     "/api/0/teams/{organization_slug}/{team_slug}/": {"DELETE", "GET", "PUT"},
     "/api/0/teams/{organization_slug}/{team_slug}/issues/old/": {"GET"},

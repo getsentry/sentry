@@ -253,7 +253,6 @@ module = [
     "sentry.api.endpoints.project_app_store_connect_credentials",
     "sentry.api.endpoints.project_artifact_bundle_file_details",
     "sentry.api.endpoints.project_details",
-    "sentry.api.endpoints.project_dynamic_sampling",
     "sentry.api.endpoints.project_event_details",
     "sentry.api.endpoints.project_group_index",
     "sentry.api.endpoints.project_group_stats",
