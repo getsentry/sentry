@@ -214,7 +214,8 @@ const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(3n + 2) {
+    > *:nth-child(4n + 2),
+    *:nth-child(4n + 3) {
       display: none;
     }
   }
