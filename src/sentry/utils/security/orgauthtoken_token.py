@@ -9,7 +9,7 @@ SENTRY_ORG_AUTH_TOKEN_PREFIX = "sntrys_"
 
 
 class SystemUrlPrefixMissingException(Exception):
-    "system.url-prefix is not set. You need to set this to generate a token."
+    # system.url-prefix is not set. You need to set this to generate a token.
     pass
 
 
