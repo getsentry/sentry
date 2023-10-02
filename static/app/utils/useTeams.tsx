@@ -64,6 +64,12 @@ type Result = {
 
 type Options = {
   /**
+   * When provided, fetches specified teams by id if necessary and only provides those teams.
+   *
+   * @deprecated use `useTeamsById({ids: []})`
+   */
+  ids?: string[];
+  /**
    * Number of teams to return when not using `props.slugs`
    */
   limit?: number;
@@ -93,7 +99,6 @@ type FetchTeamOptions = {
 
 /**
  * Helper function to actually load teams
- *
  */
 async function fetchTeams(
   api: Client,
@@ -159,15 +164,8 @@ async function fetchTeams(
  * loaded, so you should use this hook with the intention of providing specific
  * slugs, or loading more through search.
  *
- * @deprecated use the alternatives to this hook (except for search and pagination)
- * new alternatives:
- * - useTeamsById({ids: []}) - get teams by id
- * - useTeamsById({slugs: []}) - get teams by slug
- * - useTeamsById() - just reading from the teams store
- * - useUserTeams() - same as `provideUserTeams: true`
- *
  */
-export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
+export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -175,12 +173,19 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const orgId = organization?.slug;
 
   const storeSlugs = useMemo(() => new Set(store.teams.map(t => t.slug)), [store.teams]);
+  const storeIds = useMemo(() => new Set(store.teams.map(t => t.id)), [store.teams]);
 
   const slugsToLoad = useMemo(
     () => slugs?.filter(slug => !storeSlugs.has(slug)) ?? [],
     [slugs, storeSlugs]
   );
-  const shouldLoadByQuery = slugsToLoad.length > 0;
+
+  const idsToLoad = useMemo(
+    () => ids?.filter(id => !storeIds.has(id)) ?? [],
+    [ids, storeIds]
+  );
+
+  const shouldLoadByQuery = slugsToLoad.length > 0 || idsToLoad.length > 0;
   const shouldLoadUserTeams = provideUserTeams && !store.loadedUserTeams;
 
   // If we don't need to make a request either for slugs or user teams, set
@@ -231,6 +236,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
       try {
         const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
           slugs: slugsToLoad,
+          ids: idsToLoad,
           limit,
         });
 
@@ -256,7 +262,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
         }));
       }
     },
-    [api, limit, orgId, slugsToLoad, store.teams]
+    [api, idsToLoad, limit, orgId, slugsToLoad, store.teams]
   );
 
   const handleFetchAdditionalTeams = useCallback(
@@ -364,10 +370,12 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const filteredTeams = useMemo(() => {
     return slugs
       ? store.teams.filter(t => slugs.includes(t.slug))
+      : ids
+      ? store.teams.filter(t => ids.includes(t.id))
       : provideUserTeams && !isSuperuser
       ? store.teams.filter(t => t.isMember)
       : store.teams;
-  }, [store.teams, slugs, provideUserTeams, isSuperuser]);
+  }, [store.teams, ids, slugs, provideUserTeams, isSuperuser]);
 
   const result: Result = {
     teams: filteredTeams,

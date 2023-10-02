@@ -107,6 +107,41 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
   });
 
+  it('can load teams by id', async function () {
+    const requestedTeams = [TestStubs.Team({id: '2', slug: 'requested-team'})];
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: requestedTeams,
+    });
+
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result, waitFor} = reactHooks.renderHook(useTeams, {
+      initialProps: {ids: ['2']},
+    });
+
+    expect(result.current.initiallyLoaded).toBe(false);
+    expect(mockRequest).toHaveBeenCalled();
+
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    const {teams} = result.current;
+    expect(teams).toEqual(expect.arrayContaining(requestedTeams));
+  });
+
+  it('only loads ids when needed', function () {
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result} = reactHooks.renderHook(useTeams, {
+      initialProps: {ids: [mockTeams[0].id]},
+    });
+
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
   it('correctly returns hasMore before and after store update', async function () {
     const {result, waitFor} = reactHooks.renderHook(useTeams);
 
