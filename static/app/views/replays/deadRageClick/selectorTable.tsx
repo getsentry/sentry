@@ -31,17 +31,19 @@ export function getAriaLabel(str: string) {
 }
 
 export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
-  return data.map(d => ({
-    ...(clickType
-      ? {[clickType]: d[clickType]}
-      : {
-          count_dead_clicks: d.count_dead_clicks,
-          count_rage_clicks: d.count_rage_clicks,
-        }),
-    dom_element: d.dom_element,
-    element: d.dom_element.split(/[#.]+/)[0],
-    aria_label: getAriaLabel(d.dom_element),
-  }));
+  return data
+    .filter(d => !d.dom_element.includes('*')) // filter out masked selectors since we can't search on them
+    .map(d => ({
+      ...(clickType
+        ? {[clickType]: d[clickType]}
+        : {
+            count_dead_clicks: d.count_dead_clicks,
+            count_rage_clicks: d.count_rage_clicks,
+          }),
+      dom_element: d.dom_element,
+      element: d.dom_element.split(/[#.]+/)[0],
+      aria_label: getAriaLabel(d.dom_element),
+    }));
 }
 
 export function transformSelectorQuery(selector: string) {
