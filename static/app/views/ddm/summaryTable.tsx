@@ -33,6 +33,37 @@ export function SummaryTable({
   const hasActions = series.some(s => s.release || s.transaction);
   const {start, end, statsPeriod, project, environment} = router.location.query;
 
+  const releaseTo = (release: string) => {
+    return {
+      pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
+      query: {
+        start,
+        end,
+        pageStatsPeriod: statsPeriod,
+        project,
+        environment,
+      },
+    };
+  };
+
+  const transactionTo = (transaction: string) =>
+    transactionSummaryRouteWithQuery({
+      orgSlug: slug,
+      transaction,
+      projectID: selection.projects.map(p => String(p)),
+      query: {
+        query: '',
+        environment: selection.environments,
+        start: selection.datetime.start
+          ? getUtcDateString(selection.datetime.start)
+          : undefined,
+        end: selection.datetime.end
+          ? getUtcDateString(selection.datetime.end)
+          : undefined,
+        statsPeriod: selection.datetime.period,
+      },
+    });
+
   return (
     <SummaryTableWrapper hasActions={hasActions}>
       <HeaderCell />
@@ -56,7 +87,7 @@ export function SummaryTable({
                 onMouseLeave={() => setHoveredLegend?.('')}
               >
                 <Cell>
-                  <ColorDot color={color} hiddenn={!!hidden} />
+                  <ColorDot color={color} isHidden={!!hidden} />
                 </Cell>
                 <Cell>{getNameFromMRI(seriesName)}</Cell>
                 {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
@@ -71,25 +102,7 @@ export function SummaryTable({
                     {transaction && (
                       <div>
                         <Tooltip title={t('Open Transaction Summary')}>
-                          <LinkButton
-                            to={transactionSummaryRouteWithQuery({
-                              orgSlug: slug,
-                              transaction,
-                              projectID: selection.projects.map(p => String(p)),
-                              query: {
-                                query: '',
-                                environment: selection.environments,
-                                start: selection.datetime.start
-                                  ? getUtcDateString(selection.datetime.start)
-                                  : undefined,
-                                end: selection.datetime.end
-                                  ? getUtcDateString(selection.datetime.end)
-                                  : undefined,
-                                statsPeriod: selection.datetime.period,
-                              },
-                            })}
-                            size="xs"
-                          >
+                          <LinkButton to={transactionTo(transaction)} size="xs">
                             <IconLightning size="xs" />
                           </LinkButton>
                         </Tooltip>
@@ -99,21 +112,7 @@ export function SummaryTable({
                     {release && (
                       <div>
                         <Tooltip title={t('Open Release Details')}>
-                          <LinkButton
-                            to={{
-                              pathname: `/organizations/${slug}/releases/${encodeURIComponent(
-                                release
-                              )}/`,
-                              query: {
-                                start,
-                                end,
-                                pageStatsPeriod: statsPeriod,
-                                project,
-                                environment,
-                              },
-                            }}
-                            size="xs"
-                          >
+                          <LinkButton to={releaseTo(release)} size="xs">
                             <IconReleases size="xs" />
                           </LinkButton>
                         </Tooltip>
@@ -182,11 +181,10 @@ const Cell = styled('div')<{right?: boolean}>`
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
-const ColorDot = styled(`div`)<{color: string; hiddenn: boolean}>`
+const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   background-color: ${p =>
-    colorFn(p.color)
-      .alpha(p.hiddenn ? 0.3 : 1)
-      .string()};
+    p.isHidden ? 'transparent' : colorFn(p.color).alpha(1).string()};
+  border: 1px solid ${p => p.color};
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};

@@ -40,7 +40,7 @@ class ProjectRuleEnableTestCase(APITestCase):
             ).exists()
         assert self.analytics_called_with_args(
             record_analytics,
-            "rule.reenable",
+            "rule_reenable.explicit",
             rule_id=self.rule.id,
             user_id=self.user.id,
             organization_id=self.organization.id,

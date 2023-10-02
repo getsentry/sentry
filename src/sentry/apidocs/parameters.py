@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
@@ -6,9 +8,12 @@ from rest_framework import serializers
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
 
-# drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
-# a typed list using this workaround
-def build_typed_list(type: OpenApiTypes):
+def build_typed_list(type: Any):
+    """
+    drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
+    a typed list using this workaround. build_basic_type will dynamically check the type
+    and pass a warning if it can't recognize it, failing any build command in the process as well.
+    """
     return build_array_type(build_basic_type(type))
 
 

@@ -34,7 +34,7 @@ def create_compressed_asset_span():
         desc="https://someothersite.example.com/app.js",
         duration=1.0,
         data={
-            "http.transfer_size": 5,
+            "http.response_transfer_size": 5,
             "http.response_content_length": 4,
             "http.decoded_response_content_length": 5,
         },
@@ -62,7 +62,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -99,7 +99,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -138,7 +138,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -177,7 +177,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -211,7 +211,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/some.jpg",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 1_000_000,
+                    "http.response_transfer_size": 1_000_000,
                     "http.response_content_length": 1_000_000,
                     "http.decoded_response_content_length": 1_000_000,
                 },
@@ -232,7 +232,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -266,7 +266,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.woff2",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 1_000_000,
+                    "http.response_transfer_size": 1_000_000,
                     "http.response_content_length": 1_000_000,
                     "http.decoded_response_content_length": 1_000_000,
                 },
@@ -285,7 +285,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -304,7 +304,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 99_999,
                         "http.decoded_response_content_length": 99_999,
                     },
@@ -323,7 +323,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 101_000,
                         "http.decoded_response_content_length": 100_999,
                     },
@@ -342,7 +342,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=50.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 101_000,
                         "http.decoded_response_content_length": 101_000,
                     },

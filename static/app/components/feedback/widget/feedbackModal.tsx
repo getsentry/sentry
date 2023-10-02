@@ -1,6 +1,7 @@
 import React, {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {getCurrentHub, Replay} from '@sentry/react';
+import classNames from 'classnames';
 
 import useKeyPress from 'sentry/utils/useKeyPress';
 
@@ -27,7 +28,11 @@ type FeedbackRenderFunction = (
 interface FeedbackModalProps {
   children: FeedbackRenderFunction;
   title: string;
+  className?: string;
+  descriptionPlaceholder?: string;
+  sendButtonText?: string;
   type?: string;
+  widgetTheme?: 'dark' | 'light';
 }
 
 interface FeedbackFormData {
@@ -62,12 +67,21 @@ function stopPropagation(e: React.MouseEvent) {
  *
  * XXX: This is only temporary as we move this to SDK
  */
-export function FeedbackModal({title, type, children}: FeedbackModalProps) {
+export function FeedbackModal({
+  className,
+  descriptionPlaceholder = "What's the bug? What did you expect?",
+  sendButtonText = 'Send Bug Report',
+  widgetTheme = 'light',
+  title,
+  type,
+  children,
+}: FeedbackModalProps) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setError] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const escapePressed = useKeyPress('Escape');
+  const isDarkTheme = widgetTheme === 'dark';
 
   const handleClose = () => {
     setOpen(false);
@@ -119,11 +133,24 @@ export function FeedbackModal({title, type, children}: FeedbackModalProps) {
 
   return (
     <Fragment>
-      <Dialog id="feedbackModal" open={open} ref={dialogRef} onClick={handleClose}>
+      <Dialog
+        id="feedbackModal"
+        className={classNames(isDarkTheme ? '__sntry_fdbk_dark' : '', className)}
+        open={open}
+        ref={dialogRef}
+        onClick={handleClose}
+      >
         <Content onClick={stopPropagation}>
           <Header>{title}</Header>
           {errorMessage ? <Error>{errorMessage}</Error> : null}
-          {open && <FeedbackForm onSubmit={handleSubmit} onClose={handleClose} />}
+          {open && (
+            <FeedbackForm
+              descriptionPlaceholder={descriptionPlaceholder}
+              sendButtonText={sendButtonText}
+              onSubmit={handleSubmit}
+              onClose={handleClose}
+            />
+          )}
         </Content>
       </Dialog>
       <FeedbackSuccessMessage show={showSuccessMessage} />
@@ -133,6 +160,20 @@ export function FeedbackModal({title, type, children}: FeedbackModalProps) {
 }
 
 const Dialog = styled('dialog')`
+  --sentry-feedback-bg-color: #fff;
+  --sentry-feedback-bg-hover-color: #f0f0f0;
+  --sentry-feedback-fg-color: #000;
+  --sentry-feedback-border: 1.5px solid rgba(41, 35, 47, 0.13);
+  --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
+
+  &.__sntry_fdbk_dark {
+    --sentry-feedback-bg-color: #29232f;
+    --sentry-feedback-bg-hover-color: #3a3540;
+    --sentry-feedback-fg-color: #ebe6ef;
+    --sentry-feedback-border: 1.5px solid rgba(235, 230, 239, 0.15);
+    --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
+  }
+
   background-color: rgba(0, 0, 0, 0.05);
   border: none;
   position: fixed;
@@ -157,10 +198,11 @@ const Content = styled('div')`
   right: 1rem;
   bottom: 1rem;
 
-  border: 1px solid rgba(41, 35, 47, 0.13);
+  border: var(--sentry-feedback-border);
   padding: 24px;
   border-radius: 20px;
-  background-color: #fff;
+  background-color: var(--sentry-feedback-bg-color);
+  color: var(--sentry-feedback-fg-color);
 
   width: 320px;
   max-width: 100%;

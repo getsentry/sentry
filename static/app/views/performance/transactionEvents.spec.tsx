@@ -176,7 +176,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Sampled Events'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Tags'})).toBeInTheDocument();
 
     ProjectsStore.reset();

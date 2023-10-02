@@ -93,7 +93,11 @@ function csrfSafeMethod(method?: string): boolean {
 export function isSimilarOrigin(target: string, origin: string): boolean {
   const targetUrl = new URL(target, origin);
   const originUrl = new URL(origin);
-  if (originUrl.hostname.endsWith(targetUrl.hostname)) {
+  // If one of the domains is a child of the other.
+  if (
+    originUrl.hostname.endsWith(targetUrl.hostname) ||
+    targetUrl.hostname.endsWith(originUrl.hostname)
+  ) {
     return true;
   }
   // Check if the target and origin are on sibiling subdomains.

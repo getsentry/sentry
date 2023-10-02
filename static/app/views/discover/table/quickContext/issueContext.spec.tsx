@@ -1,3 +1,5 @@
+import {Repository} from 'sentry-fixture/repository';
+
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -131,7 +133,7 @@ describe('Quick Context Content Issue Column', function () {
           message: 'feat(simulator): Add option for multiple squirrels (#1121)',
           id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
           dateCreated: '2012-09-08T04:15:12',
-          repository: TestStubs.Repository(),
+          repository: Repository(),
         },
       ],
     };
@@ -143,7 +145,7 @@ describe('Quick Context Content Issue Column', function () {
             'ref(simulator): Split leaderboard calculations into separate functions (#1231)',
           id: 'fe29668b24cea6faad8afb8f6d9417f402ef9c18',
           dateCreated: '2012-04-15T09:09:12',
-          repository: TestStubs.Repository(),
+          repository: Repository(),
         },
       ],
     };

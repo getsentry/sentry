@@ -129,7 +129,7 @@ def spawn_clusterers_span_descs(**kwargs: Any) -> None:
 
 
 @instrumented_task(
-    name="sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs",
+    name="sentry.ingest.span_clusterer.tasks.cluster_projects_span_descs",
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer

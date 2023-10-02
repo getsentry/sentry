@@ -1,3 +1,5 @@
+import {GlobalSelection} from 'sentry-fixture/globalSelection';
+
 import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
@@ -35,7 +37,7 @@ describe('transformIssuesResponseToTable', function () {
           orderby: '',
         },
         TestStubs.Organization(),
-        TestStubs.GlobalSelection()
+        GlobalSelection()
       )
     ).toEqual(
       expect.objectContaining({

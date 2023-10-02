@@ -145,7 +145,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_user(self, mock_func):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 
@@ -318,7 +318,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 
