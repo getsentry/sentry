@@ -325,19 +325,14 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(r2_keys) == 0
 
 
-class TestErrorCountThresholdCheck(APITestCase):
+class ErrorCountThresholdCheckTest(APITestCase):
     def setUp(self):
         # 3 projects
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.project2 = self.create_project(name="bar", organization=self.organization)
-        self.project3 = self.create_project(name="biz", organization=self.organization)
 
-        # 2 environments
         self.canary_environment = Environment.objects.create(
             organization_id=self.organization.id, name="canary"
-        )
-        self.production_environment = Environment.objects.create(
-            organization_id=self.organization.id, name="production"
         )
 
         # release created for proj1, and proj2
@@ -346,15 +341,10 @@ class TestErrorCountThresholdCheck(APITestCase):
         self.release1.add_project(self.project1)
         self.release1.add_project(self.project2)
 
-        # release created for proj1, and proj2
+        # release created for proj1
         self.release2 = Release.objects.create(version="v2", organization=self.organization)
         # add_project get_or_creates a ReleaseProject
         self.release2.add_project(self.project1)
-
-        # # release created for proj1, and proj2
-        # self.release3 = Release.objects.create(version="v3", organization=self.organization)
-        # # add_project get_or_creates a ReleaseProject
-        # self.release3.add_project(self.project1)
 
     def test_threshold_within_timeseries(self):
         """
@@ -749,7 +739,7 @@ class TestErrorCountThresholdCheck(APITestCase):
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
-            "environment": "foo",
+            "environment": self.canary_environment,
             "is_healthy": False,
             "key": "",
             "project": self.project1,

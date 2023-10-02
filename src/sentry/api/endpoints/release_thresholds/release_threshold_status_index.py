@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 class EnrichedThreshold(TypedDict):
     date: datetime
     end: datetime
-    environment: Environment
+    environment: Environment | None
     is_healthy: bool
     key: str
     project: Project
