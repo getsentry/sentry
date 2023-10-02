@@ -16,7 +16,6 @@ export default function useFeedbackListQueryView({
       per_page: decodeScalar,
       project: decodeList,
       query: decodeScalar,
-      // sort: decodeScalar,
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
