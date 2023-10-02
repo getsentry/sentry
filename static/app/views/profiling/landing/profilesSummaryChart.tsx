@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -103,16 +106,16 @@ export function ProfilesSummaryChart({
       series,
       grid: [
         {
-          top: '32px',
-          left: '24px',
-          right: '52%',
+          top: '8px',
+          left: '16px',
+          right: '8px',
           bottom: '16px',
         },
         {
-          top: '32px',
-          left: hideCount ? '24px' : '52%',
-          right: '24px',
-          bottom: '16px',
+          top: '8px',
+          left: '8px',
+          right: '16px',
+          bottom: '8px',
         },
       ],
       legend: {
@@ -170,15 +173,30 @@ export function ProfilesSummaryChart({
   }, [hideCount, series, seriesOrder, theme.chartLabel]);
 
   return (
-    <ChartZoom router={router} {...selection?.datetime}>
-      {zoomRenderProps => (
-        <LineChart
-          {...chartProps}
-          isGroupedByDate
-          showTimeInTooltip
-          {...zoomRenderProps}
-        />
-      )}
-    </ChartZoom>
+    <ProfilesChartContainer>
+      <ProfilesChartTitle>{t('Profile durations')}</ProfilesChartTitle>
+      <ChartZoom router={router} {...selection?.datetime}>
+        {zoomRenderProps => (
+          <LineChart
+            {...chartProps}
+            isGroupedByDate
+            showTimeInTooltip
+            {...zoomRenderProps}
+          />
+        )}
+      </ChartZoom>
+    </ProfilesChartContainer>
   );
 }
+
+const ProfilesChartTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  padding: ${space(1)};
+`;
+
+const ProfilesChartContainer = styled('div')`
+  background-color: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
