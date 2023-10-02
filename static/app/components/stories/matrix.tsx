@@ -3,7 +3,9 @@ import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 import first from 'lodash/first';
 
-import SizingWindow from 'sentry/components/stories/sizingWindow';
+import SizingWindow, {
+  Props as SizingWindowProps,
+} from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
 export type PropMatrix<E extends ElementType> = Partial<{
@@ -14,7 +16,7 @@ interface Props<E extends ElementType> {
   propMatrix: PropMatrix<E>;
   render: ElementType<ComponentProps<E>>;
   selectedProps: [keyof ComponentProps<E>, keyof ComponentProps<E>];
-  sizingWindowProps?: Partial<ComponentProps<typeof SizingWindow>>;
+  sizingWindowProps?: SizingWindowProps;
 }
 
 export default function Matrix<E extends ElementType>({
