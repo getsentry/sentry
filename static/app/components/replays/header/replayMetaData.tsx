@@ -101,7 +101,6 @@ const Count = styled('span')`
 const ClickCount = styled(Count)<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
   display: flex;
-  width: 40px;
   gap: ${space(0.75)};
   align-items: center;
 `;

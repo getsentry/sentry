@@ -11,17 +11,17 @@ export default function BrowserOSIcons() {
 
   return (
     <IconContainer>
-      <Tooltip title={`${replayRecord?.browser.name} ${replayRecord?.browser.version}`}>
-        <ContextIcon
-          name={replayRecord?.browser.name ?? ''}
-          version={replayRecord?.browser.version ?? undefined}
-          showVersion
-        />
-      </Tooltip>
       <Tooltip title={`${replayRecord?.os.name} ${replayRecord?.os.version}`}>
         <ContextIcon
           name={replayRecord?.os.name ?? ''}
           version={replayRecord?.os.version ?? undefined}
+          showVersion
+        />
+      </Tooltip>
+      <Tooltip title={`${replayRecord?.browser.name} ${replayRecord?.browser.version}`}>
+        <ContextIcon
+          name={replayRecord?.browser.name ?? ''}
+          version={replayRecord?.browser.version ?? undefined}
           showVersion
         />
       </Tooltip>
@@ -32,5 +32,5 @@ export default function BrowserOSIcons() {
 const IconContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
-  flex-direction: row-reverse;
+  flex-direction: row;
 `;
