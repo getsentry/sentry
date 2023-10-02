@@ -1,4 +1,5 @@
 import shuffle from 'lodash/shuffle';
+import {PageFilters} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {NewQuery, SavedQuery} from 'sentry/types';
@@ -515,7 +516,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const pageFilters = TestStubs.PageFilters();
+    const pageFilters = PageFilters();
 
     const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
 

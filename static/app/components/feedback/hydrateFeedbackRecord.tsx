@@ -34,7 +34,7 @@ export default function hydrateFeedbackRecord(
 
   return {
     ...apiResponse,
-    feedback_id: apiResponse.feedback_id.replaceAll('-', ''),
+    feedback_id: apiResponse.feedback_id,
     timestamp: new Date(apiResponse.timestamp),
     tags,
   };

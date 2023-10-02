@@ -1,5 +1,6 @@
 import {AccountEmails} from 'sentry-fixture/accountEmails';
 import {Authenticators} from 'sentry-fixture/authenticators';
+import {Organizations} from 'sentry-fixture/organizations';
 
 import {
   render,
@@ -26,7 +27,7 @@ describe('AccountSecurity', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
+      body: Organizations(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
@@ -161,7 +162,7 @@ describe('AccountSecurity', function () {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
@@ -196,7 +197,7 @@ describe('AccountSecurity', function () {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
