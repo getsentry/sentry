@@ -204,6 +204,13 @@ function renderMockRequests() {
     },
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+    method: 'GET',
+    statusCode: 204,
+    body: '',
+  });
+
   return {
     eventsStatsMock,
     eventsMetaMock,

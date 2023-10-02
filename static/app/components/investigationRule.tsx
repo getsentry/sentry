@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconQuestion, IconTag} from 'sentry/icons';
+import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
@@ -50,11 +50,13 @@ function makeRuleExistsQueryKey(
   projects: number[],
   organization: OrganizationSummary
 ): ApiQueryKey {
+  // sort the projects to keep the query key invariant to the order of the projects
+  const sortedProjects = [...projects].sort();
   return [
-    `/api/0/organizations/${organization.slug}/dynamic-sampling/custom-rules/`,
+    `/organizations/${organization.slug}/dynamic-sampling/custom-rules/`,
     {
       query: {
-        project: projects,
+        project: sortedProjects,
         query,
       },
     },
@@ -104,7 +106,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
   >({
     mutationFn: (variables: CreateCustomRuleVariables) => {
       const {organization} = variables;
-      const endpoint = `/api/0/organizations/${organization.slug}/dynamic-sampling/custom-rules/`;
+      const endpoint = `/organizations/${organization.slug}/dynamic-sampling/custom-rules/`;
       return api.requestPromise(endpoint, {
         method: 'POST',
         data: variables,
@@ -207,7 +209,7 @@ export function InvestigationRuleCreation(props: Props) {
       <Button
         size="sm"
         onClick={() => createInvestigationRule({organization, period, projects, query})}
-        icon={<IconTag size="xs" />}
+        icon={<IconStack size="xs" />}
       >
         {t('Get Samples')}
       </Button>
