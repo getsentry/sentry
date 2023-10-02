@@ -188,15 +188,15 @@ class DatabaseBackedControlOrganizationProvisioningService(
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
+        assert (
+            primary_slug_alias
+        ), "There must be a primary slug reservation for an organization in order to swap slugs"
+
         slug_base = desired_slug
         if not require_exact:
             slug_base = self._generate_org_slug(
                 region_name=primary_slug_alias.region_name, slug=slug_base
             )
-
-        assert (
-            primary_slug_alias
-        ), "There must be a primary slug reservation for an organization in order to swap slugs"
 
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
