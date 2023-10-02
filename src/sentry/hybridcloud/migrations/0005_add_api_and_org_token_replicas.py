@@ -81,7 +81,7 @@ class Migration(CheckedMigration):
                 (
                     "apitoken_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.OrgAuthToken", db_index=True, on_delete="CASCADE"
+                        "sentry.ApiToken", db_index=True, on_delete="CASCADE"
                     ),
                 ),
                 ("token", models.CharField(max_length=64)),

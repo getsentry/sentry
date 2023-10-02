@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
-from typing import Optional, Tuple
+from typing import Collection, Optional, Tuple
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -16,6 +16,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
+from sentry.types.region import find_all_region_names
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
@@ -31,7 +32,7 @@ def generate_token():
 @control_silo_only_model
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
-    category = OutboxCategory.API_KEY_UPDATE
+    category = OutboxCategory.API_TOKEN_UPDATE
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -51,6 +52,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def __str__(self):
         return force_str(self.token)
+
+    def outbox_region_names(self) -> Collection[str]:
+        return list(find_all_region_names())
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_api_token
