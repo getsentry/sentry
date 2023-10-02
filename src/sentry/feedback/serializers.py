@@ -29,6 +29,11 @@ class FeedbackResponseType(TypedDict):
 @register(Feedback)
 class FeedbackSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> FeedbackResponseType:
+        if obj.environment:
+            env = obj.environment.name
+        else:
+            env = "production"
+
         res: FeedbackResponseType = {
             "browser": obj.data.get("browser") or {},
             "locale": obj.data.get("locale") or {},
@@ -40,7 +45,7 @@ class FeedbackSerializer(Serializer):
             "dist": obj.data.get("dist"),
             "sdk": obj.data.get("sdk"),
             "contact_email": obj.data.get("feedback").get("contact_email"),
-            "environment": obj.data.get("environment"),
+            "environment": env,
             "feedback_id": obj.feedback_id,
             "message": obj.message,
             "platform": obj.data.get("platform"),

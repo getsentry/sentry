@@ -1208,7 +1208,11 @@ function buildRoutes() {
           component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
         <Route path="rules/">
-          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/alerts/list/rules/alertRulesList')
+            )}
+          />
           <Route
             path="details/:ruleId/"
             component={make(() => import('sentry/views/alerts/rules/metric/details'))}
@@ -1382,12 +1386,10 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
-        path="dead-clicks/"
-        component={make(() => import('sentry/views/replays/deadRageClick/deadClickList'))}
-      />
-      <Route
-        path="rage-clicks/"
-        component={make(() => import('sentry/views/replays/deadRageClick/rageClickList'))}
+        path="selectors/"
+        component={make(
+          () => import('sentry/views/replays/deadRageClick/deadRageClickList')
+        )}
       />
       <Route
         path=":replaySlug/"
@@ -1827,10 +1829,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
-      />
-      <Route
-        path=":feedbackSlug/"
-        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
       />
     </Fragment>
   );

@@ -27,7 +27,7 @@ class MetadataField(serializers.JSONField):
         try:
             validated_data = validate_metadata_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(e.message)  # noqa: B306
+            raise ValidationError(e.message)
 
         return validated_data
 

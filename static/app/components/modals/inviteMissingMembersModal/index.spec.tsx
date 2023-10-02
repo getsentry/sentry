@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {MissingMembers} from 'sentry-fixture/missingMembers';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -29,7 +30,7 @@ describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
   const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = {integration: 'github', users: TestStubs.MissingMembers()};
+  const missingMembers = {integration: 'github', users: MissingMembers()};
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {

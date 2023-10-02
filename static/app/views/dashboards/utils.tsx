@@ -26,6 +26,7 @@ import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -38,6 +39,7 @@ import {
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
 import {
   DashboardDetails,
   DashboardFilterKeys,
@@ -47,6 +49,11 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import {
+  ThresholdMaxKeys,
+  ThresholdsConfig,
+} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -90,6 +97,29 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
+}
+
+export function getWidgetIndicatorColor(
+  thresholds: ThresholdsConfig,
+  tableData: TableDataWithTitle[]
+): string {
+  const tableMeta = {...tableData[0].meta};
+  const fields = Object.keys(tableMeta);
+  const field = fields[0];
+  const data = Number(tableData[0].data[0][field]);
+  const {max_values} = thresholds;
+
+  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
+  if (greenMax && data <= greenMax) {
+    return theme.green300;
+  }
+
+  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
+  if (yellowMax && data <= yellowMax) {
+    return theme.yellow300;
+  }
+
+  return theme.red300;
 }
 
 function coerceStringToArray(value?: string | string[] | null) {

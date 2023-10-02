@@ -1,3 +1,6 @@
+import {Location} from 'history';
+import {GlobalSelection} from 'sentry-fixture/globalSelection';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -54,11 +57,35 @@ describe('ProfileSummaryPage', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/profiling/flamegraph/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/profiling/function-trends/`,
+      body: [],
+    });
+
     render(
       <ProfileSummaryPage
         params={{}}
-        selection={TestStubs.GlobalSelection()}
-        location={TestStubs.location()}
+        selection={GlobalSelection()}
+        location={
+          {
+            query: {transaction: 'fancyservice'},
+          } as unknown as Location
+        }
       />,
       {
         organization,
@@ -77,6 +104,11 @@ describe('ProfileSummaryPage', () => {
     OrganizationStore.onUpdate(organization);
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [TestStubs.Project()],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/profiling/filters/`,
       body: [],
     });
@@ -91,11 +123,25 @@ describe('ProfileSummaryPage', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/profiling/function-trends/`,
+      body: [],
+    });
+
     render(
       <ProfileSummaryPage
         params={{}}
-        selection={TestStubs.GlobalSelection()}
-        location={TestStubs.location()}
+        selection={GlobalSelection()}
+        location={
+          {
+            query: {transaction: 'fancyservice'},
+          } as unknown as Location
+        }
       />,
       {
         organization: TestStubs.Organization({

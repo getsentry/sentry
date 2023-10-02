@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import click
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q
 
 from sentry.backup.dependencies import (
     ImportKind,
@@ -126,7 +127,7 @@ def _export(
                 continue
 
             possible_relocation_scopes = model.get_possible_relocation_scopes()
-            includable = possible_relocation_scopes & allowed_relocation_scopes  # type: ignore
+            includable = possible_relocation_scopes & allowed_relocation_scopes
             if not includable or model._meta.proxy:
                 continue
 
@@ -197,6 +198,9 @@ def export_in_config_scope(src, *, indent: int = 2, printer=click.echo):
 
     # Pick out all users with admin privileges.
     admin_user_pks: set[int] = set()
+    admin_user_pks.update(
+        User.objects.filter(Q(is_staff=True) | Q(is_superuser=True)).values_list("id", flat=True)
+    )
     admin_user_pks.update(UserPermission.objects.values_list("user_id", flat=True))
     admin_user_pks.update(UserRoleUser.objects.values_list("user_id", flat=True))
 

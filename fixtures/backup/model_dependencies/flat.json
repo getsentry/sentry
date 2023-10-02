@@ -1,5 +1,6 @@
 {
   "feedback.feedback": [
+    "sentry.environment",
     "sentry.organization",
     "sentry.project"
   ],
@@ -12,6 +13,7 @@
     "sentry.organizationslugreservation",
     "sentry.user"
   ],
+  "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",

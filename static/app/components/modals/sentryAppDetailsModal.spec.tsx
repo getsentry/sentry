@@ -1,3 +1,5 @@
+import {SentryApp} from 'sentry-fixture/sentryApp';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
@@ -20,7 +22,7 @@ function renderMockRequests({sentryAppSlug}: {sentryAppSlug: string}) {
 }
 
 describe('SentryAppDetailsModal', function () {
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = SentryApp();
 
   it('renders', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
@@ -75,7 +77,7 @@ describe('SentryAppDetailsModal', function () {
       />
     );
 
-    expect(screen.getByText(sentryApp.overview)).toBeInTheDocument();
+    expect(screen.getByText(String(sentryApp.overview))).toBeInTheDocument();
   });
 
   it('closes when Cancel is clicked', async function () {
