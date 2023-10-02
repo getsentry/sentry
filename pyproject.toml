@@ -116,7 +116,6 @@ module = [
     "requests_oauthlib.*",
     "sqlparse.*",
     "statsd.*",
-    "toronado.*",
     "u2flib_server.model.*",
     "ua_parser.user_agent_parser.*",
     "unidiff.*",
