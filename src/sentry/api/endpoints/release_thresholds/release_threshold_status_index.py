@@ -120,6 +120,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # STEP 1: Validate request data
         # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
+        start: datetime
+        end: datetime
         start, end = get_date_range_from_params(params=data)
 
         serializer = ReleaseThresholdStatusIndexSerializer(
@@ -177,7 +179,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 project_list = release.projects.all()
             for project in project_list:
                 if environments_list:
-                    thresholds_list = project.release_thresholds.filter(
+                    thresholds_list: List[ReleaseThreshold] = project.release_thresholds.filter(
                         environment__name__in=environments_list
                     )
                 else:
@@ -192,7 +194,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
                     enriched_threshold: EnrichedThreshold = {
-                        **serialize(threshold),
+                        # see https://github.com/python/mypy/issues/4122
+                        **serialize(threshold),  # type: ignore
                         "key": self.construct_threshold_key(
                             release=release, project=project, threshold=threshold
                         ),
@@ -224,12 +227,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 - this will determine whether we can give an accurate status report or not
                 """
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
-                    end=end,
+                    end=int(end.timestamp()),
                     environments_list=environments_list,
                     organization_id=organization.id,
                     project_id_list=project_id_list,
                     release_value_list=release_value_list,
-                    start=start,
+                    start=int(start.timestamp()),
                 )
                 for ethreshold in category_thresholds:
                     # TODO: filter by environment as well?
