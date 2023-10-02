@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 
 import {
   addErrorMessage,
@@ -23,7 +24,7 @@ interface Props {
   feedbackItem: HydratedFeedbackItem;
 }
 
-function openDeleteModal(organization, projectSlug, feedbackId) {
+function openDeleteModal(organization, projectSlug, feedbackId, location) {
   openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
     <Fragment>
       <Body>
@@ -36,7 +37,7 @@ function openDeleteModal(organization, projectSlug, feedbackId) {
           priority="primary"
           onClick={() => {
             closeModal();
-            deleteFeedback(organization, projectSlug, feedbackId);
+            deleteFeedback(organization, projectSlug, feedbackId, location);
           }}
         >
           {t('Delete')}
@@ -46,7 +47,7 @@ function openDeleteModal(organization, projectSlug, feedbackId) {
   ));
 }
 
-async function deleteFeedback(organization, projectSlug, feedbackId) {
+async function deleteFeedback(organization, projectSlug, feedbackId, location) {
   const api = new Client();
   addLoadingMessage(t('Deleting feedback...'));
   try {
@@ -55,6 +56,10 @@ async function deleteFeedback(organization, projectSlug, feedbackId) {
       {method: 'DELETE'}
     );
     addSuccessMessage(t('Deleted feedback'));
+    browserHistory.push({
+      ...location,
+      query: {...location.query.query, feedbackSlug: undefined},
+    });
   } catch {
     addErrorMessage(t('An error occurred while deleting the feedback.'));
   }
@@ -72,7 +77,7 @@ export default function DeleteButton({feedbackItem}: Props) {
       priority="danger"
       size="xs"
       icon={<IconDelete />}
-      onClick={() => openDeleteModal(organization, projectSlug, feedbackId)}
+      onClick={() => openDeleteModal(organization, projectSlug, feedbackId, location)}
     >
       {t('Delete')}
     </Button>
