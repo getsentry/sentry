@@ -10,12 +10,9 @@ import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ShareButton from 'sentry/components/replays/shareButton';
-import FrameWalker from 'sentry/components/replays/walker/frameWalker';
-import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -24,17 +21,9 @@ type Props = {
   projectSlug: string | null;
   replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
-  frames?: ReplayFrame[];
 };
 
-function Page({
-  children,
-  frames,
-  orgSlug,
-  replayRecord,
-  projectSlug,
-  replayErrors,
-}: Props) {
+function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
@@ -71,15 +60,7 @@ function Page({
             id: replayRecord.user.id || '',
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={
-            <Cols>
-              {frames?.length ? (
-                <FrameWalker replayRecord={replayRecord} frames={frames} />
-              ) : (
-                <StringWalker urls={replayRecord.urls} />
-              )}
-            </Cols>
-          }
+          displayEmail={<Cols>{undefined}</Cols>}
         />
       ) : (
         <HeaderPlaceholder width="100%" height="58px" />
