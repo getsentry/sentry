@@ -146,6 +146,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
         ]
 
+    enable_chunk_upload_error_filter = project.get_option("filters:chunk-load-error")
+    if enable_chunk_upload_error_filter:
+        # ChunkLoadError: Loading chunk 3662 failed. (error: https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += ["ChunkLoadError: Loading chunk * failed. (error: *)"]
+
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
 

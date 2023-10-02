@@ -600,6 +600,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:verify_ssl": False,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
+            "filters:chunk-load-error": True,
         }
         with self.feature("projects:custom-inbound-filters"), outbox_runner():
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -716,6 +717,12 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
+        assert project.get_option("filters:chunk-load-error", "1")
 
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -854,6 +861,13 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert self.project.get_option("filters:react-hydration-errors") == value
         assert resp.data["options"]["filters:react-hydration-errors"] == value
+
+    def test_chunk_load_error(self):
+        value = False
+        options = {"filters:chunk-load-error": value}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:chunk-load-error") == value
+        assert resp.data["options"]["filters:chunk-load-error"] == value
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
