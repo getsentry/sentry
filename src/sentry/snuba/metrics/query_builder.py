@@ -69,7 +69,7 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
-from sentry.snuba.metrics.query import MetricsQuery, Tag
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
@@ -805,7 +805,7 @@ class SnubaQueryBuilder:
                 # The support for tags in the order by is disabled for now because there is no need to have it. If the
                 # need arise, we will implement it.
                 if is_group_by:
-                    assert isinstance(metric_action_by_field.field, Tag)
+                    assert isinstance(metric_action_by_field.field, str)
                     column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
                 else:
                     raise NotImplementedError(

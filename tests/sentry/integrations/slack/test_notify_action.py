@@ -340,7 +340,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
         OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
-        OrganizationIntegration.objects.filter(
+        OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.event.project.organization.id
         ).update(status=ObjectStatus.DISABLED)
         event = self.get_event()
