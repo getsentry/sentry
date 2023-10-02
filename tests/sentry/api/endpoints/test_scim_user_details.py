@@ -74,17 +74,48 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         self.restricted_custom_role_member.save()
 
     def test_owner(self):
-        """Owners cannot be edited by this API"""
+        """Owners cannot be edited by this API, but we will return a success response"""
         self.owner = self.create_member(
             user=self.create_user(), organization=self.organization, role="owner"
         )
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             self.owner.id,
             method="put",
-            status_code=403,
             **generate_put_data(self.owner, role="member"),
         )
+        self.owner.refresh_from_db()
+        assert self.owner.role == "owner"
+        assert self.owner.flags["idp:provisioned"]
+
+    def test_owner_blank_role(self):
+        """A PUT request with a blank role should go through"""
+        self.owner = self.create_member(
+            user=self.create_user(), organization=self.organization, role="owner"
+        )
+        self.get_success_response(
+            self.organization.slug,
+            self.owner.id,
+            method="put",
+            **generate_put_data(self.owner),
+        )
+        self.owner.refresh_from_db()
+        assert self.owner.role == "owner"
+        assert self.owner.flags["idp:provisioned"]
+
+        # if the owner is somehow idp:role-restricted, unset it
+        self.owner.flags["idp:role-restricted"] = True
+        self.owner.save()
+        self.get_success_response(
+            self.organization.slug,
+            self.owner.id,
+            method="put",
+            **generate_put_data(self.owner),
+        )
+        self.owner.refresh_from_db()
+        assert self.owner.role == "owner"
+        assert not self.owner.flags["idp:role-restricted"]
+        assert self.owner.flags["idp:provisioned"]
 
     def test_invalid_role(self):
         self.get_error_response(
