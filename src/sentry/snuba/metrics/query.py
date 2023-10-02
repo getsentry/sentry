@@ -125,8 +125,7 @@ class MetricConditionField:
     rhs: Union[int, float, str]
 
 
-Tag = str
-Groupable = Union[Tag, Literal["project_id"]]
+Groupable = Union[str, Literal["project_id"]]
 
 
 class MetricsQueryValidationRunner:
