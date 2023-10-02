@@ -14,7 +14,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
@@ -90,7 +90,7 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
 
         if auth:
             for authenticator_class in [
-                TokenAuthentication,
+                UserAuthTokenAuthentication,
                 OrgAuthTokenAuthentication,
                 ApiKeyAuthentication,
             ]:

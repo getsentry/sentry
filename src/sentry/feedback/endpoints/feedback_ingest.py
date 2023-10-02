@@ -15,7 +15,7 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -96,7 +96,7 @@ class FeedbackIngestEndpoint(Endpoint):
     # Authentication code borrowed from the monitor endpoints (which will eventually be removed)
     authentication_classes = (
         DSNAuthentication,
-        TokenAuthentication,
+        UserAuthTokenAuthentication,
         OrgAuthTokenAuthentication,
         ApiKeyAuthentication,
     )

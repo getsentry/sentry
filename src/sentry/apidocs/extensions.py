@@ -13,7 +13,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     OpenAPI Schema.
     """
 
-    target_class = "sentry.api.authentication.TokenAuthentication"
+    target_class = "sentry.api.authentication.UserAuthTokenAuthentication"
     name = "auth_token"
 
     def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:

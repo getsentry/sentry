@@ -8,7 +8,7 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -112,7 +112,7 @@ class MonitorIngestEndpoint(Endpoint):
 
     authentication_classes = (
         DSNAuthentication,
-        TokenAuthentication,
+        UserAuthTokenAuthentication,
         OrgAuthTokenAuthentication,
         ApiKeyAuthentication,
     )

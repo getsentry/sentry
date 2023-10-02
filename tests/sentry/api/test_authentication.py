@@ -14,7 +14,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
@@ -164,7 +164,7 @@ class TestTokenAuthentication(TestCase):
     def setUp(self):
         super().setUp()
 
-        self.auth = TokenAuthentication()
+        self.auth = UserAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
         self.token = "abc123"
         self.api_token = ApiToken.objects.create(
