@@ -89,15 +89,6 @@ def test_kafka_running(mock_subprocess_run: mock.MagicMock) -> None:
             "inspect",
             "-f",
             "{{.State.Status}}",
-            "sentry_per",
-        ):
-            return running
-        elif cmd_args == (
-            "docker",
-            "container",
-            "inspect",
-            "-f",
-            "{{.State.Status}}",
             "sentry_kafka",
         ):
             return running
