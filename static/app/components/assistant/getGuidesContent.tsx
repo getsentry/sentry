@@ -279,7 +279,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2023-10-02'),
       steps: [
         {
-          title: t('Meet the new "Archive" button'),
+          title: t('"Archive" is the new "Ignore"'),
           target: 'issue_stream_archive_button',
           description: t(
             "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
