@@ -357,7 +357,7 @@ function InvestigationRuleCreation(props: Props) {
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconTag size="xs" />}
       >
-        {t('Get samples')}
+        {t('Get Samples')}
       </Button>
     </Tooltip>
   );
