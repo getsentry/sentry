@@ -72,6 +72,8 @@ class UniquenessTests(BackupTestCase):
             with open(tmp_expect) as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope instead.
+                #
+                # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)
@@ -92,6 +94,8 @@ class UniquenessTests(BackupTestCase):
             with open(tmp_expect) as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope instead.
+                #
+                # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)
