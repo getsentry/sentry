@@ -451,9 +451,9 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                     field={{
                       type: 'boolean',
                       name: 'filters:chunk-load-error',
-                      label: t('Filter out chunk load errors'),
+                      label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        'In NextJS, chunk load errors can occur due to caching split chunks of the JavaScript bundle.'
+                        'It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out of sync with the backend which results in a ChunkLoadError. The application refreshes and everything should work as expected.'
                       ),
                       disabled: !hasAccess,
                     }}
