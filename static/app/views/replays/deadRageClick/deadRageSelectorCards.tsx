@@ -266,6 +266,7 @@ const StyledWidgetHeader = styled(HeaderTitleLegend)`
 
 const StyledWidgetContainer = styled(WidgetContainer)`
   margin-bottom: 0;
+  padding-top: ${space(1.5)};
 `;
 
 export const RightAlignedCell = styled('div')`
