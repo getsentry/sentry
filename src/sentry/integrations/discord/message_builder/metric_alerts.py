@@ -10,7 +10,6 @@ from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 from sentry.integrations.metric_alerts import metric_alert_attachment_info
-from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
 class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
@@ -39,9 +38,9 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
             DiscordMessageEmbed(
                 title=data["title"],
                 url=f"{data['title_link']}&referrer=discord",
-                description=f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>  \n{data['text']}",
+                description=f"{data['text']}\n{get_started_at(data['date_started'])}",
                 color=LEVEL_TO_COLOR[INCIDENT_COLOR_MAPPING.get(data["status"], "")],
-                image=DiscordMessageEmbedImage(self.chart_url) if self.chart_url else None,
+                image=DiscordMessageEmbedImage(url=self.chart_url) if self.chart_url else None,
             )
         ]
 
