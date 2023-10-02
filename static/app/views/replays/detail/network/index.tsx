@@ -192,7 +192,7 @@ function NetworkList() {
 
   const currentIndex = indexAtCurrentTime();
   const showJumpDownButton = currentIndex > visibleRange[1];
-  const showJumpUpButton = currentIndex < visibleRange[0];
+  const showJumpUpButton = currentIndex < visibleRange[0] && networkFrames?.length;
 
   return (
     <FluidHeight>
