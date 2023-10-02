@@ -17,11 +17,15 @@ export interface PlatformOption<K extends string = string> {
    * The name of the option
    */
   label: string;
+  /**
+   * The default value to be used on initial render
+   */
+  defaultValue?: string;
 }
 
 /**
  * Hook that returns the currently selected platform option values from the URL
- * it will fallback to the first option value if the value in the URL is not valid or not present
+ * it will fallback to the defaultValue or the first option value if the value in the URL is not valid or not present
  */
 export function useUrlPlatformOptions<K extends string>(
   platformOptions: Record<K, PlatformOption>
@@ -33,8 +37,9 @@ export function useUrlPlatformOptions<K extends string>(
     () =>
       Object.keys(platformOptions).reduce(
         (acc, key) => {
+          const defaultValue = platformOptions[key as K].defaultValue;
           const values = platformOptions[key as K].items.map(({value}) => value);
-          acc[key] = values.includes(query[key]) ? query[key] : values[0];
+          acc[key] = values.includes(query[key]) ? query[key] : defaultValue ?? values[0];
           return acc;
         },
         {} as Record<K, string>
