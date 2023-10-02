@@ -83,7 +83,6 @@ class TestControlOrganizationProvisioningBase(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             new_organization = Organization.objects.get(id=old_organization.id)
 
-        # TODO(Gabe): Validate that this equality is sufficient
         assert old_organization == new_organization
 
 
@@ -98,7 +97,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
     # TODO(Gabe): Re-enable this in the cutover PR after removing
     #  slug reservation writes on org mapping create
     @pytest.mark.skip
-    def test_organization_region_inconsistency(self):
+    def test_organization_already_provisioned_for_different_user(self):
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
 

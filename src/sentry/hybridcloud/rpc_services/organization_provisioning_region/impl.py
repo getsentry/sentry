@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
@@ -33,6 +35,10 @@ def create_post_provision_outbox(
     )
 
 
+class PreProvisionCheckException(Exception):
+    pass
+
+
 class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioningRegionService):
     def _create_organization_and_team(
         self,
@@ -58,48 +64,54 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
 
         return org
 
-    def _pre_prevision_organization_check(
+    def _get_previously_provisioned_org_and_validate(
         self,
         organization_id: int,
         provision_payload: OrganizationProvisioningOptions,
-    ) -> bool:
-        provision_request_valid = True
+    ) -> Optional[Organization]:
         slug = provision_payload.provision_options.slug
         # Validate that no org with this org ID or slug exist in the region, unless already
         #  owned by the user_id
         matching_organizations_qs = Organization.objects.filter(
             Q(id=organization_id) | Q(slug=slug)
         )
+
         if matching_organizations_qs.exists():
-            assert (
-                matching_organizations_qs.count() == 1
-            ), "Multiple conflicting organization returned when provisioning an organization"
+            if matching_organizations_qs.count() > 1:
+                raise PreProvisionCheckException("Multiple conflicting organizations found")
 
             matching_org: Organization = matching_organizations_qs.first()
-            provisioning_user_is_org_owner = (
-                matching_org.get_default_owner().id
-                == provision_payload.provision_options.owning_user_id
-            )
+
+            try:
+                provisioning_user_is_org_owner = (
+                    matching_org.get_default_owner().id
+                    == provision_payload.provision_options.owning_user_id
+                )
+            except IndexError:
+                # get_default_owner raises this when the org has no default owner
+                raise PreProvisionCheckException(
+                    "A conflicting organization with no owner was found"
+                )
+
+            if not provisioning_user_is_org_owner:
+                raise PreProvisionCheckException(
+                    "A conflicting organization with a different owner was found"
+                )
 
             # Idempotency check in case a previous outbox completed partially
             #  and created an org for the user
             org_slug_matches_provision_options = (
                 matching_org.slug == provision_payload.provision_options.slug
             )
-            provision_request_valid = (
-                provisioning_user_is_org_owner and org_slug_matches_provision_options
-            )
 
-            return provision_request_valid
-
-        if not provision_request_valid:
-            capture_exception(
-                Exception(
-                    f"Regional provision check failed for org_id ({organization_id}) slug ({slug})"
+            if org_slug_matches_provision_options:
+                raise PreProvisionCheckException(
+                    "An organization with a conflicting ID but different slug was found"
                 )
-            )
 
-        return provision_request_valid
+            # If none of the previous validations failed, then we have a match for a previously provisioned org
+            return matching_org
+        return None
 
     def create_organization_in_region(
         self,
@@ -107,10 +119,19 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
         organization_id: int,
         provision_payload: OrganizationProvisioningOptions,
     ) -> bool:
-        if not self._pre_prevision_organization_check(
-            organization_id=organization_id, provision_payload=provision_payload
-        ):
+        try:
+            if (
+                self._get_previously_provisioned_org_and_validate(
+                    organization_id=organization_id, provision_payload=provision_payload
+                )
+                is not None
+            ):
+                # The organization was previously provisioned already, no need to do more work
+                return True
+        except PreProvisionCheckException:
+            capture_exception()
             return False
+
         provision_options = provision_payload.provision_options
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
