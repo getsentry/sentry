@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import time
-from datetime import datetime
-
 from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -10,15 +7,11 @@ from sentry.incidents.models import IncidentStatus
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
+    get_started_at,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
-
-
-def get_started_at(timestamp: datetime) -> str:
-    unix_timestamp = int(time.mktime(timestamp.timetuple()))
-    return f"Started <t:{unix_timestamp}:R>"
 
 
 @region_silo_test(stable=True)
@@ -72,14 +65,13 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}"
         )
-        unix_timestamp = get_started_at(incident.date_started)
 
         assert DiscordMetricAlertMessageBuilder(self.alert_rule, incident).build() == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
-                    "description": f"\n{unix_timestamp}",
+                    "description": get_started_at(incident.date_started),
                     "url": f"{link}&referrer=discord",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
@@ -138,7 +130,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
-        unix_timestamp = get_started_at(incident.date_started)
 
         assert DiscordMetricAlertMessageBuilder(
             self.alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
@@ -148,7 +139,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "title": title,
                     "color": LEVEL_TO_COLOR["fatal"],
-                    "description": f"{metric_value} events in the last 10 minutes\n{unix_timestamp}",
+                    "description": f"{metric_value} events in the last 10 minutes{get_started_at(incident.date_started)}",
                     "url": f"{link}?alert={incident.identifier}&referrer=discord",
                 }
             ],
@@ -169,7 +160,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
-        unix_timestamp = get_started_at(incident.date_started)
 
         new_status = IncidentStatus.CLOSED
         assert DiscordMetricAlertMessageBuilder(
@@ -179,7 +169,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "embeds": [
                 {
                     "title": title,
-                    "description": f"\n{unix_timestamp}",
+                    "description": get_started_at(incident.date_started),
                     "url": f"{link}?alert={incident.identifier}&referrer=discord",
                     "color": 5097329,
                     "image": {"url": "chart_url"},
