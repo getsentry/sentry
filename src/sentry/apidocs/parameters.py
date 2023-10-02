@@ -307,7 +307,7 @@ class IntegrationParams:
         location="query",
         required=False,
         type=str,
-        description="""Specific integration provider to filter by. For example, `slack` """,
+        description="""Specific integration provider to filter by. For example, `slack`. See [Integrations Documentation](/product/integrations/) for an updated list of providers.""",
     )
     FEATURES = OpenApiParameter(
         name="features",
@@ -315,7 +315,7 @@ class IntegrationParams:
         required=False,
         type=str,
         many=True,
-        description="""Integration features to filter by. See [Integrations Documentation](https://docs.sentry.io/product/integrations/). Current available features are:
+        description="""Integration features to filter by. See [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
          - alert-rule
          - chat-unfurl
          - codeowners

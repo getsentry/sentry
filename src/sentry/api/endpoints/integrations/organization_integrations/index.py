@@ -11,7 +11,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
+from sentry.api.serializers.models.integration import (
+    OrganizationIntegrationResponse,
+    OrganizationIntegrationSerializer,
+)
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -72,24 +75,14 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrganizationIntegrationResponse", List[OrganizationIntegrationSerializer]
+                "ListOrganizationIntegrationResponse", List[OrganizationIntegrationResponse]
             ),
         },
         examples=IntegrationExamples.LIST_INTEGRATIONS,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        List the available Integrations for an Organization
-        ```````````````````````````````````````````````````
-
-        :pparam string organization_slug: The slug of the organization.
-
-        :qparam string provider_key: Filter by specific integration provider. (e.g. "slack")
-        :qparam string[] features: Filter by integration features names.
-        :qparam bool includeConfig: Should integrations configurations be fetched from third-party
-            APIs? This can add several seconds to the request round trip.
-
-        :auth: required
+        Lists all the available Integrations for an Organization.
         """
         feature_filters = request.GET.getlist("features", [])
         # TODO: Remove provider_key in favor of ProviderKey after removing from frontend

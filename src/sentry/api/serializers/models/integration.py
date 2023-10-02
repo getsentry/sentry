@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
@@ -12,12 +14,30 @@ from sentry.services.hybrid_cloud.integration import (
     integration_service,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
 
+class OrganizationIntegrationResponse(TypedDict):
+    id: str
+    name: str
+    icon: Optional[str]
+    domainName: Optional[str]
+    accountType: Optional[str]
+    scopes: Optional[List[str]]
+    status: str
+    provider: Any
+    configOrganization: Any
+    configData: Any
+    externalId: str
+    organizationId: int
+    organizationIntegrationStatus: str
+    gracePeriodEnd: Optional[str]
+
+
 # converts the provider to JSON
-def serialize_provider(provider: IntegrationProvider) -> TypedDict[str, Any]:
+def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
     return {
         "key": provider.key,
         "slug": provider.key,
@@ -33,7 +53,7 @@ def serialize_provider(provider: IntegrationProvider) -> TypedDict[str, Any]:
 class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> TypedDict[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -61,7 +81,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         user: User,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> TypedDict[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -116,7 +136,7 @@ class OrganizationIntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
-    ) -> TypedDict[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -176,7 +196,7 @@ class OrganizationIntegrationSerializer(Serializer):
 class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> TypedDict[str, Any]:
+    ) -> MutableMapping[str, JSONData]:
         org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
