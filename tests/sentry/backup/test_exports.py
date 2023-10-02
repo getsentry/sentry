@@ -14,6 +14,8 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
 from sentry.utils.json import JSONData
 
@@ -66,6 +68,9 @@ class ScopingTests(ExportTestCase):
     def test_config_export_scoping(self):
         matching_models = self.get_models_for_scope(ExportScope.Config)
         self.create_exhaustive_instance(is_superadmin=True)
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.Config)
             for entry in data:
@@ -262,3 +267,20 @@ class FilteringTests(ExportTestCase):
             assert self.count(data, UserIP) == 0
             assert self.count(data, UserEmail) == 0
             assert self.count(data, Email) == 0
+
+    def test_export_only_keep_admin_users_in_config_scope(self):
+        self.create_exhaustive_user("regular")
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_staff=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Config,
+            )
+
+            assert self.count(data, User) == 3
+            assert self.count(data, UserRole) == 1
+            assert self.count(data, UserRoleUser) == 1
+            assert self.count(data, UserPermission) == 1

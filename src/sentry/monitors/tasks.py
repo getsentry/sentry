@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 import msgpack
 import sentry_sdk
@@ -199,7 +198,7 @@ def check_missing(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_environment_missing(monitor_environment_id: int, ts: Optional[datetime] = None):
+def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
 
     monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
@@ -251,7 +250,7 @@ def check_timeout(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_checkin_timeout(checkin_id: int, ts: Optional[datetime] = None):
+def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
     checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)

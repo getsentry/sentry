@@ -96,6 +96,9 @@ class TransactionMetricKey(Enum):
     TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
     HTTP_ERROR_RATE = "transaction.http_error_rate"
 
+    # Less granular coarse metrics
+    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
+
     # Span metrics.
     # NOTE: These might be moved to their own namespace soon.
     SPAN_USER = "span.user"
@@ -119,6 +122,10 @@ class SpanMetricKey(Enum):
     HTTP_ERROR_RATE = "span.http_error_rate"
     HTTP_ERROR_COUNT_LIGHT = "span.http_error_count_light"
     HTTP_ERROR_RATE_LIGHT = "span.http_error_rate_light"
+
+
+class ErrorsMetricKey(Enum):
+    EVENT_INGESTED = "errors.event_ingested"
 
 
 class SpanTagsKey(Enum):

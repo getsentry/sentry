@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import IntEnum, auto, unique
 from typing import Optional
@@ -189,8 +190,12 @@ class FindingJSONEncoder(json.JSONEncoder):
     """JSON serializer that handles findings properly."""
 
     def default(self, obj):
-        if isinstance(obj, FindingKind):
-            return obj.name
-        if isinstance(obj, Finding) or isinstance(obj, InstanceID):
+        if isinstance(obj, Finding):
+            d = deepcopy(obj.__dict__)
+            kind = d.get("kind")
+            if isinstance(kind, FindingKind):
+                d["kind"] = kind.name
+            return d
+        if isinstance(obj, InstanceID):
             return obj.__dict__
         return super().default(obj)

@@ -84,7 +84,15 @@ function AuthTokenCreateForm({
       onCreatedToken(token);
     },
     onError: error => {
-      const message = t('Failed to create a new auth token.');
+      const detail = error.responseJSON?.detail;
+      const code = detail && typeof detail === 'object' ? detail.code : undefined;
+
+      const message =
+        code === 'missing_system_url_prefix'
+          ? t(
+              'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
+            )
+          : t('Failed to create a new auth token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
     },

@@ -450,7 +450,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             organization_id=project2.organization_id,
             project_id=project2.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
 
         for path_func in self._get_path_functions():
@@ -471,7 +476,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             organization_id=org2.id,
             project_id=project2.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
 
         path = reverse(self.endpoint, args=[monitor.slug])
@@ -523,6 +533,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor.config = {
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
+                # Explicitly missing checkin_margin and max_runtime
             }
             monitor.save()
 

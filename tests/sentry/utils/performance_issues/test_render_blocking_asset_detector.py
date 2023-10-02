@@ -39,7 +39,7 @@ def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
                 desc=url,
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 1200000,
+                    "http.response_transfer_size": 1200000,
                     "http.response_content_length": 1200000,
                     "http.decoded_response_content_length": 2000000,
                     "resource.render_blocking_status": "blocking",
