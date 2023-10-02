@@ -211,7 +211,7 @@ function ActionSet({
       ) : null}
       {hasEscalatingIssuesUi ? (
         <GuideAnchor
-          target="issue_details_archive_button"
+          target="issue_stream_archive_button"
           position="bottom"
           disabled={ignoreDisabled}
         >
