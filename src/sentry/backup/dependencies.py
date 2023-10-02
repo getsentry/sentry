@@ -139,6 +139,13 @@ class ModelRelations:
 
         return {ff.model for ff in self.foreign_keys.values()}
 
+    def get_possible_relocation_scopes(self) -> set[RelocationScope]:
+        from sentry.db.models import BaseModel
+
+        if issubclass(self.model, BaseModel):
+            return self.model.get_possible_relocation_scopes()
+        return set()
+
 
 def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
@@ -227,6 +234,13 @@ class PrimaryKeyMap:
             return None
 
         return entry[0]
+
+    def get_pks(self, model_name: NormalizedModelName) -> Set[int]:
+        """
+        Get a list of all of the pks for a specific model.
+        """
+
+        return {entry[0] for entry in self.mapping[str(model_name)].items()}
 
     def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
         """
