@@ -37,7 +37,7 @@ const Panel = styled(FluidHeight)`
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
 `;

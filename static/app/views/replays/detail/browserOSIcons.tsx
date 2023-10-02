@@ -1,16 +1,15 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 
 export default function BrowserOSIcons() {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
 
   return (
-    <IconContainer>
+    <Fragment>
       <Tooltip title={`${replayRecord?.os.name} ${replayRecord?.os.version}`}>
         <ContextIcon
           name={replayRecord?.os.name ?? ''}
@@ -25,12 +24,6 @@ export default function BrowserOSIcons() {
           showVersion
         />
       </Tooltip>
-    </IconContainer>
+    </Fragment>
   );
 }
-
-const IconContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-`;
