@@ -43,19 +43,34 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: (
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/gatsby
-
-# Using npm
-npm install --save @sentry/gatsby
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/gatsby',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/gatsby',
+          },
+        ],
       },
     ],
   },

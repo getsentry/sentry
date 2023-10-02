@@ -49,13 +49,20 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/browser
-
-# Using npm
-npm install --save @sentry/browser
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/electron',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/electron',
+          },
+        ],
       },
     ],
   },
