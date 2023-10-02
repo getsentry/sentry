@@ -56,8 +56,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         assert response.data.get(self.organization.id) == "0"
 
 
-# TODO(hybrid-cloud): Fix underlying logic, which is not silo safe
-@control_silo_test()
+@control_silo_test(stable=True)
 class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 

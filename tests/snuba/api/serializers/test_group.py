@@ -469,7 +469,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["id"] == str(group.id)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
@@ -521,7 +521,7 @@ class PerformanceGroupSerializerSnubaTest(
         assert result["count"] == str(times + 1)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProfilingGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,

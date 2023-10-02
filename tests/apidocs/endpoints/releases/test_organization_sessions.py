@@ -6,7 +6,7 @@ from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -18,7 +18,7 @@ from sentry.utils.committers import get_frame_paths, get_serialized_event_file_c
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestGroupOwners(TestCase):
     def setUp(self):
         self.project = self.create_project()

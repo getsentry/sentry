@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CollectProjectPlatformsTest(TestCase):
     def test_simple(self):
         now = timezone.now()

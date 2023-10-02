@@ -14,7 +14,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
 @patch("sentry.similarity.features.index", new=index)
-@region_silo_test
+@region_silo_test(stable=True)
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream):

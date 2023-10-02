@@ -45,7 +45,7 @@ class UserSerializerTest(TestCase):
         assert result["isSuperuser"] is True
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class DetailedUserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -81,7 +81,7 @@ class DetailedUserSerializerTest(TestCase):
         assert result["canReset2fa"] is False
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class DetailedSelfUserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()

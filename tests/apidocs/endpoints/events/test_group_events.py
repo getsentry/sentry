@@ -28,7 +28,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
@@ -41,7 +41,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
@@ -56,7 +56,7 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()

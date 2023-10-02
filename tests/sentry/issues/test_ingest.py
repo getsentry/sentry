@@ -44,7 +44,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -327,7 +327,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         create_default_projects()

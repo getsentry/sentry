@@ -60,7 +60,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

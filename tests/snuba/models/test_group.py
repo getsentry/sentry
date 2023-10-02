@@ -11,7 +11,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()

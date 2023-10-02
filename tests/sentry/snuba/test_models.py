@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SnubaQueryEventTypesTest(TestCase):
     def test(self):
         snuba_query = create_snuba_query(

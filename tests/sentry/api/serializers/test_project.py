@@ -316,7 +316,7 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()

@@ -16,7 +16,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
     def test_environment(self):
         group = self.group

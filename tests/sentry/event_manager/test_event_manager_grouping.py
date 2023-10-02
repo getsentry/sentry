@@ -26,7 +26,7 @@ def make_event(**kwargs):
     return result
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventManagerGroupingTest(TestCase):
     def test_applies_secondary_grouping(self):
         project = self.project

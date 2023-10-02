@@ -1125,7 +1125,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     def test_empty(self):

@@ -16,7 +16,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventStorageTest(TestCase):
     def setUp(self):
         self.eventstorage = EventStorage()

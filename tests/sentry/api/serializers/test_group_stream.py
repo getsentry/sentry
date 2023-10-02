@@ -15,7 +15,7 @@ from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class StreamGroupSerializerTestCase(
     TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):

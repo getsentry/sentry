@@ -347,7 +347,7 @@ class GroupTest(TestCase, SnubaTestCase):
         assert logger.exception.call_count == len(status_substatus_pairs)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group

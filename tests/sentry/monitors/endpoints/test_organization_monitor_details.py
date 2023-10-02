@@ -432,7 +432,7 @@ class UpdateMonitorTest(MonitorTestCase):
         ), resp.content
 
 
-@region_silo_test()
+@region_silo_test(stable=True)
 class DeleteMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-details"
 

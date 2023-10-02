@@ -622,7 +622,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             assert snuba.call_args.args[0][0][0].flags.consistent is True
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         super().setUp()

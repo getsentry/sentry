@@ -10,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time("2023-09-18")
-@region_silo_test()
+@region_silo_test(stable=True)
 class TestCustomDynamicSamplingRuleProject(TestCase):
     def setUp(self):
         super().setUp()

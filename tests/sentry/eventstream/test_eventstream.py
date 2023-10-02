@@ -23,7 +23,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
     def patch_get_producer(self):

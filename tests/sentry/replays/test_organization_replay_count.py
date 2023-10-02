@@ -21,7 +21,7 @@ from sentry.testutils.silo import region_silo_test
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReplayCountEndpointTest(
     APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
 ):

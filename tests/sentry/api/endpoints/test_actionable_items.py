@@ -9,7 +9,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ActionableItemsEndpointTestCase(APITestCase):
     # These tests will not focus on the actual source map debugging functionality as that is covered in
     # test_source_map_debug.py. Instead, these tests will focus on the unique parts of this endpoint including the responses,

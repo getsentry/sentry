@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectServiceHookDetailsDocs(APIDocsTestCase):
     def setUp(self):
         hook = self.create_service_hook(project=self.project, events=("event.created",))

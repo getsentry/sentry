@@ -8,7 +8,7 @@ from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Rep
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectIssuesResolvedInReleaseEndpointTest(APIDocsTestCase):
     endpoint = "sentry-api-0-project-release-resolved"
     method = "get"

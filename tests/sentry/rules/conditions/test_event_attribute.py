@@ -7,7 +7,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 

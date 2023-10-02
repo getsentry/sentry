@@ -247,7 +247,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.is_staff
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
     method = "delete"
 
