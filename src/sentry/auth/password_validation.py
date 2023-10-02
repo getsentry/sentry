@@ -7,14 +7,9 @@ from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
 
-_default_password_validators = None
-
 
 def get_default_password_validators():
-    global _default_password_validators
-    if _default_password_validators is None:
-        _default_password_validators = get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
-    return _default_password_validators
+    return get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
 
 
 def get_password_validators(validator_config):
@@ -30,7 +25,7 @@ def get_password_validators(validator_config):
     return validators
 
 
-def validate_password(password, password_validators=None):
+def validate_password(password, user=None, password_validators=None):
     """
     Validate whether the password meets all validator requirements.
 
@@ -42,7 +37,7 @@ def validate_password(password, password_validators=None):
         password_validators = get_default_password_validators()
     for validator in password_validators:
         try:
-            validator.validate(password)
+            validator.validate(password, user=user)
         except ValidationError as error:
             errors.append(error)
     if errors:
@@ -82,7 +77,7 @@ class MinimumLengthValidator:
     def __init__(self, min_length=8):
         self.min_length = min_length
 
-    def validate(self, password):
+    def validate(self, password, user=None):
         if len(password) < self.min_length:
             raise ValidationError(
                 ngettext(
@@ -110,7 +105,7 @@ class MaximumLengthValidator:
     def __init__(self, max_length=256):
         self.max_length = max_length
 
-    def validate(self, password):
+    def validate(self, password, user=None):
         if len(password) > self.max_length:
             raise ValidationError(
                 ngettext(
@@ -135,7 +130,7 @@ class NumericPasswordValidator:
     Validate whether the password is alphanumeric.
     """
 
-    def validate(self, password):
+    def validate(self, password, user=None):
         if password.isdigit():
             raise ValidationError(
                 _("This password is entirely numeric."), code="password_entirely_numeric"

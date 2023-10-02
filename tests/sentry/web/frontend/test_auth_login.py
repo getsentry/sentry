@@ -397,6 +397,25 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
+        ]
+    )
+    def test_unable_to_set_weak_password_via_registration_form(self):
+        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
+            resp = self.client.post(
+                self.path,
+                {
+                    "username": "hello@example.com",
+                    "password": "hello@example.com",
+                    "name": "Hello World",
+                    "op": "register",
+                },
+            )
+        assert resp.status_code == 200
+        assert b"The password is too similar to the username." in resp.content
+
 
 @pytest.mark.skipif(
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",

@@ -23,8 +23,8 @@ class UserPasswordSerializer(serializers.Serializer):
 
     def validate_passwordNew(self, value):
         # this will raise a ValidationError if password is invalid
-        password_validation.validate_password(value)
         user = self.context["user"]
+        password_validation.validate_password(value, user=user)
 
         if user.is_managed:
             raise serializers.ValidationError(
