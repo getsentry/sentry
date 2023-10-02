@@ -5,10 +5,11 @@ from rest_framework.request import Request
 
 from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
-from sentry.models import ExternalActor, Integration
+from sentry.models import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -27,7 +28,7 @@ ALLOWED_METHODS = ["GET", "POST"]
 
 
 def build_team_unlinking_url(
-    integration: Integration,
+    integration: RpcIntegration,
     organization_id: str,
     slack_id: str,
     channel_id: str,
