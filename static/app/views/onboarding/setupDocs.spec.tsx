@@ -36,13 +36,13 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/sdks/`,
     body: {
-      'sentry.java': {
+      'sentry.java.android.gradle-plugin': {
         canonical: 'maven:io.sentry:sentry',
         main_docs_url: 'https://docs.sentry.io/platforms/java',
         name: 'io.sentry:sentry',
         package_url: 'https://search.maven.org/artifact/io.sentry/sentry',
         repo_url: 'https://github.com/getsentry/sentry-java',
-        version: '6.28.0',
+        version: '3.12.0',
       },
     },
   });
@@ -141,7 +141,9 @@ describe('Onboarding Setup Docs', function () {
       }
     );
 
-    expect(await screen.findByText(/"sentry" % "6.28.0"/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/id "io.sentry.jvm.gradle" version "3.12.0"/)
+    ).toBeInTheDocument();
   });
 
   describe('renders Product Selection', function () {

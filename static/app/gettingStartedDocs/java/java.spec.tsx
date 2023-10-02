@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithJava, steps} from './java';
+import {GettingStartedWithJava, PackageManager, steps} from './java';
 
 describe('GettingStartedWithJava', function () {
   it('renders doc correctly', function () {
@@ -11,6 +11,8 @@ describe('GettingStartedWithJava', function () {
     // Steps
     for (const step of steps({
       dsn: 'test-dsn',
+      packageManager: PackageManager.GRADLE,
+      hasPerformance: true,
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})

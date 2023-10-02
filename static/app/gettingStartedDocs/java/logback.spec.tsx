@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithLogBack, steps} from './logback';
+import {GettingStartedWithLogBack, PackageManager, steps} from './logback';
 
 describe('GettingStartedWithLogBack', function () {
   it('renders doc correctly', function () {
@@ -11,6 +11,7 @@ describe('GettingStartedWithLogBack', function () {
     // Steps
     for (const step of steps({
       dsn: 'test-dsn',
+      packageManager: PackageManager.GRADLE,
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
