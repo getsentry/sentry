@@ -102,10 +102,14 @@ def send_nudge_email(org_id):
 
     commit_authors = []
     for commit_author in commit_author_query[:3]:
+        formatted_external_id = commit_author.external_id
+        if commit_author.external_id is not None and ":" in commit_author.external_id:
+            formatted_external_id = commit_author.external_id.split(":")[1]
+
         commit_authors.append(
             {
                 "email": commit_author.email,
-                "external_id": commit_author.external_id.replace("github:", ""),
+                "external_id": formatted_external_id,
                 "commit_count": commit_author.commit__count,
             }
         )

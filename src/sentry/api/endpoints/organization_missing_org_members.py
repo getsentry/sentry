@@ -47,11 +47,13 @@ FILTERED_CHARACTERS = {"+"}
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
+        formatted_external_id = obj.external_id
+        if obj.external_id is not None and ":" in obj.external_id:
+            formatted_external_id = obj.external_id.split(":")[1]
+
         return {
             "email": obj.email,
-            "externalId": obj.external_id.split(":")[1]
-            if ":" in obj.external_id
-            else obj.external_id,
+            "externalId": formatted_external_id,
             "commitCount": obj.commit__count,
         }
 
