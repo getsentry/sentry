@@ -53,10 +53,10 @@ class OrganizationProvisioningService(RpcService):
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from sentry.services.hybrid_cloud.organization_provisioning.impl import (
-            DatabaseBackedControlOrganizationProvisioningService,
+            DatabaseBackedOrganizationProvisioningService,
         )
 
-        return DatabaseBackedControlOrganizationProvisioningService()
+        return DatabaseBackedOrganizationProvisioningService()
 
 
 organization_provisioning_service: OrganizationProvisioningService = cast(
