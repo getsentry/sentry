@@ -90,8 +90,8 @@ class SlackLinkTeamView(BaseView):
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )
-        # Filter to teams where we have access to, either through having a sufficient organization
-        # role (owner/manager/admin) or by being a team admin on at least one team.
+        # Filter to teams where we have write access to, either through having a sufficient
+        # organization role (owner/manager/admin) or by being a team admin on at least one team.
         teams_by_id = {}
         for org_membership in organization_memberships:
             for team in Team.objects.get_for_user(
@@ -125,7 +125,11 @@ class SlackLinkTeamView(BaseView):
         team_id = int(form.cleaned_data["team"])
         team = teams_by_id.get(team_id)
         if not team:
-            return render_error_page(request, status=404, body_text="HTTP 404: Team does not exist")
+            return render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: Team does not exist or you do not have sufficient permission to link a team",
+            )
 
         idp = identity_service.get_provider(
             provider_type="slack", provider_ext_id=integration.external_id
