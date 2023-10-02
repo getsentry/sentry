@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -221,10 +222,40 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         expected_time=expected_time,
         monitor_config=monitor.get_validated_config(),
     )
-    # TODO(epurkhiser): To properly fix GH-55874 we should NOT pass
-    # timezone.now, we need to use the reference timestamp. But I'm not 100%
-    # sure what that should look like yet.
-    mark_failed(checkin, ts=timezone.now())
+
+    # Compute when the check-in *should* have happened given the current
+    # reference timestamp. This is different from the expected_time usage above
+    # as it is computing that most recent expected check-in time using our
+    # reference time. `expected_time` is when the check-in was expected to
+    # happen. This takes advantage of the fact that the current reference time
+    # will always be at least a minute after the last expected check-in.
+    #
+    # Typically `expected_time` and this calculate time should be the same, but
+    # there are cases where it may not be:
+    #
+    #  1. We are guarding against a task having not run for every minute.
+    #     If we simply set our mark_failed reference timestamp to the failing
+    #     check-ins date_added the `next_checkin` computed in mark_failed may
+    #     fall behind if the clock skips, since it will just keep computing
+    #     next_checkins from previous check-ins.
+    #
+    #  2. We are more "correctly" handling checkin_margins that are larger
+    #     than the schedule gaps. We want the timeout to be placed when it was
+    #     expected, but calculate the next expected check-in from the true
+    #     previous expected check-in (which would be some time during the
+    #     overlapping margin.)
+
+    # We use the expected_time of the check-in to compute out the schedule.
+    # Specifically important for interval where it's a function of some
+    # starting time.
+    #
+    # Trim tzinfo. This is always UTC. ts does not have tzinfo and
+    # get_prev_schedule will fail if the start and reference time have
+    # different tzinfo.
+    start_ts = expected_time.replace(tzinfo=None)
+    most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+
+    mark_failed(checkin, ts=most_recent_expected_ts)
 
 
 @instrumented_task(
