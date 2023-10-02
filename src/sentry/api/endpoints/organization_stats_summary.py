@@ -135,8 +135,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization) -> HttpResponse:
         """
-        Query event counts for your Organization.
-        Select a field, define a date range, and group or filter by columns.
+        Query summarized event counts by project for your Organization.
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}

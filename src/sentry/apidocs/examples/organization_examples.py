@@ -77,7 +77,7 @@ class OrganizationExamples:
                 "projects": [
                     {
                         "id": "1",
-                        "slug": "slug",
+                        "slug": "android-project",
                         "stats": [
                             {
                                 "category": "error",
@@ -114,7 +114,7 @@ class OrganizationExamples:
 
     UPDATE_ORG_MEMBER = [
         OpenApiExample(
-            "Update Successful",
+            "Get summary stats for projects in an organization",
             value={
                 "id": "57377908164",
                 "email": "sirpenguin@antarcticarocks.com",
