@@ -37,7 +37,8 @@ TAG_MAPPING = {
     "transaction.method": "transaction.method",
     "transaction.op": "transaction.op",
 }
-SPAN_SCHEMA_VERSION = 1
+SPAN_SCHEMA_V1 = 1
+SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
 DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
@@ -54,7 +55,7 @@ def get_organization(project_id: int) -> Tuple[Organization, int]:
     return organization.id, retention_days
 
 
-def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
+def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
     organization_id, retention_days = get_organization(
         relay_span["project_id"],
     )
@@ -117,12 +118,18 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
+    _process_group_raw(snuba_span, span_data.get("transaction", ""))
+
+    return snuba_span
+
+
+def _process_group_raw(snuba_span: MutableMapping[str, Any], transaction: str) -> None:
     grouping_config = load_span_grouping_config()
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
-            {"transaction": span_data.get("transaction", "")},
+            {"transaction": transaction},
         )
     else:
         # Build a span with only necessary values filled.
@@ -148,8 +155,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = "0"
         metrics.incr("spans.invalid_group_raw")
 
-    return snuba_span
-
 
 def _format_event_id(payload: Mapping[str, Any]) -> str:
     event_id = payload.get("event_id")
@@ -158,12 +163,58 @@ def _format_event_id(payload: Mapping[str, Any]) -> str:
     return ""
 
 
+def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
+    snuba_span: MutableMapping[str, Any] = dict(relay_span)
+    snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
+    snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
+    snuba_span["segment_id"] = relay_span.get("segment_id", "0")
+    snuba_span["span_id"] = relay_span.get("span_id", "0")
+    snuba_span["tags"] = {
+        k: str(v) for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
+    }
+
+    if (description := relay_span.get("description")) is not None:
+        snuba_span["description"] = description
+
+    span_data: Mapping[str, Any] = relay_span.get("user_tags", {})
+    sentry_tags: MutableMapping[str, Any] = {}
+
+    if span_data:
+        for relay_tag, snuba_tag in TAG_MAPPING.items():
+            tag_value = span_data.get(relay_tag)
+            if snuba_tag == "group":
+                if tag_value is None:
+                    metrics.incr("spans.missing_group")
+                else:
+                    try:
+                        # Test if the value is valid hexadecimal.
+                        _ = int(tag_value, 16)
+                        # If valid, set the raw value to the tag.
+                        sentry_tags["group"] = tag_value
+                    except ValueError:
+                        metrics.incr("spans.invalid_group")
+            elif tag_value is not None:
+                sentry_tags[snuba_tag] = tag_value
+
+    snuba_span["data"] = sentry_tags
+
+    _process_group_raw(
+        snuba_span=snuba_span,
+        transaction=span_data.get("transaction", ""),
+    )
+
+    return snuba_span
+
+
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
-    relay_span = payload["span"]
-    relay_span["project_id"] = payload["project_id"]
-    relay_span["event_id"] = _format_event_id(payload)
-    snuba_span = _build_snuba_span(relay_span)
+    if payload.get("version") == SPAN_SCHEMA_V1:
+        snuba_span = _process_relay_span_v1(payload)
+    else:
+        relay_span = payload["span"]
+        relay_span["project_id"] = payload["project_id"]
+        relay_span["event_id"] = _format_event_id(payload)
+        snuba_span = _process_relay_span_v0(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
