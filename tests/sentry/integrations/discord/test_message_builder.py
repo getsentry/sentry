@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import time
+from datetime import datetime
+
 from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -11,6 +14,11 @@ from sentry.integrations.discord.message_builder.metric_alerts import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
+
+
+def get_started_at(timestamp: datetime) -> str:
+    unix_timestamp = int(time.mktime(timestamp.timetuple()))
+    return f"Started <t:{unix_timestamp}:R>"
 
 
 @region_silo_test(stable=True)
@@ -30,12 +38,13 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
+
         assert DiscordMetricAlertMessageBuilder(self.alert_rule).build() == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
-                    "description": f"<{link}|*{title}*>  \n",
+                    "description": "",
                     "url": f"{link}&referrer=discord",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
@@ -63,13 +72,14 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}"
         )
+        unix_timestamp = get_started_at(incident.date_started)
 
         assert DiscordMetricAlertMessageBuilder(self.alert_rule, incident).build() == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
-                    "description": f"<{link}|*{title}*>  \n",
+                    "description": f"\n{unix_timestamp}",
                     "url": f"{link}&referrer=discord",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
@@ -78,9 +88,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_alert_with_active_incident(self):
-        incident = self.create_incident(
-            alert_rule=self.alert_rule, status=IncidentStatus.CRITICAL.value
-        )
+        new_status = IncidentStatus.CRITICAL.value
+        incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
         trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
@@ -102,7 +111,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
-                    "description": f"<{link}|*{title}*>  \n0 events in the last 10 minutes",
+                    "description": "0 events in the last 10 minutes",
                     "url": f"{link}&referrer=discord",
                 }
             ],
@@ -113,7 +122,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
         )
-
         # This test will use the action/method and not the incident to build status
         title = f"Critical: {self.alert_rule.name}"
         metric_value = 5000
@@ -130,6 +138,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
+        unix_timestamp = get_started_at(incident.date_started)
+
         assert DiscordMetricAlertMessageBuilder(
             self.alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
         ).build() == {
@@ -138,8 +148,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "title": title,
                     "color": LEVEL_TO_COLOR["fatal"],
-                    "description": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
-                    f"{metric_value} events in the last 10 minutes",
+                    "description": f"{metric_value} events in the last 10 minutes\n{unix_timestamp}",
                     "url": f"{link}?alert={incident.identifier}&referrer=discord",
                 }
             ],
@@ -147,6 +156,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_alert_chart(self):
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.OPEN.value
+        )
         title = f"Resolved: {self.alert_rule.name}"
         link = absolute_uri(
             reverse(
@@ -157,9 +169,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
-        incident = self.create_incident(
-            alert_rule=self.alert_rule, status=IncidentStatus.OPEN.value
-        )
+        unix_timestamp = get_started_at(incident.date_started)
+
         new_status = IncidentStatus.CLOSED
         assert DiscordMetricAlertMessageBuilder(
             self.alert_rule, incident, new_status, chart_url="chart_url"
@@ -168,7 +179,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "embeds": [
                 {
                     "title": title,
-                    "description": f"<{link}?alert={incident.identifier}|*{title}*>  \n",
+                    "description": f"\n{unix_timestamp}",
                     "url": f"{link}?alert={incident.identifier}&referrer=discord",
                     "color": 5097329,
                     "image": {"url": "chart_url"},

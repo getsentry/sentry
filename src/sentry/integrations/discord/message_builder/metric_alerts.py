@@ -38,7 +38,7 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
             DiscordMessageEmbed(
                 title=data["title"],
                 url=f"{data['title_link']}&referrer=discord",
-                description=f"{data['text']}\n{get_started_at(data['date_started'])}",
+                description=f"{data['text']}{get_started_at(data['date_started'])}",
                 color=LEVEL_TO_COLOR[INCIDENT_COLOR_MAPPING.get(data["status"], "")],
                 image=DiscordMessageEmbedImage(url=self.chart_url) if self.chart_url else None,
             )
@@ -48,5 +48,7 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
 
 
 def get_started_at(timestamp: datetime) -> str:
-    unix_timestamp = int(time.mktime(timestamp.timetuple()))
-    return f"Started <t:{unix_timestamp}:R>"
+    if timestamp:
+        unix_timestamp = int(time.mktime(timestamp.timetuple()))
+        return f"\nStarted <t:{unix_timestamp}:R>"
+    return ""
