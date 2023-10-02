@@ -209,6 +209,7 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
         "d": "distributions",
         "g": "gauges",
     }
+
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
