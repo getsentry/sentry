@@ -7,6 +7,9 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_ca
 class AggregationOption(Enum):
     HIST = "hist"
     TEN_SECOND = "ten_second"
+    ONE_MINUTE = "one_minute"
+    ONE_HOUR = "one_hour"
+    ONE_DAY = "one_day"
 
 
 METRIC_ID_AGG_OPTION = {
