@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -1044,15 +1045,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-monthly-invite-missing-org-members": {
-        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour=7,
-            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
-        ),
-        "options": {"expires": 60 * 25},
-    },
+    # "schedule-monthly-invite-missing-org-members": {
+    #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+    #     "schedule": crontab(
+    #         minute=0,
+    #         hour=7,
+    #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+    #     ),
+    #     "options": {"expires": 60 * 25},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -2327,7 +2328,7 @@ SENTRY_DEFAULT_ROLE = "member"
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
+SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2438,7 +2439,7 @@ SENTRY_ROLES = (
     },
 )
 
-SENTRY_TEAM_ROLES = (
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "contributor",
         "name": "Contributor",

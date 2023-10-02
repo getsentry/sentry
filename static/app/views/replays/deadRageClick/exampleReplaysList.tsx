@@ -93,6 +93,7 @@ export default function ExampleReplaysList({
               referrer={referrer}
               showUrl={false}
               referrer_table="selector-widget"
+              isWidget
             />
           );
         })
