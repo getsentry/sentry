@@ -11,6 +11,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
+from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
     import_in_config_scope,
@@ -47,7 +48,7 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.utils import json
-from tests.sentry.backup import get_matching_exportable_models
+from tests.sentry.backup import get_matching_exportable_models, mark, targets
 
 
 class ImportTestCase(BackupTestCase):
@@ -689,11 +690,15 @@ class FilterTests(ImportTestCase):
         assert Email.objects.count() == 0
 
 
+COLLISION_TESTED: set[NormalizedModelName] = set()
+
+
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
     """
 
+    @targets(mark(COLLISION_TESTED, ApiToken))
     def test_colliding_api_token(self):
         owner = self.create_exhaustive_user("owner")
         expires_at = timezone.now() + DEFAULT_EXPIRATION
@@ -760,21 +765,27 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
-        # Ensure that old tokens have not been mutated.
-        assert ApiToken.objects.count() == 8
-        assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
-        assert (
-            ApiToken.objects.filter(refresh_token=colliding_same_refresh_only.refresh_token).count()
-            == 1
-        )
-        assert ApiToken.objects.filter(token=colliding_same_token_only.token).count() == 1
-        assert (
-            ApiToken.objects.filter(
-                token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
-            ).count()
-            == 1
-        )
+            # Ensure that old tokens have not been mutated.
+            assert ApiToken.objects.count() == 8
+            assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    refresh_token=colliding_same_refresh_only.refresh_token
+                ).count()
+                == 1
+            )
+            assert ApiToken.objects.filter(token=colliding_same_token_only.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
+                ).count()
+                == 1
+            )
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, Monitor))
     def test_colliding_monitor(self):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
@@ -799,9 +810,13 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        assert Monitor.objects.count() == 2
-        assert Monitor.objects.filter(guid=colliding.guid).count() == 1
+            assert Monitor.objects.count() == 2
+            assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, OrgAuthToken))
     def test_colliding_org_auth_token(self):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
@@ -834,15 +849,19 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        assert OrgAuthToken.objects.count() == 2
-        assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
-        assert (
-            OrgAuthToken.objects.filter(
-                token_last_characters=colliding.token_last_characters
-            ).count()
-            == 1
-        )
+            assert OrgAuthToken.objects.count() == 2
+            assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
+            assert (
+                OrgAuthToken.objects.filter(
+                    token_last_characters=colliding.token_last_characters
+                ).count()
+                == 1
+            )
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, ProjectKey))
     def test_colliding_project_key(self):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
@@ -868,10 +887,14 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        assert ProjectKey.objects.count() == 4
-        assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
-        assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
+            assert ProjectKey.objects.count() == 4
+            assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
+            assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, QuerySubscription))
     def test_colliding_query_subscription(self):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
@@ -910,15 +933,19 @@ class CollisionTests(ImportTestCase):
                 with open(tmp_path) as tmp_file:
                     import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-            assert SnubaQuery.objects.count() > 1
-            assert QuerySubscription.objects.count() > 1
-            assert (
-                QuerySubscription.objects.filter(
-                    subscription_id=colliding_query_subscription.subscription_id
-                ).count()
-                == 1
-            )
+                assert SnubaQuery.objects.count() > 1
+                assert QuerySubscription.objects.count() > 1
+                assert (
+                    QuerySubscription.objects.filter(
+                        subscription_id=colliding_query_subscription.subscription_id
+                    ).count()
+                    == 1
+                )
 
+                with open(tmp_path) as tmp_file:
+                    return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
@@ -963,23 +990,27 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
                 )
 
-        assert Option.objects.count() == 1
-        assert Option.objects.filter(value__exact="a").exists()
+            assert Option.objects.count() == 1
+            assert Option.objects.filter(value__exact="a").exists()
 
-        assert ControlOption.objects.count() == 1
-        assert ControlOption.objects.filter(value__exact="b").exists()
+            assert ControlOption.objects.count() == 1
+            assert ControlOption.objects.filter(value__exact="b").exists()
 
-        assert Relay.objects.count() == 1
-        assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+            assert Relay.objects.count() == 1
+            assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
 
-        assert RelayUsage.objects.count() == 1
-        assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
+            assert RelayUsage.objects.count() == 1
+            assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
 
-        actual_user_role = UserRole.objects.first()
-        assert len(actual_user_role.permissions) == len(old_user_role_permissions)
-        for i, actual_permission in enumerate(actual_user_role.permissions):
-            assert actual_permission == old_user_role_permissions[i]
+            actual_user_role = UserRole.objects.first()
+            assert len(actual_user_role.permissions) == len(old_user_role_permissions)
+            for i, actual_permission in enumerate(actual_user_role.permissions):
+                assert actual_permission == old_user_role_permissions[i]
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
     def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
@@ -1020,23 +1051,27 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
 
-        assert Option.objects.count() == 1
-        assert Option.objects.filter(value__exact="y").exists()
+            assert Option.objects.count() == 1
+            assert Option.objects.filter(value__exact="y").exists()
 
-        assert ControlOption.objects.count() == 1
-        assert ControlOption.objects.filter(value__exact="z").exists()
+            assert ControlOption.objects.count() == 1
+            assert ControlOption.objects.filter(value__exact="z").exists()
 
-        assert Relay.objects.count() == 1
-        assert Relay.objects.filter(public_key__exact="invalid").exists()
+            assert Relay.objects.count() == 1
+            assert Relay.objects.filter(public_key__exact="invalid").exists()
 
-        assert RelayUsage.objects.count() == 1
-        assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
+            assert RelayUsage.objects.count() == 1
+            assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
 
-        assert UserRole.objects.count() == 1
-        actual_user_role = UserRole.objects.first()
-        assert len(actual_user_role.permissions) == 1
-        assert actual_user_role.permissions[0] == "other.admin"
+            assert UserRole.objects.count() == 1
+            actual_user_role = UserRole.objects.first()
+            assert len(actual_user_role.permissions) == 1
+            assert actual_user_role.permissions[0] == "other.admin"
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
     def test_colliding_configs_overwrite_configs_enabled_in_global_scope(self):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
@@ -1081,23 +1116,27 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
                 )
 
-        assert Option.objects.count() == 1
-        assert Option.objects.filter(value__exact="a").exists()
+            assert Option.objects.count() == 1
+            assert Option.objects.filter(value__exact="a").exists()
 
-        assert ControlOption.objects.count() == 1
-        assert ControlOption.objects.filter(value__exact="b").exists()
+            assert ControlOption.objects.count() == 1
+            assert ControlOption.objects.filter(value__exact="b").exists()
 
-        assert Relay.objects.count() == 1
-        assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+            assert Relay.objects.count() == 1
+            assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
 
-        assert RelayUsage.objects.count() == 1
-        assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
+            assert RelayUsage.objects.count() == 1
+            assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
 
-        actual_user_role = UserRole.objects.first()
-        assert len(actual_user_role.permissions) == len(old_user_role_permissions)
-        for i, actual_permission in enumerate(actual_user_role.permissions):
-            assert actual_permission == old_user_role_permissions[i]
+            actual_user_role = UserRole.objects.first()
+            assert len(actual_user_role.permissions) == len(old_user_role_permissions)
+            for i, actual_permission in enumerate(actual_user_role.permissions):
+                assert actual_permission == old_user_role_permissions[i]
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
     def test_colliding_configs_overwrite_configs_disabled_in_global_scope(self):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
@@ -1138,23 +1177,27 @@ class CollisionTests(ImportTestCase):
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
 
-        assert Option.objects.count() == 1
-        assert Option.objects.filter(value__exact="y").exists()
+            assert Option.objects.count() == 1
+            assert Option.objects.filter(value__exact="y").exists()
 
-        assert ControlOption.objects.count() == 1
-        assert ControlOption.objects.filter(value__exact="z").exists()
+            assert ControlOption.objects.count() == 1
+            assert ControlOption.objects.filter(value__exact="z").exists()
 
-        assert Relay.objects.count() == 1
-        assert Relay.objects.filter(public_key__exact="invalid").exists()
+            assert Relay.objects.count() == 1
+            assert Relay.objects.filter(public_key__exact="invalid").exists()
 
-        assert RelayUsage.objects.count() == 1
-        assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
+            assert RelayUsage.objects.count() == 1
+            assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
 
-        assert UserRole.objects.count() == 1
-        actual_user_role = UserRole.objects.first()
-        assert len(actual_user_role.permissions) == 1
-        assert actual_user_role.permissions[0] == "other.admin"
+            assert UserRole.objects.count() == 1
+            actual_user_role = UserRole.objects.first()
+            assert len(actual_user_role.permissions) == 1
+            assert actual_user_role.permissions[0] == "other.admin"
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
@@ -1168,21 +1211,25 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 1
-        assert UserIP.objects.count() == 1
-        assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
-        assert Authenticator.objects.count() == 1
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 1
+            assert UserIP.objects.count() == 1
+            assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
+            assert Authenticator.objects.count() == 1
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert not User.objects.filter(username__iexact="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert not User.objects.filter(username__iexact="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 0
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 0
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert not UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
     def test_colliding_user_with_merging_disabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
@@ -1196,21 +1243,27 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 2
-        assert UserIP.objects.count() == 2
-        assert UserEmail.objects.count() == 2
-        assert Authenticator.objects.count() == 1  # Only imported in global scope
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 2
+            assert UserIP.objects.count() == 2
+            assert UserEmail.objects.count() == 2
+            assert Authenticator.objects.count() == 1  # Only imported in global scope
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert User.objects.filter(username__icontains="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert User.objects.filter(username__icontains="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 1
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 1
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(
+        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    )
     def test_colliding_user_with_merging_enabled_in_organization_scope(self):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
@@ -1226,44 +1279,56 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 1
-        assert UserIP.objects.count() == 1
-        assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
-        assert Authenticator.objects.count() == 1  # Only imported in global scope
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 1
+            assert UserIP.objects.count() == 1
+            assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
+            assert Authenticator.objects.count() == 1  # Only imported in global scope
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert not User.objects.filter(username__icontains="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert not User.objects.filter(username__icontains="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 0
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 0
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert not UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-        assert Organization.objects.count() == 2
-        assert OrganizationMapping.objects.count() == 2
-        assert OrganizationMember.objects.count() == 2  # Same user in both orgs
-        assert OrganizationMemberMapping.objects.count() == 2  # Same user in both orgs
+            assert Organization.objects.count() == 2
+            assert OrganizationMapping.objects.count() == 2
+            assert OrganizationMember.objects.count() == 2  # Same user in both orgs
+            assert OrganizationMemberMapping.objects.count() == 2  # Same user in both orgs
 
-        user = User.objects.get(username="owner")
-        existing = Organization.objects.get(slug="some-org")
-        imported = Organization.objects.filter(slug__icontains="some-org-").first()
-        assert (
-            OrganizationMember.objects.filter(user_id=user.id, organization=existing).count() == 1
-        )
-        assert (
-            OrganizationMember.objects.filter(user_id=user.id, organization=imported).count() == 1
-        )
-        assert (
-            OrganizationMemberMapping.objects.filter(user=user, organization_id=existing.id).count()
-            == 1
-        )
-        assert (
-            OrganizationMemberMapping.objects.filter(user=user, organization_id=imported.id).count()
-            == 1
-        )
+            user = User.objects.get(username="owner")
+            existing = Organization.objects.get(slug="some-org")
+            imported = Organization.objects.filter(slug__icontains="some-org-").first()
+            assert (
+                OrganizationMember.objects.filter(user_id=user.id, organization=existing).count()
+                == 1
+            )
+            assert (
+                OrganizationMember.objects.filter(user_id=user.id, organization=imported).count()
+                == 1
+            )
+            assert (
+                OrganizationMemberMapping.objects.filter(
+                    user=user, organization_id=existing.id
+                ).count()
+                == 1
+            )
+            assert (
+                OrganizationMemberMapping.objects.filter(
+                    user=user, organization_id=imported.id
+                ).count()
+                == 1
+            )
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(
+        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    )
     def test_colliding_user_with_merging_disabled_in_organization_scope(self):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
@@ -1279,55 +1344,59 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 2
-        assert UserIP.objects.count() == 2
-        assert UserEmail.objects.count() == 2
-        assert Authenticator.objects.count() == 1  # Only imported in global scope
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 2
+            assert UserIP.objects.count() == 2
+            assert UserEmail.objects.count() == 2
+            assert Authenticator.objects.count() == 1  # Only imported in global scope
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert User.objects.filter(username__icontains="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert User.objects.filter(username__icontains="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 1
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 1
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
-        assert Organization.objects.count() == 2
-        assert OrganizationMapping.objects.count() == 2
-        assert OrganizationMember.objects.count() == 2
-        assert OrganizationMemberMapping.objects.count() == 2
+            assert Organization.objects.count() == 2
+            assert OrganizationMapping.objects.count() == 2
+            assert OrganizationMember.objects.count() == 2
+            assert OrganizationMemberMapping.objects.count() == 2
 
-        existing_user = User.objects.get(username="owner")
-        imported_user = User.objects.get(username__icontains="owner-")
-        existing_org = Organization.objects.get(slug="some-org")
-        imported_org = Organization.objects.filter(slug__icontains="some-org-").first()
-        assert (
-            OrganizationMember.objects.filter(
-                user_id=existing_user.id, organization=existing_org
-            ).count()
-            == 1
-        )
-        assert (
-            OrganizationMember.objects.filter(
-                user_id=imported_user.id, organization=imported_org
-            ).count()
-            == 1
-        )
-        assert (
-            OrganizationMemberMapping.objects.filter(
-                user=existing_user, organization_id=existing_org.id
-            ).count()
-            == 1
-        )
-        assert (
-            OrganizationMemberMapping.objects.filter(
-                user=imported_user, organization_id=imported_org.id
-            ).count()
-            == 1
-        )
+            existing_user = User.objects.get(username="owner")
+            imported_user = User.objects.get(username__icontains="owner-")
+            existing_org = Organization.objects.get(slug="some-org")
+            imported_org = Organization.objects.filter(slug__icontains="some-org-").first()
+            assert (
+                OrganizationMember.objects.filter(
+                    user_id=existing_user.id, organization=existing_org
+                ).count()
+                == 1
+            )
+            assert (
+                OrganizationMember.objects.filter(
+                    user_id=imported_user.id, organization=imported_org
+                ).count()
+                == 1
+            )
+            assert (
+                OrganizationMemberMapping.objects.filter(
+                    user=existing_user, organization_id=existing_org.id
+                ).count()
+                == 1
+            )
+            assert (
+                OrganizationMemberMapping.objects.filter(
+                    user=imported_user, organization_id=imported_org.id
+                ).count()
+                == 1
+            )
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
     def test_colliding_user_with_merging_enabled_in_config_scope(self):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
@@ -1343,22 +1412,26 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 1
-        assert UserIP.objects.count() == 1
-        assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
-        assert UserPermission.objects.count() == 1
-        assert Authenticator.objects.count() == 1
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 1
+            assert UserIP.objects.count() == 1
+            assert UserEmail.objects.count() == 1  # UserEmail gets overwritten
+            assert UserPermission.objects.count() == 1
+            assert Authenticator.objects.count() == 1
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert not User.objects.filter(username__iexact="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert not User.objects.filter(username__iexact="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 0
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 0
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert not UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
+
+    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
     def test_colliding_user_with_merging_disabled_in_config_scope(self):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
@@ -1374,18 +1447,21 @@ class CollisionTests(ImportTestCase):
                     printer=NOOP_PRINTER,
                 )
 
-        assert User.objects.count() == 2
-        assert UserIP.objects.count() == 2
-        assert UserEmail.objects.count() == 2
-        assert UserPermission.objects.count() == 2
-        assert Authenticator.objects.count() == 1  # Only imported in global scope
-        assert Email.objects.count() == 2
+            assert User.objects.count() == 2
+            assert UserIP.objects.count() == 2
+            assert UserEmail.objects.count() == 2
+            assert UserPermission.objects.count() == 2
+            assert Authenticator.objects.count() == 1  # Only imported in global scope
+            assert Email.objects.count() == 2
 
-        assert User.objects.filter(username__iexact="owner").exists()
-        assert User.objects.filter(username__icontains="owner-").exists()
+            assert User.objects.filter(username__iexact="owner").exists()
+            assert User.objects.filter(username__icontains="owner-").exists()
 
-        assert User.objects.filter(is_unclaimed=True).count() == 1
-        assert User.objects.filter(is_unclaimed=False).count() == 1
+            assert User.objects.filter(is_unclaimed=True).count() == 1
+            assert User.objects.filter(is_unclaimed=False).count() == 1
 
-        assert UserEmail.objects.filter(email__icontains="existing@").exists()
-        assert UserEmail.objects.filter(email__icontains="importing@").exists()
+            assert UserEmail.objects.filter(email__icontains="existing@").exists()
+            assert UserEmail.objects.filter(email__icontains="importing@").exists()
+
+            with open(tmp_path) as tmp_file:
+                return json.load(tmp_file)
