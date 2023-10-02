@@ -33,20 +33,27 @@ if TYPE_CHECKING:
         commit__count: int
 
 
-filtered_email_domains = {
+FILTERED_EMAIL_DOMAINS = {
     "gmail.com",
     "icloud.com",
     "hotmail.com",
     "outlook.com",
     "noreply.github.com",
+    "localhost",
 }
 
-filtered_characters = {"+"}
+FILTERED_CHARACTERS = {"+"}
 
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit__count}
+        return {
+            "email": obj.email,
+            "externalId": obj.external_id.split(":")[1]
+            if ":" in obj.external_id
+            else obj.external_id,
+            "commitCount": obj.commit__count,
+        }
 
 
 class MissingMembersPermission(OrganizationPermission):
@@ -150,10 +157,10 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
             else:
-                for filtered_email in filtered_email_domains:
+                for filtered_email in FILTERED_EMAIL_DOMAINS:
                     queryset = queryset.exclude(email__endswith=filtered_email)
 
-            for filtered_character in filtered_characters:
+            for filtered_character in FILTERED_CHARACTERS:
                 queryset = queryset.exclude(email__icontains=filtered_character)
 
             if queryset.exists():
