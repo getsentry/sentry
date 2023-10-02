@@ -15,7 +15,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 
 
-def get_errors_timeseries_counts_by_project_and_release(
+def get_errors_counts_timeseries_by_project_and_release(
     end: int,
     organization_id: int,
     project_id_list: List[int],
