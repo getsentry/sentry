@@ -208,6 +208,23 @@ def test_project_config_uses_filter_features(
 
 @django_db_all
 @region_silo_test(stable=True)
+def test_project_config_with_chunk_load_error_filter(default_project):
+    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:chunk-load-error", True)
+
+    project_cfg = get_project_config(default_project, full_config=True)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+    assert cfg_error_messages == {
+        "patterns": ["ChunkLoadError: Loading chunk * failed.\n(error: *)"]
+    }
+
+
+@django_db_all
+@region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):

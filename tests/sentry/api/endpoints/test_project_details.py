@@ -717,11 +717,6 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
-                organization_id=project.organization_id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-            ).exists()
         assert project.get_option("filters:chunk-load-error", "1")
 
     def test_bookmarks(self):
