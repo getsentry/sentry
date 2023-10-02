@@ -220,13 +220,15 @@ def get_participants_for_release(
             recipients=actors,
             project_ids=[project.id for project in projects],
             organization_id=organization.id,
-            type=NotificationSettingTypes.DEPLOY,
+            type=NotificationSettingEnum.DEPLOY,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
         for actor in actors:
-            settings = providers_by_recipient[actor.id]
-            for provider, val in settings.items():
+            settings = providers_by_recipient.get(actor.id, {})
+            for provider_str, val_str in settings.items():
+                provider = ExternalProviders(provider_str)
+                val = NotificationSettingsOptionEnum(val_str)
                 reason = get_reason(actor, val, commited_user_ids)
                 if reason:
                     users_to_reasons_by_provider.add(provider, actor, reason)

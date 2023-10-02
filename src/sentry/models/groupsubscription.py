@@ -29,6 +29,7 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
@@ -191,12 +192,13 @@ class GroupSubscriptionManager(BaseManager):
                 if user.id not in providers_by_recipient:
                     continue
 
-                for provider in providers_by_recipient[user.id]:
+                for provider_str in providers_by_recipient[user.id]:
                     reason = (
                         subscription_option
                         and subscription_option.reason
                         or GroupSubscriptionReason.implicit
                     )
+                    provider = ExternalProviders(provider_str)
                     result.add(provider, user, reason)
             return result
 

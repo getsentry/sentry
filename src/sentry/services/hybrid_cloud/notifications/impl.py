@@ -17,7 +17,6 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -245,7 +244,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: Optional[List[int]],
         organization_id: Optional[int],
         type: NotificationSettingEnum,
-    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+    ) -> MutableMapping[
+        int, MutableMapping[int, str]
+    ]:  # { actor_id : { provider_str: value_str } }
         controller = NotificationController(
             recipients=recipients,
             project_ids=project_ids,
@@ -253,7 +254,10 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         participants = controller.get_participants()
-        return {actor.id: providers for actor, providers in participants.items()}
+        return {
+            actor.id: {provider.value: value.value for provider, value in providers.items()}
+            for actor, providers in participants.items()
+        }
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
