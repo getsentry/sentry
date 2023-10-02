@@ -454,7 +454,15 @@ def _get_group_hourly_count_with_metrics(
     if group.issue_category == GroupCategory.ERROR and features.has(
         "organizations:escalating-issues-v2", organization
     ):
-        metrics_query = _query_metrics_for_group_hourly_count(group, now, current_hour)
+        try:
+            metrics_query = _query_metrics_for_group_hourly_count(group, now, current_hour)
+        except Exception as e:
+            logger.info(
+                "Failed to create metrics query",
+                extra={"message": str(e), "group_id": group.id, "current_hour": current_hour},
+            )
+            return
+
         metrics_series_results = get_series(
             projects=[group.project],
             metrics_query=metrics_query,
