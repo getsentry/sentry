@@ -84,7 +84,7 @@ class TestAccounts(TestCase):
             {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
         ]
     )
-    def test_send_unable_to_set_weak_password_via_recover_form(self):
+    def test_unable_to_set_weak_password_via_recover_form(self):
         lost_password = LostPasswordHash.objects.create(user=self.user)
 
         resp = self.client.post(

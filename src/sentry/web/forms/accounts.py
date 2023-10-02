@@ -232,7 +232,7 @@ class RegistrationForm(PasswordlessRegistrationForm):
     def clean_password(self):
         password = self.cleaned_data["password"]
         password_validation.validate_password(
-            password, user=User(username=self.cleaned_data["username"])
+            password, user=User(username=self.cleaned_data.get("username"))
         )
         return password
 
