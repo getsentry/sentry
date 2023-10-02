@@ -227,12 +227,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 - this will determine whether we can give an accurate status report or not
                 """
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
-                    end=int(end.timestamp()),
+                    end=end,
                     environments_list=environments_list,
                     organization_id=organization.id,
                     project_id_list=project_id_list,
                     release_value_list=release_value_list,
-                    start=int(start.timestamp()),
+                    start=start,
                 )
                 for ethreshold in category_thresholds:
                     # TODO: filter by environment as well?
