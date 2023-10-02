@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
@@ -6,6 +6,7 @@ import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -13,259 +14,137 @@ import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import SearchBar from 'sentry/components/events/searchBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Tag from 'sentry/components/tag';
-import {IconSearch} from 'sentry/icons';
+import {IconAdd, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
   getNameFromMRI,
-  getReadableMetricType,
   getUnitFromMRI,
-  getUseCaseFromMri,
-  isAllowedOp,
   MetricDisplayType,
   MetricsData,
   MetricsDataProps,
   MetricsQuery,
   updateQuery,
   useMetricsData,
-  useMetricsMeta,
-  useMetricsTags,
 } from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
-import useKeyPress from 'sentry/utils/useKeyPress';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {QueryBuilder} from 'sentry/views/ddm/queryBuilderBar';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-function MetricsExplorer() {
-  const {selection} = usePageFilters();
+const emptyWidget = {
+  mri: '',
+  op: undefined,
+  query: '',
+  groupBy: [],
+  displayType: defaultMetricDisplayType,
+};
 
+export type MetricsQueryWidgetConfig = MetricsQuery & {
+  displayType: MetricDisplayType;
+  position: number;
+  focusedSeries?: string;
+  showSummaryTable?: boolean;
+};
+
+function useMetricsQueryWidgets() {
   const router = useRouter();
 
-  const metricsQuery: MetricsQuery = {
-    mri: router.location.query.mri,
-    op: router.location.query.op,
-    query: router.location.query.query,
-    groupBy: decodeList(router.location.query.groupBy),
+  const defaultWidgets = JSON.stringify([emptyWidget]);
+
+  const widgets = JSON.parse(router.location.query.widgets ?? defaultWidgets);
+
+  const metricsQueries: MetricsQueryWidgetConfig[] = widgets.map(
+    (widget: MetricsQueryWidgetConfig, i) => {
+      return {
+        mri: widget.mri,
+        op: widget.op,
+        query: widget.query,
+        groupBy: decodeList(widget.groupBy),
+        displayType: widget.displayType ?? defaultMetricDisplayType,
+        focusedSeries: widget.focusedSeries,
+        showSummaryTable: widget.showSummaryTable ?? true, // temporary default
+        position: widget.position ?? i,
+      };
+    }
+  );
+
+  const onChange = (position: number, data: Partial<MetricsQueryWidgetConfig>) => {
+    widgets[position] = {...widgets[position], ...data};
+
+    updateQuery(router, {
+      widgets: JSON.stringify(widgets),
+    });
   };
 
-  return (
-    <MetricsExplorerPanel>
-      <PanelBody>
-        <QueryBuilder metricsQuery={metricsQuery} />
-        <MetricsExplorerDisplayOuter
-          displayType={router.location.query.display ?? defaultMetricDisplayType}
-          datetime={selection.datetime}
-          projects={selection.projects}
-          environments={selection.environments}
-          {...metricsQuery}
-        />
-      </PanelBody>
-    </MetricsExplorerPanel>
-  );
+  const addWidget = () => {
+    widgets.push({...emptyWidget, position: widgets.length});
+
+    updateQuery(router, {
+      widgets: JSON.stringify(widgets),
+    });
+  };
+
+  return {
+    data: metricsQueries,
+    onChange,
+    addWidget,
+  };
 }
 
-type QueryBuilderProps = {
-  metricsQuery: MetricsQuery;
-};
+function useMetricsQueryWidget(position: number) {
+  const widgets = useMetricsQueryWidgets();
 
-function QueryBuilder({metricsQuery}: QueryBuilderProps) {
-  const router = useRouter();
-  const {selection} = usePageFilters();
-  const meta = useMetricsMeta(selection.projects);
-  const mriModeKeyPressed = useKeyPress('`', undefined, true);
-  const [mriMode, setMriMode] = useState(false); // power user mode that shows raw MRI instead of metrics names
-
-  useEffect(() => {
-    if (mriModeKeyPressed) {
-      setMriMode(!mriMode);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mriModeKeyPressed]);
-
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, selection.projects);
-
-  if (!meta) {
-    return null;
-  }
-
-  return (
-    <QueryBuilderWrapper>
-      <QueryBuilderRow>
-        <PageFilterBar condensed>
-          <CompactSelect
-            searchable
-            triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={Object.values(meta)
-              .filter(metric =>
-                mriMode
-                  ? true
-                  : metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
-              )
-              .map(metric => ({
-                label: mriMode ? metric.mri : metric.name,
-                value: metric.mri,
-                trailingItems: mriMode ? undefined : (
-                  <Fragment>
-                    <Tag tooltipText={t('Type')}>
-                      {getReadableMetricType(metric.type)}
-                    </Tag>
-                    <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                  </Fragment>
-                ),
-              }))}
-            value={metricsQuery.mri}
-            onChange={option => {
-              const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
-              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                ? metricsQuery.op
-                : availableOps[0];
-              updateQuery(router, {
-                mri: option.value,
-                op: selectedOp,
-                groupBy: undefined,
-                focusedSeries: undefined,
-              });
-            }}
-          />
-          <CompactSelect
-            triggerProps={{prefix: t('Operation'), size: 'sm'}}
-            options={
-              meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
-                label: op,
-                value: op,
-              })) ?? []
-            }
-            disabled={!metricsQuery.mri}
-            value={metricsQuery.op}
-            onChange={option =>
-              updateQuery(router, {
-                op: option.value,
-              })
-            }
-          />
-          <CompactSelect
-            multiple
-            triggerProps={{prefix: t('Group by'), size: 'sm'}}
-            options={tags.map(tag => ({
-              label: tag.key,
-              value: tag.key,
-            }))}
-            disabled={!metricsQuery.mri}
-            value={metricsQuery.groupBy}
-            onChange={options =>
-              updateQuery(router, {
-                groupBy: options.map(o => o.value),
-                focusedSeries: undefined,
-              })
-            }
-          />
-        </PageFilterBar>
-      </QueryBuilderRow>
-      <QueryBuilderRow>
-        <MetricSearchBar
-          tags={tags}
-          mri={metricsQuery.mri}
-          disabled={!metricsQuery.mri}
-          onChange={query => updateQuery(router, {query})}
-          query={metricsQuery.query}
-        />
-      </QueryBuilderRow>
-    </QueryBuilderWrapper>
-  );
+  return {
+    data: widgets.data[position],
+    onChange: (data: Partial<MetricsQueryWidgetConfig>) =>
+      widgets.onChange(position, data),
+  };
 }
 
-type MetricSearchBarProps = {
-  mri: string;
-  onChange: (value: string) => void;
-  tags: MetricsTag[];
-  disabled?: boolean;
-  query?: string;
-};
-
-function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
-  const org = useOrganization();
-  const api = useApi();
+function MetricsQueryDashboard() {
   const {selection} = usePageFilters();
 
-  const supportedTags: TagCollection = useMemo(
-    () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
-    [tags]
-  );
-
-  // TODO(ogi) try to use useApiQuery here
-  const getTagValues = useCallback(
-    async tag => {
-      const tagsValues = await api.requestPromise(
-        `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
-        {
-          query: {
-            metric: mri,
-            useCase: getUseCaseFromMri(mri),
-            project: selection.projects,
-          },
-        }
-      );
-
-      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
-    },
-    [api, mri, org.slug, selection.projects]
-  );
-
-  const handleChange = useCallback(
-    (value: string, {validSearch} = {validSearch: true}) => {
-      if (validSearch) {
-        onChange(value);
-      }
-    },
-    [onChange]
-  );
+  const metricsQueries = useMetricsQueryWidgets();
 
   return (
-    <WideSearchBar
-      disabled={disabled}
-      maxMenuHeight={220}
-      organization={org}
-      onGetTagValues={getTagValues}
-      supportedTags={supportedTags}
-      onClose={handleChange}
-      onSearch={handleChange}
-      placeholder={t('Filter by tags')}
-      defaultQuery={query}
-      savedSearchType={SavedSearchType.METRIC}
-    />
+    <DashboardWrapper>
+      {metricsQueries.data.map(metricsQuery => (
+        <MetricsQueryWidgetPanel key={metricsQuery.position}>
+          <PanelBody>
+            <QueryBuilder
+              metricsQuery={metricsQuery}
+              onChange={(data: Partial<MetricsQueryWidgetConfig>) =>
+                metricsQueries.onChange(metricsQuery.position, data)
+              }
+            />
+            <MetricsQueryWidgetDisplayOuter
+              datetime={selection.datetime}
+              projects={selection.projects}
+              environments={selection.environments}
+              {...metricsQuery}
+            />
+          </PanelBody>
+        </MetricsQueryWidgetPanel>
+      ))}
+      <NewWidgetPanel onClick={metricsQueries.addWidget}>
+        <Button priority="primary" icon={<IconAdd isCircled />}>
+          Add widget
+        </Button>
+      </NewWidgetPanel>
+    </DashboardWrapper>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const QueryBuilderRow = styled('div')`
-  padding: ${space(1)};
-  padding-bottom: 0;
-`;
-
-const WideSearchBar = styled(SearchBar)`
-  width: 100%;
-  opacity: ${p => (p.disabled ? '0.6' : '1')};
-`;
 
 // TODO(ddm): reuse from types/metrics.tsx
 type Group = {
@@ -274,11 +153,9 @@ type Group = {
   totals: Record<string, number>;
 };
 
-type DisplayProps = MetricsDataProps & {
-  displayType: MetricDisplayType;
-};
+type DisplayProps = MetricsQueryWidgetConfig & MetricsDataProps;
 
-function MetricsExplorerDisplayOuter(props?: DisplayProps) {
+function MetricsQueryWidgetDisplayOuter(props?: DisplayProps) {
   if (!props?.mri) {
     return (
       <DisplayWrapper>
@@ -290,16 +167,22 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
       </DisplayWrapper>
     );
   }
-  return <MetricsExplorerDisplay {...props} />;
+
+  return <MetricsQueryWidgetDisplay {...props} />;
 }
 
-function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
-  const router = useRouter();
+function MetricsQueryWidgetDisplay({position, ...metricsDataProps}: DisplayProps) {
+  const {
+    data: {displayType, focusedSeries},
+    onChange,
+  } = useMetricsQueryWidget(position);
+
   const {data, isLoading, isError, error} = useMetricsData(metricsDataProps);
+
   const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
     undefined
   );
-  const focusedSeries = router.location.query.focusedSeries;
+
   const [hoveredLegend, setHoveredLegend] = useState('');
 
   useEffect(() => {
@@ -310,12 +193,8 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
 
   const toggleSeriesVisibility = (seriesName: string) => {
     setHoveredLegend('');
-    router.push({
-      ...router.location,
-      query: {
-        ...router.location.query,
-        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
-      },
+    onChange({
+      focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
     });
   };
 
@@ -367,7 +246,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     emphasis: {
       focus: 'series',
     } as LineSeriesOption['emphasis'],
-  }));
+  })) as Series[];
 
   return (
     <DisplayWrapper>
@@ -380,12 +259,14 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
         environments={metricsDataProps.environments}
         {...normalizeChartTimeParams(sorted)}
       />
-      <SummaryTable
-        series={chartSeries}
-        operation={metricsDataProps.op}
-        onClick={toggleSeriesVisibility}
-        setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
-      />
+      {metricsDataProps.showSummaryTable && (
+        <SummaryTable
+          series={chartSeries}
+          operation={metricsDataProps.op}
+          onClick={toggleSeriesVisibility}
+          setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
+        />
+      )}
     </DisplayWrapper>
   );
 }
@@ -565,8 +446,9 @@ function Chart({
   );
 }
 
-const MetricsExplorerPanel = styled(Panel)`
+const MetricsQueryWidgetPanel = styled(Panel)`
   padding-bottom: 0;
+  margin-bottom: 0;
 `;
 
 const DisplayWrapper = styled('div')`
@@ -576,4 +458,29 @@ const DisplayWrapper = styled('div')`
   justify-content: center;
 `;
 
-export default MetricsExplorer;
+const DashboardWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: ${space(2)};
+  @media (max-width: ${props => props.theme.breakpoints.xxlarge}) {
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const NewWidgetPanel = styled(MetricsQueryWidgetPanel)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  padding: ${space(4)};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+    cursor: pointer;
+  }
+`;
+
+export default MetricsQueryDashboard;
