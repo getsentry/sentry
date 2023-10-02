@@ -34,7 +34,7 @@ function openDeleteModal(organization, projectSlug, feedbackId, location) {
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button
           style={{marginLeft: space(1)}}
-          priority="primary"
+          priority="danger"
           onClick={() => {
             closeModal();
             deleteFeedback(organization, projectSlug, feedbackId, location);
