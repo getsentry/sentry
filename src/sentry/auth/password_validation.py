@@ -2,7 +2,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
@@ -69,34 +68,6 @@ def _password_validators_help_text_html(password_validators=None):
 password_validators_help_text_html = lazy(_password_validators_help_text_html, str)
 
 
-class MinimumLengthValidator:
-    """
-    Validate whether the password is of a minimum length.
-    """
-
-    def __init__(self, min_length=8):
-        self.min_length = min_length
-
-    def validate(self, password, user=None):
-        if len(password) < self.min_length:
-            raise ValidationError(
-                ngettext(
-                    "This password is too short. It must contain at least %(min_length)d character.",
-                    "This password is too short. It must contain at least %(min_length)d characters.",
-                    self.min_length,
-                ),
-                code="password_too_short",
-                params={"min_length": self.min_length},
-            )
-
-    def get_help_text(self):
-        return ngettext(
-            "Your password must contain at least %(min_length)d character.",
-            "Your password must contain at least %(min_length)d characters.",
-            self.min_length,
-        ) % {"min_length": self.min_length}
-
-
 class MaximumLengthValidator:
     """
     Validate whether the password is of a maximum length.
@@ -123,18 +94,3 @@ class MaximumLengthValidator:
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,
         ) % {"max_length": self.max_length}
-
-
-class NumericPasswordValidator:
-    """
-    Validate whether the password is alphanumeric.
-    """
-
-    def validate(self, password, user=None):
-        if password.isdigit():
-            raise ValidationError(
-                _("This password is entirely numeric."), code="password_entirely_numeric"
-            )
-
-    def get_help_text(self):
-        return _("Your password can't be entirely numeric.")
