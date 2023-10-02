@@ -560,6 +560,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+    {
+        "NAME": "sentry.auth.password_validation.PwnedPasswordsValidator",
+        "OPTIONS": {"threshold": 20},
+    },
 ]
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"

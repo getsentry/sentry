@@ -1,3 +1,6 @@
+from hashlib import sha1
+
+import requests
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
@@ -94,3 +97,30 @@ class MaximumLengthValidator:
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,
         ) % {"max_length": self.max_length}
+
+
+class PwnedPasswordsValidator:
+    """
+    Validate whether a password has previously appeared in a data breach.
+    """
+
+    def __init__(self, threshold=1):
+        self.threshold = threshold
+
+    def validate(self, password, user=None):
+        digest = sha1(password.encode("utf-8")).hexdigest().upper()
+        prefix = digest[:5]
+        suffix = digest[5:]
+
+        url = "https://api.pwnedpasswords.com/range/" + prefix
+
+        r = requests.get(url)
+        for line in r.text.split("\n"):
+            breached_suffix, occurrences = line.split(":")
+            if breached_suffix == suffix:
+                occurrences = int(occurrences)
+                if occurrences >= self.threshold:
+                    raise ValidationError(
+                        f"This password has previously appeared in data breaches {occurrences} times."
+                    )
+                break
