@@ -315,7 +315,8 @@ function InvestigationRuleCreation(props: Props) {
 
   if (haveInvestigationRuleInProgress) {
     // investigation rule in progress just show a message
-    const ruleStartDate = new Date(rule.startDate);
+    const existingRule = rule as CustomRule;
+    const ruleStartDate = new Date(existingRule.startDate);
     const now = new Date();
     const interval = moment.duration(now.getTime() - ruleStartDate.getTime()).humanize();
 
