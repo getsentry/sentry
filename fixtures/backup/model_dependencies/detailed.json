@@ -27,9 +27,6 @@
     "uniques": [
       [
         "feedback_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -53,11 +50,7 @@
       "Region"
     ],
     "table_name": "hybridcloud_apikeyreplica",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "hybridcloud.organizationslugreservationreplica": {
     "dangling": false,
@@ -86,9 +79,6 @@
     "table_name": "hybridcloud_organizationslugreservationreplica",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization_id",
         "reservation_type"
       ],
@@ -111,9 +101,6 @@
     "table_name": "hybridcloud_regioncacheversion",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key"
       ]
     ]
@@ -127,11 +114,7 @@
       "Region"
     ],
     "table_name": "nodestore_node",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "replays.replayrecordingsegment": {
     "dangling": false,
@@ -158,9 +141,6 @@
         "file_id",
         "project_id",
         "replay_id"
-      ],
-      [
-        "id"
       ],
       [
         "project_id",
@@ -194,11 +174,7 @@
       "Region"
     ],
     "table_name": "sentry_activity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.actor": {
     "dangling": true,
@@ -221,9 +197,6 @@
     ],
     "table_name": "sentry_actor",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "team"
       ],
@@ -259,9 +232,6 @@
     "table_name": "sentry_alertrule",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "snuba_query"
       ]
     ]
@@ -291,11 +261,7 @@
       "Region"
     ],
     "table_name": "sentry_alertruleactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.alertruleexcludedprojects": {
     "dangling": false,
@@ -321,9 +287,6 @@
       [
         "alert_rule",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -346,9 +309,6 @@
       [
         "alert_rule",
         "label"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -377,11 +337,7 @@
       "Region"
     ],
     "table_name": "sentry_alertruletriggeraction",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.alertruletriggerexclusion": {
     "dangling": false,
@@ -407,9 +363,6 @@
       [
         "alert_rule_trigger",
         "query_subscription"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -431,9 +384,6 @@
     "uniques": [
       [
         "client_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -464,9 +414,6 @@
       [
         "application",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -490,11 +437,7 @@
       "Control"
     ],
     "table_name": "sentry_apigrant",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.apikey": {
     "dangling": false,
@@ -512,9 +455,6 @@
     ],
     "table_name": "sentry_apikey",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key"
       ]
@@ -545,9 +485,6 @@
     "table_name": "sentry_apitoken",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "refresh_token"
       ],
       [
@@ -570,11 +507,7 @@
       "Region"
     ],
     "table_name": "sentry_appconnectbuild",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.artifactbundle": {
     "dangling": false,
@@ -596,11 +529,7 @@
       "Region"
     ],
     "table_name": "sentry_artifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.artifactbundleflatfileindex": {
     "dangling": false,
@@ -622,9 +551,6 @@
         "dist_name",
         "project_id",
         "release_name"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -648,11 +574,7 @@
       "Region"
     ],
     "table_name": "sentry_artifactbundleindex",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.assistantactivity": {
     "dangling": false,
@@ -673,9 +595,6 @@
       [
         "guide_id",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -709,11 +628,7 @@
       "Control"
     ],
     "table_name": "sentry_auditlogentry",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.authenticator": {
     "dangling": false,
@@ -731,9 +646,6 @@
     ],
     "table_name": "auth_authenticator",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "type",
         "user"
@@ -768,9 +680,6 @@
       [
         "auth_provider",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -810,9 +719,6 @@
       [
         "auth_provider_id",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -832,9 +738,6 @@
     ],
     "table_name": "sentry_authprovider",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id"
       ]
@@ -860,11 +763,7 @@
       "Control"
     ],
     "table_name": "sentry_authprovider_default_teams",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.authproviderreplica": {
     "dangling": false,
@@ -891,9 +790,6 @@
         "auth_provider_id"
       ],
       [
-        "id"
-      ],
-      [
         "organization"
       ]
     ]
@@ -907,11 +803,7 @@
       "Control"
     ],
     "table_name": "sentry_broadcast",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.broadcastseen": {
     "dangling": false,
@@ -937,9 +829,6 @@
       [
         "broadcast",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -970,9 +859,6 @@
     "table_name": "sentry_commit",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key",
         "repository_id"
       ]
@@ -1001,9 +887,6 @@
       [
         "external_id",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1031,9 +914,6 @@
       [
         "commit",
         "filename"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1046,11 +926,7 @@
       "Control"
     ],
     "table_name": "sentry_controlfile",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.controlfileblob": {
     "dangling": true,
@@ -1064,9 +940,6 @@
     "uniques": [
       [
         "checksum"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1095,9 +968,6 @@
         "blob",
         "file",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1125,9 +995,6 @@
       [
         "blob",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1142,9 +1009,6 @@
     "table_name": "sentry_controloption",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key"
       ]
     ]
@@ -1158,11 +1022,7 @@
       "Control"
     ],
     "table_name": "sentry_controloutbox",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.controltombstone": {
     "dangling": true,
@@ -1173,11 +1033,7 @@
       "Control"
     ],
     "table_name": "sentry_controltombstone",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.counter": {
     "dangling": false,
@@ -1195,9 +1051,6 @@
     ],
     "table_name": "sentry_projectcounter",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project"
       ]
@@ -1218,11 +1071,7 @@
       "Region"
     ],
     "table_name": "sentry_customdynamicsamplingrule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.customdynamicsamplingruleproject": {
     "dangling": false,
@@ -1248,9 +1097,6 @@
       [
         "custom_dynamic_sampling_rule",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1275,9 +1121,6 @@
     ],
     "table_name": "sentry_dashboard",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "title"
@@ -1308,9 +1151,6 @@
       [
         "dashboard",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1330,9 +1170,6 @@
     ],
     "table_name": "sentry_dashboardtombstone",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "slug"
@@ -1358,9 +1195,6 @@
       [
         "dashboard",
         "order"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1380,9 +1214,6 @@
     ],
     "table_name": "sentry_dashboardwidgetquery",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "order",
         "widget"
@@ -1409,11 +1240,7 @@
       "Region"
     ],
     "table_name": "sentry_debugidartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedorganization": {
     "dangling": true,
@@ -1424,11 +1251,7 @@
       "Region"
     ],
     "table_name": "sentry_deletedorganization",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedproject": {
     "dangling": true,
@@ -1445,11 +1268,7 @@
       "Region"
     ],
     "table_name": "sentry_deletedproject",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedteam": {
     "dangling": true,
@@ -1466,11 +1285,7 @@
       "Region"
     ],
     "table_name": "sentry_deletedteam",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deploy": {
     "dangling": false,
@@ -1497,11 +1312,7 @@
       "Region"
     ],
     "table_name": "sentry_deploy",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.discoversavedquery": {
     "dangling": false,
@@ -1523,11 +1334,7 @@
       "Region"
     ],
     "table_name": "sentry_discoversavedquery",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.discoversavedqueryproject": {
     "dangling": false,
@@ -1553,9 +1360,6 @@
       [
         "discover_saved_query",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1581,9 +1385,6 @@
     "table_name": "sentry_distribution",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "name",
         "release"
       ]
@@ -1599,9 +1400,6 @@
     ],
     "table_name": "sentry_docintegration",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "slug"
       ]
@@ -1640,9 +1438,6 @@
         "file_id"
       ],
       [
-        "id"
-      ],
-      [
         "ident"
       ]
     ]
@@ -1659,9 +1454,6 @@
     "uniques": [
       [
         "email"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1681,9 +1473,6 @@
     ],
     "table_name": "sentry_environment",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "name",
         "organization_id"
@@ -1714,9 +1503,6 @@
       [
         "environment",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1750,9 +1536,6 @@
         "event_id",
         "file_id",
         "project_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1778,9 +1561,6 @@
     "table_name": "sentry_eventprocessingissue",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "processing_issue",
         "raw_event"
       ]
@@ -1805,9 +1585,6 @@
       [
         "hash",
         "project_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident",
@@ -1840,11 +1617,7 @@
       "Region"
     ],
     "table_name": "sentry_exporteddata",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.exporteddatablob": {
     "dangling": false,
@@ -1866,9 +1639,6 @@
         "blob_id",
         "data_export",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1914,9 +1684,6 @@
         "organization",
         "provider",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1941,9 +1708,6 @@
     ],
     "table_name": "sentry_externalissue",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "integration_id",
         "key",
@@ -1970,9 +1734,6 @@
       [
         "feature_id",
         "organization"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1991,11 +1752,7 @@
       "Region"
     ],
     "table_name": "sentry_file",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.fileblob": {
     "dangling": true,
@@ -2009,9 +1766,6 @@
     "uniques": [
       [
         "checksum"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2040,9 +1794,6 @@
         "blob",
         "file",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2070,9 +1821,6 @@
       [
         "blob",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2100,9 +1848,6 @@
       [
         "artifact_bundle",
         "flat_file_index"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2127,9 +1872,6 @@
     ],
     "table_name": "sentry_groupedmessage",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "id",
         "project"
@@ -2177,9 +1919,6 @@
       [
         "group",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2213,9 +1952,6 @@
         "group",
         "project",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2243,9 +1979,6 @@
       [
         "commit_id",
         "group_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2277,9 +2010,6 @@
       [
         "email",
         "msgid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2312,9 +2042,6 @@
       [
         "environment",
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2347,9 +2074,6 @@
       [
         "hash",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2388,11 +2112,7 @@
       "Region"
     ],
     "table_name": "sentry_grouphistory",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.groupinbox": {
     "dangling": false,
@@ -2422,9 +2142,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2453,9 +2170,6 @@
         "group",
         "linked_id",
         "linked_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2478,9 +2192,6 @@
       [
         "group",
         "key"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2519,11 +2230,7 @@
       "Region"
     ],
     "table_name": "sentry_groupowner",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.groupredirect": {
     "dangling": false,
@@ -2546,9 +2253,6 @@
     ],
     "table_name": "sentry_groupredirect",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "previous_project_slug",
@@ -2589,9 +2293,6 @@
         "environment",
         "group_id",
         "release_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2618,9 +2319,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2653,9 +2351,6 @@
       [
         "group",
         "rule"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2688,9 +2383,6 @@
       [
         "group",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2724,9 +2416,6 @@
         "group"
       ],
       [
-        "id"
-      ],
-      [
         "uuid"
       ]
     ]
@@ -2749,9 +2438,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2793,9 +2479,6 @@
       [
         "group",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2815,9 +2498,6 @@
     ],
     "table_name": "sentry_grouptombstone",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "previous_group_id"
       ]
@@ -2849,9 +2529,6 @@
         "idp"
       ],
       [
-        "id"
-      ],
-      [
         "idp",
         "user"
       ]
@@ -2870,9 +2547,6 @@
       [
         "external_id",
         "type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2897,9 +2571,6 @@
     ],
     "table_name": "sentry_incident",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "identifier",
         "organization"
@@ -2926,11 +2597,7 @@
       "Region"
     ],
     "table_name": "sentry_incidentactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.incidentproject": {
     "dangling": false,
@@ -2953,9 +2620,6 @@
     ],
     "table_name": "sentry_incidentproject",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident",
         "project"
@@ -2984,9 +2648,6 @@
     "table_name": "sentry_incidentseen",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "incident",
         "user_id"
       ]
@@ -3014,9 +2675,6 @@
     "table_name": "sentry_incidentsnapshot",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "incident"
       ]
     ]
@@ -3042,9 +2700,6 @@
     ],
     "table_name": "sentry_incidentsubscription",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident",
         "user_id"
@@ -3075,9 +2730,6 @@
       [
         "alert_rule_trigger",
         "incident"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3094,9 +2746,6 @@
       [
         "external_id",
         "provider"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3119,9 +2768,6 @@
       [
         "external_id",
         "organization_integration_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3139,9 +2785,6 @@
         "feature",
         "target_id",
         "target_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3161,9 +2804,6 @@
     ],
     "table_name": "sentry_latestappconnectbuildscheck",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "source_id"
@@ -3209,9 +2849,6 @@
       [
         "environment_id",
         "repository_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3232,9 +2869,6 @@
     "table_name": "sentry_lostpasswordhash",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "user"
       ]
     ]
@@ -3248,11 +2882,7 @@
       "Region"
     ],
     "table_name": "sentry_metricskeyindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.monitor": {
     "dangling": false,
@@ -3277,9 +2907,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ],
       [
         "organization_id",
@@ -3320,9 +2947,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3350,9 +2974,6 @@
       [
         "environment",
         "monitor"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3386,11 +3007,7 @@
       "Region"
     ],
     "table_name": "sentry_monitorincident",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.monitorlocation": {
     "dangling": true,
@@ -3404,9 +3021,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3430,11 +3044,7 @@
       "Region"
     ],
     "table_name": "sentry_neglectedrule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationaction": {
     "dangling": false,
@@ -3464,11 +3074,7 @@
       "Region"
     ],
     "table_name": "sentry_notificationaction",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationactionproject": {
     "dangling": false,
@@ -3493,11 +3099,7 @@
       "Region"
     ],
     "table_name": "sentry_notificationactionproject",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationsetting": {
     "dangling": true,
@@ -3525,9 +3127,6 @@
     ],
     "table_name": "sentry_notificationsetting",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "provider",
         "scope_identifier",
@@ -3559,9 +3158,6 @@
     "table_name": "sentry_notificationsettingoption",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "scope_identifier",
         "scope_type",
         "team_id",
@@ -3592,9 +3188,6 @@
     "table_name": "sentry_notificationsettingprovider",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "provider",
         "scope_identifier",
         "scope_type",
@@ -3615,9 +3208,6 @@
     "table_name": "sentry_option",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key"
       ]
     ]
@@ -3632,9 +3222,6 @@
     ],
     "table_name": "sentry_organization",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "slug"
       ]
@@ -3667,9 +3254,6 @@
     "table_name": "sentry_organizationaccessrequest",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "member",
         "team"
       ]
@@ -3698,9 +3282,6 @@
     "uniques": [
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -3732,9 +3313,6 @@
     "table_name": "sentry_organizationintegration",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "integration",
         "organization_id"
       ]
@@ -3756,9 +3334,6 @@
     ],
     "table_name": "sentry_organizationmapping",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id"
       ],
@@ -3796,9 +3371,6 @@
       [
         "email",
         "organization"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -3841,9 +3413,6 @@
     "table_name": "sentry_organizationmembermapping",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization_id",
         "organizationmember_id"
       ]
@@ -3870,9 +3439,6 @@
     ],
     "table_name": "sentry_organizationmember_teams",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organizationmember",
         "team"
@@ -3911,9 +3477,6 @@
     "table_name": "sentry_organizationmember_teamsreplica",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization_id",
         "organizationmember_id",
         "team_id"
@@ -3947,9 +3510,6 @@
     "table_name": "sentry_organizationonboardingtask",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization",
         "task"
       ]
@@ -3971,9 +3531,6 @@
     ],
     "table_name": "sentry_organizationoptions",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "organization"
@@ -4001,9 +3558,6 @@
     ],
     "table_name": "sentry_organizationslugreservation",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "reservation_type"
@@ -4040,9 +3594,6 @@
     "table_name": "sentry_orgauthtoken",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "token_hashed"
       ]
     ]
@@ -4064,9 +3615,6 @@
     "table_name": "sentry_pendingincidentsnapshot",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "incident"
       ]
     ]
@@ -4086,11 +3634,7 @@
       "Region"
     ],
     "table_name": "sentry_perfstringindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.platformexternalissue": {
     "dangling": false,
@@ -4116,9 +3660,6 @@
       [
         "group",
         "service_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4142,9 +3683,6 @@
         "checksum",
         "project",
         "type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4175,9 +3713,6 @@
     "table_name": "sentry_proguardartifactrelease",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "proguard_uuid",
         "project_id",
         "release_name"
@@ -4200,9 +3735,6 @@
     ],
     "table_name": "sentry_project",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "slug"
@@ -4234,11 +3766,7 @@
       "Region"
     ],
     "table_name": "sentry_projectartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.projectavatar": {
     "dangling": false,
@@ -4263,9 +3791,6 @@
     "uniques": [
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -4297,9 +3822,6 @@
     "table_name": "sentry_projectbookmark",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project",
         "user_id"
       ]
@@ -4327,9 +3849,6 @@
     "table_name": "sentry_projectcodeowners",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "repository_project_path_config"
       ]
     ]
@@ -4354,11 +3873,7 @@
       "Region"
     ],
     "table_name": "sentry_projectdsymfile",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.projectintegration": {
     "dangling": false,
@@ -4382,9 +3897,6 @@
     "table_name": "sentry_projectintegration",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "integration_id",
         "project"
       ]
@@ -4406,9 +3918,6 @@
     ],
     "table_name": "sentry_projectkey",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "public_key"
       ],
@@ -4434,9 +3943,6 @@
     "table_name": "sentry_projectoptions",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key",
         "project"
       ]
@@ -4459,9 +3965,6 @@
     "table_name": "sentry_projectownership",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project"
       ]
     ]
@@ -4482,9 +3985,6 @@
     ],
     "table_name": "sentry_projectplatform",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "platform",
         "project_id"
@@ -4513,9 +4013,6 @@
     "table_name": "sentry_projectredirect",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization",
         "redirect_slug"
       ]
@@ -4542,9 +4039,6 @@
     ],
     "table_name": "sentry_projectteam",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "team"
@@ -4578,9 +4072,6 @@
     "table_name": "sentry_projecttransactionthreshold",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project"
       ]
     ]
@@ -4611,9 +4102,6 @@
     ],
     "table_name": "sentry_projecttransactionthresholdoverride",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "transaction"
@@ -4651,9 +4139,6 @@
         "organization_id",
         "project_id",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4684,9 +4169,6 @@
     "table_name": "sentry_pull_request",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key",
         "repository_id"
       ]
@@ -4711,9 +4193,6 @@
       [
         "comment_type",
         "pull_request"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4741,9 +4220,6 @@
       [
         "commit",
         "pull_request"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4769,9 +4245,6 @@
     "table_name": "sentry_querysubscription",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "subscription_id"
       ]
     ]
@@ -4795,9 +4268,6 @@
       [
         "event_id",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4823,9 +4293,6 @@
     "table_name": "sentry_recentsearch",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization",
         "query_hash",
         "type",
@@ -4842,11 +4309,7 @@
       "Region"
     ],
     "table_name": "sentry_regionoutbox",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.regionscheduleddeletion": {
     "dangling": true,
@@ -4865,9 +4328,6 @@
       ],
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4880,11 +4340,7 @@
       "Region"
     ],
     "table_name": "sentry_regiontombstone",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.relay": {
     "dangling": false,
@@ -4896,9 +4352,6 @@
     ],
     "table_name": "sentry_relay",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "relay_id"
       ]
@@ -4914,9 +4367,6 @@
     ],
     "table_name": "sentry_relayusage",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "relay_id",
         "version"
@@ -4950,9 +4400,6 @@
     "table_name": "sentry_release",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization",
         "version"
       ]
@@ -4973,11 +4420,7 @@
       "Region"
     ],
     "table_name": "sentry_releaseactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.releaseartifactbundle": {
     "dangling": false,
@@ -4999,11 +4442,7 @@
       "Region"
     ],
     "table_name": "sentry_releaseartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.releasecommit": {
     "dangling": false,
@@ -5039,9 +4478,6 @@
       [
         "commit",
         "release"
-      ],
-      [
-        "id"
       ],
       [
         "order",
@@ -5084,9 +4520,6 @@
         "environment",
         "organization",
         "release"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5121,9 +4554,6 @@
     ],
     "table_name": "sentry_releasefile",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "ident",
         "release_id"
@@ -5162,9 +4592,6 @@
     "table_name": "sentry_releaseheadcommit",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "release",
         "repository_id"
       ]
@@ -5191,9 +4618,6 @@
     ],
     "table_name": "sentry_release_project",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "release"
@@ -5230,9 +4654,6 @@
         "environment",
         "project",
         "release"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5256,11 +4677,7 @@
       "Region"
     ],
     "table_name": "sentry_releasethreshold",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.repository": {
     "dangling": false,
@@ -5287,9 +4704,6 @@
         "external_id",
         "organization_id",
         "provider"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5330,9 +4744,6 @@
     "table_name": "sentry_repositoryprojectpathconfig",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project",
         "stack_root"
       ]
@@ -5357,9 +4768,6 @@
       [
         "event_id",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5388,11 +4796,7 @@
       "Region"
     ],
     "table_name": "sentry_rule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.ruleactivity": {
     "dangling": false,
@@ -5414,11 +4818,7 @@
       "Region"
     ],
     "table_name": "sentry_ruleactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.rulefirehistory": {
     "dangling": false,
@@ -5445,11 +4845,7 @@
       "Region"
     ],
     "table_name": "sentry_rulefirehistory",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.rulesnooze": {
     "dangling": true,
@@ -5487,9 +4883,6 @@
         "user_id"
       ],
       [
-        "id"
-      ],
-      [
         "rule",
         "user_id"
       ]
@@ -5515,11 +4908,7 @@
       "Region"
     ],
     "table_name": "sentry_savedsearch",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.scheduleddeletion": {
     "dangling": true,
@@ -5538,9 +4927,6 @@
       ],
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5577,9 +4963,6 @@
     "uniques": [
       [
         "application"
-      ],
-      [
-        "id"
       ],
       [
         "proxy_user"
@@ -5622,9 +5005,6 @@
         "file_id"
       ],
       [
-        "id"
-      ],
-      [
         "ident"
       ]
     ]
@@ -5645,9 +5025,6 @@
     ],
     "table_name": "sentry_sentryappcomponent",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "uuid"
       ]
@@ -5689,9 +5066,6 @@
       ],
       [
         "api_token"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5716,9 +5090,6 @@
     ],
     "table_name": "sentry_sentryappinstallationforprovider",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "provider"
@@ -5749,9 +5120,6 @@
       [
         "api_token",
         "sentry_app_installation"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5773,9 +5141,6 @@
     "uniques": [
       [
         "external_id"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -5819,9 +5184,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5847,9 +5209,6 @@
     "table_name": "sentry_servicehookproject",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project_id",
         "service_hook"
       ]
@@ -5870,11 +5229,7 @@
       "Region"
     ],
     "table_name": "sentry_snubaquery",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.snubaqueryeventtype": {
     "dangling": true,
@@ -5892,9 +5247,6 @@
     ],
     "table_name": "sentry_snubaqueryeventtype",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "snuba_query",
         "type"
@@ -5916,11 +5268,7 @@
       "Region"
     ],
     "table_name": "sentry_stringindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.team": {
     "dangling": false,
@@ -5940,9 +5288,6 @@
     "uniques": [
       [
         "actor"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -5975,9 +5320,6 @@
         "file_id"
       ],
       [
-        "id"
-      ],
-      [
         "ident"
       ],
       [
@@ -6007,9 +5349,6 @@
     "table_name": "sentry_performanceteamkeytransaction",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "project_team",
         "transaction"
       ]
@@ -6037,9 +5376,6 @@
     "table_name": "sentry_teamreplica",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "organization_id",
         "slug"
       ]
@@ -6054,11 +5390,7 @@
       "Region"
     ],
     "table_name": "sentry_timeseriessnapshot",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.user": {
     "dangling": false,
@@ -6070,9 +5402,6 @@
     ],
     "table_name": "auth_user",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "username"
       ]
@@ -6111,9 +5440,6 @@
         "file_id"
       ],
       [
-        "id"
-      ],
-      [
         "ident"
       ],
       [
@@ -6140,9 +5466,6 @@
       [
         "email",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -6162,9 +5485,6 @@
     ],
     "table_name": "sentry_userip",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "ip_address",
         "user"
@@ -6198,9 +5518,6 @@
     "table_name": "sentry_useroption",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key",
         "organization_id",
         "user"
@@ -6228,9 +5545,6 @@
     ],
     "table_name": "sentry_userpermission",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "permission",
         "user"
@@ -6271,9 +5585,6 @@
       [
         "event_id",
         "project_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -6287,9 +5598,6 @@
     ],
     "table_name": "sentry_userrole",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "name"
       ]
@@ -6315,11 +5623,7 @@
       "Control"
     ],
     "table_name": "sentry_userrole_users",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sessions.session": {
     "dangling": true,
@@ -6348,9 +5652,6 @@
     "uniques": [
       [
         "domain"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -6370,9 +5671,6 @@
     ],
     "table_name": "social_auth_usersocialauth",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "provider",
         "uid",
