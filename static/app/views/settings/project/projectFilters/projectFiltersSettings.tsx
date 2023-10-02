@@ -433,6 +433,33 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   />
                 </NestedForm>
               </PanelItem>
+              <PanelItem noPadding>
+                <NestedForm
+                  apiMethod="PUT"
+                  apiEndpoint={projectEndpoint}
+                  initialData={{
+                    'filters:chunk-load-error':
+                      project.options?.['filters:chunk-load-error'],
+                  }}
+                  saveOnBlur
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
+                >
+                  <FieldFromConfig
+                    getData={getOptionsData}
+                    field={{
+                      type: 'boolean',
+                      name: 'filters:chunk-load-error',
+                      label: t('Filter out chunk load errors'),
+                      help: t(
+                        'In NextJS, chunk load errors can occur due to caching split chunks of the JavaScript bundle.'
+                      ),
+                      disabled: !hasAccess,
+                    }}
+                  />
+                </NestedForm>
+              </PanelItem>
             </PanelBody>
           </Panel>
 
