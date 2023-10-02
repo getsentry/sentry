@@ -20,7 +20,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -131,8 +130,7 @@ class Fixtures:
         if organization is None:
             organization = self.organization
 
-        with outbox_runner():
-            return Factories.create_team(organization=organization, **kwargs)
+        return Factories.create_team(organization=organization, **kwargs)
 
     def create_environment(self, project=None, **kwargs):
         if project is None:

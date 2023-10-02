@@ -88,7 +88,11 @@ class OrgAuthToken(Model):
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.api.utils import generate_region_url
-        from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+        from sentry.utils.security.orgauthtoken_token import (
+            SystemUrlPrefixMissingException,
+            generate_token,
+            hash_token,
+        )
 
         # If there is a token collision, or the token does not exist for some reason, generate a new
         # one.
@@ -101,8 +105,10 @@ class OrgAuthToken(Model):
             ).first()
             if org_mapping is None:
                 return None
-
-            token_str = generate_token(org_mapping.slug, generate_region_url())
+            try:
+                token_str = generate_token(org_mapping.slug, generate_region_url())
+            except SystemUrlPrefixMissingException:
+                return None
             self.token_hashed = hash_token(token_str)
             self.token_last_characters = token_str[-4:]
 
