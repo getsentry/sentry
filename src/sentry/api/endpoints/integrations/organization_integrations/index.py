@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import List, Sequence
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import GlobalParams, IntegrationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
@@ -49,12 +54,29 @@ def filter_by_features(
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Integrations"])
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
+    @extend_schema(
+        operation_id="List Available Integrations",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            IntegrationParams.PROVIDER_KEY,
+            IntegrationParams.FEATURES,
+            IntegrationParams.INCLUDE_CONFIG,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationIntegrationResponse", List[OrganizationIntegrationSerializer]
+            ),
+        },
+        examples=IntegrationExamples.LIST_INTEGRATIONS,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List the available Integrations for an Organization
@@ -70,7 +92,10 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         feature_filters = request.GET.getlist("features", [])
+        # TODO: Remove provider_key in favor of ProviderKey after removing from frontend
         provider_key = request.GET.get("provider_key", "")
+        if provider_key == "":
+            provider_key = request.GET.get("providerKey", "")
         include_config_raw = request.GET.get("includeConfig")
 
         # Include the configurations by default if includeConfig is not present.

@@ -299,3 +299,46 @@ class NotificationParams:
         type=str,
         description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
     )
+
+
+class IntegrationParams:
+    PROVIDER_KEY = OpenApiParameter(
+        name="providerKey",
+        location="query",
+        required=False,
+        type=str,
+        description="""Specific integration provider to filter by. For example, `slack` """,
+    )
+    FEATURES = OpenApiParameter(
+        name="features",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""Integration features to filter by. See [Integrations Documentation](https://docs.sentry.io/product/integrations/). Current available features are:
+         - alert-rule
+         - chat-unfurl
+         - codeowners
+         - commits
+         - data-forwarding
+         - deployment
+         - enterprise-alert-rule
+         - enterprise-incident-management
+         - incident-management
+         - issue-basic
+         - issue-sync
+         - mobile
+         - serverless
+         - session-replay
+         - stacktrace-link
+         - ticket-rules
+         """,
+    )
+    INCLUDE_CONFIG = OpenApiParameter(
+        name="includeConfig",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Set to `True` to include integration configurations fetched from third-party
+            in the response. Note that this can add several seconds to the response time.""",
+    )
