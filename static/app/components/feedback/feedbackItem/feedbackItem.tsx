@@ -130,5 +130,6 @@ const Blockquote = styled('blockquote')`
     font-size: ${p => p.theme.fontSizeMedium};
     line-height: 1.6;
     padding: 0;
+    word-break: break-word;
   }
 `;
