@@ -62,7 +62,7 @@ def create_organization_provisioning_outbox(
     )
 
 
-class InvalidOrganizationProvisioningSlugQueryException(Exception):
+class InvalidOrganizationProvisioningException(Exception):
     pass
 
 
@@ -108,6 +108,18 @@ class DatabaseBackedControlOrganizationProvisioningService(
         slugify_instance(surrogate_org_slug, slug_base, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         return surrogate_org_slug.slug
+
+    @staticmethod
+    def _get_slug_reservation_for_organization(
+        organization_id: int, reservation_type: OrganizationSlugReservationType
+    ) -> Optional[OrganizationSlugReservation]:
+        try:
+            slug_res = OrganizationSlugReservation.objects.get(
+                organization_id=organization_id, reservation_type=reservation_type
+            )
+            return slug_res
+        except OrganizationSlugReservation.DoesNotExist:
+            return None
 
     def provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
@@ -163,21 +175,45 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def update_organization_slug(
         self, *, organization_id: int, desired_slug: str, require_exact: bool = True
     ) -> RpcOrganizationSlugReservation:
-        slug_org_reservation = OrganizationSlugReservation.objects.get(
+        existing_temporary_alias = self._get_slug_reservation_for_organization(
             organization_id=organization_id,
-            reservation_type=OrganizationSlugReservationType.PRIMARY.value,
+            reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+        )
+
+        if existing_temporary_alias:
+            raise Exception("Cannot change an organization slug while another swap is in progress")
+
+        primary_slug_alias = self._get_slug_reservation_for_organization(
+            organization_id=organization_id,
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
         slug_base = desired_slug
         if not require_exact:
             slug_base = self._generate_org_slug(
-                region_name=slug_org_reservation.region_name, slug=slug_base
+                region_name=primary_slug_alias.region_name, slug=slug_base
             )
+
+        assert (
+            primary_slug_alias
+        ), "There must be a primary slug reservation for an organization in order to swap slugs"
 
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
         ):
-            slug_org_reservation.slug = slug_base
-            slug_org_reservation.save(unsafe_write=True)
+            OrganizationSlugReservation(
+                slug=slug_base,
+                organization_id=organization_id,
+                user_id=-1,
+                region_name=primary_slug_alias.region_name,
+                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+            ).save(unsafe_write=True)
 
-        return serialize_slug_reservation(slug_org_reservation)
+        primary_slug_alias.refresh_from_db()
+
+        if primary_slug_alias.slug != slug_base:
+            raise InvalidOrganizationProvisioningException(
+                "Failed to swap slug for organization, likely due to conflict on the region"
+            )
+
+        return serialize_slug_reservation(primary_slug_alias)

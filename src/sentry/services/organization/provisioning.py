@@ -7,7 +7,11 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     organization_provisioning_region_service,
 )
-from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models import outbox_context
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
 from sentry.services.organization.model import OrganizationProvisioningOptions
 
 
@@ -64,7 +68,8 @@ def handle_organization_provisioning_outbox_payload(
         # it's likely a conflict has occurred (e.g. an org create locally).
         # This means we need to delete the old org slug reservation as it
         # can no longer be assumed to be valid.
-        org_slug_reservation.delete()
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
+            org_slug_reservation.delete()
         return
 
     organization_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
@@ -77,19 +82,42 @@ def handle_organization_provisioning_outbox_payload(
         raise error
 
 
-def handle_organization_slug_reservation_update_outbox(
-    *, region_name: str, org_slug_reservation_id: int
-):
-    org_slug_reservation = OrganizationSlugReservation.objects.get(id=org_slug_reservation_id)
+def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reservation_id: int):
+    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(id=org_slug_reservation_id)
+
+    # Only process temporary aliases for slug swaps
+    if (
+        not org_slug_reservation_qs.exists()
+        or org_slug_reservation_qs.first().reservation_type
+        != OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value
+    ):
+        return
+
+    org_slug_reservation = org_slug_reservation_qs.first()
 
     from sentry.hybridcloud.rpc_services.organization_provisioning import serialize_slug_reservation
 
-    organization_provisioning_region_service.update_organization_slug_from_reservation(
-        region_name=region_name,
-        organization_slug_reservation=serialize_slug_reservation(
-            slug_reservation=org_slug_reservation
-        ),
+    able_to_update_slug = (
+        organization_provisioning_region_service.update_organization_slug_from_reservation(
+            region_name=region_name,
+            org_slug_temporary_alias_res=serialize_slug_reservation(
+                slug_reservation=org_slug_reservation
+            ),
+        )
     )
+
+    with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))):
+        # Even if we aren't able to update the slug on the region,
+        # we roll back the temporary alias as it's either be completed, or no longer valid
+        org_slug_reservation.delete()
+
+        if able_to_update_slug:
+            primary_slug_reservation = OrganizationSlugReservation.objects.get(
+                organization_id=org_slug_reservation.organization_id,
+                reservation_type=OrganizationSlugReservationType.PRIMARY.value,
+            )
+            primary_slug_reservation.slug = org_slug_reservation.slug
+            primary_slug_reservation.save(unsafe_write=True)
 
 
 class OrganizationProvisioningService:

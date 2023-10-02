@@ -42,8 +42,10 @@ class OrganizationProvisioningRegionService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def update_organization_slug_from_reservation(
-        self, region_name: str, organization_slug_reservation: RpcOrganizationSlugReservation
-    ) -> None:
+        self,
+        region_name: str,
+        org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
+    ) -> bool:
         pass
 
     @classmethod

@@ -47,7 +47,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         db_table = "sentry_organizationslugreservation"
         unique_together = (("organization_id", "reservation_type"),)
 
-    __repr__ = sane_repr("slug", "organization_id")
+    __repr__ = sane_repr("slug", "organization_id", "reservation_type")
 
     def save(self, *args: Any, **kwds: Any) -> None:
         assert kwds.get(

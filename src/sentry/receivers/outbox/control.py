@@ -26,7 +26,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, org
 from sentry.services.organization.provisioning import (
     OrganizationProvisioningOptions,
     handle_organization_provisioning_outbox_payload,
-    handle_organization_slug_reservation_update_outbox,
+    handle_possible_organization_slug_swap,
 )
 from sentry.silo.base import SiloMode
 
@@ -145,7 +145,7 @@ def process_provision_organization_outbox(
 
 @receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)
 def update_organization_slug_reservation(object_identifier: int, region_name: str, **kwds: Any):
-    handle_organization_slug_reservation_update_outbox(
+    handle_possible_organization_slug_swap(
         region_name=region_name,
         org_slug_reservation_id=object_identifier,
     )

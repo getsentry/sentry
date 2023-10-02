@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+from typing import List
+
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 
 from sentry.hybridcloud.rpc_services.organization_provisioning import (
     RpcOrganizationSlugReservation,
     control_organization_provisioning_rpc_service,
 )
-from sentry.models import Organization, OrganizationSlugReservation
+from sentry.hybridcloud.rpc_services.organization_provisioning.impl import (
+    InvalidOrganizationProvisioningException,
+)
+from sentry.models import (
+    Organization,
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+    outbox_context,
+)
 from sentry.services.hybrid_cloud.rpc import RpcRemoteException
 from sentry.services.organization import (
     OrganizationOptions,
@@ -47,6 +57,12 @@ class TestControlOrganizationProvisioningBase(TestCase):
         )
         return slug_reservation
 
+    def get_slug_reservations_for_organization(
+        self, organization_id: int
+    ) -> List[OrganizationSlugReservation]:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return OrganizationSlugReservation.objects.filter(organization_id=organization_id)
+
     def assert_slug_reservation_and_org_exist(
         self, rpc_org_slug: RpcOrganizationSlugReservation, user_id
     ):
@@ -81,15 +97,15 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
     # TODO(Gabe): Re-enable this in the cutover PR after removing
     #  slug reservation writes on org mapping create
-    @pytest.mark.skip
+    # @pytest.mark.skip
     def test_organization_region_inconsistency(self):
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
 
         with assume_test_silo_mode(SiloMode.REGION):
-            region_only_organization = Organization.objects.create(
-                name="conflicting_org",
-                slug=conflicting_slug,
+            owner_of_conflicting_org = self.create_user()
+            region_only_organization = self.create_organization(
+                name="conflicting_org", slug=conflicting_slug, owner=owner_of_conflicting_org
             )
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
@@ -127,6 +143,8 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
 
 @all_silo_test(stable=True)
+# TODO(Gabe): Re-enable and fix tests in the cutover PR
+# @pytest.mark.skip
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
     def test_updates_exact_slug(self):
         org_slug_res = self.provision_organization()
@@ -224,3 +242,42 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=org_with_conflicting_slug, user_id=new_user.id
         )
+
+    def test_conflicting_unregistered_organization_with_slug_exists(self):
+        test_org_slug_reservation = self.provision_organization()
+        original_slug = test_org_slug_reservation.slug
+        conflicting_slug = "foobar"
+
+        new_user = self.create_user()
+        unregistered_org = self.create_organization(slug=conflicting_slug, owner=new_user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
+            assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            with pytest.raises(RpcRemoteException):
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=test_org_slug_reservation.organization_id,
+                    desired_slug=conflicting_slug,
+                    require_exact=True,
+                )
+        else:
+            with pytest.raises(InvalidOrganizationProvisioningException):
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=test_org_slug_reservation.organization_id,
+                    desired_slug=conflicting_slug,
+                    require_exact=True,
+                )
+
+        slug_reservations = self.get_slug_reservations_for_organization(
+            organization_id=test_org_slug_reservation.organization_id
+        )
+
+        assert (
+            len(slug_reservations) == 1
+        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert slug_reservations[0].slug == original_slug
+        assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY

@@ -1,4 +1,4 @@
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
@@ -65,10 +65,32 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
     ) -> bool:
         provision_request_valid = True
         slug = provision_payload.provision_options.slug
-        # Validate that no org with this org ID or slug exist in the region
-        matching_organization = Organization.objects.filter(Q(id=organization_id) | Q(slug=slug))
-        if matching_organization.exists():
-            provision_request_valid = False
+        # Validate that no org with this org ID or slug exist in the region, unless already
+        #  owned by the user_id
+        matching_organizations_qs = Organization.objects.filter(
+            Q(id=organization_id) | Q(slug=slug)
+        )
+        if matching_organizations_qs.exists():
+            assert (
+                matching_organizations_qs.count() == 1
+            ), "Multiple conflicting organization returned when provisioning an organization"
+
+            matching_org: Organization = matching_organizations_qs.first()
+            provisioning_user_is_org_owner = (
+                matching_org.get_default_owner().id
+                == provision_payload.provision_options.owning_user_id
+            )
+
+            # Idempotency check in case a previous outbox completed partially
+            #  and created an org for the user
+            org_slug_matches_provision_options = (
+                matching_org.slug == provision_payload.provision_options.slug
+            )
+            provision_request_valid = (
+                provisioning_user_is_org_owner and org_slug_matches_provision_options
+            )
+
+            return provision_request_valid
 
         if not provision_request_valid:
             capture_exception(
@@ -108,24 +130,37 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
         return True
 
     def update_organization_slug_from_reservation(
-        self, region_name: str, organization_slug_reservation: RpcOrganizationSlugReservation
-    ) -> None:
+        self,
+        region_name: str,
+        org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
+    ) -> bool:
         # Skip any non-primary organization slug updates
-        if (
-            organization_slug_reservation.reservation_type
-            != OrganizationSlugReservationType.PRIMARY.value
-        ):
-            return
+        assert (
+            org_slug_temporary_alias_res.reservation_type
+            == OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value
+        ), "Organization slugs can only be updated from temporary aliases"
 
-        with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
-            org_qs = Organization.objects.filter(id=organization_slug_reservation.organization_id)
-            if not org_qs.exists():
-                # The org either hasn't been provisioned yet, or was recently deleted.
-                return
+        try:
+            with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
+                org_qs = Organization.objects.filter(
+                    id=org_slug_temporary_alias_res.organization_id
+                )
+                if not org_qs.exists():
+                    # The org either hasn't been provisioned yet, or was recently deleted.
+                    return False
 
-            assert org_qs.count() == 1, "Only 1 Organization should be affected by a slug change"
+                assert (
+                    org_qs.count() == 1
+                ), "Only 1 Organization should be affected by a slug change"
 
-            org = org_qs.first()
-            if org.slug != organization_slug_reservation.slug:
-                org.slug = organization_slug_reservation.slug
-                org.save()
+                org = org_qs.first()
+
+                if org.slug != org_slug_temporary_alias_res.slug:
+                    org.update(slug=org_slug_temporary_alias_res.slug)
+
+            return True
+        except IntegrityError as e:
+            # We hit a slug collision here and cannot accept the new slug
+            #  on the region side
+            capture_exception(e)
+            return False
