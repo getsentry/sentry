@@ -192,7 +192,8 @@ function NetworkList() {
 
   const currentIndex = indexAtCurrentTime();
   const showJumpDownButton = currentIndex > visibleRange[1];
-  const showJumpUpButton = currentIndex < visibleRange[0] && networkFrames?.length;
+  const showJumpUpButton = currentIndex < visibleRange[0];
+  const tabNotEmpty = networkFrames?.length;
 
   return (
     <FluidHeight>
@@ -245,7 +246,7 @@ function NetworkList() {
                   />
                 )}
               </AutoSizer>
-              {sortConfig.by === 'startTimestamp' && showJumpUpButton ? (
+              {sortConfig.by === 'startTimestamp' && showJumpUpButton && tabNotEmpty ? (
                 <JumpButton
                   onClick={handleClick}
                   aria-label={t('Jump Up')}
@@ -256,7 +257,7 @@ function NetworkList() {
                   {t('↑ Jump to current timestamp')}
                 </JumpButton>
               ) : null}
-              {sortConfig.by === 'startTimestamp' && showJumpDownButton ? (
+              {sortConfig.by === 'startTimestamp' && showJumpDownButton && tabNotEmpty ? (
                 <JumpButton
                   onClick={handleClick}
                   aria-label={t('Jump Down')}
