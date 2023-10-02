@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorIncident,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -37,7 +38,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -67,7 +73,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "error",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -88,7 +99,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -118,7 +134,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "timeout",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -142,7 +163,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "hour"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "hour"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -179,7 +205,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "missed_checkin",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "hour"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "hour"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -200,7 +231,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -268,7 +304,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "error",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -300,6 +341,7 @@ class MarkFailedTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "max_runtime": 10,
+                "checkin_margin": None,
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -365,7 +407,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "timeout",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"], "max_runtime": 10},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "month"],
+                            "max_runtime": 10,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -396,7 +443,12 @@ class MarkFailedTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "hour"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "hour"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -461,7 +513,12 @@ class MarkFailedTestCase(TestCase):
                     "monitor": {
                         "status": "missed_checkin",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "hour"]},
+                        "config": {
+                            "schedule_type": 2,
+                            "schedule": [1, "hour"],
+                            "max_runtime": None,
+                            "checkin_margin": None,
+                        },
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -493,6 +550,8 @@ class MarkFailedTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -535,6 +594,7 @@ class MarkFailedTestCase(TestCase):
             status=CheckInStatus.OK,
         )
 
+        first_checkin = None
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
@@ -543,17 +603,30 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
+            if _ == 0:
+                first_checkin = checkin
             mark_failed(checkin, ts=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
+        prior_last_state_change = monitor_environment.last_state_change
+
+        # check that an incident has been created correctly
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 1
+        monitor_incident = monitor_incidents.first()
+        assert monitor_incident.starting_checkin == first_checkin
+        assert monitor_incident.starting_timestamp == first_checkin.date_added
+        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
-
-        prior_last_state_change = monitor_environment.last_state_change
+        # assert that the correct uuid fingerprint was sent
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+        occurrence = occurrence.to_dict()
+        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
         # send another check-in to make sure we don't update last_state_change
         status = next(failure_statuses)
@@ -568,5 +641,15 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_state_change == prior_last_state_change
 
+        # check that incident has not changed
+        monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
+        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
+        # assert that the correct uuid fingerprint was sent
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[
+            failure_issue_threshold
+        ].args
+        occurrence = occurrence.to_dict()
+        assert occurrence["fingerprint"][0] == monitor_incident.grouphash

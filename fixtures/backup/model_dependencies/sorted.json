@@ -59,6 +59,7 @@
   "replays.replayrecordingsegment",
   "social_auth.usersocialauth",
   "hybridcloud.organizationslugreservationreplica",
+  "hybridcloud.regioncacheversion",
   "sentry.discoversavedqueryproject",
   "sentry.processingissue",
   "sentry.orgauthtoken",

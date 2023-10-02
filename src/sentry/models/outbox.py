@@ -105,8 +105,9 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MEMBER_TEAM_UPDATE = 26
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
-    API_TOKEN_UPDATE = 29
-    ORG_AUTH_TOKEN_UPDATE = 29
+    PARTNER_ACCOUNT_UPDATE = 29
+    API_TOKEN_UPDATE = 30
+    ORG_AUTH_TOKEN_UPDATE = 31
 
     @classmethod
     def as_choices(cls):
@@ -179,7 +180,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -205,7 +205,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[ControlOutboxBase] | None = None,
     ) -> List[ControlOutboxBase]:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -339,6 +338,7 @@ class OutboxScope(IntEnum):
         8,
         {
             OutboxCategory.PROVISION_ORGANIZATION,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})

@@ -445,32 +445,11 @@ class JiraServerIntegrationTest(APITestCase):
             status=400,
             body="",
         )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes",
-            body=StubService.get_stub_json("jira", "issue_types_response.json"),
-            content_type="json",
-        )
-        responses.add(
-            responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
-            body=StubService.get_stub_json("jira", "issue_fields_response.json"),
-            content_type="json",
-        )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/priority",
-            body=StubService.get_stub_json("jira", "priorities_response.json"),
-            content_type="json",
-        )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/project/10002/versions",
-            body=StubService.get_stub_json("jira", "versions_response.json"),
-            content_type="json",
-        )
 
-        self.installation.get_create_issue_config(event.group, self.user)
+        fields = self.installation.get_create_issue_config(event.group, self.user)
+        assert fields[0]["name"] == "project"
+        assert fields[1]["name"] == "error"
+        assert fields[1]["type"] == "blank"
 
     @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
     def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):

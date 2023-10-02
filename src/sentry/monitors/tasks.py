@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 import msgpack
 import sentry_sdk
@@ -191,7 +190,7 @@ def check_missing(current_datetime: datetime):
 
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        mark_environment_missing.delay(monitor_environment.id)
+        mark_environment_missing.delay(monitor_environment.id, current_datetime)
 
 
 @instrumented_task(
@@ -199,7 +198,7 @@ def check_missing(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_environment_missing(monitor_environment_id: int, ts: Optional[datetime] = None):
+def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
 
     monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
@@ -243,7 +242,7 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id)
+        mark_checkin_timeout.delay(checkin.id, current_datetime)
 
 
 @instrumented_task(
@@ -251,7 +250,7 @@ def check_timeout(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_checkin_timeout(checkin_id: int, ts: Optional[datetime] = None):
+def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
     checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)

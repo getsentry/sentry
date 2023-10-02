@@ -2,6 +2,8 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -497,8 +499,8 @@ describe('Platform Integrations', () => {
   it('loads Integration UI components', async () => {
     const props = makeDefaultMockData();
 
-    const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
-    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+    const unpublishedIntegration = SentryApp({status: 'unpublished'});
+    const internalIntegration = SentryApp({status: 'internal'});
 
     const unpublishedInstall = TestStubs.SentryAppInstallation({
       app: {
@@ -529,7 +531,7 @@ describe('Platform Integrations', () => {
       })
     );
 
-    const component = TestStubs.SentryAppComponent({
+    const component = SentryAppComponent({
       sentryApp: {
         uuid: unpublishedIntegration.uuid,
         slug: unpublishedIntegration.slug,
