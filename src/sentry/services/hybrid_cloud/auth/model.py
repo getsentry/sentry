@@ -30,6 +30,7 @@ class RpcApiToken(RpcModel):
     id: int = -1
     user_id: int = -1
     application_id: Optional[int] = None
+    application_is_active: bool = False
     token: str = ""
     expires_at: Optional[datetime.datetime] = None
     allowed_origins: List[str] = Field(default_factory=list)

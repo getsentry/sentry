@@ -332,8 +332,9 @@ class TokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        user = AnonymousUser()
+
         token = SystemToken.from_request(request, token_str)
-        user = token.user
         application_is_active = True
 
         if not token:
@@ -354,6 +355,8 @@ class TokenAuthentication(StandardAuthentication):
                     raise AuthenticationFailed("Invalid token")
                 user = token.user
                 application_is_active = token.application is None or token.application.is_active
+        else:
+            user = token.user
 
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
