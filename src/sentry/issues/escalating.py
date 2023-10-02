@@ -461,14 +461,19 @@ def _get_group_hourly_count_with_metrics(
             use_case_id=UseCaseID.ESCALATING_ISSUES,
         )
 
-        metrics_hourly_count = next(
-            iter(
-                next(iter(metrics_series_results.get("groups", [])), {})
-                .get("series", {})
-                .get("event_ingested", [])
-            ),
-            0,
-        )
+        groups: List[Dict[str, Any]] = metrics_series_results.get("groups", [])
+
+        # Get the first item from groups or use a default empty dict
+        first_group: Dict[str, Any] = next(iter(groups), {})
+
+        # Get the "series" dict from the first group or default to an empty dict
+        series_dict: Dict[str, Any] = first_group.get("series", {})
+
+        # Finally, get the "event_ingested" list or default to an empty list
+        event_ingested: List[int] = series_dict.get("event_ingested", [])
+
+        # Extract the hourly count
+        metrics_hourly_count = next(iter(event_ingested), 0)
 
         if metrics_hourly_count != hourly_count:
             logger.info(
@@ -485,7 +490,7 @@ def _get_group_hourly_count_with_metrics(
 
 def _query_metrics_for_group_hourly_count(
     group: Group, now: datetime, current_hour: datetime
-) -> int:
+) -> MetricsQuery:
     """
     This function generates a query to fetch the current hour's events
     for a group_id through the Generic Metrics Backend.
