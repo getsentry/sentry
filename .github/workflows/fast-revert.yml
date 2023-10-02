@@ -1,0 +1,40 @@
+on:
+  pull_request_target:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr:
+        required: true
+        description: pr number
+      co_authored_by:
+        required: true
+        description: '`name <email>` for triggering user'
+
+# disable all permissions -- we use the PAT's permissions instead
+permissions: {}
+
+jobs:
+  revert:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' || github.event.label.name == 'Trigger: Revert'
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+      - uses: getsentry/action-fast-revert@35b4b6c1f8f91b5911159568b3b15e531b5b8174 # v2.0.1
+        with:
+          pr: ${{ github.event.number || github.event.inputs.pr }}
+          co_authored_by: ${{ github.event.inputs.co_authored_by || format('{0} <{1}+{0}@users.noreply.github.com>', github.event.sender.login, github.event.sender.id) }}
+          committer_name: getsentry-bot
+          committer_email: bot@sentry.io
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+      - name: comment on failure
+        run: |
+          curl \
+              --silent \
+              -X POST \
+              -H 'Authorization: token ${{ secrets.BUMP_SENTRY_TOKEN }}' \
+              -d'{"body": "revert failed (conflict? already reverted?) -- [check the logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"}' \
+              https://api.github.com/repositories/${{ github.event.repository.id }}/issues/${{ github.event.number || github.event.inputs.pr }}/comments
+        if: failure()

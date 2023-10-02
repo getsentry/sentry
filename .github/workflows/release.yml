@@ -1,0 +1,31 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (optional)
+        required: false
+      force:
+        description: Force a release even when there are release-blockers (optional)
+        required: false
+  schedule:
+    # We want the release to be at 9-10am Pacific Time
+    # We also want it to be 1 hour before the self-hosted release
+    - cron: '0 17 15 * *'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: 'Release a new version'
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          token: ${{ secrets.GH_RELEASE_PAT }}
+          fetch-depth: 0
+      - name: Prepare release
+        uses: getsentry/action-prepare-release@d2cc2db3db92bc5b79a90c316f588f2b13626a2b # v1.5.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+        with:
+          version: ${{ github.event.inputs.version }}
+          force: ${{ github.event.inputs.force }}
+          calver: true
