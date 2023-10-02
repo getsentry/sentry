@@ -68,7 +68,7 @@ async function deleteFeedback(organization, projectSlug, feedbackId, location) {
 export default function DeleteButton({feedbackItem}: Props) {
   const organization = useOrganization();
   const location = useLocation<FeedbackItemLoaderQueryParams>();
-  const feedbackId = feedbackItem.feedback_id.replace(/-/g, '');
+  const feedbackId = feedbackItem.feedback_id;
   const feedbackSlug = decodeScalar(location.query.feedbackSlug);
   const projectSlug = feedbackSlug?.split(':')[0];
 
