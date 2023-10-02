@@ -265,6 +265,21 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
+      guide: 'explain_archive_button_issue_stream',
+      requiredTargets: ['issue_stream_archive_button'],
+      dateThreshold: new Date('2023-10-02'),
+      steps: [
+        {
+          title: t('"Archive" is the new "Ignore"'),
+          target: 'issue_stream_archive_button',
+          description: t(
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
       guide: 'explain_new_default_event_issue_detail',
       requiredTargets: ['issue_details_default_event'],
       dateThreshold: new Date('2023-08-22'),
