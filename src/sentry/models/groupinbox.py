@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 
 import jsonschema
+import sentry_sdk
 from django.db import models
 from django.utils import timezone
 
@@ -110,26 +111,27 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
 
 
 def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None):
-    try:
-        group_inbox = GroupInbox.objects.filter(group__in=groups)
-        group_inbox.delete()
+    with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
+        try:
+            group_inbox = GroupInbox.objects.filter(group__in=groups)
+            group_inbox.delete()
 
-        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
-            Activity.objects.bulk_create(
-                [
-                    Activity(
-                        project_id=group_inbox_item.group.project_id,
-                        group_id=group_inbox_item.group.id,
-                        type=ActivityType.MARK_REVIEWED.value,
-                        user_id=user.id,
-                    )
-                    for group_inbox_item in group_inbox
-                ]
-            )
+            if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+                Activity.objects.bulk_create(
+                    [
+                        Activity(
+                            project_id=group_inbox_item.group.project_id,
+                            group_id=group_inbox_item.group.id,
+                            type=ActivityType.MARK_REVIEWED.value,
+                            user_id=user.id,
+                        )
+                        for group_inbox_item in group_inbox
+                    ]
+                )
 
-            bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
-    except GroupInbox.DoesNotExist:
-        pass
+                bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
+        except GroupInbox.DoesNotExist:
+            pass
 
 
 def get_inbox_details(group_list):

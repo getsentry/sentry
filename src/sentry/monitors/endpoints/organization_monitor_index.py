@@ -106,9 +106,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
-                )
+                ).distinct()
             else:
-                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+                queryset = queryset.filter(
+                    monitorenvironment__environment__in=environments
+                ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 

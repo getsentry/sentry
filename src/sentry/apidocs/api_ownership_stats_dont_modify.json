@@ -18,6 +18,9 @@
     "issues": {
         "block_start": 18,
         "public": [
+            "ProjectRuleDetailsEndpoint::DELETE",
+            "ProjectRuleDetailsEndpoint::GET",
+            "ProjectRuleDetailsEndpoint::PUT",
             "ProjectRulesEndpoint::GET",
             "ProjectRulesEndpoint::POST",
             "SourceMapDebugEndpoint::GET"
@@ -79,9 +82,6 @@
             "PluginGroupEndpoint::GET",
             "PluginGroupEndpoint::POST",
             "ProjectRuleActionsEndpoint::POST",
-            "ProjectRuleDetailsEndpoint::DELETE",
-            "ProjectRuleDetailsEndpoint::GET",
-            "ProjectRuleDetailsEndpoint::PUT",
             "ProjectRuleEnableEndpoint::PUT",
             "ProjectRuleGroupHistoryIndexEndpoint::GET",
             "ProjectRuleStatsIndexEndpoint::GET",
@@ -653,6 +653,7 @@
             "OrganizationStatsEndpointV2::GET"
         ],
         "private": [
+            "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
             "ReleaseThresholdDetailsEndpoint::GET",
             "ReleaseThresholdEndpoint::GET",
             "ReleaseThresholdEndpoint::POST"
@@ -666,6 +667,7 @@
             "NotificationActionsIndexEndpoint::POST",
             "OrganizationAuditLogsEndpoint::GET",
             "OrganizationMissingMembersEndpoint::GET",
+            "OrganizationProjectsExperimentEndpoint::POST",
             "OrganizationSCIMMemberDetails::PUT",
             "OrganizationSCIMTeamDetails::PUT",
             "ReleaseThresholdStatusIndexEndpoint::GET"
@@ -688,8 +690,6 @@
             "OrganizationAuthProviderDetailsEndpoint::GET",
             "OrganizationAuthProviderSendRemindersEndpoint::POST",
             "OrganizationAuthProvidersEndpoint::GET",
-            "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
-            "OrganizationProjectsExperimentEndpoint::POST",
             "OrganizationSCIMSchemaIndex::GET",
             "OrganizationStatsEndpoint::GET",
             "UserAuthenticatorDetailsEndpoint::DELETE",

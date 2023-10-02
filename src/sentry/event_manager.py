@@ -1733,7 +1733,10 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, new_group_data=kwargs, release=release
+        group=group,
+        event=event,
+        incoming_group_values=kwargs,
+        release=release,
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -2001,30 +2004,50 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, new_group_data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
-    extra = {"last_seen": last_seen, "data": new_group_data["data"]}
+    updated_group_values: dict[str, Any] = {"last_seen": last_seen}
+    # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
+    # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
+    group.last_seen = updated_group_values["last_seen"]
+
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
-        extra["message"] = event.search_message
-    if group.level != new_group_data["level"]:
-        extra["level"] = new_group_data["level"]
-    if group.culprit != new_group_data["culprit"]:
-        extra["culprit"] = new_group_data["culprit"]
+        updated_group_values["message"] = event.search_message
+    if group.level != incoming_group_values["level"]:
+        updated_group_values["level"] = incoming_group_values["level"]
+    if group.culprit != incoming_group_values["culprit"]:
+        updated_group_values["culprit"] = incoming_group_values["culprit"]
+
+    # If the new event has a timestamp earlier than our current `fist_seen` value (which can happen,
+    # for example because of misaligned internal clocks on two different host machines or because of
+    # race conditions) then we want to use the current event's time
     if group.first_seen > event.datetime:
-        extra["first_seen"] = event.datetime
+        updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
 
-    group.last_seen = extra["last_seen"]
+    # Merge new data with existing data
+    incoming_data = incoming_group_values["data"]
+    incoming_metadata = incoming_group_values["data"].get("metadata", {})
+
+    existing_data = group.data
+    # Grab a reference to this before it gets clobbered when we update `existing_data`
+    existing_metadata = group.data.get("metadata", {})
+
+    existing_data.update(incoming_data)
+    existing_metadata.update(incoming_metadata)
+
+    updated_group_values["data"] = existing_data
+    updated_group_values["data"]["metadata"] = existing_metadata
 
     update_kwargs = {"times_seen": 1}
 
-    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 

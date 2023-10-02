@@ -149,6 +149,9 @@ def detect_transaction_trends(
 def detect_transaction_change_points(
     transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
+
     for project_id, transaction in transactions:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("regressed_project_id", project_id)
@@ -251,9 +254,15 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
 
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
-        detect_function_change_points.delay(
-            [(payload.project_id, payload.group) for _, payload in regression_chunk],
-            start,
+        detect_function_change_points.apply_async(
+            args=[
+                [(payload.project_id, payload.group) for _, payload in regression_chunk],
+                start,
+            ],
+            # delay the check by 12 hours because we want to make sure there
+            # will be enough data after the potential change point to be confident
+            # that a change has occurred
+            countdown=12 * 60 * 60,
         )
 
 
@@ -265,6 +274,21 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
+
+    for project_id, fingerprint in functions_list:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("regressed_project_id", project_id)
+            scope.set_tag("regressed_function_id", fingerprint)
+            scope.set_tag("breakpoint", "no")
+
+            scope.set_context(
+                "statistical_detectors",
+                {"timestamp": start.isoformat()},
+            )
+            sentry_sdk.capture_message("Potential Function Regression")
+
     breakpoint_count = 0
     emitted_count = 0
 
@@ -377,8 +401,8 @@ def _detect_function_change_points(
                 "data": serialized["data"],
                 "data_start": serialized["start"],
                 "data_end": serialized["end"],
-                # only look at the last 24 hours as the request data
-                "request_start": serialized["end"] - 24 * 60 * 60,
+                # only look at the last 3 days of the request data
+                "request_start": serialized["end"] - 3 * 24 * 60 * 60,
                 "request_end": serialized["end"],
             }
 
@@ -446,6 +470,7 @@ def emit_function_regression_issue(
 
     for entry in breakpoints:
         with sentry_sdk.push_scope() as scope:
+            scope.set_tag("breakpoint", "yes")
             scope.set_tag("regressed_project_id", entry["project"])
             # the service was originally meant for transactions so this
             # naming is a result of this
@@ -460,7 +485,7 @@ def emit_function_regression_issue(
                     "breakpoint_timestamp": breakpoint_ts.isoformat(),
                 },
             )
-            sentry_sdk.capture_message("Potential Regression")
+            sentry_sdk.capture_message("Potential Function Regression")
 
         project_id = int(entry["project"])
         fingerprint = int(entry["transaction"])

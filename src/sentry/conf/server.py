@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -547,7 +548,7 @@ AUTHENTICATION_BACKENDS = (
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
-        "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 8},
     },
     {
@@ -733,7 +734,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.organization_mapping",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
@@ -943,12 +943,6 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
-        "options": {"expires": 3600},
-    },
 }
 
 # Most tasks run in the regions
@@ -1051,15 +1045,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-monthly-invite-missing-org-members": {
-        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour=7,
-            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
-        ),
-        "options": {"expires": 60 * 25},
-    },
+    # "schedule-monthly-invite-missing-org-members": {
+    #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+    #     "schedule": crontab(
+    #         minute=0,
+    #         hour=7,
+    #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+    #     ),
+    #     "options": {"expires": 60 * 25},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1342,7 +1336,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DISABLE_ERRORS_AND_WARNINGS": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "COMPONENT_SPLIT_PATCH": False,
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
         "DESCRIPTION": "Sentry Public API",
@@ -1457,6 +1451,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
+    # Enable profiling statistical detectors
+    "organizations:profiling-statistical-detectors": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1537,6 +1533,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
@@ -2330,7 +2328,7 @@ SENTRY_DEFAULT_ROLE = "member"
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
+SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2441,7 +2439,7 @@ SENTRY_ROLES = (
     },
 )
 
-SENTRY_TEAM_ROLES = (
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "contributor",
         "name": "Contributor",

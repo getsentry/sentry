@@ -13,11 +13,13 @@ from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
     MRI_SCHEMA_REGEX,
+    ErrorsMRI,
     SessionMRI,
     SpanMRI,
     TransactionMRI,
 )
 from sentry.snuba.metrics.naming_layer.public import (
+    ErrorsMetricKey,
     SessionMetricKey,
     SpanMetricKey,
     TransactionMetricKey,
@@ -30,10 +32,10 @@ def create_name_mapping_layers() -> None:
     NAME_TO_MRI.update(
         {
             # Session
-            "sentry.sessions.session": SessionMRI.SESSION,
-            "sentry.sessions.user": SessionMRI.USER,
+            "sentry.sessions.session": SessionMRI.RAW_SESSION,
+            "sentry.sessions.user": SessionMRI.RAW_USER,
             "sentry.sessions.session.duration": SessionMRI.RAW_DURATION,
-            "sentry.sessions.session.error": SessionMRI.ERROR,
+            "sentry.sessions.session.error": SessionMRI.RAW_ERROR,
         }
     )
 
@@ -41,6 +43,7 @@ def create_name_mapping_layers() -> None:
         (SessionMetricKey, SessionMRI),
         (TransactionMetricKey, TransactionMRI),
         (SpanMetricKey, SpanMRI),
+        (ErrorsMetricKey, ErrorsMRI),
     ):
         # Adds new names at the end, so that when the reverse mapping is created
         for metric_key in MetricKey:
