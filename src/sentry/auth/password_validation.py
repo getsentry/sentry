@@ -118,8 +118,7 @@ class PwnedPasswordsValidator:
         for line in r.text.split("\n"):
             breached_suffix, occurrences = line.split(":")
             if breached_suffix == suffix:
-                occurrences = int(occurrences)
-                if occurrences >= self.threshold:
+                if int(occurrences) >= self.threshold:
                     raise ValidationError(
                         f"This password has previously appeared in data breaches {occurrences} times."
                     )
