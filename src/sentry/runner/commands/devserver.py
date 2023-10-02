@@ -10,6 +10,7 @@ import click
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
+from sentry.silo import SiloMode
 
 _DEV_METRICS_INDEXER_ARGS = [
     # We don't really need more than 1 process.
@@ -388,9 +389,15 @@ Alternatively, run without --workers.
 
     server_port = os.environ["SENTRY_BACKEND_PORT"]
     if settings.USE_SILOS:
-        os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
-        os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{server_port}"
+        if not settings.USE_MONOLITH_AS_REGION_SILO:
+            os.environ["SENTRY_SILO_MODE"] = SiloMode.REGION.name
+            os.environ[
+                "SENTRY_REGION_API_URL_TEMPLATE"
+            ] = f"http://{{region}}.localhost:{server_port}"
+        else:
+            os.environ["SENTRY_SILO_MODE"] = SiloMode.MONOLITH.name
+            os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://localhost:{server_port}"
 
         # Override variable set by SentryHTTPServer.prepare_environment()
         os.environ["SENTRY_DEVSERVER_BIND"] = f"localhost:{server_port}"
@@ -446,7 +453,7 @@ Alternatively, run without --workers.
     if settings.USE_SILOS:
         control_port = ports["control.server"]
         control_environ = {
-            "SENTRY_SILO_MODE": "CONTROL",
+            "SENTRY_SILO_MODE": SiloMode.CONTROL.name,
             "SENTRY_REGION": "",
             "SENTRY_DEVSERVER_BIND": f"localhost:{control_port}",
             # Override variable set by SentryHTTPServer.prepare_environment()

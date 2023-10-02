@@ -644,6 +644,7 @@ CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+USE_MONOLITH_AS_REGION_SILO = os.environ.get("SENTRY_USE_MONOLITH_AS_REGION_SILO", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
