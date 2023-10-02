@@ -108,7 +108,7 @@ const Folder = styled('details')`
     content: '⏵';
     position: absolute;
     left: ${space(0.25)};
-    top: 2px;
+    top: ${space(0.25)};
   }
   &[open]:before {
     content: '⏷';
