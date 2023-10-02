@@ -16,7 +16,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.release_thresholds.utils import (
-    get_errors_timeseries_counts_by_project_and_release,
+    get_errors_counts_timeseries_by_project_and_release,
 )
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
@@ -223,7 +223,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 TODO: determine whether results have been truncated or not
                 - this will determine whether we can give an accurate status report or not
                 """
-                error_counts = get_errors_timeseries_counts_by_project_and_release(
+                error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=end,
                     environments_list=environments_list,
                     organization_id=organization.id,
