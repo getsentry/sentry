@@ -33,7 +33,7 @@ function LoadTeamAvatar({
   const {teams, isLoading} = useTeamsById({ids: [teamId]});
   const team = teams.find(t => t.id === teamId);
 
-  if (isLoading || !team) {
+  if (isLoading) {
     return <LoadingIndicator mini />;
   }
 
