@@ -91,7 +91,7 @@ class OutboxCategory(IntEnum):
     UNUSUED_THREE = 13
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
-    UPDATE_ORGAUTHTOKEN_USED = 16
+    ORGAUTHTOKEN_UPDATE_USED = 16
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
     UNUSED_ONE = 19
@@ -285,7 +285,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.PROJECT_UPDATE,
             OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
             OutboxCategory.SEND_SIGNAL,
-            OutboxCategory.UPDATE_ORGAUTHTOKEN_USED,
+            OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,

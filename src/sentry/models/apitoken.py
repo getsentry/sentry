@@ -16,8 +16,6 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
-from sentry.services.hybrid_cloud.auth.serial import serialize_api_token
-from sentry.services.hybrid_cloud.replica import region_replica_service
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
@@ -55,6 +53,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return force_str(self.token)
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.auth.serial import serialize_api_token
+        from sentry.services.hybrid_cloud.replica import region_replica_service
+
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
             region_name=region_name,
