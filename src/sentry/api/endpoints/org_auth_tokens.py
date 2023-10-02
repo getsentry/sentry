@@ -24,7 +24,11 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.utils.security.orgauthtoken_token import (
+    SystemUrlPrefixMissingException,
+    generate_token,
+    hash_token,
+)
 
 
 @control_silo_endpoint
@@ -62,18 +66,30 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response:
-        token_str = generate_token(organization.slug, generate_region_url())
+        try:
+            token_str = generate_token(organization.slug, generate_region_url())
+        except SystemUrlPrefixMissingException:
+            return Response(
+                {
+                    "detail": {
+                        "message": "system.url-prefix is not set. You need to set this to generate a token.",
+                        "code": "missing_system_url_prefix",
+                    }
+                },
+                status=400,
+            )
+
         token_hashed = hash_token(token_str)
 
         name = request.data.get("name")
 
         # Main validation cases with specific error messages
         if not name:
-            return Response({"detail": ["The name cannot be blank."]}, status=400)
+            return Response({"detail": "The name cannot be blank."}, status=400)
 
         if len(name) > MAX_NAME_LENGTH:
             return Response(
-                {"detail": ["The name cannot be longer than 255 characters."]}, status=400
+                {"detail": "The name cannot be longer than 255 characters."}, status=400
             )
 
         token = OrgAuthToken.objects.create(

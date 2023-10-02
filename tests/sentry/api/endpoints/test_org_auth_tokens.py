@@ -144,7 +144,7 @@ class OrgAuthTokenCreateTest(APITestCase):
             self.organization.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
 
     def test_blank_name(self):
         payload = {"name": ""}
@@ -154,7 +154,7 @@ class OrgAuthTokenCreateTest(APITestCase):
             self.organization.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
 
     def test_name_too_long(self):
         payload = {"name": "a" * 300}
@@ -164,7 +164,7 @@ class OrgAuthTokenCreateTest(APITestCase):
             self.organization.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be longer than 255 characters."]}
+        assert response.data == {"detail": "The name cannot be longer than 255 characters."}
 
     def test_no_auth(self):
         response = self.get_error_response(self.organization.slug)
