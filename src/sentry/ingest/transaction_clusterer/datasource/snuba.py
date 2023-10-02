@@ -7,7 +7,7 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils.snuba import raw_snql_query
 
 

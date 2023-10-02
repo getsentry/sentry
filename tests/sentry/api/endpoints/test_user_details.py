@@ -1,13 +1,10 @@
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    User,
-    UserOption,
-    UserPermission,
-    UserRole,
-)
 from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase

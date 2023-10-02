@@ -1,7 +1,9 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Sequence, Tuple, TypeVar
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 
 TeamData = TypeVar("TeamData")
 DictOfMembers = Dict[Any, List[TeamData]]

@@ -20,7 +20,7 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
 class GroupLinkManager(BaseManager):

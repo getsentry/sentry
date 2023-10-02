@@ -12,7 +12,8 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, GroupMeta
+from sentry.models.activity import Activity
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
