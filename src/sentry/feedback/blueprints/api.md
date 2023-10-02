@@ -303,7 +303,7 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
     "tags": {
       "key": "value"
     },
-    "timestamp": 146990235.23,
+    "timestamp": "2023-08-31T14:10:34.954048",
     "user": {
       "email": "username@example.com",
       "id": "123",

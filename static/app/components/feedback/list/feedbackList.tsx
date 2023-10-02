@@ -27,17 +27,15 @@ const cellMeasurer = {
 interface Props {}
 
 export default function FeedbackList({}: Props) {
-  const {getRow, isRowLoaded, loadMoreRows, rowCount, rows, queryView} =
+  const {getRow, isRowLoaded, loadMoreRows, totalHits, countLoadedRows, queryView} =
     useInfiniteFeedbackListData();
-
-  console.log('FeedbackList', {rowCount, rows});
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = rowCount > 0;
+  const hasRows = totalHits ? totalHits > 0 : true;
   const deps = useMemo(() => [queryView, hasRows], [queryView, hasRows]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
@@ -47,7 +45,7 @@ export default function FeedbackList({}: Props) {
 
   useEffect(() => {
     updateList();
-  }, [rows]);
+  }, [updateList, countLoadedRows]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -75,7 +73,7 @@ export default function FeedbackList({}: Props) {
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={rowCount}
+          rowCount={totalHits}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -85,7 +83,7 @@ export default function FeedbackList({}: Props) {
                   height={height}
                   noRowsRenderer={() => (
                     <NoRowRenderer
-                      unfilteredItems={rowCount ? [undefined] : []}
+                      unfilteredItems={totalHits === undefined ? [undefined] : []}
                       clearSearchTerm={clearSearchTerm}
                     >
                       {t('No feedback received')}
@@ -96,7 +94,7 @@ export default function FeedbackList({}: Props) {
                   ref={e => {
                     registerChild(e);
                   }}
-                  rowCount={rowCount}
+                  rowCount={totalHits === undefined ? 1 : totalHits}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
                   width={width}

@@ -1,8 +1,10 @@
 import {CSSProperties, forwardRef} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import useLocationQuery from 'sentry/components/feedback/useLocationQuery';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -17,7 +19,6 @@ import {
   HydratedFeedbackItem,
 } from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -43,15 +44,20 @@ function UnreadBadge() {
   return <FeatureBadge type="new" variant="indicator" />;
 }
 
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+  const {feedbackSlug} = useLocationQuery<FeedbackItemLoaderQueryParams>({
+    fields: {feedbackSlug: decodeScalar},
+  });
+  const [, feedbackId] = feedbackSlug?.split(':') ?? [];
+  return feedbackId === feedbackItem.feedback_id;
+}
+
 const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
   ({className, feedbackItem, style}: Props, ref) => {
     const organization = useOrganization();
     const {projects} = useProjects();
-    const location = useLocation<FeedbackItemLoaderQueryParams>();
-    const feedbackSlug = decodeScalar(location.query.feedbackSlug);
-    const [, feedbackId] = feedbackSlug?.split(':') ?? [];
 
-    const isSelected = feedbackId === feedbackItem.feedback_id;
+    const isSelected = useIsSelectedFeedback({feedbackItem});
 
     const project = projects.find(p => p.id === String(feedbackItem.project_id));
     if (!project) {
@@ -65,13 +71,16 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
         className={className}
         style={style}
         data-selected={isSelected}
-        to={{
-          pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-          query: {
-            ...location.query,
-            referrer: 'feedback_list_page',
-            feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
-          },
+        to={() => {
+          const location = browserHistory.getCurrentLocation();
+          return {
+            pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+            query: {
+              ...location.query,
+              referrer: 'feedback_list_page',
+              feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
+            },
+          };
         }}
         onClick={() => {
           trackAnalytics('feedback_list.details_link.click', {organization});

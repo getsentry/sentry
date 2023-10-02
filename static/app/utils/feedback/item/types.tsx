@@ -1,7 +1,7 @@
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export interface FeedbackItemLoaderQueryParams {
-  [key: string]: string | string[] | null | undefined;
+  [key: string]: string | string[] | undefined;
   feedbackSlug?: string;
 }
 

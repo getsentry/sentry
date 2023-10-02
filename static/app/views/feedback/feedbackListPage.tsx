@@ -33,7 +33,7 @@ export default function FeedbackListPage({}: Props) {
   const feedbackSlug = decodeScalar(location.query.feedbackSlug);
 
   return (
-    <FeedbackDataContext queryView={queryView}>
+    <FeedbackDataContext queryView={queryView} initialDate={new Date()}>
       <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
         <FullViewport>
           <Layout.Header>

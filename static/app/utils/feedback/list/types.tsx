@@ -16,7 +16,7 @@ export type QueryView = {
   per_page?: string;
   project?: string[];
   query?: string;
-  sort?: string;
+  // sort?: string;
   start?: string;
   statsPeriod?: string;
   utc?: string;
