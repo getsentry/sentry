@@ -8,7 +8,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.lang.native.sources import (
@@ -74,7 +79,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         if id:
             for source in redacted:
                 if source["id"] == id:
-                    return Response(source)
+                    return Response([source])
             return Response(data={"error": f"Unknown source id: {id}"}, status=404)
 
         return Response(redacted)
@@ -95,7 +100,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         request=None,
         responses={
             # TODO
-            204: None,
+            204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -169,7 +174,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         serialized = json.dumps(sources)
         project.update_option("sentry:symbol_sources", serialized)
 
-        return Response(data={"id": id}, status=201)
+        redacted = redact_source_secrets([source])
+        return Response(data=redacted[0], status=201)
 
     @extend_schema(
         operation_id="Edits a symbol source in a project",
