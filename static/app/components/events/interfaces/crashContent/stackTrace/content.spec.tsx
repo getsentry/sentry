@@ -1,10 +1,12 @@
+import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
-const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
+const eventEntryStacktrace = EventEntryStacktrace();
 const event = TestStubs.Event({
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
@@ -30,7 +32,7 @@ function renderedComponent(
 
 describe('StackTrace', function () {
   it('renders', function () {
-    const {container} = renderedComponent({});
+    renderedComponent({});
 
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
@@ -45,8 +47,6 @@ describe('StackTrace', function () {
     // frame list
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
-
-    expect(container).toSnapshot();
   });
 
   it('renders the frame in the correct order', function () {

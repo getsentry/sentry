@@ -22,9 +22,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -43,7 +44,11 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -56,6 +61,7 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
+from ..services.hybrid_cloud import rpcmetrics
 from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -74,7 +80,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
     SessionAuthentication,
@@ -153,9 +159,8 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    public: Optional[HTTP_METHODS_SET] = None
     owner: ApiOwner = ApiOwner.UNOWNED
-
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
@@ -368,8 +373,9 @@ class Endpoint(APIView):
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
-            ):
-                response = handler(request, *args, **kwargs)
+            ) as span:
+                with rpcmetrics.wrap_sdk_span(span):
+                    response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -603,7 +609,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if features.has("app:enterprise-prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 

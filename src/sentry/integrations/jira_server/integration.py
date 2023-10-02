@@ -51,6 +51,7 @@ from .client import JiraServerClient, JiraServerSetupClient
 
 logger = logging.getLogger("sentry.integrations.jira_server")
 
+
 DESCRIPTION = """
 Connect your Sentry organization into one or more of your Jira Server instances.
 Get started streamlining your bug squashing workflow by unifying your Sentry and
@@ -650,11 +651,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self):
+    def get_projects(self, cached=True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
-            jira_projects = client.get_projects_list()
+            jira_projects = client.get_projects_list(cached)
         except ApiError as e:
             logger.info(
                 "jira_server.get_projects.error",
@@ -708,8 +709,51 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         if not project_id:
             project_id = jira_projects[0]["id"]
 
+        logger.info(
+            "get_create_issue_config.start",
+            extra={
+                "organization_id": self.organization_id,
+                "integration_id": self.model.id,
+                "num_jira_projects": len(jira_projects),
+                "project_id": project_id,
+            },
+        )
+
         client = self.get_client()
-        issue_type_choices = client.get_issue_types(project_id)
+
+        project_field = {
+            "name": "project",
+            "label": "Jira Project",
+            "choices": [(p["id"], p["key"]) for p in jira_projects],
+            "default": project_id,
+            "type": "select",
+            "updatesForm": True,
+        }
+
+        try:
+            issue_type_choices = client.get_issue_types(project_id)
+        except ApiError as e:
+            logger.info(
+                "get_create_issue_config.get_issue_types.error",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "num_jira_projects": len(jira_projects),
+                    "project_id": project_id,
+                    "error_message": str(e),
+                },
+            )
+            # return a form with just the project selector and a special form field to show the error
+            return [
+                project_field,
+                {
+                    "name": "error",
+                    "type": "blank",
+                    "help": "Could not fetch issue creation metadata from Jira Server. Ensure that"
+                    " the integration user has access to the requested project.",
+                },
+            ]
+
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
         ]
@@ -737,14 +781,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             )
 
         fields = [
-            {
-                "name": "project",
-                "label": "Jira Project",
-                "choices": [(p["id"], p["key"]) for p in jira_projects],
-                "default": project_id,
-                "type": "select",
-                "updatesForm": True,
-            },
+            project_field,
             *fields,
             {
                 "name": "issuetype",
@@ -1041,6 +1078,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
                     "issue_key": external_issue.key,
+                    "transitions": transitions,
+                    "jira_status": jira_status,
                 },
             )
             return

@@ -77,7 +77,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     </ErrorBoundary>
   );
 
-  const hasSize = width + height;
+  const hasSize = width + height > 0;
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (

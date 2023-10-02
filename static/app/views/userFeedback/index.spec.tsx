@@ -1,3 +1,5 @@
+import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +27,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
-      body: [TestStubs.UserFeedback()],
+      body: [UserFeedbackFixture()],
       headers: {Link: pageLinks},
     });
 

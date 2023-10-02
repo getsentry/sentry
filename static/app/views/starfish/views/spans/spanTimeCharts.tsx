@@ -12,7 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
@@ -24,7 +24,7 @@ import {
 import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
 
@@ -267,10 +267,6 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

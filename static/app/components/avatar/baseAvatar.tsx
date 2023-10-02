@@ -101,6 +101,13 @@ type BaseProps = DefaultProps & {
    * Additional props for the tooltip
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
+  /**
+   * The region domain that organization avatars are on
+   */
+  uploadDomain?: string;
+  /**
+   * The uuid for the uploaded avatar.
+   */
   uploadId?: string | null | undefined;
 };
 
@@ -125,7 +132,7 @@ class BaseAvatar extends Component<Props, State> {
     };
   }
 
-  getRemoteImageSize = () => {
+  getRemoteImageSize() {
     const {remoteImageSize, size} = this.props;
     // Try to make sure remote image size is >= requested size
     // If requested size > allowed size then use the largest allowed size
@@ -135,15 +142,15 @@ class BaseAvatar extends Component<Props, State> {
         ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
 
     return remoteImageSize || allowed || DEFAULT_GRAVATAR_SIZE;
-  };
+  }
 
-  buildUploadUrl = () => {
-    const {uploadPath, uploadId} = this.props;
+  buildUploadUrl() {
+    const {uploadDomain, uploadPath, uploadId} = this.props;
 
-    return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
+    return `${uploadDomain || ''}/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
       s: DEFAULT_REMOTE_SIZE,
     })}`;
-  };
+  }
 
   handleLoad = () => {
     this.setState({showBackupAvatar: false, hasLoaded: true});
@@ -153,7 +160,7 @@ class BaseAvatar extends Component<Props, State> {
     this.setState({showBackupAvatar: true, loadError: true, hasLoaded: true});
   };
 
-  renderImg = () => {
+  renderImg() {
     if (this.state.loadError) {
       return null;
     }
@@ -194,7 +201,7 @@ class BaseAvatar extends Component<Props, State> {
     }
 
     return this.renderLetterAvatar();
-  };
+  }
 
   renderLetterAvatar() {
     const {title, letterId, round, suggested} = this.props;

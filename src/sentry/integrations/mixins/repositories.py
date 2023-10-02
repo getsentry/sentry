@@ -16,8 +16,20 @@ class RepositoryMixin:
     # dynamically given a search query
     repo_search = False
 
+    def source_url_matches(self, url: str) -> bool:
+        """Checks if the url matches the integration's source url."""
+        raise NotImplementedError
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         """Formats the source code url used for stack trace linking."""
+        raise NotImplementedError
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        """Extracts the branch from the source code url."""
+        raise NotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        """Extracts the source path from the source code url."""
         raise NotImplementedError
 
     def check_file(self, repo: Repository, filepath: str, branch: str) -> str | None:
@@ -25,7 +37,7 @@ class RepositoryMixin:
         Calls the client's `check_file` method to see if the file exists.
         Returns the link to the file if it's exists, otherwise return `None`.
 
-        So far only GitHub and GitLab have this implemented, both of which give
+        So far only GitHub, GitLab and VSTS have this implemented, all of which give
         use back 404s. If for some reason an integration gives back a different
         status code, this method could be overwritten.
 

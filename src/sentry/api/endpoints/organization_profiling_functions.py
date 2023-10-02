@@ -2,38 +2,30 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, List
 
-from django.conf import settings
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
-from sentry.net.http import connection_from_url
+from sentry.models.organization import Organization
+from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils import json
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
-
-ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
-)
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -75,12 +67,16 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, organization, request):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def has_feature(self, organization: Organization, request: Request):
         return features.has(
             "organizations:profiling-global-suspect-functions", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -161,7 +157,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             return results
 
-        def get_trends_data(stats_data):
+        def get_trends_data(stats_data) -> List[BreakpointData]:
             if not stats_data:
                 return []
 
@@ -187,7 +183,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "trendFunction": data["function"],
             }
 
-            return trends_query(trends_request)
+            return detect_breakpoints(trends_request)["data"]
 
         stats_data = self.get_event_stats_data(
             request,
@@ -226,6 +222,17 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             key=lambda function: function["trend_percentage"],
             reverse=data["trend"] is TrendType.REGRESSION,
         )
+
+        if data["trend"] is TrendType.REGRESSION:
+            try:
+                if features.has(
+                    "organizations:profile-function-regression-exp-ingest",
+                    organization,
+                    actor=request.user,
+                ):
+                    forward_regression_occurrences(organization, trending_functions, stats_data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         def paginate_trending_events(offset, limit):
             return {"data": trending_functions[offset : limit + offset]}
@@ -317,12 +324,46 @@ def get_interval_from_range(date_range: timedelta) -> str:
     return "1h"
 
 
-def trends_query(trends_request):
-    response = ads_connection_pool.urlopen(
-        "POST",
-        "/trends/breakpoint-detector",
-        body=json.dumps(trends_request),
-        headers={"content-type": "application/json;charset=utf-8"},
-    )
+def forward_regression_occurrences(
+    organization: Organization,
+    regressions: List[BreakpointData],
+    stats_data: Any,
+):
+    payloads = []
 
-    return json.loads(response.data)["data"]
+    for entry in regressions:
+        project_id = int(entry["project"])
+        fingerprint = int(entry["transaction"])
+
+        profile_id = None
+        examples = (
+            stats_data.get(f"{project_id},{fingerprint}", {}).get("worst()", {}).get("data", [])
+        )
+        for row in reversed(examples):
+            example = row[1][0]["count"]
+            if isinstance(example, str):
+                profile_id = example
+                break
+
+        if profile_id is None:
+            continue
+
+        payloads.append(
+            {
+                "organization_id": organization.id,
+                "project_id": project_id,
+                "profile_id": profile_id,
+                "fingerprint": fingerprint,
+                "absolute_percentage_change": entry["absolute_percentage_change"],
+                "aggregate_range_1": entry["aggregate_range_1"],
+                "aggregate_range_2": entry["aggregate_range_2"],
+                "breakpoint": int(entry["breakpoint"]),
+                "trend_difference": entry["trend_difference"],
+                "trend_percentage": entry["trend_percentage"],
+                "unweighted_p_value": entry["unweighted_p_value"],
+                "unweighted_t_value": entry["unweighted_t_value"],
+            }
+        )
+
+    if payloads:
+        get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)

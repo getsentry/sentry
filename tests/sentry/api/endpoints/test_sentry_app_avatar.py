@@ -204,6 +204,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         self.get_error_response(self.unpublished_app.slug, avatar_type="upload", status_code=400)
 
 
+@control_silo_test(stable=True)
 class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
     def test_delete(self):
         """Test that when the related sentryapp is deleted (not really deleted, but date_deleted is set), the associated avatars are deleted"""

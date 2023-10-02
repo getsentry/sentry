@@ -6,7 +6,6 @@ from unittest.mock import Mock, call, patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from freezegun import freeze_time
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -37,10 +36,12 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseIncidentActivityTest(TestCase):
@@ -215,6 +216,11 @@ class HandleTriggerActionTest(TestCase):
                 mock_handler
             )
             incident = self.create_incident()
+            activity = create_incident_activity(
+                incident,
+                IncidentActivityType.STATUS_CHANGE,
+                value=IncidentStatus.CRITICAL.value,
+            )
             metric_value = 1234
             with self.tasks():
                 handle_trigger_action.delay(
@@ -227,7 +233,7 @@ class HandleTriggerActionTest(TestCase):
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(
-                metric_value, IncidentStatus.CRITICAL
+                metric_value, IncidentStatus.CRITICAL, str(activity.notification_uuid)
             )
 
 

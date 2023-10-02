@@ -25,17 +25,18 @@ class IssueSyncIntegration(TestCase):
             integration = Integration.objects.create(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
-            OrganizationIntegration.objects.filter(
+            for oi in OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -70,17 +71,18 @@ class IssueSyncIntegration(TestCase):
             integration = Integration.objects.create(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
-            OrganizationIntegration.objects.filter(
+            for oi in OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
-            ).update(
-                config={
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            )
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -105,7 +107,7 @@ class IssueSyncIntegration(TestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
@@ -203,8 +205,9 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_store_issue_last_defaults_for_user_multiple_providers(self):
-        other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
-        other_integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
+            other_integration.add_organization(self.organization, self.user)
         other_installation = other_integration.get_installation(self.organization.id)
 
         self.installation.store_issue_last_defaults(
@@ -230,8 +233,9 @@ class IssueDefaultTest(TestCase):
             self.group.id: [f'<a href="{link}">{label}</a>']
         }
 
-        integration = Integration.objects.create(provider="example", external_id="4444")
-        integration.add_organization(self.group.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="4444")
+            integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}

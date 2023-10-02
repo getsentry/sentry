@@ -7,8 +7,8 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, sane_repr
+from sentry.db.models.base import Model, control_silo_only_model
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
@@ -36,6 +36,9 @@ class OrganizationMapping(Model):
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
+
+    # Replicated from the Organization.flags attribute
+    require_2fa = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"

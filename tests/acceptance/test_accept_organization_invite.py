@@ -26,7 +26,6 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
-        self.browser.snapshot(name="accept organization invite")
         assert self.browser.element_exists('[data-test-id="join-organization"]')
 
     def test_invite_not_authenticated(self):

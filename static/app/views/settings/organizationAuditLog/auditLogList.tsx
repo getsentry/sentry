@@ -212,6 +212,20 @@ function AuditNote({
     );
   }
 
+  if (entry.event === 'project.ownership-rule.edit') {
+    return (
+      <Note>
+        {tct('Modified ownership rules in project [projectSettingsLink]', {
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
+        })}
+      </Note>
+    );
+  }
+
   return <Note>{entry.note}</Note>;
 }
 

@@ -19,7 +19,6 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_empty_alert_rule_details(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("alert rule details - empty state")
 
     def test_alert_rule_with_issues(self):
         group = self.create_group()
@@ -32,4 +31,3 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("alert rule details - issues")

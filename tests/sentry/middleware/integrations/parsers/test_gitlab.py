@@ -8,7 +8,7 @@ from django.urls import reverse
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
@@ -21,7 +21,7 @@ class GitlabRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}gitlab/webhook/"
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
         super().setUp()
@@ -147,7 +147,7 @@ class GitlabRequestParserTest(TestCase):
         )
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         with mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):

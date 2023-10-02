@@ -1,44 +1,61 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {
+  getDefaultInitParams,
+  getDefaultNodeImports,
+  getInstallSnippet,
+  getProductInitParams,
+  getProductIntegrations,
+  getProductSelectionMap,
+  joinWithIndentation,
+} from 'sentry/utils/gettingStartedDocs/node';
 
-type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
-  sentryInitContent: string;
-};
+interface StepsParams {
+  hasPerformanceMonitoring: boolean;
+  importContent: string;
+  initContent: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
+  sourceMapStep: StepProps;
+}
 
 const performanceIntegrations: string[] = [
-  `// enable HTTP calls tracing
-new Sentry.Integrations.Http({ tracing: true }),`,
-  `// enable Express.js middleware tracing
-new Sentry.Integrations.Express({ app }),`,
+  '// enable HTTP calls tracing',
+  'new Sentry.Integrations.Http({ tracing: true }),',
+  '// enable Express.js middleware tracing',
+  'new Sentry.Integrations.Express({ app }),',
 ];
 
-const performanceOtherConfig = `// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`;
-
 export const steps = ({
-  sentryInitContent,
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+  installSnippetYarn,
+  installSnippetNpm,
+  importContent,
+  initContent,
+  hasPerformanceMonitoring,
+  sourceMapStep,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/node
-
-# Using npm
-npm install --save @sentry/node
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -56,44 +73,46 @@ npm install --save @sentry/node
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/node";
-        import express from "express";
+${importContent}
 
-        // or using CommonJS
-        // const Sentry = require('@sentry/node');
-        // const express = require('express');
+const app = express();
 
-        const app = express();
+Sentry.init({
+${initContent}
+});
 
-        Sentry.init({
-          ${sentryInitContent},
-        });
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());${
+          hasPerformanceMonitoring
+            ? `
 
-        // Trace incoming requests
-        app.use(Sentry.Handlers.requestHandler());
-        app.use(Sentry.Handlers.tracingHandler());
+// TracingHandler creates a trace for every incoming request
+app.use(Sentry.Handlers.tracingHandler());`
+            : ''
+        }
 
-        // All your controllers should live here
-        app.get("/", function rootHandler(req, res) {
-          res.end("Hello world!");
-        });
+// All your controllers should live here
+app.get("/", function rootHandler(req, res) {
+  res.end("Hello world!");
+});
 
-        // The error handler must be registered before any other error middleware and after all controllers
-        app.use(Sentry.Handlers.errorHandler());
+// The error handler must be registered before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
 
-        // Optional fallthrough error handler
-        app.use(function onError(err, req, res, next) {
-          // The error id is attached to \`res.sentry\` to be returned
-          // and optionally displayed to the user for support.
-          res.statusCode = 500;
-          res.end(res.sentry + "\\n");
-        });
+// Optional fallthrough error handler
+app.use(function onError(err, req, res, next) {
+  // The error id is attached to \`res.sentry\` to be returned
+  // and optionally displayed to the user for support.
+  res.statusCode = 500;
+  res.end(res.sentry + "\\n");
+});
 
-        app.listen(3000);
+app.listen(3000);
         `,
       },
     ],
   },
+  sourceMapStep,
   {
     type: StepType.VERIFY,
     description: t(
@@ -112,27 +131,55 @@ npm install --save @sentry/node
   },
 ];
 
-export function GettingStartedWithExpress({dsn, newOrg, platformKey}: ModuleProps) {
-  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
+export function GettingStartedWithExpress({
+  dsn,
+  newOrg,
+  platformKey,
+  activeProductSelection = [],
+  organization,
+  projectId,
+  ...props
+}: ModuleProps) {
+  const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const integrations = [...performanceIntegrations];
-  const otherConfigs = [performanceOtherConfig];
+  const imports = getDefaultNodeImports({productSelection});
+  imports.push('import express from "express";');
 
-  if (integrations.length > 0) {
-    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
-  }
+  const integrations = [
+    ...(productSelection['performance-monitoring'] ? performanceIntegrations : []),
+    ...getProductIntegrations({productSelection}),
+  ];
 
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
+  const integrationParam =
+    integrations.length > 0
+      ? `integrations: [\n${joinWithIndentation(integrations)}\n],`
+      : null;
+
+  const initContent = joinWithIndentation([
+    ...getDefaultInitParams({dsn}),
+    ...(integrationParam ? [integrationParam] : []),
+    ...getProductInitParams({productSelection}),
+  ]);
 
   return (
     <Layout
       steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
+        installSnippetNpm: getInstallSnippet({productSelection, packageManager: 'npm'}),
+        installSnippetYarn: getInstallSnippet({productSelection, packageManager: 'yarn'}),
+        importContent: imports.join('\n'),
+        initContent,
+        hasPerformanceMonitoring: productSelection['performance-monitoring'],
+        sourceMapStep: getUploadSourceMapsStep({
+          guideLink: 'https://docs.sentry.io/platforms/node/guides/express/sourcemaps/',
+          organization,
+          platformKey,
+          projectId,
+          newOrg,
+        }),
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

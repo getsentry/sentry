@@ -57,4 +57,3 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("replay list")

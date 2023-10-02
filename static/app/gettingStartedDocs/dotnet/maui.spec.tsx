@@ -6,7 +6,7 @@ import {GettingStartedWithMaui, steps} from './maui';
 
 describe('GettingStartedWithMaui', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithMaui dsn="test-dsn" />);
+    render(<GettingStartedWithMaui dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithMaui', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

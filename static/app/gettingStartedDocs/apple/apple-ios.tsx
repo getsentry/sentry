@@ -1,159 +1,98 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list/';
+import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-export const steps = ({
-  dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+export const steps = (): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
       <p>
         {tct(
-          'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
+          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
           {
-            alternateMethods: (
-              <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
+            wizardLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#install" />
             ),
-            addPackage: <strong />,
           }
         )}
       </p>
     ),
     configurations: [
       {
-        language: 'text',
-        code: `
-https://github.com/getsentry/sentry-cocoa.git
-        `,
-      },
-      {
-        description: (
-          <p>
-            {tct(
-              'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-              {
-                packageSwift: <code />,
-              }
-            )}
-          </p>
-        ),
-        language: 'swift',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        code: `
-.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
-        }"),
-        `,
+        language: 'bash',
+        code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios`,
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
-          {
-            appDelegate: <code />,
-          }
-        )}
-      </p>
-    ),
+    description: t('The Sentry wizard will automatically patch your application:'),
     configurations: [
       {
-        language: 'swift',
-        code: `
-import Sentry
-
-// ....
-
-func application(_ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
-    SentrySDK.start { options in
-        options.dsn = "${dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful
-
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-        // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0
-    }
-
-    return true
-}
-        `,
-      },
-      {
         description: (
+          <List symbol="bullet">
+            <ListItem>
+              {t('Install the Sentry SDK via Swift Package Manager or Cocoapods')}
+            </ListItem>
+            <ListItem>
+              {tct(
+                'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
+                {
+                  appDelegate: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct(
+                'Add a new [phase: Upload Debug Symbols] phase to your [xcodebuild: xcodebuild] build script',
+                {
+                  phase: <code />,
+                  xcodebuild: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct(
+                'Create [sentryclirc: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [gitignore: .gitignore])',
+                {
+                  sentryclirc: <code />,
+                  gitignore: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {t(
+                "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
+              )}
+            </ListItem>
+          </List>
+        ),
+        additionalInfo: (
           <p>
             {tct(
-              "When using SwiftUI and your app doesn't implement an app delegate, initialize the SDK within the [initializer: App conformer's initializer]:",
+              'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
               {
-                initializer: (
-                  <ExternalLink href="https://developer.apple.com/documentation/swiftui/app/main()" />
+                manualSetupLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
                 ),
+                stepsBelow: <strong />,
               }
             )}
           </p>
         ),
-        language: 'swift',
-        code: `
-import Sentry
-
-@main
-struct SwiftUIApp: App {
-    init() {
-        SentrySDK.start { options in
-            options.dsn = "${dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful
-
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-            // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0
-        }
-    }
-}
-        `,
       },
     ],
   },
   {
     type: StepType.VERIFY,
-    description: (
-      <p>
-        {tct(
-          'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can add it to your main [viewController: ViewController].',
-          {
-            viewController: <code />,
-          }
-        )}
-      </p>
+    description: t(
+      'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
     ),
-    configurations: [
-      {
-        language: 'swift',
-        code: `
-let button = UIButton(type: .roundedRect)
-button.frame = CGRect(x: 20, y: 50, width: 100, height: 30)
-button.setTitle("Break the world", for: [])
-button.addTarget(self, action: #selector(self.breakTheWorld(_:)), for: .touchUpInside)
-view.addSubview(button)
-
-@IBAction func breakTheWorld(_ sender: AnyObject) {
-    fatalError("Break the world")
-}
-        `,
-      },
-    ],
   },
   {
     title: t('Experimental Features'),
@@ -237,18 +176,8 @@ export const nextSteps = [
 ];
 // Configuration End
 
-export function GettingStartedWithIos({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return (
-    <Layout
-      steps={steps({dsn, sourcePackageRegistries})}
-      nextSteps={nextSteps}
-      {...props}
-    />
-  );
+export function GettingStartedWithIos(props: ModuleProps) {
+  return <Layout steps={steps()} nextSteps={nextSteps} {...props} />;
 }
 
 export default GettingStartedWithIos;

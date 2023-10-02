@@ -17,7 +17,10 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -164,7 +167,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1
@@ -178,7 +181,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1

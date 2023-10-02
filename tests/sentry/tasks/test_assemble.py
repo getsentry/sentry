@@ -5,7 +5,6 @@ from hashlib import sha1
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
-from freezegun import freeze_time
 
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -30,6 +29,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class BaseAssembleTest(TestCase):
@@ -274,6 +274,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.all().delete()
             ReleaseArtifactBundle.objects.all().delete()
             ProjectArtifactBundle.objects.all().delete()
+
+            status, details = get_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+            )
+            assert status is None
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
@@ -887,7 +892,6 @@ class ArtifactBundleIndexingTest(TestCase):
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
@@ -916,7 +920,6 @@ class ArtifactBundleIndexingTest(TestCase):
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
@@ -958,7 +961,6 @@ class ArtifactBundleIndexingTest(TestCase):
             release=release,
             dist=dist,
         )
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):

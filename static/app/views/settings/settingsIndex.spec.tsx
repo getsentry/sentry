@@ -17,12 +17,11 @@ describe('SettingsIndex', function () {
   };
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
         <SettingsIndex {...props} organization={TestStubs.Organization()} />
       </BreadcrumbContextProvider>
     );
-    expect(container).toSnapshot();
   });
 
   it('has loading when there is no organization', function () {

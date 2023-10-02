@@ -17,5 +17,4 @@ class AsanaTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("asana settings")
         assert self.browser.element_exists(".ref-plugin-config-asana")

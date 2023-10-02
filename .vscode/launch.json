@@ -55,7 +55,7 @@
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["--verbose", "${file}"],
+      "args": ["--verbosity", "2", "${file}"],
       "django": true,
       "env": {
         "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"

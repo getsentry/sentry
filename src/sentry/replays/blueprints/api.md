@@ -26,7 +26,7 @@ This document is structured by resource with each resource having actions that c
     Members: + s + m + h + d + w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
@@ -65,6 +65,8 @@ This document is structured by resource with each resource having actions that c
     | click.textContent | string        | The text-content of an HTML element.                           |
     | click.title       | string        | The title attribute of an HTML element.                        |
     | click.selector    | string        | A valid CSS selector.                                          |
+    | dead.selector     | string        | A valid CSS selector.                                          |
+    | rage.selector     | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -260,7 +262,7 @@ Deletes a replay instance.
     - w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
@@ -433,7 +435,7 @@ Parameters:
 
 | Parameter | Type   | Default | Description                                  |
 | --------- | ------ | ------- | -------------------------------------------- |
-| limit     | number | 100     |                                              |
+| per_page  | number | 100     |                                              |
 | offset    | number | 0       |                                              |
 | query     | string | 0       | Space-separated string of field, value pairs |
 
@@ -451,6 +453,13 @@ Queryable fields:
 | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
 | click.textContent | string        | The text-content of an HTML element.                           |
 | click.title       | string        | The title attribute of an HTML element.                        |
+
+Queryable fields for rage and dead clicks:
+
+| Field             | Type          | Description                                                    |
+| ----------------- | ------------- | -------------------------------------------------------------- |
+| dead.selector     | string        | A valid CSS selector.                                          |
+| rage.selector     | string        | A valid CSS selector.                                          |
 
 ### Fetch Replay Clicks [GET]
 

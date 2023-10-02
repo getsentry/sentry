@@ -1,3 +1,4 @@
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -6,6 +7,10 @@ from sentry.models import OrganizationAvatar
 
 @region_silo_endpoint
 class OrganizationAvatarEndpoint(AvatarMixin, OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     object_type = "organization"
     model = OrganizationAvatar
 

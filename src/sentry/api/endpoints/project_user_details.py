@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -11,6 +12,11 @@ from sentry.models import EventUser
 
 @region_silo_endpoint
 class ProjectUserDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, user_hash) -> Response:
         euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))

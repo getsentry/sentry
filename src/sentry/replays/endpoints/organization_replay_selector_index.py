@@ -23,6 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import SearchConfig
@@ -36,6 +37,9 @@ from sentry.utils.snuba import raw_snql_query
 
 @region_silo_endpoint
 class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.REPLAY
 
     def get_replay_filter_params(self, request, organization):
@@ -145,6 +149,7 @@ def query_selector_dataset(
         query=Query(
             match=Entity("replays"),
             select=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
@@ -164,6 +169,7 @@ def query_selector_dataset(
             ],
             orderby=sorting,
             groupby=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
@@ -207,6 +213,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     return [
         {
+            "project_id": row["project_id"],
             "dom_element": make_selector_name(row),
             "count_dead_clicks": row["count_dead_clicks"],
             "count_rage_clicks": row["count_rage_clicks"],

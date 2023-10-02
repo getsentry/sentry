@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -13,11 +14,15 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 @region_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization, version) -> Response:
         """
         Handle an artifact bundle and merge it into the release
@@ -59,10 +64,15 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         chunks = data.get("chunks", [])
 
         upload_as_artifact_bundle = False
+        is_release_bundle_migration = False
         project_ids = []
         if features.has("organizations:sourcemaps-upload-release-as-artifact-bundle", organization):
             upload_as_artifact_bundle = True
+            is_release_bundle_migration = True
+            # NOTE: this list of projects can be further refined based on the
+            # `project` embedded in the bundle manifest.
             project_ids = [project.id for project in release.projects.all()]
+            metrics.incr("sourcemaps.upload.release_as_artifact_bundle")
 
         assemble_task = (
             AssembleTask.ARTIFACT_BUNDLE
@@ -96,6 +106,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
                 # It will be backfilled from the manifest within the `assemble_artifacts` task.
                 "project_ids": project_ids,
                 "upload_as_artifact_bundle": upload_as_artifact_bundle,
+                "is_release_bundle_migration": is_release_bundle_migration,
             }
         )
 

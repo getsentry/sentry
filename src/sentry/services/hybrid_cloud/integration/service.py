@@ -263,14 +263,15 @@ class IntegrationService(RpcService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: Optional[str] = None,
+    ) -> bool:
         pass
 
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         raise NotImplementedError
 
     @rpc_method

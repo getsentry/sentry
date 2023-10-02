@@ -6,7 +6,7 @@ import {GettingStartedWithWpf, steps} from './wpf';
 
 describe('GettingStartedWithWpf', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithWpf dsn="test-dsn" />);
+    render(<GettingStartedWithWpf dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithWpf', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

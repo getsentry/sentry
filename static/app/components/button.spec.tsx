@@ -4,23 +4,19 @@ import {Button} from 'sentry/components/button';
 
 describe('Button', function () {
   it('renders', function () {
-    const {container} = render(<Button priority="primary">Button</Button>);
-    expect(container).toSnapshot();
+    render(<Button priority="primary">Button</Button>);
   });
 
   it('renders react-router link', function () {
-    const {container} = render(<Button to="/some/route">Router Link</Button>);
-    expect(container).toSnapshot();
+    render(<Button to="/some/route">Router Link</Button>);
   });
 
   it('renders normal link', function () {
-    const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
-    expect(container).toSnapshot();
+    render(<Button href="/some/relative/url">Normal Link</Button>);
   });
 
   it('renders disabled normal link', function () {
-    const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
-    expect(container).toSnapshot();
+    render(<Button href="/some/relative/url">Normal Link</Button>);
   });
 
   it('calls `onClick` callback', async function () {

@@ -4,6 +4,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -65,7 +66,10 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
-    public = {"GET", "POST"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(
@@ -102,9 +106,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
-                )
+                ).distinct()
             else:
-                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+                queryset = queryset.filter(
+                    monitorenvironment__environment__in=environments
+                ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
@@ -178,7 +184,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
-            201: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            201: MonitorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

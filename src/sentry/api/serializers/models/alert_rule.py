@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import MutableMapping
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import Max, Q, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -16,6 +16,8 @@ from sentry.incidents.models import (
 )
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -72,14 +74,14 @@ class AlertRuleSerializer(Serializer):
             )
         )
 
-        use_by_user_id: MutableMapping[int, RpcUser] = {
+        user_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
             for user in user_service.get_many(
                 filter=dict(user_ids=[r.user_id for r in rule_activities if r.user_id is not None])
             )
         }
         for rule_activity in rule_activities:
-            rpc_user = use_by_user_id.get(rule_activity.user_id)
+            rpc_user = user_by_user_id.get(rule_activity.user_id)
             if rpc_user:
                 user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
             else:
@@ -125,7 +127,15 @@ class AlertRuleSerializer(Serializer):
                 .annotate(incident_id=Max("id"))
                 .values("incident_id")
             ):
-                incident_map[incident.alert_rule_id] = serialize(incident, user=user)
+                user_from_id = None
+                if user:
+                    # sometimes it's a User instance and sometimes a dict - should standardize
+                    if isinstance(user, (User, RpcUser)):
+                        user_by_user_id.get(user.id)
+                    else:
+                        user_by_user_id.get(user.get("id"))
+
+                incident_map[incident.alert_rule_id] = serialize(incident, user=user_from_id)
             for alert_rule in alert_rules.values():
                 result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
@@ -165,6 +175,12 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
         }
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
+        )
+        if rule_snooze.exists():
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 

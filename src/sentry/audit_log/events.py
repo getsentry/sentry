@@ -168,6 +168,16 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
         return render_project_action(audit_log_entry, "disable")
 
 
+class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        return "modified ownership rules"
+
+
 class SSOEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=62, name="SSO_EDIT", api_name="sso.edit")

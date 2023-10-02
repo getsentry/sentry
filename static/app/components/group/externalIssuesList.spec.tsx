@@ -1,3 +1,5 @@
+import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -23,11 +25,11 @@ describe('ExternalIssuesList', () => {
 
   it('renders setup CTA', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/groups/1/external-issues/',
+      url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
     render(
@@ -44,11 +46,11 @@ describe('ExternalIssuesList', () => {
 
   it('renders sentry app issues', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/external-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
     const component = TestStubs.SentryAppComponent();
@@ -72,9 +74,9 @@ describe('ExternalIssuesList', () => {
 
   it('renders integrations with issues first', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
-        TestStubs.JiraIntegration({status: 'active', externalIssues: []}),
+        JiraIntegration({status: 'active', externalIssues: []}),
         TestStubs.GitHubIntegration({
           status: 'active',
           externalIssues: [
@@ -91,7 +93,7 @@ describe('ExternalIssuesList', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/external-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
     const component = TestStubs.SentryAppComponent();

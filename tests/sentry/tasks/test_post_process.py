@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import abc
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
+from hashlib import md5
 from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -42,6 +44,7 @@ from sentry.models.groupowner import (
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.replays.lib import kafka as replays_kafka
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
@@ -58,10 +61,14 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 class EventMatcher:
@@ -1643,6 +1650,85 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
 
+@mock.patch.object(replays_kafka, "get_kafka_producer_cluster_options")
+@mock.patch.object(replays_kafka, "KafkaPublisher")
+@mock.patch("sentry.utils.metrics.incr")
+class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
+    def test_replay_linkage(self, incr, kafka_producer, kafka_publisher):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 1
+            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+
+            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+
+            assert ret_value["type"] == "replay_event"
+            assert ret_value["start_time"] == int(event.datetime.timestamp())
+            assert ret_value["replay_id"] == replay_id
+            assert ret_value["project_id"] == self.project.id
+            assert ret_value["segment_id"] is None
+            assert ret_value["retention_days"] == 90
+
+            # convert ret_value_payload which is a list of bytes to a string
+            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+            assert ret_value_payload == {
+                "type": "event_link",
+                "replay_id": replay_id,
+                "error_id": event.event_id,
+                "timestamp": int(event.datetime.timestamp()),
+                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+            }
+
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_no_replay(self, incr, kafka_producer, kafka_publisher):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
+            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+
+    def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
+
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": False}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
+            for args, _ in incr.call_args_list:
+                self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1656,6 +1742,7 @@ class PostProcessGroupErrorTest(
     ServiceHooksTestMixin,
     SnoozeTestMixin,
     SDKCrashMonitoringTestMixin,
+    ReplayLinkageTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
@@ -1674,6 +1761,32 @@ class PostProcessGroupErrorTest(
             project_id=event.project_id,
         )
         return cache_key
+
+    @with_feature("organizations:escalating-metrics-backend")
+    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
+    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.create_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "stacktrace": {"frames": [{"function": f} for f in ["a", "b"]]},
+                        }
+                    ]
+                },
+                "timestamp": min_ago,
+                "start_timestamp": min_ago,
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        assert generic_metrics_backend_mock.call_count == 1
 
 
 @region_silo_test
@@ -1720,6 +1833,7 @@ class PostProcessGroupPerformanceTest(
             )
         return cache_key
 
+    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -1730,6 +1844,7 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_processor,
         run_post_process_job_mock,
+        generic_metrics_backend_mock,
     ):
         min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         event = self.store_transaction(
@@ -1754,6 +1869,7 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
+        assert generic_metrics_backend_mock.call_count == 0
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")

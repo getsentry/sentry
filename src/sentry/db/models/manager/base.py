@@ -41,6 +41,11 @@ _local_cache_generation = 0
 _local_cache_enabled = False
 
 
+def flush_manager_local_cache():
+    global _local_cache
+    _local_cache = threading.local()
+
+
 class ModelManagerTriggerCondition(IntEnum):
     QUERY = auto()
     SAVE = auto()
@@ -263,67 +268,73 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
-        if not self.cache_fields or len(kwargs) > 1:
+        if not self.cache_fields:
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+        key, pk_name, value = self._get_cacheable_kv_from_kwargs(kwargs)
+        if key not in self.cache_fields and key != pk_name:
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+        cache_key = self.__get_lookup_cache_key(**{key: value})
+        local_cache = self._get_local_cache()
+
+        def validate_result(inst: Any) -> M:
+            if isinstance(inst, self.model) and (key != pk_name or int(value) == inst.pk):
+                return inst
+
+            if settings.DEBUG:
+                raise ValueError("Unexpected value type returned from cache")
+            logger.error("Cache response returned invalid value", extra={"instance": inst})
+            if local_cache is not None and cache_key in local_cache:
+                del local_cache[cache_key]
+            cache.delete(cache_key, version=self.cache_version)
+            return self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+
+        if local_cache is not None and cache_key in local_cache:
+            return validate_result(local_cache[cache_key])
+
+        retval = cache.get(cache_key, version=self.cache_version)
+        # If we don't have a hit in the django level cache, collect
+        # the result, and store it both in django and local caches.
+        if retval is None:
+            result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+            assert result
+            # Ensure we're pushing it into the cache
+            self.__post_save(instance=result)
+            if local_cache is not None:
+                local_cache[cache_key] = result
+            return validate_result(result)
+
+        # If we didn't look up by pk we need to hit the reffed
+        # key
+        if key != pk_name:
+            result = self.get_from_cache(**{pk_name: retval})
+            if local_cache is not None:
+                local_cache[cache_key] = result
+            return validate_result(result)
+
+        retval = validate_result(retval)
+
+        kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
+        retval._state.db = router.db_for_read(self.model, **kwargs)
+
+        return retval
+
+    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
+        if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(iter(kwargs.items()))
         pk_name = self.model._meta.pk.name
         if key == "pk":
             key = pk_name
-
         # We store everything by key references (vs instances)
         if isinstance(value, Model):
             value = value.pk
-
         # Kill __exact since it's the default behavior
         if key.endswith("__exact"):
             key = key.split("__exact", 1)[0]
-
-        if key in self.cache_fields or key == pk_name:
-            cache_key = self.__get_lookup_cache_key(**{key: value})
-            local_cache = self._get_local_cache()
-            if local_cache is not None:
-                result = local_cache.get(cache_key)
-                if result is not None:
-                    return result
-
-            retval = cache.get(cache_key, version=self.cache_version)
-            if retval is None:
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-                # need to satisfy mypy
-                assert result
-                # Ensure we're pushing it into the cache
-                self.__post_save(instance=result)
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            # If we didn't look up by pk we need to hit the reffed
-            # key
-            if key != pk_name:
-                result = self.get_from_cache(**{pk_name: retval})
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            if not isinstance(retval, self.model):
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value type returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-
-            if key == pk_name and int(value) != retval.pk:
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-
-            kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
-            retval._state.db = router.db_for_read(self.model, **kwargs)
-
-            return retval
-        else:
-            raise ValueError("We cannot cache this query. Just hit the database.")
+        return key, pk_name, value
 
     def get_many_from_cache(self, values: Collection[str | int], key: str = "pk") -> Sequence[Any]:
         """

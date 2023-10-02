@@ -6,7 +6,7 @@ import {GettingStartedWithUnreal, steps} from './unreal';
 
 describe('GettingStartedWithUnreal', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithUnreal dsn="test-dsn" />);
+    render(<GettingStartedWithUnreal dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithUnreal', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

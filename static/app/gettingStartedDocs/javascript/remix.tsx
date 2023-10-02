@@ -19,7 +19,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
   routingInstrumentation: Sentry.remixRouterInstrumentation(
     useEffect,
     useLocation,
@@ -46,19 +46,34 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: (
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/remix
-
-# Using npm
-npm install --save @sentry/remix
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/remix',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/remix',
+          },
+        ],
       },
     ],
   },

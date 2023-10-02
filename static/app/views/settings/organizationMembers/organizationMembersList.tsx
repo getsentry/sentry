@@ -96,12 +96,12 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       ],
 
       ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
-      [
-        'missingMembers',
-        `/organizations/${organization.slug}/missing-members/`,
-        {},
-        {allowError: error => error.status === 403},
-      ],
+      // [
+      //   'missingMembers',
+      //   `/organizations/${organization.slug}/missing-members/`,
+      //   {},
+      //   {allowError: error => error.status === 403},
+      // ],
     ];
   }
 
@@ -177,10 +177,13 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     const {organization} = this.props;
 
     try {
-      await this.api.requestPromise(`/organizations/${organization.slug}/members/`, {
-        method: 'POST',
-        data: {email},
-      });
+      await this.api.requestPromise(
+        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        {
+          method: 'POST',
+          data: {email},
+        }
+      );
       addSuccessMessage(tct('Sent invite to [email]', {email}));
       this.fetchMembersList();
       this.setState(state => ({
@@ -340,6 +343,8 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
         <InviteBanner
           missingMembers={githubMissingMembers}
           onSendInvite={this.handleInviteMissingMember}
+          onModalClose={this.fetchData}
+          allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
         />
         <ClassNames>
           {({css}) =>

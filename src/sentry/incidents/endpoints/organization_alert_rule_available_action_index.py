@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
@@ -72,6 +73,10 @@ def build_action_response(
 
 @region_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization

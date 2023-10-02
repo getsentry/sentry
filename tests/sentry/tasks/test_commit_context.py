@@ -19,7 +19,10 @@ from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_contex
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
+
+pytestmark = [requires_snuba]
 
 
 class TestCommitContextMixin(TestCase):

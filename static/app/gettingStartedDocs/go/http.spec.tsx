@@ -6,7 +6,7 @@ import {GettingStartedWithHTTP, steps} from './http';
 
 describe('GettingStartedWithHTTP', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithHTTP dsn="test-dsn" />);
+    render(<GettingStartedWithHTTP dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithHTTP', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -1,5 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {SessionsField} from 'sentry-fixture/sessions';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -206,23 +209,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsField(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsField('sum(sentry.sessions.session)'),
     });
 
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     MockApiClient.addMockResponse({
@@ -1240,7 +1239,7 @@ describe('WidgetBuilder', function () {
 
   it('does not fetch tags when tag store is not empty', async function () {
     await act(async () => {
-      TagStore.loadTagsSuccess(TestStubs.Tags());
+      TagStore.loadTagsSuccess(Tags());
       renderTestComponent();
       await tick();
     });

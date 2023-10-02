@@ -17,6 +17,13 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
     MigratingIdentityId may be used in the ``id`` field of an identity
     dictionary to facilitate migrating user identities from one identifying id
     to another.
+
+    Context - when google oauth was initially created, the auth_identity key was simply
+    the provider email. This can cause issues if the customer changes their domain name,
+    and now their email is different and they're locked out of their account.
+    This logic updates their id to the provider id instead.
+
+    NOTE: this should _only_ really be relevant for google oauth implementation
     """
 
     __slots__ = ()

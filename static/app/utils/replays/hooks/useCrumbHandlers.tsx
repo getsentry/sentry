@@ -7,7 +7,7 @@ function useCrumbHandlers() {
   const {
     replay,
     clearAllHighlights,
-    highlight,
+    addHighlight,
     removeHighlight,
     setCurrentTime,
     setCurrentHoverTime,
@@ -38,13 +38,13 @@ function useCrumbHandlers() {
           // crumb to a tooltip
           clearAllHighlights();
           // @ts-expect-error: Property 'label' does not exist on type
-          highlight({nodeId: frame.data.nodeId, annotation: frame.data.label});
+          addHighlight({nodeId: frame.data.nodeId, annotation: frame.data.label});
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
       }, 250);
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, addHighlight, clearAllHighlights]
   );
 
   const onMouseLeave = useCallback(

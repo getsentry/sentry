@@ -4,7 +4,8 @@ from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ConflictError
@@ -15,6 +16,10 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 @region_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def put(self, request: Request, organization) -> Response:
         """
         Update Project Slugs
@@ -31,7 +36,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
-                if features.has("app:enterprise-prevent-numeric-slugs"):
+                if options.get("api.prevent-numeric-slugs"):
                     validate_sentry_slug(slug)
                 else:
                     validate_slug(slug)

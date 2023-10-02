@@ -37,7 +37,12 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer import (
+    SessionMRI,
+    SpanMRI,
+    TransactionMRI,
+    get_public_name_from_mri,
+)
 from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -55,12 +60,14 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
     return {
-        SessionMRI.SESSION.value: EntityKey.MetricsCounters,
-        SessionMRI.USER.value: EntityKey.MetricsSets,
-        SessionMRI.ERROR.value: EntityKey.MetricsSets,
+        SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
+        SessionMRI.RAW_USER.value: EntityKey.MetricsSets,
+        SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
         TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
         TransactionMRI.USER.value: EntityKey.MetricsSets,
         TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
+        SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
+        SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
     }[metric_mri]
 
 
@@ -152,8 +159,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         use_case_id = UseCaseID.SESSIONS
         for status in ("init", "abnormal", "crashed", "errored"):
             rh_indexer_record(org_id, status)
-        session_ids = [rh_indexer_record(org_id, SessionMRI.SESSION.value)]
-        session_user_ids = [rh_indexer_record(org_id, SessionMRI.USER.value)]
+        session_ids = [rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)]
+        session_user_ids = [rh_indexer_record(org_id, SessionMRI.RAW_USER.value)]
 
         derived_name_snql = {
             SessionMRI.ALL.value: (all_sessions, session_ids),
@@ -178,7 +185,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 ),
             ]
 
-        session_error_metric_ids = [rh_indexer_record(org_id, SessionMRI.ERROR.value)]
+        session_error_metric_ids = [rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)]
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
             [self.project],
             use_case_id=use_case_id,
@@ -285,9 +292,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
     def test_generate_metric_ids(self):
         org_id = self.project.organization_id
-        session_metric_id = rh_indexer_record(org_id, SessionMRI.SESSION.value)
-        session_error_metric_id = rh_indexer_record(org_id, SessionMRI.ERROR.value)
-        session_user_id = rh_indexer_record(org_id, SessionMRI.USER.value)
+        session_metric_id = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
+        session_error_metric_id = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
+        session_user_id = rh_indexer_record(org_id, SessionMRI.RAW_USER.value)
         use_case_id = UseCaseID.SESSIONS
 
         for derived_metric_mri in [
@@ -387,7 +394,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         with pytest.raises(DerivedMetricParseException):
             SingularEntityDerivedMetric(
                 metric_mri=SessionMRI.ERRORED_SET.value,
-                metrics=[SessionMRI.ERROR.value],
+                metrics=[SessionMRI.RAW_ERROR.value],
                 unit="sessions",
                 snql=None,
             )

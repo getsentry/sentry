@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
 
 import {
   act,
@@ -26,8 +27,16 @@ function getField(role, name) {
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
-  const groupingConfigs = TestStubs.GroupingConfigs();
+  const project = TestStubs.Project({
+    subjectPrefix: '[my-org]',
+    resolveAge: 48,
+    allowedDomains: ['example.com', 'https://example.com'],
+    scrapeJavaScript: true,
+    securityToken: 'security-token',
+    securityTokenHeader: 'x-security-header',
+    verifySSL: true,
+  });
+  const groupingConfigs = GroupingConfigs();
   let routerContext;
   let putMock;
 
@@ -54,7 +63,7 @@ describe('projectGeneralSettings', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/grouping-configs/',
+      url: `/organizations/${org.slug}/grouping-configs/`,
       method: 'GET',
       body: groupingConfigs,
     });

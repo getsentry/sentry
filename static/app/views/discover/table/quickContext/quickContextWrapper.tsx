@@ -18,7 +18,8 @@ export function NoContext({isLoading}: NoContextProps) {
       <LoadingIndicator
         data-test-id="quick-context-loading-indicator"
         hideMessage
-        size={32}
+        mini
+        style={{width: '24px'}}
       />
     </NoContextWrapper>
   ) : (

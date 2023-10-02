@@ -1,3 +1,4 @@
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 __all__ = ["PluginProjectEndpoint", "PluginGroupEndpoint"]
@@ -35,6 +36,10 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     plugin = None
     view = None
 

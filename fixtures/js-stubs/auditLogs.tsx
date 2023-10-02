@@ -1,3 +1,5 @@
+import {User} from 'sentry-fixture/user';
+
 import type {AuditLog as AuditLogType} from 'sentry/types';
 
 export function AuditLogs(params: AuditLogType[] = []): AuditLogType[] {
@@ -16,7 +18,7 @@ export function AuditLogs(params: AuditLogType[] = []): AuditLogType[] {
       dateCreated: '2018-02-21T03:04:23.157Z',
       ipAddress: '127.0.0.1',
       id: '465',
-      actor: TestStubs.User({isSuperuser: true}),
+      actor: User({isSuperuser: true}),
       event: 'project.edit',
     },
     {
@@ -27,7 +29,7 @@ export function AuditLogs(params: AuditLogType[] = []): AuditLogType[] {
       dateCreated: '2018-02-16T23:45:59.813Z',
       ipAddress: '127.0.0.1',
       id: '408',
-      actor: TestStubs.User({isSuperuser: false}),
+      actor: User({isSuperuser: false}),
       event: 'org.edit',
     },
     ...params,

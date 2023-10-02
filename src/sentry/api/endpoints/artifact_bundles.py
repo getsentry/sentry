@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
@@ -52,6 +53,10 @@ class ArtifactBundlesMixin:
 
 @region_silo_endpoint
 class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

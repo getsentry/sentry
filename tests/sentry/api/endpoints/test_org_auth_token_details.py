@@ -168,7 +168,28 @@ class OrgAuthTokenEditTest(APITestCase):
             self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
+
+        tokenNew = OrgAuthToken.objects.get(id=token.id)
+        assert tokenNew.name == "token 1"
+
+    def test_name_too_long(self):
+        token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        payload: Dict[str, str] = {"name": "a" * 300}
+
+        self.login_as(self.user)
+        response = self.get_error_response(
+            self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
+        )
+        assert response.content
+        assert response.data == {"detail": "The name cannot be longer than 255 characters."}
 
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
@@ -189,7 +210,7 @@ class OrgAuthTokenEditTest(APITestCase):
             self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
 
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"

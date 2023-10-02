@@ -21,7 +21,9 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         *args: Any,
         **kwargs: Any,
     ):
-        config = kwargs.pop("config", QueryBuilderConfig())
+        config = kwargs.pop("config", None)
+        if config is None:
+            config = QueryBuilderConfig()
         parser_config_overrides = (
             config.parser_config_overrides if config.parser_config_overrides else {}
         )
@@ -74,9 +76,8 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
-        skip_tag_resolution: bool = False,
+        config: Optional[QueryBuilderConfig] = None,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -86,8 +87,8 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_columns)),
-            functions_acl=functions_acl,
             limit=limit,
+            config=config,
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []

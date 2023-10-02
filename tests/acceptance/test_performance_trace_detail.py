@@ -197,4 +197,3 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             row_title = self.browser.elements('[data-test-id="transaction-row-title"]')[1]
             # HACK: Use JavaScript to execute click to avoid click intercepted issues
             self.browser.driver.execute_script("arguments[0].click()", row_title)
-            self.browser.snapshot("performance trace view - with data")

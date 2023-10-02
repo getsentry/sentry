@@ -1,3 +1,5 @@
+import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
@@ -5,9 +7,10 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
-  const entries = TestStubs.Entries();
+  const entries123Target = Entries123Target();
+  const entries123Base = Entries123Base();
   const api = new MockApiClient();
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -25,7 +28,7 @@ describe('IssueDiff', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
-        entries: entries[0],
+        entries: entries123Target,
       },
     });
 
@@ -33,7 +36,7 @@ describe('IssueDiff', function () {
       url: `/projects/org-slug/${project.slug}/events/123base/`,
       body: {
         platform: 'javascript',
-        entries: entries[1],
+        entries: entries123Base,
       },
     });
   });
@@ -43,7 +46,7 @@ describe('IssueDiff', function () {
   });
 
   it('is loading when initially rendering', function () {
-    const wrapper = render(
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -53,11 +56,10 @@ describe('IssueDiff', function () {
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
   });
 
   it('can dynamically import SplitDiff', async function () {
-    const wrapper = render(
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -68,7 +70,6 @@ describe('IssueDiff', function () {
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
   });
 
   it('can diff message', async function () {
@@ -86,7 +87,7 @@ describe('IssueDiff', function () {
       },
     });
 
-    const wrapper = render(
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -97,6 +98,5 @@ describe('IssueDiff', function () {
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
   });
 });

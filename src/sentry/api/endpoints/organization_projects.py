@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -27,7 +28,9 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="List an Organization's Projects",
@@ -153,6 +156,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
 @region_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 

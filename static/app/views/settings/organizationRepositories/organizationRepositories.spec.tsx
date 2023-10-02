@@ -1,3 +1,5 @@
+import {Repository} from 'sentry-fixture/repository';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
@@ -10,7 +12,7 @@ describe('OrganizationRepositories', function () {
   const routerProps = {router, location, routeParams: {}, routes: [], route: {}};
 
   it('renders without providers', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
@@ -18,34 +20,31 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with a repository', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
-        itemList={[TestStubs.Repository()]}
+        itemList={[Repository()]}
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with a repository and github provider', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
         itemList={[
-          TestStubs.Repository({
+          Repository({
             provider: {id: 'github', name: 'GitHub'},
           }),
         ]}
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 });

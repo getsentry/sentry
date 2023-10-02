@@ -1,6 +1,6 @@
-import {Config as ConfigType} from 'sentry/types';
+import {User} from 'sentry-fixture/user';
 
-import {User} from './user';
+import {Config as ConfigType} from 'sentry/types';
 
 export function Config(params: Partial<ConfigType> = {}): ConfigType {
   return {
@@ -60,6 +60,7 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
       organizationUrl: 'https://foobar.sentry.io',
       regionUrl: 'https://us.sentry.io',
     },
+    regions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };
 }

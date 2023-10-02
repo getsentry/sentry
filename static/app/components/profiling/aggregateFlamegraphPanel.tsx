@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {DeprecatedAggregateFlamegraph} from 'sentry/components/profiling/flamegraph/deprecatedAggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -22,7 +22,6 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   );
 
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
-
   const isEmpty = data?.shared.frames.length === 0;
 
   return (
@@ -69,7 +68,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
                     <p>{t(`Aggregate flamegraph isn't available for your query`)}</p>
                   </EmptyStateWarning>
                 ) : (
-                  <AggregateFlamegraph
+                  <DeprecatedAggregateFlamegraph
                     hideSystemFrames={hideSystemFrames}
                     setHideSystemFrames={setHideSystemFrames}
                   />

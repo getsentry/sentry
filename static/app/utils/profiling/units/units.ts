@@ -17,7 +17,13 @@ export type ProfilingFormatterUnit =
   | 'seconds'
   | 'count'
   | 'percent'
-  | 'byte';
+  | 'percents'
+  | 'byte'
+  | 'bytes'
+  | 'nanojoule'
+  | 'nanojoules'
+  | 'watt'
+  | 'watts';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
   nanosecond: 1e-9,
@@ -30,8 +36,19 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   seconds: 1,
   count: 1,
   percent: 1,
+  percents: 1,
   byte: 1,
+  bytes: 1,
+  nanojoule: 1e-9,
+  nanojoules: 1e-9,
+  watt: 1,
+  watts: 1,
 };
+
+export function fromNanoJoulesToWatts(nanojoules: number, seconds: number) {
+  const joules = nanojoules * durationMappings.nanojoules;
+  return joules / seconds;
+}
 
 export function makeFormatTo(
   from: ProfilingFormatterUnit | string,
@@ -85,20 +102,56 @@ export function makeFormatter(
       return value.toFixed(precision);
     };
   }
-  if (from === 'percent') {
+  if (from === 'percent' || from === 'percents') {
     return (value: number) => {
       return value.toFixed(precision) + '%';
     };
   }
 
-  if (from === 'byte') {
+  if (from === 'byte' || from === 'bytes') {
     return (value: number) => {
       if (value === 0) {
         return '0B';
       }
       const byteUnits = ['B', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(value) / Math.log(1000));
+      if (i < 0) {
+        return value.toFixed(precision) + byteUnits[0];
+      }
       return (value / Math.pow(1000, i)).toFixed(precision) + byteUnits[i];
+    };
+  }
+
+  if (from === 'nanojoule' || from === 'nanojoules') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0J';
+      }
+
+      value *= durationMappings[from];
+      const jouleUnits = ['J', 'kJ', 'MJ', 'GJ'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+
+      if (i < 0) {
+        return value.toFixed(precision) + jouleUnits[0];
+      }
+      return (value / Math.pow(1000, i)).toFixed(precision) + (jouleUnits[i] ?? 'J');
+    };
+  }
+
+  if (from === 'watt' || from === 'watts') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0W';
+      }
+
+      value *= durationMappings[from];
+      const jouleUnits = ['W', 'kW', 'MW', 'GW'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+      if (i < 0) {
+        return value.toFixed(precision) + jouleUnits[0];
+      }
+      return (value / Math.pow(1000, i)).toFixed(precision) + jouleUnits[i];
     };
   }
 
