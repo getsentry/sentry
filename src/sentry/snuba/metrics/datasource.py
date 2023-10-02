@@ -74,12 +74,15 @@ logger = logging.getLogger(__name__)
 
 
 def _build_use_case_id_filter(use_case_id: UseCaseID):
-    use_case_value = use_case_id.value
-    # For sessions, the `use_case_id` field in Clickhouse is stored as "".
-    if use_case_id == UseCaseID.SESSIONS:
-        use_case_value = ""
+    use_case_values = [use_case_id.value]
 
-    return Condition(Column("use_case_id"), Op.EQ, use_case_value)
+    if use_case_id == UseCaseID.SESSIONS:
+        # For sessions, the `use_case_id` field in Clickhouse is stored as "" but this has been fixed and a back-fill
+        # should happen which will make this condition superfluous.
+        # TODO(iambriccardo): Remove this condition once the backfill is done.
+        use_case_values.append("")
+
+    return Condition(Column("use_case_id"), Op.IN, use_case_values)
 
 
 def _get_metrics_for_entity(
@@ -187,8 +190,23 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
+    # To reduce the number of queries, we scope down the number of entity keys for sessions, since we know that they
+    # are stored separately from all the other entity keys.
+    if use_case_id == UseCaseID.SESSIONS:
+        entity_keys = {
+            EntityKey.MetricsCounters,
+            EntityKey.MetricsSets,
+            EntityKey.MetricsDistributions,
+        }
+    else:
+        entity_keys = {
+            EntityKey.GenericMetricsCounters,
+            EntityKey.GenericMetricsSets,
+            EntityKey.GenericMetricsDistributions,
+        }
+
     stored_metrics = []
-    for entity_key in METRIC_TYPE_TO_ENTITY.values():
+    for entity_key in entity_keys:
         stored_metrics += _get_metrics_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,
