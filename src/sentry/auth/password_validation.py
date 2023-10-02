@@ -2,7 +2,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
@@ -95,18 +94,3 @@ class MaximumLengthValidator:
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,
         ) % {"max_length": self.max_length}
-
-
-class NumericPasswordValidator:
-    """
-    Validate whether the password is alphanumeric.
-    """
-
-    def validate(self, password, user=None):
-        if password.isdigit():
-            raise ValidationError(
-                _("This password is entirely numeric."), code="password_entirely_numeric"
-            )
-
-    def get_help_text(self):
-        return _("Your password can't be entirely numeric.")
