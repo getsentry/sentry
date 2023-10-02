@@ -6,7 +6,7 @@ import {ProjectSdkUpdates} from '../types/project';
 
 type Opts = {
   minVersion: string;
-  organization: Organization; 
+  organization: Organization;
   projectId: string[];
 };
 
