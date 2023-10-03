@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -136,7 +137,7 @@ const InvestigationInProgressNotification = styled('span')`
   gap: ${space(0.5)};
 `;
 
-export function InvestigationRuleCreation(props: Props) {
+function InvestigationRuleCreationInternal(props: Props) {
   const projects = [...props.eventView.project];
   const organization = props.organization;
   const period = props.eventView.statsPeriod || null;
@@ -214,5 +215,13 @@ export function InvestigationRuleCreation(props: Props) {
         {t('Get Samples')}
       </Button>
     </Tooltip>
+  );
+}
+
+export function InvestigationRuleCreation(props: Props) {
+  return (
+    <Feature features={['investigation-bias']}>
+      <InvestigationRuleCreationInternal {...props} />
+    </Feature>
   );
 }
