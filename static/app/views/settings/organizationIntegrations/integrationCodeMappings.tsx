@@ -202,6 +202,8 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
     switch (integration.provider.key) {
       case 'vsts':
         return 'azure-devops';
+      case 'github_enterprise':
+        return 'github';
       default:
         return integration.provider.key;
     }
