@@ -24,6 +24,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for a project
         """
+        expand = request.GET.getlist("expand", [])
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", project.organization):
             # Filter to only error alert rules
@@ -41,7 +42,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
+            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
             desc=True,

@@ -172,7 +172,6 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
             expand_resp = self.get_success_response(
                 self.organization.slug, self.project.slug, expand=["latestIncident"]
             )
-
         assert expand_resp.data[0]["latestIncident"] is not None
         assert expand_resp.data[0]["latestIncident"]["id"] == str(incident.id)
 
