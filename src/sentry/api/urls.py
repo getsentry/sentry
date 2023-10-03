@@ -22,6 +22,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
+from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -1730,6 +1731,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
         OrganizationStatsEndpointV2.as_view(),
         name="sentry-api-0-organization-stats-v2",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/stats-summary/$",
+        OrganizationStatsSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-stats-summary",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/teams/$",
