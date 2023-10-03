@@ -42,7 +42,7 @@ function initialize({
   const data = initializeOrg({
     organization: Organization({
       features,
-      projects: [project],
+      projects: project ? [project] : [],
     }),
     router: {
       location: {
