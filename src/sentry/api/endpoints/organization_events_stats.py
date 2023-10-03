@@ -181,7 +181,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (
-                    dataset if dataset in [discover, spans_indexed, spans_metrics] else discover
+                    dataset
+                    if dataset
+                    in [
+                        discover,
+                        metrics_performance,
+                        metrics_enhanced_performance,
+                        spans_indexed,
+                        spans_metrics,
+                    ]
+                    else discover
                 )
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
