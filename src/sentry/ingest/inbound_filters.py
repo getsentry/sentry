@@ -39,7 +39,6 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
     FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
-    FilterStatKeys.CHUNK_LOAD_ERROR: TSDBModel.project_total_chunk_load_error,
 }
 
 
