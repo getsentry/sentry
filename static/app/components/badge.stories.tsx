@@ -1,4 +1,5 @@
 import Badge from 'sentry/components/badge';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -7,7 +8,7 @@ export default storyBook(Badge, story => {
     <SideBySide>
       <Badge text="Text Prop" />
       <Badge>
-        Using <em>Children</em>
+        Using <JSXProperty name="children" value="" />
       </Badge>
     </SideBySide>
   ));
