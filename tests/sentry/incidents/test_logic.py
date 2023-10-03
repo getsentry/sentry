@@ -1830,6 +1830,72 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_display == channel_id
         assert action.integration_id == integration.id
 
+    @responses.activate
+    def test_discord_invalid_channel_id(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "****bad****"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
+    @responses.activate
+    def test_discord_bad_response(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET, url=f"{base_url}/channels/{channel_id}", body="Error", status=500
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property

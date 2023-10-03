@@ -64,10 +64,7 @@ def validate_channel_id(
                     "code": e.code,
                 },
             )
-            raise IntegrationError("Discord channel does not belong to the server indicated.")
-
-    if not isinstance(result, dict):
-        raise IntegrationError("Bad response from Discord channel lookup.")
+            raise IntegrationError("Bad response from Discord channel lookup.")
 
     if result["guild_id"] != guild_id:
         # The channel exists and we have access to it, but it does not belong
