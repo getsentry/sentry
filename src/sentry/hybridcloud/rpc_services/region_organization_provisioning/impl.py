@@ -61,7 +61,6 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             user_id=user_id, organization=org, role=roles.get_top_dog().id
         )
 
-        team = None
         if create_default_team:
             team = org.team_set.create(name=org.name)
             OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
@@ -106,11 +105,12 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             #  and created an org for the user
             org_slug_matches_provision_options = (
                 matching_org.slug == provision_payload.provision_options.slug
+                and matching_org.id == organization_id
             )
 
-            if org_slug_matches_provision_options:
+            if not org_slug_matches_provision_options:
                 raise PreProvisionCheckException(
-                    "An organization with a conflicting ID but different slug was found"
+                    "A partially conflicting org with either a matching slug or ID was found"
                 )
 
             # If none of the previous validations failed, then we have a match for a previously provisioned org
@@ -139,7 +139,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         provision_options = provision_payload.provision_options
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
-            org_creation_result = self._create_organization_and_team(
+            organization = self._create_organization_and_team(
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
@@ -147,9 +147,8 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
                 organization_id=organization_id,
             )
 
-            org = org_creation_result
             create_post_provision_outbox(
-                provisioning_options=provision_payload, org_id=org.id
+                provisioning_options=provision_payload, org_id=organization.id
             ).save()
 
         return True
