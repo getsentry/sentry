@@ -1,5 +1,10 @@
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
+export interface FeedbackItemLoaderQueryParams {
+  [key: string]: string | string[] | undefined;
+  feedbackSlug?: string;
+}
+
 export interface FeedbackItemResponse {
   browser: {
     name: null | string;
@@ -45,30 +50,4 @@ export interface FeedbackItemResponse {
   };
 }
 
-export type FeedbackListResponse = FeedbackItemResponse[];
-
 export type HydratedFeedbackItem = Overwrite<FeedbackItemResponse, {timestamp: Date}>;
-
-export type HydratedFeedbackList = HydratedFeedbackItem[];
-
-export interface FeedbackListQueryParams {
-  [key: string]: string | string[] | null | undefined;
-  cursor?: string;
-  end?: string;
-  environment?: string[];
-  field?: string[];
-  offset?: string;
-  per_page?: string;
-  project?: string[];
-  query?: string;
-  queryReferrer?: string;
-  sort?: string | 'timestamp' | '-timestamp' | 'projectId' | '-projectId';
-  start?: string;
-  statsPeriod?: string;
-  utc?: 'true' | 'false';
-}
-
-export interface FeedbackItemLoaderQueryParams {
-  [key: string]: string | string[] | null | undefined;
-  feedbackSlug?: string;
-}

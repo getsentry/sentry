@@ -1,6 +1,6 @@
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
 import {Organization, Project} from 'sentry/types';
-import {FeedbackItemResponse} from 'sentry/utils/feedback/types';
+import {FeedbackItemResponse} from 'sentry/utils/feedback/item/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 interface Props {

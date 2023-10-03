@@ -8,7 +8,7 @@ import {
 
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import {t} from 'sentry/locale';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 

@@ -1,7 +1,7 @@
 import {Button} from 'sentry/components/button';
 import {IconArchive} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;

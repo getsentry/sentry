@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import type {AvatarUser} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
 interface Props {

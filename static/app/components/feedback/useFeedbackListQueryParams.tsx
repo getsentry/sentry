@@ -1,7 +1,6 @@
 // import {useMemo} from 'react';
 import {Location} from 'history';
 
-import {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 
 export default function useFeedbackListQueryParams({
@@ -10,7 +9,7 @@ export default function useFeedbackListQueryParams({
 }: {
   location: Location;
   queryReferrer: string;
-}): FeedbackListQueryParams {
+}): Record<string, string | string[] | undefined> {
   const {
     cursor,
     end,
