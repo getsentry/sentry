@@ -146,9 +146,7 @@ class BaseAggregateSpans:
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": description
-                if span_tree["group"] == NULL_GROUP
-                else description,
+                "description": description if span_tree["group"] == NULL_GROUP else description,
                 "start_timestamp": start_timestamp,
                 "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
