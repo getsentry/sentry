@@ -235,8 +235,6 @@ def up(
     if services:
         for service in services:
             if service not in containers:
-                if service == "zookeeper":
-                    continue
                 click.secho(
                     f"Service `{service}` is not known or not enabled.\n",
                     err=True,
