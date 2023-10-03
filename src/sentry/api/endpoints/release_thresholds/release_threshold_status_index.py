@@ -31,20 +31,23 @@ if TYPE_CHECKING:
     from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class EnrichedThreshold(TypedDict):
+class SerializedThreshold(TypedDict):
     date: datetime
-    end: datetime
     environment: Environment | None
-    is_healthy: bool
-    key: str
     project: Project
-    project_id: int
     release: str
-    start: datetime
     threshold_type: int
     trigger_type: int
     value: int
     window_in_seconds: int
+
+
+class EnrichedThreshold(SerializedThreshold):
+    end: datetime
+    is_healthy: bool
+    key: str
+    project_id: int
+    start: datetime
 
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
@@ -193,19 +196,20 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         }
                     thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
-                    enriched_threshold: EnrichedThreshold = {
-                        # see https://github.com/python/mypy/issues/4122
-                        **serialize(threshold),  # type: ignore
-                        "key": self.construct_threshold_key(
-                            release=release, project=project, threshold=threshold
-                        ),
-                        "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
-                        "end": release.date
-                        + timedelta(threshold.window_in_seconds),  # start + threshold.window
-                        "release": release.version,
-                        "project_id": project.id,
-                        "is_healthy": False,
-                    }
+                    enriched_threshold: EnrichedThreshold = serialize(threshold)
+                    enriched_threshold.update(
+                        {
+                            "key": self.construct_threshold_key(
+                                release=release, project=project, threshold=threshold
+                            ),
+                            "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
+                            "end": release.date
+                            + timedelta(threshold.window_in_seconds),  # start + threshold.window
+                            "release": release.version,
+                            "project_id": project.id,
+                            "is_healthy": False,
+                        }
+                    )
                     thresholds_by_type[threshold.threshold_type]["thresholds"].append(
                         enriched_threshold
                     )
@@ -223,8 +227,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
                 Iterate through timeseries given threshold window and determine health status
 
-                TODO: determine whether results have been truncated or not
-                - this will determine whether we can give an accurate status report or not
+                TODO: If too many results, then throw an error and request user to narrow their search window
                 """
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=end,

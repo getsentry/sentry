@@ -7,7 +7,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
 from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 
 
 class ReleaseThresholdStatusTest(APITestCase):
@@ -325,7 +325,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(r2_keys) == 0
 
 
-class ErrorCountThresholdCheckTest(APITestCase):
+class ErrorCountThresholdCheckTest(TestCase):
     def setUp(self):
         # 3 projects
         self.project1 = self.create_project(name="foo", organization=self.organization)
@@ -457,9 +457,6 @@ class ErrorCountThresholdCheckTest(APITestCase):
             "window_in_seconds": 60,
         }
         assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
-
-    def test_threshold_time_subset_within_timeseries(self):
-        pass
 
     def test_multiple_releases_within_timeseries(self):
         now = datetime.utcnow()
