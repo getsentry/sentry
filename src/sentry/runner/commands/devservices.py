@@ -665,6 +665,7 @@ def check_vroom(containers: dict[str, Any]) -> None:
 def check_clickhouse(containers: dict[str, Any]) -> None:
     options = containers["clickhouse"]
     port = options["ports"]["8123/tcp"]
+
     subprocess.run(
         (
             "docker",
@@ -752,6 +753,38 @@ def check_chartcuterie(containers: dict[str, Any]) -> None:
     )
 
 
+def check_snuba(containers: dict[str, Any]) -> None:
+    options = containers["snuba"]
+    port = options["ports"]["1218/tcp"]
+
+    SNUBA_HEALTH_PROG = (
+        """\
+import urllib.request
+try:
+    req = urllib.request.urlopen('"""
+        + f"http://{port[0]}:{port[1]}/health_envoy"
+        + """', timeout=1)
+except Exception as e:
+    raise SystemExit(f'snuba is not ready: {e}')
+else:
+    print('snuba is ready!')
+"""
+    )
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            SNUBA_HEALTH_PROG,
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -762,9 +795,16 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
+<<<<<<< HEAD
     "clickhouse": ServiceHealthcheck(check=check_clickhouse),
     "kafka": ServiceHealthcheck(check=check_kafka),
     "vroom": ServiceHealthcheck(check=check_vroom),
+<<<<<<< HEAD
     "symbolicator": ServiceHealthcheck(check=check_symbolicator),
     "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
+=======
+=======
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=6, timeout=10),
+>>>>>>> 79562aa75a (Add snuba healthcheck)
+>>>>>>> 1cf8f30c51 (Add snuba healthcheck)
 }
