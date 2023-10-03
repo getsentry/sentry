@@ -84,6 +84,8 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     if sentry_tags:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             if relay_tag not in sentry_tags:
+                if snuba_tag == "group":
+                    metrics.incr("spans.missing_group")
                 continue
             tag_value = sentry_tags.pop(relay_tag)
             if snuba_tag == "group":
