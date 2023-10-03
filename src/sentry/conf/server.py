@@ -2743,7 +2743,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HTTP_PORT": "8123",
                 "DEFAULT_BROKERS": ""
                 if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9092",
+                else "{containers[kafka][name]}:9093",
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
