@@ -7,11 +7,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 interface Props {
-  feedbackId: string;
-  projectSlug: string;
+  feedbackSlug: string;
 }
 
-export default function FeedbackItemLoader({feedbackId, projectSlug}: Props) {
+export default function FeedbackItemLoader({feedbackSlug}: Props) {
+  const [projectSlug, feedbackId] = feedbackSlug.split(':');
+
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
 

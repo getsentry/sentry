@@ -1,10 +1,12 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import FeedbackDetails from 'sentry/components/feedback/details/feedbackDetails';
+import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
+import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
-import FeedbackIndex from 'sentry/components/feedback/index/feedbackIndex';
+import FeedbackIndexLoader from 'sentry/components/feedback/index/feedbackIndexLoader';
+import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -12,12 +14,23 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props extends RouteComponentProps<{}, {}, {}> {}
 
 export default function FeedbackListPage({}: Props) {
+  const location = useLocation();
+  const query = useFeedbackListQueryParams({
+    location,
+    queryReferrer: 'feedback_list_page',
+  });
+
   const organization = useOrganization();
+
+  const feedbackSlug = decodeScalar(location.query.feedbackSlug);
 
   return (
     <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
@@ -39,8 +52,16 @@ export default function FeedbackListPage({}: Props) {
           <LayoutGrid>
             <FeedbackFilters style={{gridArea: 'filters'}} />
             <FeedbackSearch style={{gridArea: 'search'}} />
-            <FeedbackIndex style={{gridArea: 'list'}} />
-            <FeedbackDetails style={{gridArea: 'details'}} />
+            <Container style={{gridArea: 'list'}}>
+              <FeedbackIndexLoader query={query} />
+            </Container>
+            <Container style={{gridArea: 'details'}}>
+              {feedbackSlug ? (
+                <FeedbackItemLoader feedbackSlug={feedbackSlug} />
+              ) : (
+                <FeedbackEmptyDetails />
+              )}
+            </Container>
           </LayoutGrid>
         </PageFiltersContainer>
       </FullViewport>
@@ -64,4 +85,9 @@ const LayoutGrid = styled('div')`
     'list details';
   gap: ${space(2)};
   place-items: stretch;
+`;
+
+const Container = styled(FluidHeight)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
