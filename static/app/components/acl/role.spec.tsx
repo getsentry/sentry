@@ -124,7 +124,7 @@ describe('Role', function () {
 
     it('handles no organization.orgRoleList', function () {
       render(
-        <Role role="member" organization={{...organization, orgRoleList: undefined}}>
+        <Role role="member" organization={{...organization, orgRoleList: []}}>
           {childrenMock}
         </Role>,
         {context: routerContext}
