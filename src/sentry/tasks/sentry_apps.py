@@ -306,7 +306,7 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
         "comment": data.get("comment"),
     }
     send_webhooks(installation=install, event=type, data=payload, actor=user)
-    # type is comment.created, comment.updated, or comment.deleted
+    # `type` is comment.created, comment.updated, or comment.deleted
     analytics.record(
         type,
         user_id=user_id,

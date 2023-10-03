@@ -571,8 +571,8 @@ def _process_checkin(
 
 
 def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
-    # XXX: Relay does not attach a message type, to properly discriminate the
-    # type we add it by default here. This can be removed once the message_type
+    # XXX: Relay does not attach a message type, to properly discriminate
+    # we add it by default here. This can be removed once the message_type
     # is guaranteed
     if "message_type" not in wrapper:
         wrapper["message_type"] = "check_in"

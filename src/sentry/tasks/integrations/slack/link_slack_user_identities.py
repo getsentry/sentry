@@ -28,7 +28,7 @@ def link_slack_user_identities(
         integration = integration_service.get_integration(integration_id=integration_id)
     if organization_id is not None:
         organization = organization_service.get_organization_by_id(id=organization_id).organization
-    assert organization and integration  # type narrowing
+    assert organization is not None and integration is not None
 
     emails_by_user = UserEmail.objects.get_emails_by_user(organization=organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)

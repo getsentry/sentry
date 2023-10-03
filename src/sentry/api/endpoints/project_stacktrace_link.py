@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Dict, List, Mapping, Optional
 
@@ -157,7 +159,7 @@ def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConf
         project=project, organization_integration_id__isnull=False
     )
 
-    sorted_configs = []  # type: List[RepositoryProjectPathConfig]
+    sorted_configs: list[RepositoryProjectPathConfig] = []
 
     try:
         for config in configs:

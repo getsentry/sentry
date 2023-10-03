@@ -538,8 +538,8 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     # good enough as we do not expect subclasses, secondly however because
                     # it turns out doing an isinstance check on untrusted input can cause
                     # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain
-                    # types of broken lazy proxy objects.
+                    # blows through max recursion limits here if it encounters certain types
+                    # of broken lazy proxy objects.
                     if type(first_arg) is state.base and info.function in state.used_db:
                         state.used_db[info.function] = True
                         break
