@@ -12,11 +12,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
-from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models import Project, RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -216,13 +216,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(
-            organizationintegration__organization_id=project.organization_id
-        )
+        integrations = integration_service.get_integrations(organization_id=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
+        serializer = IntegrationSerializer()
         result["integrations"] = [
-            serialize(i, request.user)
+            serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]

@@ -113,7 +113,7 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -265,7 +265,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)
