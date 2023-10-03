@@ -354,8 +354,9 @@ def run_symbolicate(
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
+    is_js = profile["platform"] in SHOULD_SYMBOLICATE_JS
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(),
+        task_kind=SymbolicatorTaskKind(is_js=is_js),
         on_request=on_symbolicator_request,
         project=project,
         event_id=profile["event_id"],
