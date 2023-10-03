@@ -13,6 +13,8 @@ describe('Organization Rate Limits', function () {
     quota: {
       projectLimit: 75,
       accountLimit: 70000,
+      maxRate: null,
+      maxRateInterval: null,
     },
   });
 
@@ -44,6 +46,8 @@ describe('Organization Rate Limits', function () {
       quota: {
         maxRate: 100,
         maxRateInterval: 60,
+        projectLimit: null,
+        accountLimit: null,
       },
     });
 
