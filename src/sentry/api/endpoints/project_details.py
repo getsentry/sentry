@@ -514,7 +514,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked` only.
+        `isBookmarked` and `isSubscribed`.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
@@ -726,8 +726,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        options = result.get("options", {})
         if has_elevated_scopes:
+            options = result.get("options", {})
             if "sentry:origins" in options:
                 project.update_option(
                     "sentry:origins", clean_newline_inputs(options["sentry:origins"])
