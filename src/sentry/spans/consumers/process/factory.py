@@ -97,10 +97,10 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
                         metrics.incr("spans.invalid_group")
             elif snuba_tag == "status_code":
                 try:
-                    # Test if the value is valid hexadecimal.
+                    # Test if the value is a valid integer.
                     _ = int(tag_value)
                     # If valid, set the raw value to the tag.
-                    sentry_tags[snuba_tag] = str(tag_value)
+                    sentry_tags[snuba_tag] = tag_value
                 except ValueError:
                     metrics.incr("spans.invalid_status_code")
             elif tag_value is not None:
