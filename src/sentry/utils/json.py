@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
+from contextlib import contextmanager
 from enum import Enum
 from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
@@ -129,9 +130,20 @@ def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
     return loads(fp.read())
 
 
+@contextmanager
+def dummy_context_manager():
+    yield None
+
+
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+def loads(
+    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
+) -> JSONData:
+    with (
+        sentry_sdk.start_span(op="sentry.utils.json.loads")
+        if not skip_trace
+        else dummy_context_manager()
+    ):
         if use_rapid_json is True:
             return rapidjson.loads(value)
         else:
