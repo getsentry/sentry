@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useCallback, useMemo} from 'react';
+import {ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -10,7 +10,7 @@ import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
-import {tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -48,7 +48,8 @@ export function transformSelectorQuery(selector: string) {
   return selector
     .replaceAll('"', `\\"`)
     .replaceAll('aria=', 'aria-label=')
-    .replaceAll('testid=', 'data-test-id=');
+    .replaceAll('testid=', 'data-test-id=')
+    .replaceAll(':', '\\:');
 }
 
 interface Props {
@@ -113,11 +114,7 @@ export default function SelectorTable({
           );
         case 'element':
         case 'aria_label':
-          return (
-            <TextOverflow>
-              <code>{value}</code>
-            </TextOverflow>
-          );
+          return <TextOverflow>{value}</TextOverflow>;
         default:
           return renderClickCount<DeadRageSelectorItem>(column, dataRow);
       }
@@ -154,16 +151,7 @@ export function SelectorLink({
   const organization = useOrganization();
   const location = useLocation();
   return (
-    <Tooltip
-      title={tct('Search for replays with clicks on: [selector]', {
-        selector: (
-          <Fragment>
-            <br />
-            <code>{value}</code>
-          </Fragment>
-        ),
-      })}
-    >
+    <StyledTextOverflow>
       <Link
         to={{
           pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
@@ -174,11 +162,14 @@ export function SelectorLink({
           },
         }}
       >
-        <StyledTextOverflow>
-          <code>{value}</code>
-        </StyledTextOverflow>
+        <StyledTooltip
+          position="top-start"
+          title={t('Search for replays with clicks on this selector')}
+        >
+          {value}
+        </StyledTooltip>
       </Link>
-    </Tooltip>
+    </StyledTextOverflow>
   );
 }
 
@@ -203,7 +194,9 @@ const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
-  & code {
-    color: ${p => p.theme.blue300};
-  }
+  color: ${p => p.theme.blue300};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: inherit;
 `;

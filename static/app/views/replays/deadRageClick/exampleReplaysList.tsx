@@ -74,15 +74,14 @@ export default function ExampleReplaysList({
 
   return (
     <Fragment>
-      {isFetching && (
-        <StatusContainer>
-          <LoadingIndicator />
-        </StatusContainer>
-      )}
       {fetchError || (!isFetching && !replays?.length) ? (
         <EmptyStateWarning withIcon={false} small>
           {t('No replays found')}
         </EmptyStateWarning>
+      ) : isFetching ? (
+        <StatusContainer>
+          <LoadingIndicator />
+        </StatusContainer>
       ) : (
         replays?.map(r => {
           return (
@@ -94,6 +93,7 @@ export default function ExampleReplaysList({
               referrer={referrer}
               showUrl={false}
               referrer_table="selector-widget"
+              isWidget
             />
           );
         })

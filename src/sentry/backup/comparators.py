@@ -703,7 +703,7 @@ def get_default_comparators():
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                DateUpdatedComparator("last_password_change"),
+                DateUpdatedComparator("last_active", "last_password_change"),
                 # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
                 # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
                 # comparison.
