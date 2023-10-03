@@ -32,7 +32,7 @@ class GzippedDictField(TextField):
         try:
             if not value:
                 return {}
-            return json.loads(value)
+            return json.loads(value, skip_trace=True)
         except (ValueError, TypeError):
             if isinstance(value, str) and value:
                 try:
