@@ -109,7 +109,7 @@ function AccordionWidget({
       {isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
           <EmptyStateWarning>
-            <p>{t('No results found')}</p>
+            <div>{t('No results found')}</div>
             <EmptySubtitle>
               {t(
                 "Once your users start clicking around, you'll see the top selectors here."
@@ -283,6 +283,7 @@ export const RightAlignedCell = styled('div')`
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 2em;
 `;
 
 export default DeadRageSelectorCards;

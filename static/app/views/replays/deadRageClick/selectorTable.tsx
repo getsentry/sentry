@@ -222,6 +222,6 @@ const Title = styled('div')`
 const MessageContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(2)};
+  gap: ${space(1)};
   justify-items: center;
 `;
