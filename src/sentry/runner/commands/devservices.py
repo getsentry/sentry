@@ -651,6 +651,25 @@ def check_redis(containers: dict[str, Any]) -> None:
     )
 
 
+def check_clickhouse(containers: dict[str, Any]) -> None:
+    options = containers["clickhouse"]
+    port = options["ports"]["8123/tcp"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            # Using wget instead of curl as that is what is available
+            # in the clickhouse image
+            "wget",
+            f"http://{port[0]}:{port[1]}/ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -661,4 +680,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
+    "clickhouse": ServiceHealthcheck(check=check_clickhouse),
 }
