@@ -669,7 +669,7 @@ class ErrorCountThresholdCheckTest(APITestCase):
                 "release": self.release1.version,
                 "project_id": self.project1.id,
                 "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": "foo",
+                "environment": "canary",
                 "count()": 2,
             },
             {
@@ -683,7 +683,7 @@ class ErrorCountThresholdCheckTest(APITestCase):
                 "release": self.release1.version,
                 "project_id": self.project1.id,
                 "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": "foo",
+                "environment": "canary",
                 "count()": 2,
             },
             {
@@ -697,7 +697,7 @@ class ErrorCountThresholdCheckTest(APITestCase):
                 "release": self.release1.version,
                 "project_id": self.project1.id,
                 "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": "foo",
+                "environment": "canary",
                 "count()": 2,
             },
             {
@@ -711,7 +711,7 @@ class ErrorCountThresholdCheckTest(APITestCase):
                 "release": self.release1.version,
                 "project_id": self.project1.id,
                 "time": now.isoformat(),
-                "environment": "foo",
+                "environment": "canary",
                 "count()": 2,
             },
         ]
