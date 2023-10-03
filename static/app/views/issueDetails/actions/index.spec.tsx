@@ -208,10 +208,10 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = {
+    const org = Organization({
       ...organization,
       access: [...organization.access, 'event:admin'],
-    };
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'PUT',

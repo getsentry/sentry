@@ -149,10 +149,10 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('shows a guide for org-owner/manager', () => {
-    const adminAccessOrg = {
+    const adminAccessOrg = Organization({
       ...organization,
       access: ['org:write'],
-    };
+    });
 
     render(<CreateAlertButton organization={adminAccessOrg} showPermissionGuide />, {
       organization: adminAccessOrg,

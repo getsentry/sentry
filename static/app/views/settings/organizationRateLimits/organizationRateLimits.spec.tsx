@@ -9,13 +9,12 @@ import OrganizationRateLimits, {
 const ENDPOINT = '/organizations/org-slug/';
 
 describe('Organization Rate Limits', function () {
-  const organization = {
-    ...Organization(),
+  const organization = Organization({
     quota: {
       projectLimit: 75,
       accountLimit: 70000,
     },
-  };
+  });
 
   const renderComponent = (props?: Partial<OrganizationRateLimitProps>) =>
     render(
@@ -40,13 +39,13 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with maxRate and maxRateInterval set', function () {
-    const org = {
+    const org = Organization({
       ...organization,
       quota: {
         maxRate: 100,
         maxRateInterval: 60,
       },
-    };
+    });
 
     renderComponent({organization: org});
 
