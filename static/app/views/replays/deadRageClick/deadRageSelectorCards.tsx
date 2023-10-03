@@ -136,6 +136,7 @@ function AccordionWidget({
                     location={location}
                     clickType={clickType}
                     selectorQuery={selectorQuery}
+                    projectId={d.project_id}
                   />
                 ),
               };
