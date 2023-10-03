@@ -12,6 +12,7 @@ from .metrics import (  # NOQA
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from .profile_functions import (  # NOQA
     ProfileFunctionsQueryBuilder,
@@ -60,5 +61,6 @@ __all__ = [
     "TopEventsSpanIndexedQueryBuilder",
     "TimeseriesSessionsV2QueryBuilder",
     "TimeseriesSpansMetricsQueryBuilder",
+    "TopMetricsQueryBuilder",
     "TopSpansMetricsQueryBuilder",
 ]
