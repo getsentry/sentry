@@ -50,7 +50,10 @@ class PasswordValidationTestCase(TestCase):
     @responses.activate
     @override_settings(
         AUTH_PASSWORD_VALIDATORS=[
-            {"NAME": "sentry.auth.password_validation.PwnedPasswordsValidator"}
+            {
+                "NAME": "sentry.auth.password_validation.PwnedPasswordsValidator",
+                "OPTIONS": {"threshold": 34},
+            }
         ]
     )
     def test_pwned_passwords(self):
@@ -65,3 +68,40 @@ class PasswordValidationTestCase(TestCase):
             match="This password has previously appeared in data breaches 34 times.",
         ):
             validate_password("hiphophouse")
+
+    @responses.activate
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "sentry.auth.password_validation.PwnedPasswordsValidator",
+                "OPTIONS": {"threshold": 35},
+            }
+        ]
+    )
+    def test_pwned_passwords_low_threshold(self):
+        responses.add(
+            responses.GET,
+            "https://api.pwnedpasswords.com/range/74BA3",
+            body=PWNED_PASSWORDS_RESPONSE_MOCK,
+        )
+        try:
+            validate_password("hiphophouse")
+        except ValidationError:
+            assert False, "ValidationError was thrown"
+
+    @responses.activate
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "sentry.auth.password_validation.PwnedPasswordsValidator"}
+        ]
+    )
+    def test_pwned_passwords_corrupted_content(self):
+        responses.add(
+            responses.GET,
+            "https://api.pwnedpasswords.com/range/74BA3",
+            body="corrupted_content_with_no_colon",
+        )
+        try:
+            validate_password("hiphophouse")
+        except ValidationError:
+            assert False, "ValidationError was thrown"
