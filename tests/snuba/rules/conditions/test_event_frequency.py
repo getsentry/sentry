@@ -431,7 +431,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class ErrorIssueFrequencyConditionTestCase(
     EventFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
 ):
@@ -439,7 +439,7 @@ class ErrorIssueFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
@@ -449,7 +449,7 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     EventUniqueUserFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
 ):
@@ -457,7 +457,7 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -467,7 +467,7 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     EventFrequencyPercentConditionTestCase, RuleTestCase, ErrorEventMixin
 ):
@@ -475,7 +475,7 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=True)
+@region_silo_test
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,
