@@ -584,7 +584,9 @@ class GroupSerializerBase(Serializer, ABC):
                 project_ids=project_ids,
                 type=NotificationSettingEnum.WORKFLOW,
             )
-            query_groups = {group for group in groups if (enabled_settings[group.project_id][1])}
+            query_groups = {
+                group for group in groups if (not enabled_settings[group.project_id][2])
+            }
             subscriptions_by_group_id: dict[int, GroupSubscription] = {
                 subscription.group_id: subscription
                 for subscription in GroupSubscription.objects.filter(
@@ -595,7 +597,7 @@ class GroupSerializerBase(Serializer, ABC):
 
             results = {}
             for project_id, group_set in groups_by_project.items():
-                (disabled_settings, has_enabled_settings) = enabled_settings[project_id]
+                (disabled_settings, has_enabled_settings, _) = enabled_settings[project_id]
                 for group in group_set:
                     subscription = subscriptions_by_group_id.get(group.id)
                     if subscription:

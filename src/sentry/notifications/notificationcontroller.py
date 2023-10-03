@@ -384,7 +384,7 @@ class NotificationController:
 
         return setting_option_and_providers
 
-    def get_settings_options_for_user_by_projects(
+    def get_settings_for_user_by_projects(
         self, user: Recipient
     ) -> MutableMapping[
         int,
@@ -420,16 +420,16 @@ class NotificationController:
         user: Recipient,
         project_ids: Iterable[int],
         type: NotificationSettingEnum | None = None,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
         """
         Returns whether the user is subscribed for each project.
-        {project_id -> (is_disabled, is_active)}
+        {project_id -> (is_disabled, is_active, has only inactive subscriptions)}
         """
         setting_type = type or self.type
         if not setting_type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_settings_options_for_user_by_projects(user)
+        enabled_settings = self.get_settings_for_user_by_projects(user)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
             has_setting = False
@@ -446,10 +446,13 @@ class NotificationController:
                     any(
                         value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
                     ),
+                    all(
+                        value == NotificationSettingsOptionEnum.NEVER for value in setting.values()
+                    ),
                 )
 
             if not has_setting:
-                subscription_status_for_projects[project] = (False, False)
+                subscription_status_for_projects[project] = (True, False, True)
 
         return subscription_status_for_projects
 

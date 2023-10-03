@@ -223,7 +223,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
         user = user_service.get_user(user_id)
         if not user:
             return {}

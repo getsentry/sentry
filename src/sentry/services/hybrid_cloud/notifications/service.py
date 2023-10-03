@@ -142,7 +142,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
         pass
 
     @rpc_method
