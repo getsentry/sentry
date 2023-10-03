@@ -1,7 +1,7 @@
+import logging
 from hashlib import sha1
 
 import requests
-import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
@@ -10,6 +10,8 @@ from django.utils.translation import ngettext
 
 from sentry import options
 from sentry.utils.imports import import_string
+
+logger = logging.getLogger(__name__)
 
 
 def get_default_password_validators():
@@ -123,9 +125,13 @@ class PwnedPasswordsValidator:
         try:
             r = requests.get(url, headers=headers, timeout=self.timeout)
         except Exception as e:
-            sentry_sdk.set_extra("exception", str(e))
-            sentry_sdk.set_extra("prefix", prefix)
-            sentry_sdk.capture_message("Unable to fetch PwnedPasswords API", level="warning")
+            logger.warning(
+                "Unable to fetch PwnedPasswords API",
+                extra={
+                    "exception": str(e),
+                    "prefix": prefix,
+                },
+            )
             return
 
         for line in r.text.split("\n"):
