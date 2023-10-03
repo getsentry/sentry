@@ -33,9 +33,6 @@ TAG_MAPPING = {
     "span.status": "status",
     "span.status_code": "status_code",
     "span.system": "system",
-    "transaction": "transaction",
-    "transaction.method": "transaction.method",
-    "transaction.op": "transaction.op",
 }
 SPAN_SCHEMA_V1 = 1
 SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
@@ -56,8 +53,6 @@ def get_organization(project_id: int) -> Tuple[Organization, int]:
 
 
 def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    span_data: Mapping[str, Any] = relay_span.get("sentry_tags", {})
-
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
@@ -83,11 +78,12 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
         0,
     )
 
-    sentry_tags: MutableMapping[str, Any] = {}
-
-    if span_data:
+    sentry_tags: dict[str, Any] = relay_span.get("sentry_tags", {}) or {}
+    if sentry_tags:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            tag_value = span_data.get(relay_tag)
+            if relay_tag not in sentry_tags:
+                continue
+            tag_value = sentry_tags.pop(relay_tag)
             if snuba_tag == "group":
                 if tag_value is None:
                     metrics.incr("spans.missing_group")
@@ -96,9 +92,17 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
                         # Test if the value is valid hexadecimal.
                         _ = int(tag_value, 16)
                         # If valid, set the raw value to the tag.
-                        sentry_tags["group"] = tag_value
+                        sentry_tags[snuba_tag] = tag_value
                     except ValueError:
                         metrics.incr("spans.invalid_group")
+            elif snuba_tag == "status_code":
+                try:
+                    # Test if the value is valid hexadecimal.
+                    _ = int(tag_value)
+                    # If valid, set the raw value to the tag.
+                    sentry_tags[snuba_tag] = str(tag_value)
+                except ValueError:
+                    metrics.incr("spans.invalid_status_code")
             elif tag_value is not None:
                 sentry_tags[snuba_tag] = tag_value
 
@@ -108,9 +112,9 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     if "status" not in sentry_tags and (status := relay_span.get("status", "")) is not None:
         sentry_tags["status"] = status
 
-    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
+    snuba_span["sentry_tags"] = sentry_tags
 
-    _process_group_raw(snuba_span, span_data.get("transaction", ""))
+    _process_group_raw(snuba_span, sentry_tags.get("transaction", ""))
 
     return snuba_span
 
