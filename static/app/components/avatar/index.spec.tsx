@@ -144,7 +144,7 @@ describe('Avatar', function () {
     it('can display an organization Avatar', function () {
       const organization = Organization({
         slug: 'test-organization',
-        avatar: {avatarType: 'letter_avatar'},
+        avatar: {avatarType: 'letter_avatar', avatarUuid: ''},
       });
 
       render(<AvatarComponent organization={organization} />);
