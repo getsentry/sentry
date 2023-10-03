@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -12,6 +13,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -98,6 +100,18 @@ export function CronsLandingPanel() {
   const location = useLocation();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
+
+  useEffect(() => {
+    if (!platform || !guide) {
+      return;
+    }
+
+    trackAnalytics('landing_page.platform_guide.viewed', {
+      organization,
+      platform,
+      guide,
+    });
+  }, [organization, platform, guide]);
 
   const navigateToPlatformGuide = (
     selectedPlatform: SupportedPlatform | null,
