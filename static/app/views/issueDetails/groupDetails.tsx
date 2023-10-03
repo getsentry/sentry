@@ -23,7 +23,14 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, GroupStatus, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  Group,
+  GroupStatus,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -747,6 +754,9 @@ function GroupDetailsContent({
 
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
+  const api = useApi();
+  const organization = useOrganization();
+  const [injectedEvent, setInjectedEvent] = useState(null);
   const {
     projects,
     initiallyLoaded: projectsLoaded,
@@ -770,6 +780,28 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     }
   }, [props.group, project, projects, projectsLoaded]);
 
+  useEffect(() => {
+    const fetchLatestEvent = async () => {
+      const event = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
+      );
+      setInjectedEvent(event);
+    };
+    if (
+      props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+      !defined(props.event)
+    ) {
+      fetchLatestEvent();
+    }
+  }, [
+    api,
+    organization.slug,
+    props.event,
+    props.group,
+    props.group?.id,
+    props.group?.issueType,
+  ]);
+
   if (props.error) {
     return (
       <GroupDetailsContentError errorType={props.errorType} onRetry={props.refetchData} />
@@ -786,12 +818,25 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     );
   }
 
-  if (!projectsLoaded || !projectWithFallback || !props.group) {
+  const isRegressionIssue =
+    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
+  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
+  if (
+    !projectsLoaded ||
+    !projectWithFallback ||
+    !props.group ||
+    (isRegressionIssue && !regressionIssueLoaded)
+  ) {
     return <LoadingIndicator />;
   }
 
   return (
-    <GroupDetailsContent {...props} project={projectWithFallback} group={props.group} />
+    <GroupDetailsContent
+      {...props}
+      project={projectWithFallback}
+      group={props.group}
+      event={props.event ?? injectedEvent}
+    />
   );
 }
 

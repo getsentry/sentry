@@ -163,6 +163,8 @@ export const useFetchIssueTagsForDetailsPage = (
     isStatisticalDetector?: boolean;
     statisticalDetectorParameters?: {
       durationBaseline: number;
+      end: string;
+      start: string;
       transaction: string;
     };
   },
