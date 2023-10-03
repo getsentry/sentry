@@ -105,7 +105,7 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
 
 
 class _ProjectSummaryStats(TypedDict):  # this response is pretty dynamic, leaving generic
-    id: int
+    id: str
     slug: str
     stats: List[Dict[str, Any]]
 

@@ -114,7 +114,7 @@ class OrganizationExamples:
 
     UPDATE_ORG_MEMBER = [
         OpenApiExample(
-            "Get summary stats for projects in an organization",
+            "Update Successful",
             value={
                 "id": "57377908164",
                 "email": "sirpenguin@antarcticarocks.com",
