@@ -196,25 +196,29 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
-  getDocsProviderKey(): string {
+  getDocsLink(): string {
     /** Accounts for some asymmetry between docs links and provider keys */
     const {integration} = this.props;
+    let docsKey = integration.provider.key;
     switch (integration.provider.key) {
       case 'vsts':
-        return 'azure-devops';
+        docsKey = 'azure-devops';
+        break;
       case 'github_enterprise':
-        return 'github';
+        docsKey = 'github';
+        break;
       default:
-        return integration.provider.key;
+        docsKey = integration.provider.key;
+        break;
     }
+    return `https://docs.sentry.io/product/integrations/source-code-mgmt/${docsKey}/#stack-trace-linking`;
   }
 
   renderBody() {
     const pathConfigs = this.pathConfigs;
     const {integration} = this.props;
     const {pathConfigsPageLinks} = this.state;
-    const docsKey = this.getDocsProviderKey();
-    const docsLink = `https://docs.sentry.io/product/integrations/source-code-mgmt/${docsKey}/#stack-trace-linking`;
+    const docsLink = this.getDocsLink();
 
     return (
       <Fragment>
