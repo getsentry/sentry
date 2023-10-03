@@ -2676,7 +2676,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:7.5.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
             "ports": {"9092/tcp": 9092},
             # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
             "environment": {
