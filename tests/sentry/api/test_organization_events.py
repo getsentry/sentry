@@ -145,3 +145,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_valid_referrer(self, mock):
+        mock.return_value = {}
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.transaction-summary",
+            "project": [self.project.id],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
