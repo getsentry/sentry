@@ -540,12 +540,11 @@ class MonitorTaskCheckMissingTest(TestCase):
 
 class MonitorTaskCheckTimeoutTest(TestCase):
     @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
-    def test_timeout_with_no_future_complete_checkin(self, mark_checkin_timeout_mock):
+    def test_timeout(self, mark_checkin_timeout_mock):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, sub_task_run_ts, ts = make_ref_time()
-        check_in_24hr_ago = ts - timedelta(hours=24)
+        task_run_ts, sub_task_run_ts, ts = make_ref_time(hour=0, minute=0)
 
         # Schedule is once a day
         monitor = Monitor.objects.create(
@@ -556,30 +555,19 @@ class MonitorTaskCheckTimeoutTest(TestCase):
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",
                 "checkin_margin": None,
-                "max_runtime": None,
+                "max_runtime": 30,
             },
         )
-        # Next checkin should have been 24 hours ago
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=check_in_24hr_ago - timedelta(hours=24),
-            next_checkin=check_in_24hr_ago,
-            next_checkin_latest=check_in_24hr_ago + timedelta(minutes=1),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
             status=MonitorStatus.OK,
         )
-        # In progress started 24hr ago
-        checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=project.id,
-            status=CheckInStatus.IN_PROGRESS,
-            date_added=check_in_24hr_ago,
-            date_updated=check_in_24hr_ago,
-            timeout_at=check_in_24hr_ago + timedelta(minutes=30),
-        )
-        # We started another checkin right now
-        checkin2 = MonitorCheckIn.objects.create(
+        # Checkin will timeout in 30 minutes
+        checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=project.id,
@@ -589,20 +577,118 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             timeout_at=ts + timedelta(minutes=30),
         )
 
-        assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
-
-        # Running check monitor will mark the first checkin as timed out, but
-        # the second checkin is not yet timed out.
+        # Does not time out at 12:00
         check_timeout(task_run_ts)
+        assert mark_checkin_timeout_mock.delay.call_count == 0
 
-        # assert that task is called for the specific checkin
+        # Does not time out at 12:29
+        check_timeout(task_run_ts + timedelta(minutes=29))
+        assert mark_checkin_timeout_mock.delay.call_count == 0
+
+        # Timout at 12:30
+        check_timeout(task_run_ts + timedelta(minutes=30))
+        assert mark_checkin_timeout_mock.delay.call_count == 1
+        assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
+            checkin.id,
+            sub_task_run_ts + timedelta(minutes=30),
+        )
+        mark_checkin_timeout(
+            checkin.id,
+            sub_task_run_ts + timedelta(minutes=30),
+        )
+
+        # Check in is marked as timed out
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
+
+        # Monitor is marked as timed out
+        monitor_env = MonitorEnvironment.objects.filter(
+            id=monitor_environment.id,
+            status=MonitorStatus.TIMEOUT,
+        )
+        assert monitor_env.exists()
+
+        # Next check-in time has NOT changed
+        assert monitor_env[0].next_checkin == ts + timedelta(hours=24)
+
+    @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
+    def test_timeout_with_overlapping_concurrent_checkins(self, mark_checkin_timeout_mock):
+        """
+        Tests the scenario where the max_runtime is larger than the gap between
+        the schedule.
+        """
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        task_run_ts, sub_task_run_ts, ts = make_ref_time(hour=0)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                # Every hour, 90 minute run time allowed
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 * * * *",
+                "checkin_margin": None,
+                "max_runtime": 90,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=1),
+            next_checkin_latest=ts + timedelta(hours=1, minutes=1),
+            status=MonitorStatus.OK,
+        )
+
+        # In progress started an hour ago
+        checkin1_start = ts - timedelta(hours=1)
+
+        # Timesout 90 minutes from when it started
+        checkin1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=checkin1_start,
+            date_updated=checkin1_start,
+            timeout_at=checkin1_start + timedelta(minutes=90),
+        )
+
+        # Second check in was started now, giving us the the overlapping
+        # "concurrent" checkin scenario.
+        checkin2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=90),
+        )
+
+        # Nothing happens running the task now. Both check-ins are running
+        # concurrently.
+        check_timeout(task_run_ts)
+        assert mark_checkin_timeout_mock.delay.call_count == 0
+
+        # First checkin has not timed out yet
+        check_timeout(task_run_ts + timedelta(minutes=29))
+        assert mark_checkin_timeout_mock.delay.call_count == 0
+
+        # First checkin timed out
+        check_timeout(task_run_ts + timedelta(minutes=30))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin1.id,
-            sub_task_run_ts,
+            sub_task_run_ts + timedelta(minutes=30),
         )
 
-        mark_checkin_timeout(checkin1.id, sub_task_run_ts)
+        mark_checkin_timeout(
+            checkin1.id,
+            sub_task_run_ts + timedelta(minutes=30),
+        )
 
         # First checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin1.id, status=CheckInStatus.TIMEOUT).exists()
@@ -612,13 +698,146 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        # XXX(epurkhiser): At the moment we mark the monitor with the MOST
-        # RECENT updated checkin's status. In this scenario we actually already
-        # have checkin2 in progress, but because we just marked checkin1
-        # as timed out it is not updated
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.TIMEOUT
-        ).exists()
+        # XXX(epurkhiser): We do NOT update the MonitorStatus, another check-in
+        # has already happened. It may be worth re-visiting this logic later.
+        monitor_env = MonitorEnvironment.objects.filter(
+            id=monitor_environment.id,
+            status=MonitorStatus.OK,
+        )
+        assert monitor_env.exists()
+
+        # Next check-in time has NOT changed
+        assert monitor_env[0].next_checkin == ts + timedelta(hours=1)
+
+    @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
+    def test_timeout_at_next_checkin_time(self, mark_checkin_timeout_mock):
+        """
+        Test that timeouts that happen the same time we expect another check-in
+        """
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        task_run_ts, sub_task_run_ts, ts = make_ref_time(hour=1, minute=0)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                # Every hour, 90 minute run time allowed
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 * * * *",
+                "checkin_margin": None,
+                "max_runtime": 60,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            last_checkin=ts - timedelta(hours=1),
+            next_checkin=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
+            status=MonitorStatus.OK,
+        )
+
+        # In progress started an hour ago
+        checkin_start_time = ts - timedelta(hours=1)
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=checkin_start_time,
+            date_updated=checkin_start_time,
+            timeout_at=checkin_start_time + timedelta(hours=1),
+        )
+
+        # Check in was marked as timed out
+        check_timeout(task_run_ts)
+        assert mark_checkin_timeout_mock.delay.call_count == 1
+        assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
+            checkin.id,
+            sub_task_run_ts,
+        )
+        mark_checkin_timeout(checkin.id, sub_task_run_ts)
+
+        # First checkin is marked as timed out
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
+
+        # Monitor was marked as timed out
+        monitor_env = MonitorEnvironment.objects.filter(
+            id=monitor_environment.id,
+            status=MonitorStatus.TIMEOUT,
+        )
+        assert monitor_env.exists()
+
+        # Next check-in time has NOT changed, it will be happening now
+        assert monitor_env[0].next_checkin == ts
+
+    @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
+    def test_timeout_using_interval(self, mark_checkin_timeout_mock):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        task_run_ts, sub_task_run_ts, ts = make_ref_time(hour=0, minute=0)
+
+        # Schedule is once a day
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule_type": ScheduleType.INTERVAL,
+                "schedule": [10, "minute"],
+                "checkin_margin": None,
+                "max_runtime": 5,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            last_checkin=ts,
+            next_checkin=ts + timedelta(minutes=10),
+            next_checkin_latest=ts + timedelta(minutes=11),
+            status=MonitorStatus.OK,
+        )
+        # Checkin will timeout in 5 minutes
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=5),
+        )
+
+        # Timout at 12:05
+        check_timeout(task_run_ts + timedelta(minutes=5))
+        assert mark_checkin_timeout_mock.delay.call_count == 1
+        assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
+            checkin.id,
+            sub_task_run_ts + timedelta(minutes=5),
+        )
+        mark_checkin_timeout(
+            checkin.id,
+            sub_task_run_ts + timedelta(minutes=5),
+        )
+
+        # Check in is marked as timed out
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
+
+        # Monitor is marked as timed out
+        monitor_env = MonitorEnvironment.objects.filter(
+            id=monitor_environment.id,
+            status=MonitorStatus.TIMEOUT,
+        )
+        assert monitor_env.exists()
+
+        # XXX(epurkhiser): Next check-in timeout is STILL 10 minutes from when
+        # we started our check-in. This is likely WRONG for the user, since we
+        # do't know when their system computed the next check-in.
+        assert monitor_env[0].next_checkin == ts + timedelta(minutes=10)
 
     @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
     def test_timeout_with_future_complete_checkin(self, mark_checkin_timeout_mock):
@@ -691,74 +910,8 @@ class MonitorTaskCheckTimeoutTest(TestCase):
 
         # Monitor does not change from OK to TIMED OUT since it was already OK.
         assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.OK
-        ).exists()
-
-    @mock.patch("sentry.monitors.tasks.mark_checkin_timeout")
-    def test_timeout_via_max_runtime_configuration(self, mark_checkin_timeout_mock):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        task_run_ts, sub_task_run_ts, ts = make_ref_time()
-        check_in_24hr_ago = ts - timedelta(hours=24)
-
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule_type": ScheduleType.CRONTAB,
-                "schedule": "0 0 * * *",
-                "checkin_margin": None,
-                "max_runtime": 60,
-            },
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            last_checkin=check_in_24hr_ago,
-            next_checkin=ts,
-            next_checkin_latest=ts + timedelta(minutes=1),
+            id=monitor_environment.id,
             status=MonitorStatus.OK,
-        )
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=project.id,
-            status=CheckInStatus.IN_PROGRESS,
-            date_added=ts,
-            date_updated=ts,
-            timeout_at=ts + timedelta(minutes=60),
-        )
-
-        assert checkin.date_added == checkin.date_updated == ts
-
-        # Running the check_monitors at 35 minutes does not mark the check-in as timed out, it's still allowed to be running
-        check_timeout(task_run_ts + timedelta(minutes=35))
-
-        # assert that task is not called for the specific checkin
-        assert mark_checkin_timeout_mock.delay.call_count == 0
-
-        assert MonitorCheckIn.objects.filter(
-            id=checkin.id, status=CheckInStatus.IN_PROGRESS
-        ).exists()
-
-        # After 60 minutes the checkin will be marked as timed out
-        check_timeout(task_run_ts + timedelta(minutes=60))
-
-        # assert that task is called for the specific checkin
-        assert mark_checkin_timeout_mock.delay.call_count == 1
-        assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
-            checkin.id,
-            sub_task_run_ts + timedelta(minutes=60),
-        )
-
-        mark_checkin_timeout(checkin.id, sub_task_run_ts + timedelta(minutes=60))
-
-        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
-
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
 
 

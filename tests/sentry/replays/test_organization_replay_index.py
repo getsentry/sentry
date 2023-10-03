@@ -1031,7 +1031,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 node_id=1,
                 tag="div",
                 id="myid",
-                class_=["class1", "class2"],
+                class_=["class1", "class2", "class:hover"],
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1077,6 +1077,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div#myid.class1.class2",
                 "dead.selector:div#myid",
                 "rage.selector:div#myid",
+                # Assert selectors with special characters in them can be queried.
+                "click.selector:div.class%5C:hover",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
                 "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
