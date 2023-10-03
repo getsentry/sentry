@@ -12,6 +12,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -140,14 +141,15 @@ export default function TagFacets({
     orgSlug: organization.slug,
     environment: environments,
     isStatisticalDetector,
-    statisticalDetectorParameters: breakpoint
-      ? {
-          transaction,
-          durationBaseline: aggregateRange2,
-          start: new Date(breakpoint * 1000).toISOString(),
-          end: new Date(requestEnd * 1000).toISOString(),
-        }
-      : undefined,
+    statisticalDetectorParameters:
+      isStatisticalDetector && defined(breakpoint) && defined(requestEnd)
+        ? {
+            transaction,
+            durationBaseline: aggregateRange2,
+            start: new Date(breakpoint * 1000).toISOString(),
+            end: new Date(requestEnd * 1000).toISOString(),
+          }
+        : undefined,
   });
 
   const tagsData = useMemo(() => {
