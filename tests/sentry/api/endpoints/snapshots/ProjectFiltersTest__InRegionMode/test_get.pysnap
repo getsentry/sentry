@@ -4,6 +4,8 @@ source: tests/sentry/api/endpoints/test_project_filters.py
 - active: false
   id: browser-extensions
 - active: true
+  id: chunk-load-error
+- active: true
   id: filtered-transaction
 - active: false
   id: legacy-browsers
