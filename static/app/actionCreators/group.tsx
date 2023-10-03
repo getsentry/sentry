@@ -188,7 +188,7 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
@@ -198,7 +198,7 @@ export function updateNote(
     }
   );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
