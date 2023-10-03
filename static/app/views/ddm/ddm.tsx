@@ -14,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import MetricsQueryDashboard from 'sentry/views/ddm/metricsQueryDashboard';
+import MetricDashboard from 'sentry/views/ddm/metricWidget';
 
 function DDM() {
   const organization = useOrganization();
@@ -49,7 +49,7 @@ function DDM() {
                   <DatePageFilter />
                 </PageFilterBar>
               </PaddedContainer>
-              <MetricsQueryDashboard />
+              <MetricDashboard />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

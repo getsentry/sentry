@@ -14,6 +14,7 @@ import {
   getUseCaseFromMri,
   isAllowedOp,
   MetricDisplayType,
+  MetricsQuery,
   useMetricsMeta,
   useMetricsTags,
 } from 'sentry/utils/metrics';
@@ -21,15 +22,15 @@ import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricsQueryWidgetConfig} from 'sentry/views/ddm/metricsQueryDashboard';
+import {MetricWidgetProps} from 'sentry/views/ddm/metricWidget';
 
-export function QueryBuilder({
-  metricsQuery,
-  onChange,
-}: {
-  metricsQuery: MetricsQueryWidgetConfig;
-  onChange: any;
-}) {
+type QueryBuilderProps = {
+  displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
+  metricsQuery: MetricsQuery;
+  onChange: (data: Partial<MetricWidgetProps>) => void;
+};
+
+export function QueryBuilder({metricsQuery, displayType, onChange}: QueryBuilderProps) {
   const {selection} = usePageFilters();
   const meta = useMetricsMeta(selection.projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
@@ -122,7 +123,7 @@ export function QueryBuilder({
         </PageFilterBar>
         <CompactSelect
           triggerProps={{prefix: t('Display')}}
-          value={metricsQuery.displayType ?? defaultMetricDisplayType}
+          value={displayType ?? defaultMetricDisplayType}
           options={[
             {
               value: MetricDisplayType.LINE,
@@ -173,7 +174,7 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
     [tags]
   );
 
-  // TODO(ogi) try to use useApiQuery here
+  // TODO(ddm): try to use useApiQuery here
   const getTagValues = useCallback(
     async tag => {
       const tagsValues = await api.requestPromise(

@@ -13,7 +13,7 @@ import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics'
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {Series} from 'sentry/views/ddm/metricsQueryDashboard';
+import {Series} from 'sentry/views/ddm/metricWidget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export function SummaryTable({

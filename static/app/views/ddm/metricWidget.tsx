@@ -39,7 +39,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {QueryBuilder} from 'sentry/views/ddm/queryBuilderBar';
+import {QueryBuilder} from 'sentry/views/ddm/metricQueryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 const emptyWidget = {
@@ -50,22 +50,24 @@ const emptyWidget = {
   displayType: defaultMetricDisplayType,
 };
 
-export type MetricsQueryWidgetConfig = MetricsQuery & {
+export type MetricWidgetDisplayConfig = {
   displayType: MetricDisplayType;
   position: number;
   focusedSeries?: string;
   showSummaryTable?: boolean;
 };
 
-function useMetricsQueryWidgets() {
+export type MetricWidgetProps = MetricsQuery & MetricWidgetDisplayConfig;
+
+function useMetricWidgets() {
   const router = useRouter();
 
-  const defaultWidgets = JSON.stringify([emptyWidget]);
+  const currentWidgets = JSON.parse(
+    router.location.query.widgets ?? JSON.stringify([emptyWidget])
+  );
 
-  const widgets = JSON.parse(router.location.query.widgets ?? defaultWidgets);
-
-  const metricsQueries: MetricsQueryWidgetConfig[] = widgets.map(
-    (widget: MetricsQueryWidgetConfig, i) => {
+  const widgets: MetricWidgetProps[] = currentWidgets.map(
+    (widget: MetricWidgetProps, i) => {
       return {
         mri: widget.mri,
         op: widget.op,
@@ -79,70 +81,75 @@ function useMetricsQueryWidgets() {
     }
   );
 
-  const onChange = (position: number, data: Partial<MetricsQueryWidgetConfig>) => {
-    widgets[position] = {...widgets[position], ...data};
+  const onChange = (position: number, data: Partial<MetricWidgetProps>) => {
+    currentWidgets[position] = {...currentWidgets[position], ...data};
 
     updateQuery(router, {
-      widgets: JSON.stringify(widgets),
+      widgets: JSON.stringify(currentWidgets),
     });
   };
 
   const addWidget = () => {
-    widgets.push({...emptyWidget, position: widgets.length});
+    currentWidgets.push({...emptyWidget, position: currentWidgets.length});
 
     updateQuery(router, {
-      widgets: JSON.stringify(widgets),
+      widgets: JSON.stringify(currentWidgets),
     });
   };
 
   return {
-    data: metricsQueries,
+    widgets,
     onChange,
     addWidget,
   };
 }
 
-function useMetricsQueryWidget(position: number) {
-  const widgets = useMetricsQueryWidgets();
+function useMetricWidget(position: number) {
+  const {widgets, onChange} = useMetricWidgets();
 
   return {
-    data: widgets.data[position],
-    onChange: (data: Partial<MetricsQueryWidgetConfig>) =>
-      widgets.onChange(position, data),
+    widget: widgets[position],
+    onChange: (data: Partial<MetricWidgetProps>) => onChange(position, data),
   };
 }
 
-function MetricsQueryDashboard() {
+function MetricDashboard() {
   const {selection} = usePageFilters();
 
-  const metricsQueries = useMetricsQueryWidgets();
+  const {widgets, onChange, addWidget} = useMetricWidgets();
 
   return (
-    <DashboardWrapper>
-      {metricsQueries.data.map(metricsQuery => (
-        <MetricsQueryWidgetPanel key={metricsQuery.position}>
+    <StyledMetricDashboard>
+      {widgets.map(widget => (
+        <MetricWidgetPanel key={widget.position}>
           <PanelBody>
             <QueryBuilder
-              metricsQuery={metricsQuery}
-              onChange={(data: Partial<MetricsQueryWidgetConfig>) =>
-                metricsQueries.onChange(metricsQuery.position, data)
+              metricsQuery={{
+                mri: widget.mri,
+                query: widget.query,
+                op: widget.op,
+                groupBy: widget.groupBy,
+              }}
+              displayType={widget.displayType}
+              onChange={(data: Partial<MetricWidgetProps>) =>
+                onChange(widget.position, data)
               }
             />
-            <MetricsQueryWidgetDisplayOuter
+            <MetricWidgetBody
               datetime={selection.datetime}
               projects={selection.projects}
               environments={selection.environments}
-              {...metricsQuery}
+              {...widget}
             />
           </PanelBody>
-        </MetricsQueryWidgetPanel>
+        </MetricWidgetPanel>
       ))}
-      <NewWidgetPanel onClick={metricsQueries.addWidget}>
+      <AddWidgetPanel onClick={addWidget}>
         <Button priority="primary" icon={<IconAdd isCircled />}>
           Add widget
         </Button>
-      </NewWidgetPanel>
-    </DashboardWrapper>
+      </AddWidgetPanel>
+    </StyledMetricDashboard>
   );
 }
 
@@ -153,29 +160,29 @@ type Group = {
   totals: Record<string, number>;
 };
 
-type DisplayProps = MetricsQueryWidgetConfig & MetricsDataProps;
+type DisplayProps = MetricWidgetProps & MetricsDataProps;
 
-function MetricsQueryWidgetDisplayOuter(props?: DisplayProps) {
+function MetricWidgetBody(props?: DisplayProps) {
   if (!props?.mri) {
     return (
-      <DisplayWrapper>
+      <StyledMetricWidgetBody>
         <EmptyMessage
           icon={<IconSearch size="xxl" />}
           title={t('Nothing to show!')}
           description={t('Choose a metric to display data.')}
         />
-      </DisplayWrapper>
+      </StyledMetricWidgetBody>
     );
   }
 
-  return <MetricsQueryWidgetDisplay {...props} />;
+  return <MetricWidgetBodyInner {...props} />;
 }
 
-function MetricsQueryWidgetDisplay({position, ...metricsDataProps}: DisplayProps) {
+function MetricWidgetBodyInner({position, ...metricsDataProps}: DisplayProps) {
   const {
-    data: {displayType, focusedSeries},
+    widget: {displayType, focusedSeries},
     onChange,
-  } = useMetricsQueryWidget(position);
+  } = useMetricWidget(position);
 
   const {data, isLoading, isError, error} = useMetricsData(metricsDataProps);
 
@@ -200,14 +207,14 @@ function MetricsQueryWidgetDisplay({position, ...metricsDataProps}: DisplayProps
 
   if (!dataToBeRendered || isError) {
     return (
-      <DisplayWrapper>
+      <StyledMetricWidgetBody>
         {isLoading && <LoadingIndicator />}
         {isError && (
           <Alert type="error">
             {error?.responseJSON?.detail || t('Error while fetching metrics data')}
           </Alert>
         )}
-      </DisplayWrapper>
+      </StyledMetricWidgetBody>
     );
   }
 
@@ -249,9 +256,9 @@ function MetricsQueryWidgetDisplay({position, ...metricsDataProps}: DisplayProps
   })) as Series[];
 
   return (
-    <DisplayWrapper>
+    <StyledMetricWidgetBody>
       <TransparentLoadingMask visible={isLoading} />
-      <Chart
+      <MetricChart
         series={chartSeries}
         displayType={displayType}
         operation={metricsDataProps.op}
@@ -267,7 +274,7 @@ function MetricsQueryWidgetDisplay({position, ...metricsDataProps}: DisplayProps
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
-    </DisplayWrapper>
+    </StyledMetricWidgetBody>
   );
 }
 
@@ -357,7 +364,7 @@ type ChartProps = {
   utc?: boolean;
 };
 
-function Chart({
+function MetricChart({
   series,
   displayType,
   start,
@@ -446,31 +453,31 @@ function Chart({
   );
 }
 
-const MetricsQueryWidgetPanel = styled(Panel)`
+const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
   margin-bottom: 0;
 `;
 
-const DisplayWrapper = styled('div')`
+const StyledMetricWidgetBody = styled('div')`
   padding: ${space(1)};
   display: flex;
   flex-direction: column;
   justify-content: center;
 `;
 
-const DashboardWrapper = styled('div')`
+const StyledMetricDashboard = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: ${space(2)};
-  @media (max-width: ${props => props.theme.breakpoints.xxlarge}) {
+  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr 1fr;
   }
-  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+  @media (max-width: ${props => props.theme.breakpoints.large}) {
     grid-template-columns: 1fr;
   }
 `;
 
-const NewWidgetPanel = styled(MetricsQueryWidgetPanel)`
+const AddWidgetPanel = styled(MetricWidgetPanel)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(4)};
   display: flex;
@@ -483,4 +490,4 @@ const NewWidgetPanel = styled(MetricsQueryWidgetPanel)`
   }
 `;
 
-export default MetricsQueryDashboard;
+export default MetricDashboard;
