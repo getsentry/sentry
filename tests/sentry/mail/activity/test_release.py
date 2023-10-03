@@ -249,32 +249,38 @@ class ReleaseTestCase(ActivityTestCase):
                 assert sent_email_addresses == {self.user3.email}
 
     def test_uses_default(self):
+        user6 = self.create_user()
+        self.create_member(user=user6, organization=self.org, teams=[self.team])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=user6.id,
+            )
+            NotificationSettingProvider.objects.update_or_create(
+                provider=ExternalProviderEnum.EMAIL.value,
+                type=NotificationSettingEnum.DEPLOY.value,
+                user_id=user6.id,
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier=user6.id,
+                defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+            )
+
+        release, deploy = self.another_release("b")
+
+        email = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user_id=self.user1.id,
+                type=ActivityType.RELEASE.value,
+                data={"version": release.version, "deploy_id": deploy.id},
+            )
+        )
         for use_v2 in [False, True]:
             mail.outbox.clear()
-            Release.objects.all().delete()
             with Feature({"organizations:notification-settings-v2", use_v2}):
-                user6 = self.create_user()
-                self.create_member(user=user6, organization=self.org, teams=[self.team])
-
-                with assume_test_silo_mode(SiloMode.CONTROL):
-                    NotificationSetting.objects.update_settings(
-                        ExternalProviders.EMAIL,
-                        NotificationSettingTypes.DEPLOY,
-                        NotificationSettingOptionValues.ALWAYS,
-                        user_id=user6.id,
-                    )
-
-                release, deploy = self.another_release("b")
-
-                email = ReleaseActivityNotification(
-                    Activity(
-                        project=self.project,
-                        user_id=self.user1.id,
-                        type=ActivityType.RELEASE.value,
-                        data={"version": release.version, "deploy_id": deploy.id},
-                    )
-                )
-
                 # user3 and user 6 are included because they oped into all deploy emails
                 # (one on an org level, one as their default)
                 participants = email.get_participants_with_group_subscription_reason().get_participants_by_provider(
