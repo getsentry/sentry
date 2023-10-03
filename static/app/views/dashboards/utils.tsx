@@ -28,12 +28,15 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
   isMeasurement,
+  RATE_UNIT_MULTIPLIERS,
+  RateUnits,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
@@ -99,6 +102,39 @@ export function eventViewFromWidget(
   });
 }
 
+export function getThresholdUnitSelectOptions(
+  dataType: string
+): {label: string; value: string}[] {
+  if (dataType === 'duration') {
+    return Object.keys(DURATION_UNITS)
+      .map(unit => ({label: unit, value: unit}))
+      .slice(2);
+  }
+
+  if (dataType === 'rate') {
+    return Object.values(RateUnits).map(unit => ({
+      label: `/${unit.split('/')[1]}`,
+      value: unit,
+    }));
+  }
+
+  return [];
+}
+
+export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
+  return Object.keys(thresholdsConfig.max_values).length > 0;
+}
+
+function normalizeUnit(value: number, unit: string, dataType: string): number {
+  const multiplier =
+    dataType === 'rate'
+      ? RATE_UNIT_MULTIPLIERS[unit]
+      : dataType === 'duration'
+      ? DURATION_UNITS[unit]
+      : 1;
+  return value * multiplier;
+}
+
 export function getWidgetIndicatorColor(
   thresholds: ThresholdsConfig,
   tableData: TableDataWithTitle[]
@@ -106,16 +142,28 @@ export function getWidgetIndicatorColor(
   const tableMeta = {...tableData[0].meta};
   const fields = Object.keys(tableMeta);
   const field = fields[0];
+  const dataType = tableMeta[field];
+  const dataUnit = tableMeta.units?.[field];
   const data = Number(tableData[0].data[0][field]);
+  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
+
   const {max_values} = thresholds;
 
   const greenMax = max_values[ThresholdMaxKeys.MAX_1];
-  if (greenMax && data <= greenMax) {
+  const normalizedGreenMax =
+    thresholds.unit && greenMax
+      ? normalizeUnit(greenMax, thresholds.unit, dataType)
+      : greenMax;
+  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
     return theme.green300;
   }
 
   const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
-  if (yellowMax && data <= yellowMax) {
+  const normalizedYellowMax =
+    thresholds.unit && yellowMax
+      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
+      : yellowMax;
+  if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
     return theme.yellow300;
   }
 

@@ -4,8 +4,8 @@ import ThresholdsStep, {ThresholdsConfig} from './thresholdsStep';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
   max_values: {
-    max_1: 100,
-    max_2: 200,
+    max1: 100,
+    max2: 200,
   },
   unit: null,
 };
@@ -14,7 +14,12 @@ describe('Widget Builder > ThresholdsStep', function () {
   it('renders thresholds step', function () {
     const onChange = jest.fn();
     render(
-      <ThresholdsStep thresholdsConfig={exampleThresholdsConfig} onChange={onChange} />
+      <ThresholdsStep
+        thresholdsConfig={exampleThresholdsConfig}
+        onThresholdChange={onChange}
+        onUnitChange={onChange}
+        errors={{max1: 'error'}}
+      />
     );
 
     expect(screen.getByText('Set thresholds')).toBeInTheDocument();
