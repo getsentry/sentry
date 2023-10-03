@@ -9,7 +9,6 @@ from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple, cas
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -143,7 +142,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
         pass
 
     @rpc_method
@@ -155,7 +154,7 @@ class NotificationsService(RpcService):
         project_ids: Optional[List[int]],
         organization_id: Optional[int],
         type: NotificationSettingEnum,
-    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+    ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 
 

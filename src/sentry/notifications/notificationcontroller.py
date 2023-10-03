@@ -9,12 +9,13 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
-    get_provider_defaults,
+    get_default_for_provider,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
 )
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
@@ -250,7 +251,6 @@ class NotificationController:
         )
         scoped_settings = [project_settings, org_settings, user_settings]
 
-        defaults = get_provider_defaults()
         layered_setting_providers: MutableMapping[
             Recipient,
             MutableMapping[
@@ -266,13 +266,18 @@ class NotificationController:
             for item in scope_items:
                 scope = (scope_type, item)
                 for type in NotificationSettingEnum:
+                    if type == NotificationSettingEnum.DEFAULT:
+                        continue
                     for provider in ExternalProviderEnum:
                         most_specific_setting = None
                         for setting in scoped_settings:
                             user_or_team_settings = []
                             if recipient_is_user(recipient):
                                 user_or_team_settings = self._filter_providers(
-                                    settings=setting, user_id=recipient.id, type=type.value
+                                    settings=setting,
+                                    user_id=recipient.id,
+                                    type=type.value,
+                                    provider=provider.value,
                                 )
                             elif recipient_is_team(recipient):
                                 user_or_team_settings = self._filter_providers(
@@ -286,11 +291,7 @@ class NotificationController:
                                 break
 
                         if most_specific_setting is None:
-                            most_specific_setting = (
-                                NotificationSettingsOptionEnum.ALWAYS
-                                if provider in defaults
-                                else NotificationSettingsOptionEnum.NEVER
-                            )
+                            most_specific_setting = get_default_for_provider(type, provider)
 
                         layered_setting_providers[recipient][scope][type].update(
                             {provider: most_specific_setting}
@@ -384,7 +385,7 @@ class NotificationController:
 
         return setting_option_and_providers
 
-    def get_settings_options_for_user_by_projects(
+    def get_settings_for_user_by_projects(
         self, user: Recipient
     ) -> MutableMapping[
         int,
@@ -420,16 +421,16 @@ class NotificationController:
         user: Recipient,
         project_ids: Iterable[int],
         type: NotificationSettingEnum | None = None,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, GroupSubscriptionStatus]:
         """
         Returns whether the user is subscribed for each project.
-        {project_id -> (is_disabled, is_active)}
+        {project_id -> (is_disabled, is_active, has only inactive subscriptions)}
         """
         setting_type = type or self.type
         if not setting_type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_settings_options_for_user_by_projects(user)
+        enabled_settings = self.get_settings_for_user_by_projects(user)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
             has_setting = False
@@ -441,15 +442,21 @@ class NotificationController:
                     continue
 
                 has_setting = True
-                subscription_status_for_projects[project] = (
-                    setting == {},
-                    any(
+
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=setting == {},
+                    is_active=any(
                         value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
+                    ),
+                    has_only_inactive_subscriptions=all(
+                        value == NotificationSettingsOptionEnum.NEVER for value in setting.values()
                     ),
                 )
 
             if not has_setting:
-                subscription_status_for_projects[project] = (False, False)
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=True, is_active=False, has_only_inactive_subscriptions=True
+                )
 
         return subscription_status_for_projects
 
@@ -476,11 +483,13 @@ class NotificationController:
 
             actor = RpcActor.from_object(recipient)
             for type_map in setting.values():
-                for provider_map in type_map.values():
+                for type, provider_map in type_map.items():
+                    if type != self.type:
+                        continue
+
                     user_to_providers[actor] = {
                         EXTERNAL_PROVIDERS_REVERSE[provider]: value
                         for provider, value in provider_map.items()
-                        if value != NotificationSettingsOptionEnum.NEVER
                     }
 
         return user_to_providers
