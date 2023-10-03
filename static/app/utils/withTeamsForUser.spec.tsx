@@ -9,7 +9,6 @@ import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
   const organization = Organization();
-  delete organization.projects;
 
   function Output({error, teams}) {
     if (error) {

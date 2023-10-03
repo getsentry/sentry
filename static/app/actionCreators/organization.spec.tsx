@@ -9,8 +9,6 @@ import TeamStore from 'sentry/stores/teamStore';
 
 describe('OrganizationActionCreator', function () {
   const org = Organization();
-  delete org.teams;
-  delete org.projects;
 
   const teams = [TestStubs.Team()];
   const projects = [TestStubs.Project()];

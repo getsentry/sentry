@@ -76,6 +76,8 @@ export function Organization(
     sensitiveFields: [],
     storeCrashReports: 0,
     trustedRelays: [],
+    teams: [],
+    projects: [],
     ...params,
 
     orgRoleList: OrgRoleList(),

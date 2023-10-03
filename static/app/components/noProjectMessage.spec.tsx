@@ -17,7 +17,6 @@ describe('NoProjectMessage', function () {
   it('renders', function () {
     const organization = Organization({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
-    delete organization.projects;
     ProjectsStore.loadInitialData([]);
 
     render(
