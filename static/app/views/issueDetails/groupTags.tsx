@@ -25,9 +25,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 type Props = DeprecatedAsyncComponent['props'] & {
   baseUrl: string;
   environments: string[];
-  event: Event;
   group: Group;
   organization: Organization;
+  event?: Event;
 } & RouteComponentProps<{}, {}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
