@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 import responses
 from django.core.exceptions import ValidationError
 from django.test import override_settings
@@ -15,7 +17,7 @@ PWNED_PASSWORDS_RESPONSE_MOCK = """4145D488EF49819E75E71019A6E8EA21905:1
 41B1F73A901ACAE8DC9BBB439A6E14903C6:3
 """
 
-AUTH_PASSWORD_VALIDATORS_TEST = [
+AUTH_PASSWORD_VALIDATORS_TEST: List[Dict[str, Any]] = [
     v
     for v in AUTH_PASSWORD_VALIDATORS
     if v["NAME"] != "sentry.auth.password_validation.PwnedPasswordsValidator"
