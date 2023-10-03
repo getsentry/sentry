@@ -15,10 +15,10 @@ from sentry.notifications.helpers import (
     recipient_is_user,
 )
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
-    SubscriptionStatus,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -421,7 +421,7 @@ class NotificationController:
         user: Recipient,
         project_ids: Iterable[int],
         type: NotificationSettingEnum | None = None,
-    ) -> Mapping[int, SubscriptionStatus]:
+    ) -> Mapping[int, GroupSubscriptionStatus]:
         """
         Returns whether the user is subscribed for each project.
         {project_id -> (is_disabled, is_active, has only inactive subscriptions)}
@@ -443,18 +443,20 @@ class NotificationController:
 
                 has_setting = True
 
-                subscription_status_for_projects[project] = SubscriptionStatus(
-                    setting == {},
-                    any(
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=setting == {},
+                    is_active=any(
                         value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
                     ),
-                    all(
+                    has_only_inactive_subscriptions=all(
                         value == NotificationSettingsOptionEnum.NEVER for value in setting.values()
                     ),
                 )
 
             if not has_setting:
-                subscription_status_for_projects[project] = SubscriptionStatus(True, False, True)
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=True, is_active=False, has_only_inactive_subscriptions=True
+                )
 
         return subscription_status_for_projects
 

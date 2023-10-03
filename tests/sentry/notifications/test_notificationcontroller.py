@@ -2,10 +2,10 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
-    SubscriptionStatus,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
@@ -601,19 +601,31 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.DEPLOY,
-        ) == {self.project.id: SubscriptionStatus(False, True, False)}
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=False, is_active=True, has_only_inactive_subscriptions=False
+            )
+        }
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.WORKFLOW,
-        ) == {self.project.id: SubscriptionStatus(True, False, True)}
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=True, is_active=False, has_only_inactive_subscriptions=True
+            )
+        }
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.QUOTA,
-        ) == {self.project.id: SubscriptionStatus(False, True, False)}
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=False, is_active=True, has_only_inactive_subscriptions=False
+            )
+        }
 
     def test_get_participants(self):
         rpc_user = RpcActor.from_object(self.user)

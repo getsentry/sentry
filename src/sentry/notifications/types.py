@@ -353,7 +353,7 @@ ASSIGNEE_CHOICES = [
 
 
 @dataclass
-class SubscriptionStatus:
+class GroupSubscriptionStatus:
     is_disabled: bool
     is_active: bool
     has_only_inactive_subscriptions: bool

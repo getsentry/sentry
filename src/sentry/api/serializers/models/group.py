@@ -64,9 +64,9 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationSettingEnum,
     NotificationSettingTypes,
-    SubscriptionStatus,
 )
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
@@ -602,7 +602,11 @@ class GroupSerializerBase(Serializer, ABC):
             results = {}
             for project_id, group_set in groups_by_project.items():
                 s = enabled_settings[project_id]
-                subscription_status = SubscriptionStatus(s[0], s[1], s[2])
+                subscription_status = GroupSubscriptionStatus(
+                    is_disabled=s[0],
+                    is_active=s[1],
+                    has_only_inactive_subscriptions=s[2],
+                )
                 for group in group_set:
                     subscription = subscriptions_by_group_id.get(group.id)
                     if subscription:
