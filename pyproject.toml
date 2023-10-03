@@ -809,7 +809,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_metrics",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.serializers.test_project",
-    "tests.sentry.api.serializers.test_team",
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
