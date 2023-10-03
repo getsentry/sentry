@@ -487,6 +487,7 @@ type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;
   tagKey: string;
+  cursor?: string;
   environment?: string[];
   sort?: string | string[];
 };
@@ -497,9 +498,10 @@ export const makeFetchIssueTagValuesQueryKey = ({
   tagKey,
   environment,
   sort,
+  cursor,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
-  {query: {environment, sort}},
+  {query: {environment, sort, cursor}},
 ];
 
 export function useFetchIssueTagValues(
