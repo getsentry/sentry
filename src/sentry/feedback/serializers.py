@@ -46,7 +46,7 @@ class FeedbackSerializer(Serializer):
             "sdk": obj.data.get("sdk"),
             "contact_email": obj.data.get("feedback").get("contact_email"),
             "environment": env,
-            "feedback_id": obj.feedback_id,
+            "feedback_id": str(obj.feedback_id).replace("-", ""),
             "message": obj.message,
             "platform": obj.data.get("platform"),
             "project_id": obj.project_id,
