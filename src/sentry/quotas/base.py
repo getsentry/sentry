@@ -13,6 +13,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models import Project
+    from sentry.monitors.models import Monitor
 
 
 @unique
@@ -217,6 +218,10 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
+        "assign_seat",
+        "unassign_seat",
+        "set_billing_seat_recreate",
+        "remove_billing_seat_recreate",
     )
 
     def __init__(self, **options):
@@ -491,3 +496,34 @@ class Quota(Service):
         :param organization_id: The organization id.
         :param volume: The volume of transaction of the given project.
         """
+
+    def assign_seat(
+        self,
+        monitor: Monitor,
+    ) -> int:
+        """
+        Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
+        will be updated from ACTIVE to OK if the seat assignment is accepted.
+        """
+        from sentry.monitors.models import MonitorStatus
+        from sentry.utils.outcomes import Outcome
+
+        monitor.update(status=MonitorStatus.OK)
+        return Outcome.ACCEPTED
+
+    def unassign_seat(
+        self,
+        monitor: Monitor,
+    ):
+        """
+        Disables a monitor seat assignment and sets the Monitor status to DISABLED
+        """
+        from sentry.monitors.models import MonitorStatus
+
+        monitor.update(status=MonitorStatus.DISABLED)
+
+    def set_billing_seat_recreate(self, monitor: Monitor):
+        """Sets the monitor's seat assignment to automatically be recreated at renewal."""
+
+    def remove_billing_seat_recreate(self, monitor: Monitor):
+        """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""
