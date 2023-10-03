@@ -6,10 +6,9 @@ import FeedbackListWrapper from 'sentry/components/feedback/list/feedbackListWra
 import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 
 interface Props {
-  query: FeedbackListQueryParams;
+  query: Record<string, string | string[] | undefined>;
   className?: string;
   style?: CSSProperties;
 }

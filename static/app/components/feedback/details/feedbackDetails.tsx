@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import EmptyFeedback from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
-import type {FeedbackItemLoaderQueryParams} from 'sentry/utils/feedback/types';
+import type {FeedbackItemLoaderQueryParams} from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
