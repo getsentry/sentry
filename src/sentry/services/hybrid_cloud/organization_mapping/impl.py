@@ -41,18 +41,5 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 organization_id=organization_id, defaults=update_dict
             )
 
-            org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
-                organization_id=organization_id
-            )
-            if not org_slug_reservation_qs.exists():
-                OrganizationSlugReservation(
-                    region_name=update.region_name,
-                    slug=update.slug,
-                    organization_id=organization_id,
-                    user_id=-1,
-                ).save(unsafe_write=True)
-            elif org_slug_reservation_qs.first().slug != update.slug:
-                org_slug_reservation_qs.first().update(slug=update.slug, unsafe_write=True)
-
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()

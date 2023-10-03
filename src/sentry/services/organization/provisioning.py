@@ -1,7 +1,6 @@
 from typing import Any, Optional
 
-from django.conf import settings
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception

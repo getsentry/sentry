@@ -99,9 +99,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
         )
 
-    # TODO(Gabe): Re-enable this in the cutover PR after removing
-    #  slug reservation writes on org mapping create
-    @pytest.mark.skip
     def test_organization_already_provisioned_for_different_user(self):
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
@@ -147,8 +144,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
 
 @all_silo_test(stable=True)
-# TODO(Gabe): Re-enable and fix tests in the cutover PR
-@pytest.mark.skip
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
     def test_updates_exact_slug(self):
         org_slug_res = self.provision_organization()
