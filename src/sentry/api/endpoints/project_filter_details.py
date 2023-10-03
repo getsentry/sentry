@@ -94,6 +94,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             FilterStatKeys.LOCALHOST,
             FilterStatKeys.WEB_CRAWLER,
             FilterStatKeys.HEALTH_CHECK,
+            FilterStatKeys.CHUNK_LOAD_ERROR,
         ):
             returned_state = filter_id
             removed = current_state - new_state

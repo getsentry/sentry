@@ -640,6 +640,25 @@ def test_project_config_get_at_path(default_project):
 
 
 @django_db_all
+@region_silo_test(stable=True)
+def test_project_config_with_chunk_load_error_filter(default_project):
+    # The react-hydration-errors option is set as string in the defaults but then its changed as a boolean in the
+    # options endpoint, which is something that should be changed.
+    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:chunk-load-error", "1")
+
+    project_cfg = get_project_config(default_project, full_config=True)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+    assert cfg_error_messages == {
+        "patterns": ["ChunkLoadError: Loading chunk * failed.\n(error: *)"]
+    }
+
+
+@django_db_all
 @pytest.mark.parametrize(
     "health_check_set",
     [True, False],

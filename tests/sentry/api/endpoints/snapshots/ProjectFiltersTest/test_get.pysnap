@@ -1,8 +1,12 @@
 ---
+created: '2023-10-03T06:55:40.049770Z'
+creator: sentry
 source: tests/sentry/api/endpoints/test_project_filters.py
 ---
 - active: false
   id: browser-extensions
+- active: true
+  id: chunk-load-error
 - active: true
   id: filtered-transaction
 - active: false

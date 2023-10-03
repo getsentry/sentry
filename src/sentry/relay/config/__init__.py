@@ -120,14 +120,19 @@ def get_public_key_configs(
 def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
+    error_messages: List[str] = []
     for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
 
         if settings is not None and settings.get("isEnabled", True):
-            filter_settings[filter_id] = settings
+            # In order to support the new declarative mechanism for inbound filters also for error messages filters
+            # we have to handle differently the settings, since each filter will still bind to the same key.
+            if (messages := settings.get("errorMessages")) is not None:
+                error_messages += messages
+            else:
+                filter_settings[filter_id] = settings
 
-    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -135,6 +140,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+    # TODO(iambriccardo): Move this project option to the new declarative mechanism and make sure to convert its
+    #  boolean value which is set in the endpoint.
     enable_react = project.get_option("filters:react-hydration-errors")
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
@@ -146,6 +153,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
         ]
 
+    # This is where the actual error messages settings are generated.
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -575,6 +583,10 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
             ret_val = {"patterns": HEALTH_CHECK_GLOBS, "isEnabled": True}
         else:
             ret_val = {"patterns": [], "isEnabled": False}
+    elif flt.id == FilterStatKeys.CHUNK_LOAD_ERROR:
+        if is_enabled:
+            ret_val["errorMessages"] = ["ChunkLoadError: Loading chunk * failed.\n(error: *)"]
+
     return ret_val
 
 

@@ -45,6 +45,28 @@ class ProjectFilterDetailsTest(APITestCase):
         # option was changed by the request
         assert project.get_option("filters:filtered-transaction") == "0"
 
+    def test_put_chunk_load_error_filter(self):
+        """
+        Tests that it accepts to set the ChunkLoadError filter.
+        """
+        org = self.create_organization(name="baz", slug="1", owner=self.user)
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        project = self.create_project(name="Bar", slug="bar", teams=[team])
+
+        project.update_option("filters:chunk-load-error", "0")
+        self.get_success_response(
+            org.slug, project.slug, "chunk-load-error", active=True, status_code=204
+        )
+        # option was changed by the request
+        assert project.get_option("filters:chunk-load-error") == "1"
+
+        project.update_option("filters:chunk-load-error", "1")
+        self.get_success_response(
+            org.slug, project.slug, "chunk-load-error", active=False, status_code=204
+        )
+        # option was changed by the request
+        assert project.get_option("filters:chunk-load-error") == "0"
+
     def test_put_legacy_browsers(self):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")

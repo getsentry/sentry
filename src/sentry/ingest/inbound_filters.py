@@ -24,6 +24,7 @@ class FilterStatKeys:
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
     HEALTH_CHECK = "filtered-transaction"  # Ignore health-check transactions
+    CHUNK_LOAD_ERROR = "chunk-load-error"  # Ignore NextJS ChunkLoadError
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
@@ -38,6 +39,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
     FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
+    FilterStatKeys.CHUNK_LOAD_ERROR: TSDBModel.project_total_chunk_load_error,
 }
 
 
@@ -65,6 +67,7 @@ def get_all_filter_specs():
         _legacy_browsers_filter,
         _web_crawlers_filter,
         _healthcheck_filter,
+        _chunk_load_error_filter,
     ]
 
     return tuple(filters)  # returning tuple for backwards compatibility
@@ -269,4 +272,15 @@ _healthcheck_filter = _FilterSpec(
     description="Filter transactions that match most common naming patterns for health checks.",
     serializer_cls=None,
     config_name="ignoreTransactions",
+)
+
+_chunk_load_error_filter = _FilterSpec(
+    id=FilterStatKeys.CHUNK_LOAD_ERROR,
+    name="Filter out ChunkLoadError(s)",
+    description="It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out "
+    "of sync with the backend which results in a ChunkLoadError. The application refreshes and everything "
+    "should work as expected.",
+    serializer_cls=None,
+    # This filter is an error message filter and multiple such filters can exist.
+    config_name="errorMessages",
 )
