@@ -16,7 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
@@ -76,7 +76,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
         ],
         responses={

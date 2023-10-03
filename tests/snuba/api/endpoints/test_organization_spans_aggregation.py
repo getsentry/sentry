@@ -475,12 +475,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
 
             assert response.data
             data = response.data
-            if backend == "indexedSpans":
-                root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
-            else:
-                root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-76de16d455e99f9c").hexdigest()[
-                    :16
-                ]
+            root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
             assert root_fingerprint in data
-            assert data[root_fingerprint]["description"] == "<<unparametrized>> resolve_columns"
+            assert data[root_fingerprint]["description"] == "resolve_columns"
             assert data[root_fingerprint]["count()"] == 2
