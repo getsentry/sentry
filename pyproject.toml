@@ -314,7 +314,6 @@ module = [
     "sentry.api.issue_search",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.alert_rule",
     "sentry.api.serializers.models.auth_provider",
     "sentry.api.serializers.models.authenticator",
     "sentry.api.serializers.models.dashboard",
