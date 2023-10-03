@@ -652,7 +652,8 @@
             "OrganizationSCIMTeamDetails::PATCH",
             "OrganizationSCIMTeamIndex::GET",
             "OrganizationSCIMTeamIndex::POST",
-            "OrganizationStatsEndpointV2::GET"
+            "OrganizationStatsEndpointV2::GET",
+            "OrganizationStatsSummaryEndpoint::GET"
         ],
         "private": [
             "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
@@ -706,7 +707,7 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 708,
+        "block_start": 709,
         "public": [],
         "private": [],
         "experimental": [
