@@ -338,7 +338,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":

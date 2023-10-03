@@ -225,7 +225,14 @@ class BaseQueryBuilder:
         org_id = self.organization_id or (
             self.params.organization.id if self.params.organization else None
         )
-        self.tenant_ids = {"organization_id": org_id} if org_id else None
+        self.tenant_ids = dict()
+        if org_id is not None:
+            self.tenant_ids["organization_id"] = org_id
+        use_case_id = params.get("use_case_id")
+        if use_case_id is not None:
+            self.tenant_ids["use_case_id"] = use_case_id
+        if not self.tenant_ids:
+            self.tenant_ids = None
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -1059,7 +1066,7 @@ class BaseQueryBuilder:
                     if len(conflicting_functions) > 2
                     else ""
                 )
-                alias = column.name if type(column) == Column else column.alias
+                alias = column.name if isinstance(column, Column) else column.alias
                 raise InvalidSearchQuery(
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )

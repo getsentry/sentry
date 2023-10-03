@@ -64,7 +64,7 @@ REMOVE_SETTING_BATCH_SIZE = 1000
 logger = logging.getLogger(__name__)
 
 
-class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
+class NotificationsManager(BaseManager["NotificationSetting"]):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
@@ -434,7 +434,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
 
         if should_use_notifications_v2(organization):  # type: ignore
             # We should replace calls to NotificationSettings.get_notification_recipients at the call site - this code should never be reached
-            setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])
+            setting_type = (
+                NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])
+                if type
+                else NotificationSettingEnum.ISSUE_ALERTS
+            )
             controller = NotificationController(
                 recipients=recipient_actors,
                 project_ids=project_ids,

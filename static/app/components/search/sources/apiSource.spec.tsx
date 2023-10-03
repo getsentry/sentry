@@ -1,5 +1,8 @@
 import {ComponentProps} from 'react';
 import omit from 'lodash/omit';
+import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
+import {Members} from 'sentry-fixture/members';
+import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -46,15 +49,15 @@ describe('ApiSource', function () {
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     shortIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/test-1/',
-      body: TestStubs.ShortIdQueryResult(),
+      body: ShortIdQueryResult(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
-      body: TestStubs.EventIdQueryResult(),
+      body: EventIdQueryResult(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -31,10 +31,11 @@ from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
+from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -93,6 +94,7 @@ from sentry.models import (
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
@@ -174,6 +176,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -446,6 +450,39 @@ class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
+
+        with mock.patch.object(self.client, "request", new=request):
+            yield
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -501,8 +538,8 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     # good enough as we do not expect subclasses, secondly however because
                     # it turns out doing an isinstance check on untrusted input can cause
                     # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain
-                    # types of broken lazy proxy objects.
+                    # blows through max recursion limits here if it encounters certain types
+                    # of broken lazy proxy objects.
                     if type(first_arg) is state.base and info.function in state.used_db:
                         state.used_db[info.function] = True
                         break
@@ -713,6 +750,40 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
                 assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
                 return True
         return False
+
+    @contextmanager
+    def api_gateway_proxy_stubbed(self):
+        """Mocks a fake api gateway proxy that redirects via Client objects"""
+
+        def proxy_raw_request(
+            method: str,
+            url: str,
+            headers: Mapping[str, str],
+            params: Mapping[str, str] | None,
+            data: Any,
+            **kwds: Any,
+        ) -> requests.Response:
+            from django.test.client import Client
+
+            client = Client()
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            if params:
+                url += "?" + urlencode(params)
+            with assume_test_silo_mode(SiloMode.REGION):
+                resp = getattr(client, method.lower())(
+                    url, b"".join(data), headers["Content-Type"], **extra
+                )
+            response = requests.Response()
+            response.status_code = resp.status_code
+            response.headers = CaseInsensitiveDict(resp.headers)
+            response.encoding = get_encoding_from_headers(response.headers)
+            response.raw = BytesIO(resp.content)
+            return response
+
+        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+            yield
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -1322,22 +1393,22 @@ class BaseMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
+            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.USER.value, {}, user)
+            push("set", SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
@@ -1971,6 +2042,19 @@ class ReplaysSnubaTestCase(TestCase):
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
         )
         assert response.status_code == 200
+
+    def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
+        event = self.store_event(
+            data={
+                "timestamp": int(timestamp.timestamp()),
+                "event_id": event_id,
+                "level": level,
+                "message": "testing",
+                "contexts": {"replay": {"replay_id": replay_id}},
+            },
+            project_id=project_id,
+        )
+        return transform_event_for_linking_payload(replay_id, event)
 
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses

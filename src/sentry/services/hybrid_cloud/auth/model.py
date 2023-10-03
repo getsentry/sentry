@@ -35,17 +35,18 @@ if TYPE_CHECKING:
 
 
 class RpcApiKey(RpcModel):
-    id: int
-    organization_id: int
-    key: str
-    status: int
-    allowed_origins: List[str]
-    label: str
+    id: int = -1
+    organization_id: int = -1
+    key: str = ""
+    status: int = 0
+    allowed_origins: List[str] = Field(default_factory=list)
+    label: str = ""
+    scope_list: List[str] = Field(default_factory=list)
 
 
 class RpcAuthenticatorType(IntEnum):
-    API_KEY_AUTHENTICATION = 0
-    TOKEN_AUTHENTICATION = 1
+    UNUSUED_ONE = 0
+    USER_AUTH_TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
     ORG_AUTH_TOKEN_AUTHENTICATION = 3
 
@@ -54,30 +55,24 @@ class RpcAuthenticatorType(IntEnum):
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
         from sentry.api.authentication import (
-            ApiKeyAuthentication,
             OrgAuthTokenAuthentication,
-            TokenAuthentication,
+            UserAuthTokenAuthentication,
         )
 
-        if auth == ApiKeyAuthentication:
-            return RpcAuthenticatorType.API_KEY_AUTHENTICATION
-        if auth == TokenAuthentication:
-            return RpcAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == UserAuthTokenAuthentication:
+            return RpcAuthenticatorType.USER_AUTH_TOKEN_AUTHENTICATION
         if auth == OrgAuthTokenAuthentication:
             return RpcAuthenticatorType.ORG_AUTH_TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
         from sentry.api.authentication import (
-            ApiKeyAuthentication,
             OrgAuthTokenAuthentication,
-            TokenAuthentication,
+            UserAuthTokenAuthentication,
         )
 
-        if self == self.API_KEY_AUTHENTICATION:
-            return ApiKeyAuthentication()
-        if self == self.TOKEN_AUTHENTICATION:
-            return TokenAuthentication()
+        if self == self.USER_AUTH_TOKEN_AUTHENTICATION:
+            return UserAuthTokenAuthentication()
         if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
             return OrgAuthTokenAuthentication()
         else:
@@ -148,7 +143,6 @@ class AuthenticationRequest(RpcModel):
     nonce: Optional[str] = None
 
     remote_addr: Optional[str] = None
-    signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
@@ -176,13 +170,10 @@ class AuthenticationRequest(RpcModel):
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
-    from sentry.utils.linksign import find_signature
-
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
@@ -199,6 +190,7 @@ class AuthenticatedToken(RpcModel):
     user_id: Optional[int] = None  # only relevant for ApiToken
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
+    _kinds: Dict[str, Set[Type[Any]]] = {}
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id
@@ -211,8 +203,8 @@ class AuthenticatedToken(RpcModel):
         if isinstance(token, AuthenticatedToken):
             return token
 
-        for kind, kind_cls in cls.get_kinds().items():
-            if isinstance(token, kind_cls):
+        for kind, types in cls._kinds.items():
+            if any(isinstance(token, kind_cls) for kind_cls in types):
                 break
         else:
             raise KeyError(f"Token {token} is a not a registered AuthenticatedToken type!")
@@ -229,16 +221,8 @@ class AuthenticatedToken(RpcModel):
         )
 
     @classmethod
-    def get_kinds(cls) -> Mapping[str, Type[Any]]:
-        return getattr(cls, "_kinds", {})
-
-    @classmethod
     def register_kind(cls, kind_name: str, t: Type[Any]) -> None:
-        kind_map = getattr(cls, "_kinds", {})
-        if kind_name in kind_map:
-            raise ValueError(f"Conflict detected, kind {kind_name} registered twice!")
-        kind_map[kind_name] = t
-        setattr(cls, "_kinds", kind_map)
+        cls._kinds.setdefault(kind_name, set()).add(t)
 
     def get_audit_log_data(self) -> Mapping[str, Any]:
         return self.audit_log_data
@@ -314,7 +298,6 @@ class AuthenticationContext(RpcModel):
 
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
-    user_from_signed_request: bool = False
     accessed: Set[str] = Field(default_factory=set)
 
 

@@ -1,3 +1,6 @@
+import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
+import {SourceMapsDebugIDBundles} from 'sentry-fixture/sourceMapsDebugIDBundles';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -25,8 +28,8 @@ function renderReleaseBundlesMockRequests({
     body: empty
       ? []
       : [
-          TestStubs.SourceMapArchive(),
-          TestStubs.SourceMapArchive({
+          SourceMapArchive(),
+          SourceMapArchive({
             id: 2,
             name: 'abc',
             fileCount: 3,
@@ -49,7 +52,7 @@ function renderDebugIdBundlesMockRequests({
 }) {
   const artifactBundles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
-    body: empty ? [] : TestStubs.SourceMapsDebugIDBundles(),
+    body: empty ? [] : SourceMapsDebugIDBundles(),
   });
 
   const artifactBundlesDeletion = MockApiClient.addMockResponse({

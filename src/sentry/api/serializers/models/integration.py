@@ -33,7 +33,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 @register(Integration)
 class IntegrationSerializer(Serializer):
     def serialize(
-        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {

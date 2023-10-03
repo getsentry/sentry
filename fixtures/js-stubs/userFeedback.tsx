@@ -1,8 +1,8 @@
-import type {UserReport as TUserReport} from 'sentry/types';
+import {Event} from 'sentry-fixture/event';
+import {Group} from 'sentry-fixture/group';
+import {User} from 'sentry-fixture/user';
 
-import {Event} from './event';
-import {Group} from './group';
-import {User} from './user';
+import type {UserReport as TUserReport} from 'sentry/types';
 
 export function UserFeedback(params: Partial<TUserReport> = {}): TUserReport {
   const event = Event();

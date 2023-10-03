@@ -88,6 +88,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/alert@none": PREFIX + 133,
     "s:transactions/alert@none": PREFIX + 134,
     "g:transactions/alert@none": PREFIX + 135,
+    "d:transactions/duration_light@millisecond": PREFIX + 136,
 }
 
 # 200 - 399
@@ -241,7 +242,7 @@ class StaticStringIndexer(StringIndexer):
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         # TODO: remove this metric after investigation is over
         if use_case_id is UseCaseID.ESCALATING_ISSUES:
-            metrics.incr("string_indexer_resolve_escalating_issues")
+            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)

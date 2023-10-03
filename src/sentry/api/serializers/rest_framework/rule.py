@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry import features
@@ -10,6 +11,7 @@ from sentry.utils import json
 ValidationError = serializers.ValidationError
 
 
+@extend_schema_field(dict)
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
         super().__init__()

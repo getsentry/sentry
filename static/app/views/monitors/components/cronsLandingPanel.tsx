@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,10 +9,11 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
@@ -27,14 +27,22 @@ import {
 } from './platformPickerPanel';
 import {
   CeleryBeatAutoDiscovery,
+  GoUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
 } from './quickStartEntries';
 
+enum GuideKey {
+  BEAT_AUTO = 'beat_auto',
+  UPSERT = 'upsert',
+  MANUAL = 'manual',
+}
+
 interface PlatformGuide {
   Guide: React.ComponentType<QuickStartProps>;
+  key: GuideKey;
   title: string;
 }
 
@@ -43,18 +51,21 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     {
       Guide: CeleryBeatAutoDiscovery,
       title: 'Beat Auto Discovery',
+      key: GuideKey.BEAT_AUTO,
     },
   ],
   php: [
     {
       Guide: PHPUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
   'php-laravel': [
     {
       Guide: LaravelUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
   python: [],
@@ -62,16 +73,55 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     {
       Guide: NodeJsUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  go: [
+    {
+      Guide: GoUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
 };
 
+function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
+  return !!(platform && platform in platformGuides);
+}
+
+function isValidGuide(guide?: string): guide is GuideKey {
+  return !!(guide && Object.values<string>(GuideKey).includes(guide));
+}
+
 export function CronsLandingPanel() {
   const organization = useOrganization();
-  const [platform, setPlatform] = useState<PlatformKey | null>(null);
+  const location = useLocation();
+  const platform = decodeScalar(location.query?.platform) ?? null;
+  const guide = decodeScalar(location.query?.guide);
 
-  if (!platform) {
-    return <PlatformPickerPanel onSelect={setPlatform} />;
+  const navigateToPlatformGuide = (
+    selectedPlatform: SupportedPlatform | null,
+    selectedGuide?: string
+  ) => {
+    if (!selectedPlatform) {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {...location.query, platform: undefined, guide: undefined},
+      });
+      return;
+    }
+
+    if (!selectedGuide) {
+      selectedGuide = platformGuides[selectedPlatform][0]?.key ?? GuideKey.MANUAL;
+    }
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, platform: selectedPlatform, guide: selectedGuide},
+    });
+  };
+
+  if (!isValidPlatform(platform) || !isValidGuide(guide)) {
+    return <PlatformPickerPanel onSelect={navigateToPlatformGuide} />;
   }
 
   const platformText = CRON_SDK_PLATFORMS.find(
@@ -89,32 +139,35 @@ export function CronsLandingPanel() {
     <Panel>
       <BackButton
         icon={<IconChevron size="sm" direction="left" />}
-        onClick={() => setPlatform(null)}
+        onClick={() => navigateToPlatformGuide(null)}
         borderless
       >
         {t('Back to Platforms')}
       </BackButton>
       <PanelBody withPadding>
         <h3>{t('Get Started with %s', platformText)}</h3>
-        <Tabs>
+        <Tabs
+          onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
+          value={guide}
+        >
           <TabList>
             {[
-              ...guides.map(({title}) => (
-                <TabList.Item key={title}>{title}</TabList.Item>
+              ...guides.map(({key, title}) => (
+                <TabList.Item key={key}>{title}</TabList.Item>
               )),
-              <TabList.Item key="manual">{t('Manual')}</TabList.Item>,
+              <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
             ]}
           </TabList>
           <TabPanels>
             {[
-              ...guides.map(({title, Guide}) => (
-                <TabPanels.Item key={title}>
+              ...guides.map(({key, Guide}) => (
+                <TabPanels.Item key={key}>
                   <GuideContainer>
                     <Guide />
                   </GuideContainer>
                 </TabPanels.Item>
               )),
-              <TabPanels.Item key="manual">
+              <TabPanels.Item key={GuideKey.MANUAL}>
                 <GuideContainer>
                   <MonitorForm
                     apiMethod="POST"

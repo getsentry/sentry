@@ -2,6 +2,7 @@ import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
@@ -20,7 +21,10 @@ export default function FeedbackContainer({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <FeedbackWidget type="feedback" />
+        {children}
+      </NoProjectMessage>
     </Feature>
   );
 }

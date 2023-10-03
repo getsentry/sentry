@@ -1,6 +1,6 @@
-import {ShortIdResponse} from 'sentry/types';
+import {Group} from 'sentry-fixture/group';
 
-import {Group} from './group';
+import {ShortIdResponse} from 'sentry/types';
 
 export function ShortIdQueryResult(params = {}): ShortIdResponse {
   const group = Group({

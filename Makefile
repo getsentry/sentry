@@ -129,7 +129,6 @@ test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
 		tests/integration \
-		tests/minimetrics \
 		tests/relay_integration \
 		tests/sentry \
 		tests/sentry_plugins \
@@ -163,13 +162,8 @@ test-tools:
 	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
-backend-typing:
-	@echo "--> Running Python typing checks"
-	mypy
-	@echo ""
-
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
-# Running Locally: Run `sentry devservices up kafka zookeeper` before starting these tests
+# Running Locally: Run `sentry devservices up kafka` before starting these tests
 test-symbolicator: create-db
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"

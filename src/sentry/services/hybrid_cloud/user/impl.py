@@ -117,8 +117,8 @@ class DatabaseBackedUserService(UserService):
         only_visible: bool = False,
     ) -> List[RpcOrganizationMapping]:
         if user_id is None:
-            # This is impossible if type hints are followed or Pydantic enforces
-            # type-checking on serialization, but is still possible if we make a call
+            # This is impossible if type hints are followed or Pydantic enforces type-checking
+            # on serialization, but is still possible if we make a call
             # from non-Mypy-checked code on the same silo. It can occur easily if
             # `request.user.id` is passed as an argument where the user is an
             # AnonymousUser. Check explicitly to guard against returning mappings
@@ -169,7 +169,7 @@ class DatabaseBackedUserService(UserService):
         return serialize_rpc_user(user)
 
     def get_first_superuser(self) -> Optional[RpcUser]:
-        user = User.objects.filter(is_superuser=True).first()
+        user = User.objects.filter(is_superuser=True, is_active=True).first()
         if user is None:
             return None
         return serialize_rpc_user(user)

@@ -3,8 +3,13 @@ import {useEffect, useState} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import type {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
+import type {
+  Organization,
+  PlatformIntegration,
+  PlatformKey,
+  Project,
+  ProjectKey,
+} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type SdkDocumentationProps = {
@@ -18,12 +23,12 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
+  projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
   organization?: Organization;
   platformKey?: PlatformKey;
   projectId?: Project['id'];
-  projectSlug?: Project['slug'];
   sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
 

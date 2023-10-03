@@ -13,8 +13,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import push_scope  # NOQA
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, push_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -128,7 +127,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.check_missing": 1.0,
+    "sentry.monitors.tasks.mark_environment_missing": 0.05,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
@@ -472,12 +473,20 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    from sentry.metrics import minimetrics
+
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "flush-buffers",
         "sync-options",
         "schedule-digests",
     ]
+
+    # turn on minimetrics
+    sdk_options.setdefault("_experiments", {}).update(
+        enable_metrics=True,
+        before_emit_metric=minimetrics.before_emit_metric,
+    )
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
@@ -500,9 +509,7 @@ def configure_sdk():
         **sdk_options,
     )
 
-    from sentry.metrics.minimetrics import patch_sentry_sdk
-
-    patch_sentry_sdk()
+    minimetrics.patch_sentry_sdk()
 
 
 class RavenShim:

@@ -195,7 +195,7 @@ class BitHandler:
     __setitem__ = __setattr__
 
     def __iter__(self):
-        return self.iteritems()  # NOQA
+        return self.iteritems()
 
     def __sentry__(self):
         return repr(self)
@@ -227,7 +227,7 @@ class BitHandler:
         return iter(self._keys)
 
     def items(self):
-        return list(self.iteritems())  # NOQA
+        return list(self.iteritems())
 
     def iteritems(self):
         for k in self._keys:

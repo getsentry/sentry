@@ -85,6 +85,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
+    @with_feature({"organizations:notifications-double-write": False})
     def test_saves_and_returns_values(self):
         data = {
             "deployNotifications": 2,

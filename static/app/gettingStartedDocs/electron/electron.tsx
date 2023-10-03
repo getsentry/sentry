@@ -3,9 +3,8 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;
@@ -24,14 +23,20 @@ export const steps = ({
     description: t('Add the Sentry Electron SDK package as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/electron
-
-# Using npm
-npm install --save @sentry/electron
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/electron',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/electron',
+          },
+        ],
       },
     ],
   },
@@ -109,6 +114,7 @@ export function GettingStartedWithElectron({
   platformKey,
   projectId,
   newOrg,
+  ...props
 }: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -124,6 +130,7 @@ export function GettingStartedWithElectron({
       nextSteps={[]}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

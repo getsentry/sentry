@@ -1,9 +1,8 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;
@@ -107,6 +106,7 @@ export function GettingStartedWithServerlesscloud({
   dsn,
   newOrg,
   platformKey,
+  ...props
 }: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -128,6 +128,7 @@ export function GettingStartedWithServerlesscloud({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }
