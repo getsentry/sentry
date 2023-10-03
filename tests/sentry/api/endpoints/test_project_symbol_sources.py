@@ -25,13 +25,15 @@ class ProjectSymbolSourcesTest(APITestCase):
         project.update_option("sentry:symbol_sources", json.dumps([config]))
         self.login_as(user=self.user)
 
+        expected = redact_source_secrets([config])
+
         response = self.get_success_response(project.organization.slug, project.slug)
-        assert response.data == redact_source_secrets([config])
+        assert response.data == expected
 
         response = self.get_success_response(
             project.organization.slug, project.slug, qs_params={"id": "honk"}
         )
-        assert response.data == redact_source_secrets([config])[0]
+        assert response.data == expected
 
     def test_get_unsuccessful(self):
         config = {
@@ -131,10 +133,12 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         project = self.project  # force creation
         self.login_as(user=self.user)
 
+        expected = redact_source_secrets([config])[0]
+
         response = self.get_success_response(
             project.organization.slug, project.slug, raw_data=config
         )
-        assert response.data == {"id": "honk"}
+        assert response.data == expected
 
         del config["id"]
 

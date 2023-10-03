@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
     InvalidSourcesError,
     backfill_source,
@@ -39,19 +39,12 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Project's symbol sources",
+        operation_id="Retrieve a Project's Symbol Sources",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            OpenApiParameter(
-                name="id",
-                description="The id of the source to look up.",
-                required=False,
-                type=str,
-                location="query",
-            ),
+            ProjectParams.source_id("The id of the source to look up.", False),
         ],
-        request=None,
         responses={
             # TODO
             200: None,
@@ -63,13 +56,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     def get(self, request: Request, project: Project) -> Response:
         """
         List custom symbol sources configured for a project.
-        ````````````````````````````````````````
-
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
-        :qparam string id: if given, only the configuration of the source with this id will be returned.
-
-        :auth: required
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
@@ -85,19 +71,12 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(redacted)
 
     @extend_schema(
-        operation_id="Deletes a symbol source from a project",
+        operation_id="Delete a Symbol Source from a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            OpenApiParameter(
-                name="id",
-                description="The id of the source to delete.",
-                required=True,
-                type=str,
-                location="query",
-            ),
+            ProjectParams.source_id("The id of the source to delete.", True),
         ],
-        request=None,
         responses={
             # TODO
             204: RESPONSE_NO_CONTENT,
@@ -133,7 +112,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data={"error": "Missing source id"}, status=404)
 
     @extend_schema(
-        operation_id="Adds a symbol source to a project",
+        operation_id="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
@@ -146,12 +125,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     def post(self, request: Request, project: Project) -> Response:
         """
         Add a custom symbol source to a project.
-        ````````````````````````````````````````
-
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
-
-        :auth: required
         """
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, False)
@@ -178,17 +151,11 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data=redacted[0], status=201)
 
     @extend_schema(
-        operation_id="Edits a symbol source in a project",
+        operation_id="Update a Symbol Source in a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            OpenApiParameter(
-                name="id",
-                description="The id of the source to update.",
-                required=True,
-                type=str,
-                location="query",
-            ),
+            ProjectParams.source_id("The id of the source to update.", True),
         ],
         request=None,
         responses={
@@ -201,14 +168,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     )
     def put(self, request: Request, project: Project) -> Response:
         """
-        Edit a custom symbol source in a project.
-        ````````````````````````````````````````
-
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
-        :qparam string id: the id of the source to edit.
-
-        :auth: required
+        Update a custom symbol source in a project.
         """
         id = request.GET.get("id")
         source = request.data
