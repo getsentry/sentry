@@ -453,9 +453,12 @@ function MetricChart({
   );
 }
 
+const minWidgetWidth = 450;
+
 const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
   margin-bottom: 0;
+  min-width: ${minWidgetWidth};
 `;
 
 const StyledMetricWidgetBody = styled('div')`
@@ -467,13 +470,13 @@ const StyledMetricWidgetBody = styled('div')`
 
 const StyledMetricDashboard = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(${minWidgetWidth}px, 1fr));
   gap: ${space(2)};
   @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(${minWidgetWidth}px, 1fr));
   }
   @media (max-width: ${props => props.theme.breakpoints.large}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(${minWidgetWidth}px, 1fr);
   }
 `;
 

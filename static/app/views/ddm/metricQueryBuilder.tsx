@@ -52,7 +52,7 @@ export function QueryBuilder({metricsQuery, displayType, onChange}: QueryBuilder
   return (
     <QueryBuilderWrapper>
       <QueryBuilderRow>
-        <PageFilterBar condensed>
+        <WrapPageFilterBar>
           <CompactSelect
             searchable
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
@@ -120,28 +120,28 @@ export function QueryBuilder({metricsQuery, displayType, onChange}: QueryBuilder
               })
             }
           />
-        </PageFilterBar>
-        <CompactSelect
-          triggerProps={{prefix: t('Display')}}
-          value={displayType ?? defaultMetricDisplayType}
-          options={[
-            {
-              value: MetricDisplayType.LINE,
-              label: t('Line Chart'),
-            },
-            {
-              value: MetricDisplayType.AREA,
-              label: t('Area Chart'),
-            },
-            {
-              value: MetricDisplayType.BAR,
-              label: t('Bar Chart'),
-            },
-          ]}
-          onChange={({value}) => {
-            onChange({displayType: value});
-          }}
-        />
+          <CompactSelect
+            triggerProps={{prefix: t('Display'), size: 'sm'}}
+            value={displayType ?? defaultMetricDisplayType}
+            options={[
+              {
+                value: MetricDisplayType.LINE,
+                label: t('Line'),
+              },
+              {
+                value: MetricDisplayType.AREA,
+                label: t('Area'),
+              },
+              {
+                value: MetricDisplayType.BAR,
+                label: t('Bar'),
+              },
+            ]}
+            onChange={({value}) => {
+              onChange({displayType: value});
+            }}
+          />
+        </WrapPageFilterBar>
       </QueryBuilderRow>
       <QueryBuilderRow>
         <MetricSearchBar
@@ -224,13 +224,6 @@ const QueryBuilderWrapper = styled('div')`
 `;
 
 const QueryBuilderRow = styled('div')`
-  display: grid;
-
-  grid-template: 1fr / 1fr max-content;
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
-  }
-
   padding: ${space(1)};
   padding-bottom: 0;
 `;
@@ -238,4 +231,12 @@ const QueryBuilderRow = styled('div')`
 const WideSearchBar = styled(SearchBar)`
   width: 100%;
   opacity: ${p => (p.disabled ? '0.6' : '1')};
+`;
+
+const WrapPageFilterBar = styled(PageFilterBar)`
+  height: auto;
+  flex-wrap: wrap;
+  &:first-child {
+    flex-wrap: after;
+  }
 `;
