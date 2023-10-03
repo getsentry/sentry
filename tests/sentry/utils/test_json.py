@@ -51,11 +51,11 @@ class JSONTest(TestCase):
         self.assertEqual(json.dumps(_("word")), '"word"')
 
     @patch("sentry_sdk.start_span")
-    def test_loads_with_sdk_trace(self, sentry_sdk_mock):
+    def test_loads_with_sdk_trace(self, start_span_mock):
         json.loads('{"test": "message"}')
-        sentry_sdk_mock.assert_called_once()
+        start_span_mock.assert_called_once()
 
     @patch("sentry_sdk.start_span")
-    def test_loads_without_sdk_trace(self, sentry_sdk_mock):
+    def test_loads_without_sdk_trace(self, start_span_mock):
         json.loads('{"test": "message"}', skip_trace=True)
-        sentry_sdk_mock.assert_not_called()
+        start_span_mock.assert_not_called()
