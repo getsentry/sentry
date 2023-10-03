@@ -61,7 +61,7 @@ class MissingMembersPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
 
 
-def _format_external_id(external_id):
+def _format_external_id(external_id: str | None) -> str | None:
     formatted_external_id = external_id
 
     if external_id is not None and ":" in external_id:

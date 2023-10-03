@@ -94,7 +94,9 @@ class InviteMissingMembersTestCase(TestCase):
         "sentry.notifications.notifications.missing_members_nudge.MissingMembersNudgeNotification.__init__",
         return_value=None,
     )
-    def test_email_content(self, mock_init_notification, mock_send_email, mock_send_notification):
+    def test_excludes_filtered_emails(
+        self, mock_init_notification, mock_send_email, mock_send_notification
+    ):
         integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )
