@@ -84,6 +84,7 @@ import {MeasurementMarker} from './styles';
 import {
   AggregateSpanType,
   FetchEmbeddedChildrenState,
+  GapSpanType,
   GroupType,
   ParsedTraceType,
   ProcessedSpanType,
@@ -627,7 +628,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <Fragment>
-        {isAggregateEvent && <SpanFrequencyBox span={span as AggregateSpanType} />}
+        {isAggregateEvent && (
+          <SpanFrequencyBox span={span as AggregateSpanType | GapSpanType} />
+        )}
         <RowTitleContainer
           data-debug-id="SpanBarTitleContainer"
           ref={ref => {

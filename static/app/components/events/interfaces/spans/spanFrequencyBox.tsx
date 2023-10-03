@@ -1,24 +1,36 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {
+  AggregateSpanType,
+  GapSpanType,
+} from 'sentry/components/events/interfaces/spans/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 
 export const FREQUENCY_BOX_WIDTH = 40;
 
 type Props = {
-  span: AggregateSpanType;
+  span: AggregateSpanType | GapSpanType;
 };
 
 // Colors are copied from tagsHeatMap.tsx, as they are not available on the theme
 const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
 export function SpanFrequencyBox({span}: Props) {
-  const {frequency, count, total} = span;
+  if (span.type === 'gap') {
+    return (
+      <StyledBox>
+        <Tooltip isHoverable title={t('This frequency of this span is unknown')}>
+          {'—'}
+        </Tooltip>
+      </StyledBox>
+    );
+  }
 
+  const {frequency, count, total} = span;
   return (
     <StyledBox frequency={frequency ?? 0}>
       <Tooltip
@@ -34,8 +46,8 @@ export function SpanFrequencyBox({span}: Props) {
   );
 }
 
-function getBoxColors(frequency: number, theme: Theme) {
-  if (frequency >= 0.9) {
+function getBoxColors(theme: Theme, frequency?: number) {
+  if (!frequency || frequency >= 0.9) {
     return `
       background: ${theme.white};
       color: ${theme.black};
@@ -69,7 +81,7 @@ function getBoxColors(frequency: number, theme: Theme) {
     `;
 }
 
-const StyledBox = styled('div')<{frequency: number}>`
+const StyledBox = styled('div')<{frequency?: number}>`
   display: flex;
   justify-content: right;
   align-items: center;
@@ -82,7 +94,7 @@ const StyledBox = styled('div')<{frequency: number}>`
   padding-right: ${space(1)};
 
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  ${p => getBoxColors(p.frequency, p.theme)}
+  ${p => getBoxColors(p.theme, p.frequency)}
 
   z-index: 9;
 `;
