@@ -173,7 +173,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     organization_id = payload.get("organization_id")
     retention_days = payload.get("retention_days")
 
-    if not (organization_id and retention_days):
+    if not organization_id or not retention_days:
         organization_id, retention_days = get_organization(
             relay_span["project_id"],
         )
