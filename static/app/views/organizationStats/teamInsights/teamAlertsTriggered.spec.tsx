@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {TeamAlertsTriggered as TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/tea
 describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', () => {
     const team = TestStubs.Team();
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     const project = TestStubs.Project();
 
     const alertsTriggeredApi = MockApiClient.addMockResponse({

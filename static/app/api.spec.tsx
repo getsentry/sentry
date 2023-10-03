@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
@@ -99,9 +101,7 @@ describe('resolveHostname', function () {
     configstate = ConfigStore.getState();
     devUi = window.__SENTRY_DEV_UI;
 
-    OrganizationStore.onUpdate(
-      TestStubs.Organization({features: ['frontend-domainsplit']})
-    );
+    OrganizationStore.onUpdate(Organization({features: ['frontend-domainsplit']}));
     ConfigStore.loadInitialData({
       ...configstate,
       links: {
@@ -120,7 +120,7 @@ describe('resolveHostname', function () {
 
   it('does nothing without feature', function () {
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(TestStubs.Organization());
+    OrganizationStore.onUpdate(Organization());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);
@@ -164,7 +164,7 @@ describe('resolveHostname', function () {
   it('removes sentryUrl from dev-ui mode requests when feature is off', function () {
     window.__SENTRY_DEV_UI = true;
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(TestStubs.Organization());
+    OrganizationStore.onUpdate(Organization());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);

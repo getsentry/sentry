@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -562,7 +564,7 @@ describe('PageFiltersContainer', function () {
         })
       );
       const project = TestStubs.Project({id: '3', isMember: false});
-      const org = TestStubs.Organization({projects: [project]});
+      const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 
@@ -589,7 +591,7 @@ describe('PageFiltersContainer', function () {
 
     it('selects first project if none (i.e. all) is requested', function () {
       const project = TestStubs.Project({id: '3'});
-      const org = TestStubs.Organization({projects: [project]});
+      const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 

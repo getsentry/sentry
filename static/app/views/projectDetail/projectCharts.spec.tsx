@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SessionsField} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,7 +12,7 @@ function renderProjectCharts(
   chartDisplay?: string
 ) {
   const {organization, router, project} = initializeOrg({
-    organization: TestStubs.Organization({features}),
+    organization: Organization({features}),
     projects: [{platform}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
