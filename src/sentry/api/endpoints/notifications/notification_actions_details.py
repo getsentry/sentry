@@ -86,7 +86,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         return (parsed_args, parsed_kwargs)
 
     @extend_schema(
-        operation_id="Retreive a Spike Protection Notification Action",
+        operation_id="Retrieve a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_SLUG,
             NotificationParams.ACTION_ID,
@@ -100,8 +100,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         """
         Returns a serialized Spike Protection Notification Action object.
-        Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
-        For example, email organization owner when spike protection threshod has been reached.
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
         """
         logger.info(
             "notification_action.get_one",
@@ -127,8 +127,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         """
         Updates a Spike Protection Notification Action.
-        Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
-        For example, email organization owner when spike protection threshod has been reached.
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
         """
         serializer = NotificationActionSerializer(
             instance=action,
@@ -173,8 +173,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         """
         Deletes a Spike Protection Notification Action.
-        Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
-        For example, email organization owner when spike protection threshod has been reached.
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
         """
         logger.info(
             "notification_action.delete",

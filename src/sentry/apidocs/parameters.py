@@ -304,7 +304,7 @@ class NotificationParams:
         location="path",
         required=True,
         type=int,
-        description="ID of the notification action to retreive",
+        description="ID of the notification action to retrieve",
     )
 
 
