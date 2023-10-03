@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,7 +26,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for a project
         """
-        expand = request.GET.getlist("expand", [])
+        expand: list[str] = request.GET.getlist("expand", [])
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", project.organization):
             # Filter to only error alert rules
