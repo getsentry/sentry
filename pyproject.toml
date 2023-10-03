@@ -839,14 +839,9 @@ module = [
     "tests.sentry.sentry_metrics.limiters.test_writes_limiter",
     "tests.sentry.sentry_metrics.test_base_indexer",
     "tests.sentry.sentry_metrics.test_batch",
-    "tests.sentry.snuba.metrics.test_snql",
-    "tests.sentry.snuba.test_tasks",
     "tests.sentry.tagstore.test_types",
     "tests.sentry.tasks.test_post_process",
     "tests.sentry.web.test_client_config",
-    "tests.snuba.rules.conditions.test_event_frequency",
-    "tests.snuba.sessions.test_sessions",
-    "tests.snuba.tagstore.test_tagstore_backend",
 ]
 disable_error_code = [
     "arg-type",
