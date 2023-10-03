@@ -119,7 +119,7 @@ class StatsSummaryApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
