@@ -8,12 +8,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdIndexGETSerializer(serializers.Serializer):
+class ReleaseThresholdIndexGETValidator(serializers.Serializer):
     environment = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField()
     )
@@ -30,11 +31,11 @@ class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
-        serializer = ReleaseThresholdIndexGETSerializer(
+        validator = ReleaseThresholdIndexGETValidator(
             data=request.query_params,
         )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+        if not validator.is_valid():
+            return Response(validator.errors, status=400)
 
         environments_list = self.get_environments(request, organization)
         projects_list = self.get_projects(request, organization)
@@ -49,6 +50,12 @@ class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
                 project__in=projects_list,
             )
 
-        release_thresholds = ReleaseThreshold.objects.filter(release_query)
+        queryset = ReleaseThreshold.objects.filter(release_query)
 
-        return Response(serialize(list(release_thresholds), request.user), status=200)
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="date_added",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
