@@ -71,7 +71,7 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
 
 
 class SamplingValue(TypedDict):
@@ -116,7 +116,6 @@ class Rule(TypedDict):
 class DecayingFn(TypedDict):
     type: str
     decayedValue: NotRequired[Optional[str]]
-    limit: NotRequired[int]
 
 
 class DecayingRule(Rule):
