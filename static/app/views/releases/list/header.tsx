@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {THRESHOLDS_VIEW} from '../utils/constants';
+import {MONITOR_VIEW, THRESHOLDS_VIEW} from '../utils/constants';
 
 type Props = {
   hasV2ReleaseUIEnabled: boolean;
@@ -35,29 +35,20 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
   const tabs = hasV2ReleaseUIEnabled
     ? [
         {
-          key: 'monitor',
+          key: MONITOR_VIEW,
           label: t('Monitor'),
           description: '',
-          query: 'monitor',
+          query: MONITOR_VIEW,
         },
         {
-          key: 'thresholds',
+          key: THRESHOLDS_VIEW,
           label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
-          query: 'thresholds',
+          query: THRESHOLDS_VIEW,
         },
       ]
     : [];
-
-  useRef(() => {
-    if (queryParams.view === THRESHOLDS_VIEW && !hasV2ReleaseUIEnabled) {
-      // TODO:
-      // If flag not set - remove the view param?
-      // OR - just don't render the thresholds content :shrug:
-      // Opt for the simplest solution
-    }
-  });
 
   const onTabSelect = key => {
     setSelected(key);
