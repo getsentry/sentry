@@ -25,6 +25,7 @@ import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   explodeField,
@@ -57,6 +58,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
@@ -137,6 +139,8 @@ interface State {
   queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
+  dataType?: string;
+  dataUnit?: string;
   description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
@@ -221,6 +225,8 @@ function WidgetBuilder({
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       description: undefined,
+      dataType: undefined,
+      dataUnit: undefined,
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
@@ -672,6 +678,8 @@ function WidgetBuilder({
       );
     }
 
+    newState.thresholds = null;
+
     setState(newState);
   }
 
@@ -762,6 +770,10 @@ function WidgetBuilder({
 
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
+
+    if (widgetData.thresholds && !hasThresholdMaxValue(widgetData.thresholds)) {
+      widgetData.thresholds = null;
+    }
 
     if (widgetToBeUpdated) {
       widgetData.layout = widgetToBeUpdated?.layout;
@@ -934,6 +946,37 @@ function WidgetBuilder({
     });
   }
 
+  function handleThresholdUnitChange(unit: string) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      if (!newState.thresholds) {
+        newState.thresholds = {
+          max_values: {},
+          unit: null,
+        };
+      }
+
+      newState.thresholds.unit = unit;
+
+      return newState;
+    });
+  }
+
+  function handleWidgetDataFetched(tableData: TableDataWithTitle[]) {
+    const tableMeta = {...tableData[0].meta};
+    const keys = Object.keys(tableMeta);
+    const field = keys[0];
+    const dataType = tableMeta[field];
+    const dataUnit = tableMeta.units?.[field];
+
+    setState(prevState => ({
+      ...prevState,
+      dataType,
+      dataUnit,
+    }));
+  }
+
   function isFormInvalid() {
     if (
       (notDashboardsOrigin && !state.selectedDashboard) ||
@@ -1062,6 +1105,7 @@ function WidgetBuilder({
                               </NameWidgetStep>
                               <VisualizationStep
                                 location={location}
+                                onDataFetched={handleWidgetDataFetched}
                                 widget={currentWidget}
                                 dashboardFilters={dashboard.filters}
                                 organization={organization}
@@ -1160,12 +1204,17 @@ function WidgetBuilder({
                                 />
                               )}
                               {state.displayType === 'big_number' &&
+                                state.dataType !== 'date' &&
                                 organization.features.includes(
                                   'dashboard-widget-indicators'
                                 ) && (
                                   <ThresholdsStep
-                                    onChange={handleThresholdChange}
+                                    onThresholdChange={handleThresholdChange}
+                                    onUnitChange={handleThresholdUnitChange}
                                     thresholdsConfig={state.thresholds ?? null}
+                                    dataType={state.dataType}
+                                    dataUnit={state.dataUnit}
+                                    errors={state.errors?.thresholds}
                                   />
                                 )}
                             </BuildSteps>
