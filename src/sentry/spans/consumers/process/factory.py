@@ -56,19 +56,14 @@ def get_organization(project_id: int) -> Tuple[Organization, int]:
 
 
 def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    organization_id, retention_days = get_organization(
-        relay_span["project_id"],
-    )
-    span_data: Mapping[str, Any] = relay_span.get("data", {})
+    span_data: Mapping[str, Any] = relay_span.get("sentry_tags", {})
 
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization_id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
-    snuba_span["retention_days"] = retention_days
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
@@ -112,9 +107,6 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
 
     if "status" not in sentry_tags and (status := relay_span.get("status", "")) is not None:
         sentry_tags["status"] = status
-
-    if "status_code" in sentry_tags:
-        sentry_tags["status_code"] = sentry_tags["status_code"]
 
     snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
@@ -163,58 +155,34 @@ def _format_event_id(payload: Mapping[str, Any]) -> str:
     return ""
 
 
-def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    snuba_span: MutableMapping[str, Any] = dict(relay_span)
-    snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
-    snuba_span["segment_id"] = relay_span.get("segment_id", "0")
-    snuba_span["span_id"] = relay_span.get("span_id", "0")
-    snuba_span["tags"] = {
-        k: str(v) for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
-    }
-
-    if (description := relay_span.get("description")) is not None:
-        snuba_span["description"] = description
-
-    span_data: Mapping[str, Any] = relay_span.get("user_tags", {})
-    sentry_tags: MutableMapping[str, Any] = {}
-
-    if span_data:
-        for relay_tag, snuba_tag in TAG_MAPPING.items():
-            tag_value = span_data.get(relay_tag)
-            if snuba_tag == "group":
-                if tag_value is None:
-                    metrics.incr("spans.missing_group")
-                else:
-                    try:
-                        # Test if the value is valid hexadecimal.
-                        _ = int(tag_value, 16)
-                        # If valid, set the raw value to the tag.
-                        sentry_tags["group"] = tag_value
-                    except ValueError:
-                        metrics.incr("spans.invalid_group")
-            elif tag_value is not None:
-                sentry_tags[snuba_tag] = tag_value
-
-    snuba_span["data"] = sentry_tags
-
-    _process_group_raw(
-        snuba_span=snuba_span,
-        transaction=span_data.get("transaction", ""),
-    )
-
-    return snuba_span
+def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+    try:
+        return msgpack.unpackb(payload)
+    except msgpack.FormatError:
+        return json.loads(payload, use_rapid_json=True)
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
-    payload = msgpack.unpackb(message.payload.value)
-    if payload.get("version") == SPAN_SCHEMA_V1:
-        snuba_span = _process_relay_span_v1(payload)
-    else:
-        relay_span = payload["span"]
-        relay_span["project_id"] = payload["project_id"]
-        relay_span["event_id"] = _format_event_id(payload)
-        snuba_span = _process_relay_span_v0(relay_span)
+    payload = _deserialize_payload(message.payload.value)
+    relay_span = payload["span"]
+    relay_span["project_id"] = payload["project_id"]
+    relay_span["event_id"] = _format_event_id(payload)
+
+    organization_id = payload.get("organization_id")
+    retention_days = payload.get("retention_days")
+
+    if not (organization_id and retention_days):
+        organization_id, retention_days = get_organization(
+            relay_span["project_id"],
+        )
+
+    if "sentry_tags" not in relay_span and "data" in relay_span:
+        relay_span["sentry_tags"] = relay_span.pop("data")
+
+    relay_span["organization_id"] = organization_id
+    relay_span["retention_days"] = retention_days
+
+    snuba_span = _process_relay_span_v0(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 

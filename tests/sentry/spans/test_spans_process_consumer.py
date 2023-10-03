@@ -7,7 +7,10 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.receivers import create_default_projects
-from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory, _build_snuba_span
+from sentry.spans.consumers.process.factory import (
+    ProcessSpansStrategyFactory,
+    _process_relay_span_v0,
+)
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -94,7 +97,7 @@ def test_null_tags_and_data():
         "trace_id": "3f0bba60b0a7471abe18732abe6506c2",
         "type": "trace",
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert "tags" in snuba_span and len(snuba_span["tags"]) == 0
 
@@ -102,7 +105,7 @@ def test_null_tags_and_data():
         "none_tag": None,
         "false_value": False,
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert all([v is not None for v in snuba_span["tags"].values()])
     assert "false_value" in snuba_span["tags"]
@@ -112,7 +115,7 @@ def test_null_tags_and_data():
         "span.description": "",
         "span.system": None,
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert all([v is not None for v in snuba_span["sentry_tags"].values()])
     assert "description" in snuba_span["sentry_tags"]
@@ -121,7 +124,7 @@ def test_null_tags_and_data():
         "status_code": "undefined",
         "group": "[Filtered]",
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert snuba_span["sentry_tags"].get("group") is None
     assert snuba_span["sentry_tags"].get("status_code") is None
