@@ -22,6 +22,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
@@ -31,7 +32,9 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-class AlertRuleBase:
+class AlertRuleBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     @cached_property
     def organization(self):
         return self.create_organization()
@@ -76,10 +79,12 @@ class AlertRuleBase:
 
 
 class AlertRuleIndexBase(AlertRuleBase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-organization-alert-rules"
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
@@ -99,7 +104,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
 
 @region_silo_test(stable=True)
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -707,7 +712,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
-class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
 
     def setUp(self):

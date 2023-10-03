@@ -23,11 +23,14 @@ from sentry.tasks.deletion.scheduled import (
     run_scheduled_deletions,
     run_scheduled_deletions_control,
 )
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
-class RegionalRunScheduleDeletionTest(abc.ABC):
+class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     @property
     @abstractmethod
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
@@ -153,6 +156,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
     def test_handle_missing_record(self):
         qs = self.create_simple_deletion()
         inst = qs.first()
+        assert inst is not None
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
         # Delete the inst, the deletion should remove itself, as its work is done.
         inst.delete()
@@ -186,7 +190,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
 
 
 @region_silo_test(stable=True)
-class RunRegionScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
+class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
         return RegionScheduledDeletion
@@ -213,7 +217,7 @@ class RunRegionScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
 
 
 @control_silo_test(stable=True)
-class RunControlScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
+class RunControlScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
         return ScheduledDeletion
