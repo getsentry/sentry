@@ -347,3 +347,4 @@ class IntegrationParams:
         required=False,
         type=bool,
         description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
+    )
