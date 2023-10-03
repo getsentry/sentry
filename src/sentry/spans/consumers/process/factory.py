@@ -156,6 +156,8 @@ def _format_event_id(payload: Mapping[str, Any]) -> str:
 
 
 def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+    # We're migrating the payload from being encoded in msgpack to JSON.
+    # This for backward compatibility while we transition.
     try:
         return msgpack.unpackb(payload)
     except msgpack.FormatError:
