@@ -5,11 +5,11 @@ from typing import List
 import pytest
 from django.db import IntegrityError, router, transaction
 
-from sentry.hybridcloud.rpc_services.organization_provisioning import (
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     control_organization_provisioning_rpc_service,
 )
-from sentry.hybridcloud.rpc_services.organization_provisioning.impl import (
+from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl import (
     InvalidOrganizationProvisioningException,
 )
 from sentry.models import (

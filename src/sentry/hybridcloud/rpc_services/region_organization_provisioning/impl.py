@@ -6,9 +6,11 @@ from sentry_sdk import capture_exception
 
 from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.rpc_services.organization_provisioning import RpcOrganizationSlugReservation
-from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
-    OrganizationProvisioningRegionService,
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugReservation,
+)
+from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
+    RegionOrganizationProvisioningRpcService,
 )
 from sentry.models import (
     Organization,
@@ -39,7 +41,9 @@ class PreProvisionCheckException(Exception):
     pass
 
 
-class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioningRegionService):
+class DatabaseBackedRegionOrganizationProvisioningRpcService(
+    RegionOrganizationProvisioningRpcService
+):
     def _create_organization_and_team(
         self,
         organization_name: str,

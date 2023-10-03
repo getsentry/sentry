@@ -6,7 +6,7 @@ from django.db import router, transaction
 from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
-from sentry.hybridcloud.rpc_services.organization_provisioning import (
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,

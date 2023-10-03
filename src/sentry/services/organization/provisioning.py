@@ -4,8 +4,8 @@ from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from sentry_sdk import capture_exception
 
-from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
-    organization_provisioning_region_service,
+from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
+    region_organization_provisioning_rpc_service,
 )
 from sentry.models import outbox_context
 from sentry.models.organizationslugreservation import (
@@ -57,7 +57,7 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.first()
 
-    able_to_provision = organization_provisioning_region_service.create_organization_in_region(
+    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
         region_name=region_name,
@@ -95,10 +95,12 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
 
     org_slug_reservation = org_slug_reservation_qs.first()
 
-    from sentry.hybridcloud.rpc_services.organization_provisioning import serialize_slug_reservation
+    from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+        serialize_slug_reservation,
+    )
 
     able_to_update_slug = (
-        organization_provisioning_region_service.update_organization_slug_from_reservation(
+        region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
             region_name=region_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
