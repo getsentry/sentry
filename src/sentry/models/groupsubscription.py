@@ -198,7 +198,11 @@ class GroupSubscriptionManager(BaseManager):
                     is_subcribed = (
                         subscription_option
                         and subscription_option.is_active
-                        and value != NotificationSettingsOptionEnum.NEVER
+                        and value
+                        in [
+                            NotificationSettingsOptionEnum.ALWAYS,
+                            NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                        ]
                     )
                     is_implicit = (
                         not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS

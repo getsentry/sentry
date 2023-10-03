@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
@@ -349,3 +350,10 @@ ASSIGNEE_CHOICES = [
     (AssigneeTargetType.TEAM.value, "Team"),
     (AssigneeTargetType.MEMBER.value, "Member"),
 ]
+
+
+@dataclass
+class SubscriptionStatus:
+    is_disabled: bool
+    is_active: bool
+    has_only_inactive_subscriptions: bool
