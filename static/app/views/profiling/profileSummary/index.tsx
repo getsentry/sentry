@@ -16,6 +16,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
   ProfilingBreadcrumbs,
@@ -366,31 +367,43 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
                   <FlamegraphThemeProvider>
                     <FlamegraphProvider>
-                      <AggregateFlamegraphToolbar
-                        scheduler={scheduler}
-                        canvasPoolManager={canvasPoolManager}
-                        visualization={visualization}
-                        onVisualizationChange={onVisualizationChange}
-                        frameFilter={frameFilter}
-                        onFrameFilterChange={onFrameFilterChange}
-                        hideSystemFrames={false}
-                        setHideSystemFrames={() => void 0}
-                      />
-                      {visualization === 'flamegraph' ? (
-                        <AggregateFlamegraph
-                          canvasPoolManager={canvasPoolManager}
+                      <AggregateFlamegraphContainer>
+                        <AggregateFlamegraphToolbar
                           scheduler={scheduler}
+                          canvasPoolManager={canvasPoolManager}
+                          visualization={visualization}
+                          onVisualizationChange={onVisualizationChange}
+                          frameFilter={frameFilter}
+                          onFrameFilterChange={onFrameFilterChange}
+                          hideSystemFrames={false}
+                          setHideSystemFrames={() => void 0}
                         />
-                      ) : null}
+                        {visualization === 'flamegraph' ? (
+                          <AggregateFlamegraph
+                            canvasPoolManager={canvasPoolManager}
+                            scheduler={scheduler}
+                          />
+                        ) : (
+                          <AggregateFlamegraphTreeTable
+                            recursion={null}
+                            expanded
+                            frameFilter={frameFilter}
+                            canvasScheduler={scheduler}
+                            canvasPoolManager={canvasPoolManager}
+                          />
+                        )}
+                      </AggregateFlamegraphContainer>
                     </FlamegraphProvider>
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
               </ProfileGroupProvider>
             </ProfileVisualization>
             <ProfileDigestContainer>
-              <ProfileDigest />
-              <MostRegressedProfileFunctions transaction={transaction} />
-              <SlowestProfileFunctions transaction={transaction} />
+              <ProfileDigestScrollContainer>
+                <ProfileDigest />
+                <MostRegressedProfileFunctions transaction={transaction} />
+                <SlowestProfileFunctions transaction={transaction} />
+              </ProfileDigestScrollContainer>
             </ProfileDigestContainer>
           </ProfileVisualizationContainer>
         </PageFiltersContainer>
@@ -398,6 +411,18 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     </SentryDocumentTitle>
   );
 }
+
+const AggregateFlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+`;
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
@@ -477,20 +502,34 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 
 const ProfileVisualization = styled('div')`
   grid-area: visualization;
+  position: relative;
+  height: 100%;
 `;
 
 const ProfileDigestContainer = styled('div')`
   grid-area: digest;
   border-left: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)};
   background-color: ${p => p.theme.background};
   display: flex;
+  flex: 1 1 100%;
   flex-direction: column;
+  position: relative;
+`;
+
+const ProfileDigestScrollContainer = styled('div')`
+  padding: ${space(0.5)};
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow: auto;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
   display: grid;
   grid-template-areas: 'visualization digest';
+  grid-template-columns: 60% 40%;
   flex: 1 1 100%;
 `;
 
