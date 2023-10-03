@@ -162,6 +162,7 @@ describe('OrganizationCrumb', function () {
         features: ['customer-domains'],
         links: {
           organizationUrl: 'https://acme.sentry.io',
+          regionUrl: 'https://us.sentry.io',
         },
       }),
     ];
