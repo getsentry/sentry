@@ -26,7 +26,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
 
-  const DOMEventsTab = {
+  const domEventsTab = {
     ...location,
     query: {
       referrer,
@@ -41,7 +41,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
-          <Link to={DOMEventsTab}>
+          <Link to={domEventsTab}>
             <ClickCount color="yellow300">
               <IconCursorArrow size="sm" />
               {replayRecord.count_dead_clicks}
@@ -55,7 +55,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
-          <Link to={DOMEventsTab} color="red300">
+          <Link to={domEventsTab} color="red300">
             <ClickCount color="red300">
               <IconCursorArrow size="sm" />
               {replayRecord.count_rage_clicks}
