@@ -12,6 +12,7 @@ from sentry.models import (
     AuthProvider,
     AuthProviderReplica,
     ControlOutbox,
+    Organization,
     OrganizationMapping,
     RegionOutbox,
     outbox_context,
@@ -44,7 +45,7 @@ def reset_processing_state():
 
 
 @django_db_all
-@control_silo_test(stable=True)
+@no_silo_test(stable=True)
 def test_processing_awaits_options():
     reset_processing_state()
     org = Factories.create_organization()
@@ -58,6 +59,14 @@ def test_processing_awaits_options():
         }
     ):
         assert backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+
+    assert not backfill_outboxes_for(SiloMode.REGION, 0, 1)
+    with override_options(
+        {
+            "outbox_replication.sentry_organization.replication_version": Organization.replication_version
+        }
+    ):
+        assert backfill_outboxes_for(SiloMode.REGION, 0, 1)
 
 
 @django_db_all

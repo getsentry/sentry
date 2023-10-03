@@ -2,6 +2,13 @@ from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
 from sentry.utils.types import Bool, Int
 
 register(
+    "outbox_replication.sentry_organizationmember.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_team.replication_version",
     type=Int,
     default=0,

@@ -1,4 +1,5 @@
 import {RouteComponentProps} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -91,7 +92,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on org slug mistmatch', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'bobs-bagels',
       features: ['customer-domains'],
     });
@@ -129,7 +130,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
-    const organization = TestStubs.Organization({slug: 'albertos-apples', features: []});
+    const organization = Organization({slug: 'albertos-apples', features: []});
 
     const params = {
       orgId: organization.slug,
@@ -164,7 +165,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
@@ -202,7 +203,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
