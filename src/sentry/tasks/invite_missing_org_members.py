@@ -4,6 +4,7 @@ from sentry import features
 from sentry.api.endpoints.organization_missing_org_members import (
     FILTERED_CHARACTERS,
     FILTERED_EMAIL_DOMAINS,
+    _format_external_id,
     _get_missing_organization_members,
     _get_shared_email_domain,
 )
@@ -102,9 +103,7 @@ def send_nudge_email(org_id):
 
     commit_authors = []
     for commit_author in commit_author_query[:3]:
-        formatted_external_id = commit_author.external_id
-        if commit_author.external_id is not None and ":" in commit_author.external_id:
-            formatted_external_id = commit_author.external_id.split(":")[1]
+        formatted_external_id = _format_external_id(commit_author.external_id)
 
         commit_authors.append(
             {

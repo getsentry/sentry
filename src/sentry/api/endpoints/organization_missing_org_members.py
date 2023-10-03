@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
 FILTERED_EMAIL_DOMAINS = {
     "gmail.com",
+    "yahoo.com",
     "icloud.com",
     "hotmail.com",
     "outlook.com",
@@ -47,9 +48,7 @@ FILTERED_CHARACTERS = {"+"}
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        formatted_external_id = obj.external_id
-        if obj.external_id is not None and ":" in obj.external_id:
-            formatted_external_id = obj.external_id.split(":")[1]
+        formatted_external_id = _format_external_id(obj.external_id)
 
         return {
             "email": obj.email,
@@ -60,6 +59,15 @@ class MissingOrgMemberSerializer(Serializer):
 
 class MissingMembersPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
+
+
+def _format_external_id(external_id):
+    formatted_external_id = external_id
+
+    if external_id is not None and ":" in external_id:
+        formatted_external_id = external_id.split(":")[1]
+
+    return formatted_external_id
 
 
 def _get_missing_organization_members(
