@@ -375,16 +375,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if len(qualifying_trends) > 0:
                 regressions_to_send = []
                 for qualifying_trend in qualifying_trends:
-                    project_id = (
-                        next(
+                    project_id = qualifying_trend["project"]
+                    if not experiment_use_project_id:
+                        project_id = next(
                             transaction["project_id"]
                             for transaction in top_trending_transactions["data"]
                             if transaction["transaction"] == qualifying_trend["transaction"]
-                            and transaction["project"] == qualifying_trend["project"]
                         )
-                        if not experiment_use_project_id
-                        else qualifying_trend["project"]
-                    )
 
                     regression: BreakpointData = {
                         **qualifying_trend,  # type: ignore
