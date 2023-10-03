@@ -118,7 +118,7 @@ type ComponentProps<T, P> = {
   /**
    * A hook to modify data into the correct output after data has been received
    */
-  afterFetch?: (data: any, props?: Props<T, P>) => T;
+  afterFetch?: (data: any, props?: NonRecursiveProps<T, P>) => T;
   /**
    * A hook before fetch that can be used to do things like clearing the api
    */
@@ -130,7 +130,7 @@ type ComponentProps<T, P> = {
   /**
    * Allows components to modify the payload before it is set.
    */
-  getRequestPayload?: (props: Props<T, P>) => any;
+  getRequestPayload?: (props: NonRecursiveProps<T, P>) => any;
   options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
   /**
    * An external hook to parse errors in case there are differences for a specific api.
@@ -139,9 +139,16 @@ type ComponentProps<T, P> = {
   /**
    * An external hook in addition to the event view check to check if data should be refetched
    */
-  shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
+  shouldRefetchData?: (
+    prevProps: NonRecursiveProps<T, P>,
+    props: NonRecursiveProps<T, P>
+  ) => boolean;
 };
 
+/**
+ * The props without ComponentProps to avoid recursive generics
+ */
+type NonRecursiveProps<T, P> = InnerRequestProps<P> & ReactProps<T>;
 type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 
