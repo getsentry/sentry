@@ -70,7 +70,7 @@ class OrganizationExamples:
 
     RETRIEVE_SUMMARY_EVENT_COUNT = [
         OpenApiExample(
-            "Successful response",
+            "Get event counts for projects in an organization",
             value={
                 "start": "2023-09-19T13:00:00Z",
                 "end": "2023-09-19T12:28:00Z",

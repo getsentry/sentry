@@ -127,7 +127,9 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
         parameters=[GlobalParams.ORG_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
-            200: inline_sentry_response_serializer("OutcomesResponse", StatsSummaryApiResponse),
+            200: inline_sentry_response_serializer(
+                "OrganizationStatsSummaryResponse", StatsSummaryApiResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
         },
