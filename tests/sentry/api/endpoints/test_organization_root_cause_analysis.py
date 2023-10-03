@@ -254,13 +254,13 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "span_op": "django.middleware",
                 "span_group": "2b9cbb96dbf59baa",
                 "span_description": "middleware span",
-                "score_delta": 640.0,
+                "score_delta": 1578.0,
                 "freq_before": 1.0,
                 "freq_after": 3.0,
                 "freq_delta": 2.0,
-                "duration_delta": 173.33333333333334,
+                "duration_delta": 486.0,
                 "duration_before": 60.0,
-                "duration_after": 233.33333333333334,
+                "duration_after": 546.0,
                 "is_new_span": False,
             }
         ]
