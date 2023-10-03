@@ -596,8 +596,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
     def test_no_top_events_with_project_field(self):
         project = self.create_project()
-        response = self.client.get(
-            self.url,
+        response = self.do_request(
             data={
                 # make sure to query the project with 0 events
                 "project": project.id,
@@ -610,7 +609,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "topEvents": 5,
                 "dataset": "metrics",
             },
-            format="json",
         )
 
         assert response.status_code == 200, response.content
@@ -629,8 +627,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     timestamp=self.day_ago + timedelta(hours=offset, minutes=30),
                 )
 
-        response = self.client.get(
-            self.url,
+        response = self.do_request(
             data={
                 # make sure to query the project with 0 events
                 "project": self.project.id,
@@ -643,7 +640,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "topEvents": 5,
                 "dataset": "metrics",
             },
-            format="json",
         )
 
         assert response.status_code == 200, response.content
