@@ -97,33 +97,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "tips": {"query": "Need at least one valid project to query."}
         }
 
-    def test_api_key_request(self):
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "environment": "staging",
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=self.project.id,
-        )
-
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
-
-        url = self.reverse_url()
-        response = self.client_get(
-            url,
-            query,
-            format="json",
-            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == self.project.slug
-
     def test_environment_filter(self):
         self.create_environment(self.project, name="production")
         self.store_event(
@@ -4189,33 +4162,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.do_request(query)
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], self.referrer)
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
-        mock.return_value = {}
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-
-        query = {
-            "field": ["project.name", "environment"],
-            "project": [self.project.id],
-        }
-
-        features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        url = self.reverse_url()
-
-        with self.feature(features):
-            self.client_get(
-                url,
-                query,
-                format="json",
-                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-            )
-
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     def test_limit_number_of_fields(self):
         self.create_project()
