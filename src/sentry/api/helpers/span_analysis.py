@@ -66,13 +66,13 @@ def span_analysis(data):
                 {
                     "span_op": key.split(",")[0],
                     "span_group": key.split(",")[1],
-                    "sample_event_id": row1["sample_event_id"],
+                    "sample_event_id": row1["sample_event_id"] if row1 else row2["sample_event_id"],
                     "score_delta": score_delta,
-                    "freq_before": row1["relative_freq"],
+                    "freq_before": row1["relative_freq"] if row1 else 0,
                     "freq_after": row2["relative_freq"],
                     "freq_delta": freq_delta,
                     "duration_delta": duration_delta,
-                    "duration_before": row1["avg_duration"],
+                    "duration_before": row1["avg_duration"] if row1 else 0,
                     "duration_after": row2["avg_duration"],
                     "is_new_span": new_span,
                 }
