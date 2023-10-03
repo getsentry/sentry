@@ -23,7 +23,7 @@ class ReleaseThresholdIndexGETSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class ReleaseThresholdEndpoint(OrganizationEndpoint):
+class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
