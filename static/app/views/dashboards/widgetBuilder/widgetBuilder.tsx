@@ -925,11 +925,8 @@ function WidgetBuilder({
       if (value === '') {
         delete newState.thresholds?.max_values[maxKey];
 
-        if (
-          newState.thresholds &&
-          Object.keys(newState.thresholds.max_values).length === 0
-        ) {
-          newState.thresholds = null;
+        if (newState.thresholds && !hasThresholdMaxValue(newState.thresholds)) {
+          newState.thresholds.max_values = {};
         }
       } else {
         if (!newState.thresholds) {
@@ -939,7 +936,9 @@ function WidgetBuilder({
           };
         }
 
-        newState.thresholds.max_values[maxKey] = Number(value);
+        if (newState.thresholds) {
+          newState.thresholds.max_values[maxKey] = Number(value);
+        }
       }
 
       return newState;
@@ -970,11 +969,23 @@ function WidgetBuilder({
     const dataType = tableMeta[field];
     const dataUnit = tableMeta.units?.[field];
 
-    setState(prevState => ({
-      ...prevState,
-      dataType,
-      dataUnit,
-    }));
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+
+      if (!newState.thresholds) {
+        newState.thresholds = {
+          max_values: {},
+          unit: null,
+        };
+      }
+
+      newState.thresholds.unit = dataUnit ?? null;
+
+      return newState;
+    });
   }
 
   function isFormInvalid() {
