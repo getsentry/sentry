@@ -8,6 +8,7 @@ from django.utils.functional import lazy
 from django.utils.html import format_html
 from django.utils.translation import ngettext
 
+from sentry import options
 from sentry.utils.imports import import_string
 
 
@@ -115,9 +116,12 @@ class PwnedPasswordsValidator:
         suffix = digest[5:]
 
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        headers = {
+            "User-Agent": "Sentry @ {}".format(options.get("system.url-prefix")),
+        }
 
         try:
-            r = requests.get(url, timeout=self.timeout)
+            r = requests.get(url, headers=headers, timeout=self.timeout)
         except Exception as e:
             sentry_sdk.set_extra("exception", str(e))
             sentry_sdk.set_extra("prefix", prefix)
