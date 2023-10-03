@@ -213,6 +213,7 @@ function WidgetBuilder({
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(WidgetType.DISCOVER)
   );
+  const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -221,7 +222,7 @@ function WidgetBuilder({
         DisplayType.TABLE,
       interval: '5m',
       queries: [],
-      thresholds: null,
+      thresholds: defaultThresholds,
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       description: undefined,
@@ -324,7 +325,7 @@ function WidgetBuilder({
         errors: undefined,
         loading: false,
         userHasModified: false,
-        thresholds: widgetFromDashboard.thresholds,
+        thresholds: widgetFromDashboard.thresholds ?? defaultThresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
@@ -678,7 +679,7 @@ function WidgetBuilder({
       );
     }
 
-    newState.thresholds = null;
+    newState.thresholds = defaultThresholds;
 
     setState(newState);
   }
@@ -929,13 +930,6 @@ function WidgetBuilder({
           newState.thresholds.max_values = {};
         }
       } else {
-        if (!newState.thresholds) {
-          newState.thresholds = {
-            max_values: {},
-            unit: null,
-          };
-        }
-
         if (newState.thresholds) {
           newState.thresholds.max_values[maxKey] = Number(value);
         }
@@ -949,14 +943,9 @@ function WidgetBuilder({
     setState(prevState => {
       const newState = cloneDeep(prevState);
 
-      if (!newState.thresholds) {
-        newState.thresholds = {
-          max_values: {},
-          unit: null,
-        };
+      if (newState.thresholds) {
+        newState.thresholds.unit = unit;
       }
-
-      newState.thresholds.unit = unit;
 
       return newState;
     });
@@ -975,14 +964,9 @@ function WidgetBuilder({
       newState.dataType = dataType;
       newState.dataUnit = dataUnit;
 
-      if (!newState.thresholds) {
-        newState.thresholds = {
-          max_values: {},
-          unit: null,
-        };
+      if (newState.thresholds && !newState.thresholds.unit) {
+        newState.thresholds.unit = dataUnit ?? null;
       }
-
-      newState.thresholds.unit = dataUnit ?? null;
 
       return newState;
     });

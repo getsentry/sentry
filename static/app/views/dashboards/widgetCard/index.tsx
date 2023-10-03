@@ -321,7 +321,10 @@ class WidgetCard extends Component<Props, State> {
                         hasThresholdMaxValue(widget.thresholds) &&
                         this.state.tableData &&
                         organization.features.includes('dashboard-widget-indicators') && (
-                          <ThresholdsHoverWrapper thresholds={widget.thresholds}>
+                          <ThresholdsHoverWrapper
+                            thresholds={widget.thresholds}
+                            tableData={this.state.tableData}
+                          >
                             <CircleIndicator
                               color={getWidgetIndicatorColor(
                                 widget.thresholds,
