@@ -146,7 +146,7 @@ class BaseAggregateSpans:
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": f"{description}"
+                "description": description
                 if span_tree["group"] == NULL_GROUP
                 else description,
                 "start_timestamp": start_timestamp,
