@@ -193,7 +193,7 @@ class GroupSubscriptionManager(BaseManager):
                 if user.id not in providers_by_recipient:
                     continue
 
-                for provider, val in providers_by_recipient[user.id].items():
+                for provider_str, val in providers_by_recipient[user.id].items():
                     value = NotificationSettingsOptionEnum(val)
                     is_subcribed = (
                         subscription_option
@@ -209,7 +209,7 @@ class GroupSubscriptionManager(BaseManager):
                             and subscription_option.reason
                             or GroupSubscriptionReason.implicit
                         )
-                        provider = ExternalProviders(provider)
+                        provider = ExternalProviders(provider_str)
                         result.add(provider, user, reason)
             return result
 
