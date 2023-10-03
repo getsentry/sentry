@@ -35,48 +35,30 @@ def span_analysis(data):
         row["avg_duration"] = avg_col[i]
         row["span_key"] = span_keys[i]
 
-    # get constant, removed, and new spans
-    spans_before = {row["span_key"] for row in data if row["period"] == "before"}
-    spans_after = {row["span_key"] for row in data if row["period"] == "after"}
-    constant_spans = spans_before.intersection(spans_after)
-
-    # TODO: Add logic to surface removed/new spans
-    # removed_spans = [x for x in spans_before if x not in spans_after]
-    # new_spans = [x for x in spans_after if x not in spans_before]
-
     # create two dataframes for period 0 and 1 and keep only the same spans in both periods
+    span_data_p0 = {row["span_key"]: row for row in data if row["period"] == "before"}
+    span_data_p1 = {row["span_key"]: row for row in data if row["period"] == "after"}
 
-    span_data_p0 = {
-        row["span_key"]: row
-        for row in data
-        if row["period"] == "before" and row["span_key"] in constant_spans
-    }
-    span_data_p1 = {
-        row["span_key"]: row
-        for row in data
-        if row["period"] == "after" and row["span_key"] in constant_spans
-    }
+    all_keys = set(span_data_p0.keys()).union(span_data_p1.keys())
 
     # merge the dataframes to do span analysis
     problem_spans = []
 
     # Perform the join operation
-    for key in span_data_p0.keys():
-        row1 = span_data_p0[key]
-        row2 = span_data_p1[key]
+    for key in all_keys:
+        row1 = span_data_p0.get(key)
+        row2 = span_data_p1.get(key)
+        new_span = False
 
-        # Merge the rows from df1 and df2 into a single dictionary and get the delta between period 0/1
-        score_delta = (row2["score"] - row1["score"]) / row1["score"] if row1["score"] != 0 else 0
-        freq_delta = (
-            (row2["relative_freq"] - row1["relative_freq"]) / row1["relative_freq"]
-            if row1["relative_freq"] != 0
-            else 0
-        )
-        duration_delta = (
-            (row2["avg_duration"] - row1["avg_duration"]) / row1["avg_duration"]
-            if row1["avg_duration"] != 0
-            else 0
-        )
+        if row1 and row2:
+            score_delta = row2["score"] - row1["score"]
+            freq_delta = row2["relative_freq"] - row1["relative_freq"]
+            duration_delta = row2["avg_duration"] - row1["avg_duration"]
+        elif row2:
+            score_delta = row2["score"]
+            freq_delta = row2["relative_freq"]
+            duration_delta = row2["avg_duration"]
+            new_span = True
 
         # We're only interested in span changes if they positively impacted duration
         if score_delta > 0:
@@ -84,14 +66,15 @@ def span_analysis(data):
                 {
                     "span_op": key.split(",")[0],
                     "span_group": key.split(",")[1],
-                    "sample_event_id": row1["sample_event_id"],
+                    "sample_event_id": row1["sample_event_id"] if row1 else row2["sample_event_id"],
                     "score_delta": score_delta,
-                    "freq_before": row1["relative_freq"],
+                    "freq_before": row1["relative_freq"] if row1 else 0,
                     "freq_after": row2["relative_freq"],
                     "freq_delta": freq_delta,
                     "duration_delta": duration_delta,
-                    "duration_before": row1["avg_duration"],
+                    "duration_before": row1["avg_duration"] if row1 else 0,
                     "duration_after": row2["avg_duration"],
+                    "is_new_span": new_span,
                 }
             )
 
