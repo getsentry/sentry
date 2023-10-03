@@ -68,6 +68,12 @@ const filterDescriptions = {
       'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.'
     ),
   },
+  'chunk-load-error': {
+    label: t('Filter out ChunkLoadError(s)'),
+    help: t(
+      'It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out of sync with the backend which results in a ChunkLoadError. The application refreshes and everything should work as expected.'
+    ),
+  },
 };
 
 const LEGACY_BROWSER_SUBFILTERS = {
