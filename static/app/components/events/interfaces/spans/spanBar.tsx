@@ -616,19 +616,18 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const isAggregateSpan =
-      event.type === EventOrGroupType.AGGREGATE_TRANSACTION && span.type === 'aggregate';
+    const isAggregateEvent = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
 
     const left =
       treeDepth * (TOGGLE_BORDER_BOX / 2) +
       MARGIN_LEFT +
-      (isAggregateSpan ? FREQUENCY_BOX_WIDTH : 0);
+      (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
 
     const errored = Boolean(errors && errors.length > 0);
 
     return (
       <Fragment>
-        {isAggregateSpan && <SpanFrequencyBox span={span} />}
+        {isAggregateEvent && <SpanFrequencyBox span={span as AggregateSpanType} />}
         <RowTitleContainer
           data-debug-id="SpanBarTitleContainer"
           ref={ref => {

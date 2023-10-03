@@ -10,6 +10,10 @@ import {useTheme} from '@emotion/react';
 
 import Count from 'sentry/components/count';
 import {
+  FREQUENCY_BOX_WIDTH,
+  SpanFrequencyBox,
+} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
+import {
   getSpanBarColours,
   ROW_HEIGHT,
   SpanBarType,
@@ -34,7 +38,11 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEventTransaction,
+  EventOrGroupType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -73,10 +81,21 @@ type Props = {
 };
 
 function renderGroupedSpansToggler(props: Props) {
-  const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup, spanBarType} =
-    props;
+  const {
+    treeDepth,
+    spanGrouping,
+    renderSpanTreeConnector,
+    toggleSpanGroup,
+    spanBarType,
+    event,
+  } = props;
 
-  const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+  const isAggregateEvent = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
+
+  const left =
+    treeDepth * (TOGGLE_BORDER_BOX / 2) +
+    MARGIN_LEFT +
+    (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
 
   return (
     <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -86,8 +105,8 @@ function renderGroupedSpansToggler(props: Props) {
         isExpanded={false}
         errored={false}
         isSpanGroupToggler
-        onClick={event => {
-          event.stopPropagation();
+        onClick={e => {
+          e.stopPropagation();
           toggleSpanGroup();
         }}
         spanBarType={spanBarType}
@@ -119,10 +138,10 @@ function renderDivider(
         dividerHandlerChildrenProps.setHover(true);
       }}
       onMouseDown={dividerHandlerChildrenProps.onDragStart}
-      onClick={event => {
+      onClick={e => {
         // we prevent the propagation of the clicks from this component to prevent
         // the span detail from being opened.
-        event.stopPropagation();
+        e.stopPropagation();
       }}
     />
   );
@@ -252,8 +271,15 @@ export function SpanGroupBar(props: Props) {
           endTimestamp: span.timestamp,
         });
 
+        const isAggregateSpan =
+          event.type === EventOrGroupType.AGGREGATE_TRANSACTION &&
+          span.type === 'aggregate';
+
         const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-        const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+        const left =
+          treeDepth * (TOGGLE_BORDER_BOX / 2) +
+          MARGIN_LEFT +
+          (isAggregateSpan ? FREQUENCY_BOX_WIDTH : 0);
 
         return (
           <Row
@@ -274,6 +300,7 @@ export function SpanGroupBar(props: Props) {
                 }}
                 ref={spanTitleRef}
               >
+                {isAggregateSpan && <SpanFrequencyBox span={span} />}
                 <RowTitleContainer ref={setTransformCallback}>
                   {renderGroupedSpansToggler(props)}
                   <RowTitle
