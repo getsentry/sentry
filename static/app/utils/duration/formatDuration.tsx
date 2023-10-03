@@ -1,11 +1,9 @@
+import {Timespan, Unit} from 'sentry/utils/duration/types';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
 
-type Unit = 'ms' | 'sec' | 'min' | 'hour' | 'day' | 'week';
 type Format =
   // example: `3,600`
   | 'count-locale'
-  // example: `24h`
-  | 'count-unit'
   // example: `86400`
   | 'count'
   // example: `1:00:00.000`
@@ -43,16 +41,7 @@ type Args = {
    * If it's coming from javascript `new Date` then 'ms'
    * If it's from an SDK event, probably 'sec'
    */
-  timespan: [number, Unit];
-};
-
-const UNIT_TO_SUFFIX = {
-  ms: 'ms',
-  sec: 's',
-  min: 'm',
-  hour: 'h',
-  day: 'd',
-  week: 'w',
+  timespan: Timespan;
 };
 
 const PRECISION_FACTORS: Record<Unit, number> = {
@@ -80,8 +69,6 @@ export default function formatDuration({
   switch (style) {
     case 'count-locale':
       return valueInUnit.toLocaleString();
-    case 'count-unit':
-      return `${valueInUnit}${UNIT_TO_SUFFIX[unit]}`;
     case 'count':
       return String(valueInUnit);
     case 'h:mm:ss': // fall-through

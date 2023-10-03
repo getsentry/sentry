@@ -49,22 +49,22 @@ describe('formatDuration', () => {
       ).toBe('60,000');
     });
 
-    it('should format the value into a count+unit, like statsPeriod', () => {
+    it('should format the value into a count, like statsPeriod', () => {
       expect(
         formatDuration({
-          style: 'count-unit',
+          style: 'count',
           precision: 'ms',
           timespan: [60, 'sec'],
         })
-      ).toBe('60000s');
+      ).toBe('60000');
 
       expect(
         formatDuration({
-          style: 'count-unit',
+          style: 'count',
           precision: 'hour',
-          timespan: [60, 'min'],
+          timespan: [45, 'min'],
         })
-      ).toBe('1h');
+      ).toBe('0.75');
     });
 
     it('should format sec into hours, minutes, and seconds', () => {
