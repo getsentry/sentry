@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -6,7 +8,7 @@ import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   delete organization.projects;
 
   function Output({error, teams}) {

@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -141,7 +142,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         slug: 'test-organization',
         avatar: {avatarType: 'letter_avatar'},
       });
@@ -153,7 +154,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar upload', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         slug: 'test-organization',
         avatar: {
           avatarType: 'upload',

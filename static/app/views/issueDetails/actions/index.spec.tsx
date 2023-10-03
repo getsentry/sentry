@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -30,7 +31,7 @@ const group = TestStubs.Group({
   project,
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],

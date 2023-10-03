@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +16,7 @@ describe('OrganizationMembersWrapper', function () {
   const {routerProps} = initializeOrg();
 
   const member = TestStubs.Member();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
@@ -65,7 +67,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can not invite members without the invite-members feature', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
@@ -78,7 +80,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite without permissions', async function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['invite-members'],
       access: [],
       status: {
