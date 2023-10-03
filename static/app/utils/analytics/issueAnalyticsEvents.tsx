@@ -57,9 +57,6 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
-  'event_with_mechanism.viewed': {
-    mechanism: string;
-  };
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
