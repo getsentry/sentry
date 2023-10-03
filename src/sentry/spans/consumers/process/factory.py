@@ -57,8 +57,10 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
+    snuba_span["organization_id"] = relay_span["organization_id"]
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
+    snuba_span["retention_days"] = relay_span["retention_days"]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
