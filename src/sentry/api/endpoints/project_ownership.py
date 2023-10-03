@@ -1,17 +1,23 @@
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
+from sentry.apidocs.examples import ownership_examples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
-from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectownership import ProjectOwnership, ProjectOwnershipResponse
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
@@ -21,10 +27,28 @@ HIGHER_MAX_RAW_LENGTH = 200_000
 
 
 class ProjectOwnershipSerializer(serializers.Serializer):
-    raw = serializers.CharField(allow_blank=True)
-    fallthrough = serializers.BooleanField()
-    autoAssignment = serializers.CharField(allow_blank=False)
-    codeownersAutoSync = serializers.BooleanField(default=True)
+    raw = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Raw input for ownership configuration. Check out [Ownership Rules Documentation](/product/issues/ownership-rules/) to learn more.",
+    )
+    fallthrough = serializers.BooleanField(
+        required=False,
+        help_text="Indicate if there is no match on explicit rules, to fall through and make everyone an implicit owner.",
+    )
+    autoAssignment = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        help_text="""Auto-assignment settings. Here are the available options:
+- Auto Assign to Issue Owner
+- Auto Assign to Suspect Commits
+- Turn off Auto-Assignment""",
+    )
+    codeownersAutoSync = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Set to `True` to sync issue owners with CODEOWNERS updates in a realese.",
+    )
 
     @staticmethod
     def _validate_no_codeowners(rules):
@@ -159,10 +183,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Projects"])
 class ProjectOwnershipEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = [ProjectOwnershipPermission]
 
@@ -199,14 +225,23 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
 
+    @extend_schema(
+        operation_id="Retrieve Ownership Configuration for a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectOwnershipResponse", ProjectOwnershipResponse
+            )
+        },
+        examples=ownership_examples.GET_PROJECT_OWNERSHIP,
+    )
     def get(self, request: Request, project) -> Response:
         """
-        Retrieve a Project's Ownership configuration
-        ````````````````````````````````````````````
-
-        Return details on a project's ownership configuration.
-
-        :auth: required
+        Returns details on a project's ownership configuration.
         """
         ownership = self.get_ownership(project)
         should_return_schema = features.has(
@@ -221,20 +256,25 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             serialize(ownership, request.user, should_return_schema=should_return_schema)
         )
 
+    @extend_schema(
+        operation_id="Update Ownership Configuration for a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+        ],
+        request=ProjectOwnershipSerializer,
+        responses={
+            202: inline_sentry_response_serializer(
+                "ProjectOwnershipResponse", ProjectOwnershipResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+        },
+        examples=ownership_examples.UPDATE_PROJECT_OWNERSHIP,
+    )
     def put(self, request: Request, project) -> Response:
         """
-        Update a Project's Ownership configuration
-        ``````````````````````````````````````````
-
-        Updates a project's ownership configuration settings. Only the
+        Updates ownership configurations for a project. Note that only the
         attributes submitted are modified.
-
-        :param string raw: Raw input for ownership configuration.
-        :param boolean fallthrough: Indicate if there is no match on explicit rules,
-                                    to fall through and make everyone an implicit owner.
-
-        :param autoAssignment: String detailing automatic assignment setting
-        :auth: required
         """
 
         # Ownership settings others than "raw" ownership rules can only be updated by
