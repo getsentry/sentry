@@ -1,5 +1,5 @@
 ---
-created: '2023-09-15T07:41:54.167449Z'
+created: '2023-10-03T07:37:36.283989Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -82,6 +82,9 @@ config:
       - promfflinkdev.com
     errorMessages:
       patterns:
+      - 'ChunkLoadError: Loading chunk * failed.
+
+        (error: *)'
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
     ignoreTransactions:
       isEnabled: true
