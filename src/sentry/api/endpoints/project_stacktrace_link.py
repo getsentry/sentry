@@ -217,8 +217,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         integrations = integration_service.get_integrations(organization_id=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
+        serializer = IntegrationSerializer()
         result["integrations"] = [
-            serialize(i, request.user, IntegrationSerializer())
+            serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
