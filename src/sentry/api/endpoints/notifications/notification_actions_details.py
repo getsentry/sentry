@@ -1,7 +1,7 @@
 import logging
 
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -21,7 +21,7 @@ from sentry.api.serializers.models.notification_action import OutgoingNotificati
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples import notification_examples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, NotificationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Projects"])
+@extend_schema(tags=["Notifications"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -89,13 +89,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         operation_id="Retreive a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OpenApiParameter(
-                name="action_id",
-                location="path",
-                required=True,
-                type=int,
-                description="ID of the notification action to retreive",
-            ),
+            NotificationParams.ACTION_ID,
         ],
         request=None,
         responses={200: OutgoingNotificationActionSerializer},
@@ -119,13 +113,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         operation_id="Update a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OpenApiParameter(
-                name="action_id",
-                location="path",
-                required=True,
-                type=int,
-                description="ID of the notification action to update",
-            ),
+            NotificationParams.ACTION_ID,
         ],
         request=NotificationActionSerializer,
         responses={
@@ -172,13 +160,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         operation_id="Delete a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OpenApiParameter(
-                name="action_id",
-                location="path",
-                required=True,
-                type=int,
-                description="ID of the notification action to delete",
-            ),
+            NotificationParams.ACTION_ID,
         ],
         request=None,
         responses={
