@@ -418,12 +418,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         proj_list = list(
             Project.objects.filter(organization=organization).values_list("id", flat=True)
         )
-        uos = [
-            uo
-            for uo in user_option_service.get_many(
+
+        if member.user_id is None:
+            uos = ()
+        else:
+            uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
             )
-        ]
 
         with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
