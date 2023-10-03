@@ -614,6 +614,21 @@ register(
     "post-process.error-hook-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )  # unused
 
+# Enable the new method for calculating suspect commits which uses all available stack trace frames
+register(
+    "post-process.suspect-commits-all-frames-enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Define which projects use the new method for calculating suspect commits
+register(
+    "post-process.suspect-commits-all-frames-projects",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register(

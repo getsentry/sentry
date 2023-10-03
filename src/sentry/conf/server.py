@@ -1807,6 +1807,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "projects:suspect-commits-all-frames": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Workflow 2.0 Auto associate commits to commit sha release
