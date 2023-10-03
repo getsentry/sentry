@@ -187,7 +187,7 @@ export function OrganizationAuthTokensIndex({
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Last access'), '']}
+            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
           >
             {!isError && !isLoading && !!tokenList?.length && (
               <TokenList
@@ -214,7 +214,8 @@ const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(3n + 2) {
+    > *:nth-child(4n + 2),
+    *:nth-child(4n + 3) {
       display: none;
     }
   }
