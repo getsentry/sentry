@@ -126,7 +126,7 @@ def allow_cors_options(func):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After, Link"
 
         if request.META.get("HTTP_ORIGIN") == "null":
             # if ORIGIN header is explicitly specified as 'null' leave it alone
