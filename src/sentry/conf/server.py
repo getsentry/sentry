@@ -1788,6 +1788,8 @@ SENTRY_FEATURES = {
     "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1807,8 +1809,6 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable the new suspect commits calculation that uses all frames in the stack trace
-    "projects:suspect-commits-all-frames": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Workflow 2.0 Auto associate commits to commit sha release
