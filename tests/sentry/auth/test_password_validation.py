@@ -48,6 +48,7 @@ class PasswordValidationTestCase(TestCase):
             body=PWNED_PASSWORDS_RESPONSE_MOCK,
         )
         with raises(
-            ValidationError, match="This password has previously appeared in data breaches"
+            ValidationError,
+            match="This password has previously appeared in data breaches 34 times.",
         ):
             validate_password("hiphophouse")
