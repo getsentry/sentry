@@ -1,4 +1,4 @@
-import {ComponentProps, type ElementType} from 'react';
+import {type ElementType} from 'react';
 import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 import first from 'lodash/first';
@@ -8,26 +8,28 @@ import SizingWindow, {
 } from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
-export type PropMatrix<E extends ElementType> = Partial<{
-  [Prop in keyof ComponentProps<E>]: Array<ComponentProps<E>[Prop]>;
+type RenderProps = {};
+
+export type PropMatrix<P extends RenderProps> = Partial<{
+  [Prop in keyof P]: P[Prop][];
 }>;
 
-interface Props<E extends ElementType> {
-  propMatrix: PropMatrix<E>;
-  render: ElementType<ComponentProps<E>>;
-  selectedProps: [keyof ComponentProps<E>, keyof ComponentProps<E>];
+interface Props<P extends RenderProps> {
+  propMatrix: PropMatrix<P>;
+  render: ElementType<P>;
+  selectedProps: [keyof P, keyof P];
   sizingWindowProps?: SizingWindowProps;
 }
 
-export default function Matrix<E extends ElementType>({
+export default function Matrix<P extends RenderProps>({
   propMatrix,
   render,
   selectedProps,
   sizingWindowProps,
-}: Props<E>) {
+}: Props<P>) {
   const defaultValues = Object.fromEntries(
     Object.entries(propMatrix).map(([key, values]) => {
-      return [key, first(values)];
+      return [key, first(values as any)];
     })
   );
 
