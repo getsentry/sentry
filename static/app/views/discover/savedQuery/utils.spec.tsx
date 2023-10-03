@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {ALL_VIEWS} from 'sentry/views/discover/data';
 import {
@@ -9,7 +11,7 @@ import {
 
 describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title')!;
   const errorsView = EventView.fromSavedQuery(errorsQuery);

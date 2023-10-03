@@ -63,7 +63,11 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
+from sentry.notifications.types import (
+    GroupSubscriptionStatus,
+    NotificationSettingEnum,
+    NotificationSettingTypes,
+)
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -584,7 +588,9 @@ class GroupSerializerBase(Serializer, ABC):
                 project_ids=project_ids,
                 type=NotificationSettingEnum.WORKFLOW,
             )
-            query_groups = {group for group in groups if (enabled_settings[group.project_id][1])}
+            query_groups = {
+                group for group in groups if (not enabled_settings[group.project_id][2])
+            }
             subscriptions_by_group_id: dict[int, GroupSubscription] = {
                 subscription.group_id: subscription
                 for subscription in GroupSubscription.objects.filter(
@@ -595,18 +601,23 @@ class GroupSerializerBase(Serializer, ABC):
 
             results = {}
             for project_id, group_set in groups_by_project.items():
-                (disabled_settings, has_enabled_settings) = enabled_settings[project_id]
+                s = enabled_settings[project_id]
+                subscription_status = GroupSubscriptionStatus(
+                    is_disabled=s[0],
+                    is_active=s[1],
+                    has_only_inactive_subscriptions=s[2],
+                )
                 for group in group_set:
                     subscription = subscriptions_by_group_id.get(group.id)
                     if subscription:
                         # Having a GroupSubscription overrides NotificationSettings.
                         results[group.id] = (False, subscription.is_active, subscription)
-                    elif disabled_settings:
+                    elif subscription_status.is_disabled:
                         # The user has disabled notifications in all cases.
                         results[group.id] = (True, False, None)
                     else:
                         # Since there is no subscription, it is only active if the value is ALWAYS.
-                        results[group.id] = (False, has_enabled_settings, None)
+                        results[group.id] = (False, subscription_status.is_active, None)
 
             return results
 
@@ -883,7 +894,26 @@ class SharedGroupSerializer(GroupSerializer):
         self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        del result["annotations"]  # type:ignore
+
+        ALLOWED_FIELDS = [
+            "culprit",
+            "id",
+            "isUnhandled",
+            "issueCategory",
+            "permalink",
+            "shortId",
+            "title",
+        ]
+        result = {k: v for (k, v) in result.items() if k in ALLOWED_FIELDS}
+
+        # avoids a circular import
+        from sentry.api.serializers.models import SharedEventSerializer, SharedProjectSerializer
+
+        event = obj.get_latest_event()
+        result["latestEvent"] = serialize(event, user, SharedEventSerializer())
+
+        result["project"] = serialize(obj.project, user, SharedProjectSerializer())
+
         return result
 
 

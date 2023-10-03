@@ -1,7 +1,7 @@
 import {type ElementType} from 'react';
-import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
@@ -24,7 +24,7 @@ export default function Matrix({component, propMatrix, selectedProps}: Props) {
   const items = values1.flatMap(value1 => {
     const label = (
       <div>
-        <samp>{selectedProps[0]}</samp>=<PropValue value={value1} />
+        <JSXProperty name={String(selectedProps[0])} value={value1} />
       </div>
     );
     const content = values2.map(value2 => {
@@ -50,7 +50,7 @@ export default function Matrix({component, propMatrix, selectedProps}: Props) {
         <div key="space-head" />
         {values2.map(value2 => (
           <div key={`title-2-${value2}`}>
-            <samp>{selectedProps[1]}</samp>=<PropValue value={value2} />
+            <JSXProperty name={String(selectedProps[1])} value={value2} />
           </div>
         ))}
         {items}
@@ -71,19 +71,6 @@ function item(Component, props) {
       <Component {...props} />
     </SizingWindow>
   );
-}
-
-function PropValue({value}: {value: unknown}) {
-  if (['string', 'boolean', 'number'].includes(typeof value)) {
-    return <kbd>{String(value)}</kbd>;
-  }
-  if (value === null || value === undefined) {
-    return <var>{String(value)}</var>;
-  }
-  if (isValidElement(value)) {
-    return value;
-  }
-  return <var>{JSON.stringify(value)}</var>;
 }
 
 const Grid = styled('section')`

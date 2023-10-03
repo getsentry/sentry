@@ -14,6 +14,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
+  IconFile,
   IconGraph,
   IconIssues,
   IconLightning,
@@ -234,9 +235,7 @@ function Sidebar({location, organization}: Props) {
                 isBeta={RELEASE_LEVEL === 'beta'}
                 isNew={RELEASE_LEVEL === 'new'}
                 label={
-                  <GuideAnchor target="performance-database">
-                    {t('Query Insights')}
-                  </GuideAnchor>
+                  <GuideAnchor target="performance-database">{t('Queries')}</GuideAnchor>
                 }
                 to={`/organizations/${organization.slug}/performance/database/`}
                 id="performance-database"
@@ -288,6 +287,13 @@ function Sidebar({location, organization}: Props) {
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/resources`}
+          id="performance-browser-resources"
+          icon={<IconFile />}
         />
         <SidebarItem
           {...sidebarItemProps}

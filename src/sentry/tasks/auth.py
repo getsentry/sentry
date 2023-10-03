@@ -74,6 +74,8 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
     # disabled in the timespan of users checking their email.
+    # Results are unordered -- some tests that depend on the mail.outbox ordering may fail
+    # intermittently -- force an ordering in your test!
     members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
     for member in members:
         member.send_sso_unlink_email(user, provider)

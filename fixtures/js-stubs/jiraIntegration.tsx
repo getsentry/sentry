@@ -1,8 +1,8 @@
-import {OrganizationIntegration} from 'sentry/types';
+import {GroupIntegration} from 'sentry/types';
 
 export function JiraIntegration(
-  params: Partial<OrganizationIntegration> = {}
-): OrganizationIntegration {
+  params: Partial<GroupIntegration> = {}
+): GroupIntegration {
   return {
     domainName: 'jira.com/test-integration',
     icon: 'http://jira.example.com/integration_icon.png',
@@ -24,14 +24,11 @@ export function JiraIntegration(
       canDisable: false,
       slug: '',
     },
-    configOrganization: [],
-    configData: {},
     accountType: '',
-    externalId: '',
     gracePeriodEnd: '',
-    organizationId: '',
     organizationIntegrationStatus: 'active',
     status: 'active',
+    externalIssues: [],
     ...params,
   };
 }

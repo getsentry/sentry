@@ -18,7 +18,7 @@ export type SpanMetrics = {
   'http_error_count()': number;
   'project.id': number;
   'span.description': string;
-  'span.domain': string;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;

@@ -1,6 +1,6 @@
+// import {useMemo} from 'react';
 import {Location} from 'history';
 
-import {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 
 export default function useFeedbackListQueryParams({
@@ -9,7 +9,7 @@ export default function useFeedbackListQueryParams({
 }: {
   location: Location;
   queryReferrer: string;
-}): FeedbackListQueryParams {
+}): Record<string, string | string[] | undefined> {
   const {
     cursor,
     end,
@@ -38,4 +38,35 @@ export default function useFeedbackListQueryParams({
     statsPeriod: decodeScalar(statsPeriod),
     queryReferrer,
   };
+  // Tried alone, didn't stop the list page from re-rendering
+  // return useMemo(
+  //   () => ({
+  //     cursor: decodeScalar(cursor),
+  //     end: decodeScalar(end),
+  //     environment: decodeList(environment),
+  //     field: decodeList(field),
+  //     offset: decodeScalar(offset),
+  //     per_page: decodeScalar(per_page),
+  //     project: decodeList(project),
+  //     query: decodeScalar(query),
+  //     sort: decodeScalar(sort),
+  //     start: decodeScalar(start),
+  //     statsPeriod: decodeScalar(statsPeriod),
+  //     queryReferrer,
+  //   }),
+  //   [
+  //     cursor,
+  //     end,
+  //     environment,
+  //     field,
+  //     offset,
+  //     per_page,
+  //     project,
+  //     query,
+  //     sort,
+  //     start,
+  //     statsPeriod,
+  //     queryReferrer,
+  //   ]
+  // );
 }

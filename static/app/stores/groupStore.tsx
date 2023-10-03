@@ -33,7 +33,7 @@ interface InternalDefinition {
   pendingChanges: Map<ChangeId, Change>;
   removeActivity: (groupId: string, id: string) => number;
   statuses: Record<string, Record<string, boolean>>;
-  updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
+  updateActivity: (groupId: string, id: string, data: Partial<Activity['data']>) => void;
   updateItems: (itemIds: ItemIds) => void;
 }
 

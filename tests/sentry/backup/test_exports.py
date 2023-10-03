@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Type
 
-from sentry.backup.dependencies import get_model_name
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
 from sentry.backup.scopes import ExportScope
 from sentry.db import models
 from sentry.models.email import Email
@@ -14,8 +14,11 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
 from sentry.utils.json import JSONData
+from tests.sentry.backup import get_matching_exportable_models
 
 
 class ExportTestCase(BackupTestCase):
@@ -30,62 +33,56 @@ class ScopingTests(ExportTestCase):
     """
 
     @staticmethod
-    def get_models_for_scope(scope: ExportScope) -> set[str]:
-        matching_models = set()
-        for model in get_exportable_sentry_models():
-            if model.get_possible_relocation_scopes() & scope.value:
-                obj_name = model._meta.object_name
-                if obj_name is not None:
-                    matching_models.add("sentry." + obj_name.lower())
-        return matching_models
+    def verify_model_inclusion(data: JSONData, scope: ExportScope):
+        """
+        Ensure all in-scope models are included, and that no out-of-scope models are included.
+        """
+        matching_models = get_matching_exportable_models(
+            lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
+        )
+        unseen_models = deepcopy(matching_models)
+
+        for entry in data:
+            model_name = NormalizedModelName(entry["model"])
+            model = get_model(model_name)
+            if model is not None:
+                unseen_models.discard(model)
+                if model not in matching_models:
+                    raise AssertionError(
+                        f"Model `{model_name}` was included in export despite not containing one of these relocation scopes: {scope.value}"
+                    )
+
+        if unseen_models:
+            raise AssertionError(
+                f"The following models were not included in the export: ${unseen_models}; this is despite it being included in at least one of the following relocation scopes: {scope.value}"
+            )
 
     def test_user_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.User)
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.User)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User`"
-                    )
+            self.verify_model_inclusion(data, ExportScope.User)
 
     def test_organization_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.Organization)
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.Organization)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User` or `RelocationScope.Organization`"
-                    )
+            self.verify_model_inclusion(data, ExportScope.Organization)
 
     def test_config_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.Config)
         self.create_exhaustive_instance(is_superadmin=True)
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.Config)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User` or `RelocationScope.Config`"
-                    )
+            self.verify_model_inclusion(data, ExportScope.Config)
 
     def test_global_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.Global)
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.Global)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite being labeled `RelocationScope.Excluded"
-                    )
+            self.verify_model_inclusion(data, ExportScope.Global)
 
 
 class FilteringTests(ExportTestCase):
@@ -262,3 +259,20 @@ class FilteringTests(ExportTestCase):
             assert self.count(data, UserIP) == 0
             assert self.count(data, UserEmail) == 0
             assert self.count(data, Email) == 0
+
+    def test_export_only_keep_admin_users_in_config_scope(self):
+        self.create_exhaustive_user("regular")
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_staff=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Config,
+            )
+
+            assert self.count(data, User) == 3
+            assert self.count(data, UserRole) == 1
+            assert self.count(data, UserRoleUser) == 1
+            assert self.count(data, UserPermission) == 1

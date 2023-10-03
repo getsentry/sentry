@@ -62,7 +62,7 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
             data=rule.get_audit_log_data(),
         )
         analytics.record(
-            "rule.reenable",
+            "rule_reenable.explicit",
             rule_id=rule.id,
             user_id=request.user.id,
             organization_id=project.organization.id,
