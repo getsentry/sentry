@@ -438,13 +438,13 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
@@ -453,7 +453,7 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -462,7 +462,7 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -471,7 +471,7 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
@@ -479,7 +479,7 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
+@region_silo_test(stable=True)
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,
