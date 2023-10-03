@@ -60,7 +60,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
             id: replayRecord.user.id || '',
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={<Cols>{undefined}</Cols>}
+          displayEmail={<div>{undefined}</div>}
         />
       ) : (
         <HeaderPlaceholder width="100%" height="58px" />
@@ -87,12 +87,6 @@ const Header = styled(Layout.Header)`
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
-`;
-
-const Cols = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default

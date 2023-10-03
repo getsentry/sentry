@@ -388,7 +388,7 @@ export function ReplayCell({
 
   return (
     <Item isWidget={isWidget}>
-      <UserBadgeFullWidth
+      <UserBadge
         avatarSize={24}
         displayName={
           replay.is_archived ? (
@@ -409,10 +409,6 @@ export function ReplayCell({
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-const UserBadgeFullWidth = styled(UserBadge)`
-  width: 100%;
 `;
 
 const Cols = styled('div')`
