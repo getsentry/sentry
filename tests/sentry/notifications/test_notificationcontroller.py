@@ -5,6 +5,7 @@ from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
+    SubscriptionStatus,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
@@ -600,19 +601,19 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.DEPLOY,
-        ) == {self.project.id: (False, True, False)}
+        ) == {self.project.id: SubscriptionStatus(False, True, False)}
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.WORKFLOW,
-        ) == {self.project.id: (True, False, True)}
+        ) == {self.project.id: SubscriptionStatus(True, False, True)}
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.QUOTA,
-        ) == {self.project.id: (False, True, False)}
+        ) == {self.project.id: SubscriptionStatus(False, True, False)}
 
     def test_get_participants(self):
         rpc_user = RpcActor.from_object(self.user)
