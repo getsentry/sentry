@@ -24,6 +24,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -188,18 +189,28 @@ class GroupSubscriptionManager(BaseManager):
             )
             result = ParticipantMap()
             for user in all_possible_users:
-                subscription_option = subscriptions_by_user_id.get(user.id)
+                subscription_option = subscriptions_by_user_id.get(user.id, {})
                 if user.id not in providers_by_recipient:
                     continue
 
-                for provider_str in providers_by_recipient[user.id]:
-                    reason = (
+                for provider, val in providers_by_recipient[user.id].items():
+                    value = NotificationSettingsOptionEnum(val)
+                    is_subcribed = (
                         subscription_option
-                        and subscription_option.reason
-                        or GroupSubscriptionReason.implicit
+                        and subscription_option.is_active
+                        and value != NotificationSettingsOptionEnum.NEVER
                     )
-                    provider = ExternalProviders(provider_str)
-                    result.add(provider, user, reason)
+                    is_implicit = (
+                        not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS
+                    )
+                    if is_subcribed or is_implicit:
+                        reason = (
+                            subscription_option
+                            and subscription_option.reason
+                            or GroupSubscriptionReason.implicit
+                        )
+                        provider = ExternalProviders(provider)
+                        result.add(provider, user, reason)
             return result
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(

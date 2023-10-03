@@ -105,7 +105,7 @@ def get_default_for_provider(
     if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
         logger.warning(
             "Could not find default for notification type",
-            extras={"type": type, "_type": _type, "provider": provider},
+            extra={"type": type, "_type": _type, "provider": provider},
         )
         return NotificationSettingsOptionEnum.NEVER
 
