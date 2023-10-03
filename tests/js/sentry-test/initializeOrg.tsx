@@ -1,8 +1,9 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 
-import type {Organization, Project} from 'sentry/types';
+import type {Organization as TOrganization, Project} from 'sentry/types';
 
 // Workaround react-router PlainRoute type not covering redirect routes.
 type RouteShape = {
@@ -15,7 +16,7 @@ type RouteShape = {
 };
 
 interface InitializeOrgOptions<RouterParams> {
-  organization?: Partial<Organization>;
+  organization?: Partial<TOrganization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
   router?: {
@@ -44,7 +45,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     (additionalProject && [additionalProject]) || [{}]
   ).map(p => TestStubs.Project(p));
   const [project] = projects;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     projects,
     ...additionalOrg,
     orgRoleList: OrgRoleList(),

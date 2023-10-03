@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
 
@@ -132,7 +133,7 @@ describe('TeamStatsIssues', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       teams,
       projects,
     });

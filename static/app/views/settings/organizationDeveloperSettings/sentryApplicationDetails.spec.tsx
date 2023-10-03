@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
 
@@ -20,7 +21,7 @@ describe('Sentry Application Details', function () {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org = TestStubs.Organization({features: ['sentry-app-logo-upload']});
+    org = Organization({features: ['sentry-app-logo-upload']});
   });
 
   describe('Creating a new public Sentry App', () => {

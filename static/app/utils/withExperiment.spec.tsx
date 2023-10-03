@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import withExperiment from 'sentry/utils/withExperiment';
@@ -17,7 +19,7 @@ describe('withConfig HoC', function () {
       // will evalulate to -1 assignment
       experiment: 'orgExperiment',
     });
-    render(<Container organization={TestStubs.Organization()} />);
+    render(<Container organization={Organization()} />);
 
     expect(screen.getByText('-1')).toBeInTheDocument();
   });

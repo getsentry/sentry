@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -72,7 +73,7 @@ describe('Discover > Landing', function () {
   it('denies access on missing feature', function () {
     render(
       <DiscoverLanding
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         {...TestStubs.routeComponentProps()}
       />
     );
@@ -81,7 +82,7 @@ describe('Discover > Landing', function () {
   });
 
   it('has the right sorts', function () {
-    const org = TestStubs.Organization({features});
+    const org = Organization({features});
 
     render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />);
 
@@ -106,7 +107,7 @@ describe('Discover > Landing', function () {
   });
 
   it('links back to the homepage', () => {
-    const org = TestStubs.Organization({features});
+    const org = Organization({features});
 
     render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
       context: TestStubs.routerContext(),

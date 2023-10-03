@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {AuthProvider} from 'sentry-fixture/authProvider';
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -77,10 +78,11 @@ describe('OrganizationMembersList', function () {
   });
 
   const currentUser = members[1];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
+      name: 'active',
     },
   });
   const router = TestStubs.router();
@@ -244,10 +246,11 @@ describe('OrganizationMembersList', function () {
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
-    const secondOrg = TestStubs.Organization({
+    const secondOrg = Organization({
       slug: 'org-two',
       status: {
         id: 'active',
+        name: 'active',
       },
     });
     OrganizationsStore.addOrReplace(secondOrg);
@@ -459,9 +462,10 @@ describe('OrganizationMembersList', function () {
     });
 
     it('disable buttons for no access', function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -483,10 +487,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can approve invite request and update', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -520,10 +525,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can deny invite request and remove', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -554,10 +560,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can update invite requests', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -616,7 +623,7 @@ describe('OrganizationMembersList', function () {
   //       body: newMember,
   //     });
 
-  //     const org = TestStubs.Organization({
+  //     const org = Organization({
   //       features: ['integrations-gh-invite'],
   //       githubNudgeInvite: true,
   //     });

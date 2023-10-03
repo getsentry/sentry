@@ -1,4 +1,5 @@
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ describe('Docs Search Modal', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({

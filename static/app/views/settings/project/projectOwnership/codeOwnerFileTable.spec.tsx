@@ -1,9 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodeOwnerFileTable} from './codeOwnerFileTable';
 
 describe('CodeOwnerFileTable', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
   const codeowner = TestStubs.CodeOwner();
 

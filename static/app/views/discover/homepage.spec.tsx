@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -21,7 +22,7 @@ describe('Discover > Homepage', () => {
   let initialData, organization, mockHomepage, measurementsMetaMock;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
     });
     initialData = initializeOrg({

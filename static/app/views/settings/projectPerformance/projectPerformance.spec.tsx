@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -15,7 +17,7 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({
+  const org = Organization({
     features: [
       'performance-view',
       'performance-issues-dev',
@@ -134,7 +136,7 @@ describe('projectPerformance', function () {
   });
 
   it('does not get performance issues settings without the feature flag', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
+    const orgWithoutPerfIssues = Organization({
       features: ['performance-view', 'performance-issues-dev'],
     });
 

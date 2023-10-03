@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
 import {GroupStats} from 'sentry-fixture/groupStats';
+import {Organization} from 'sentry-fixture/organization';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -1095,7 +1096,7 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects: [],
         }),
         ...moreProps,
@@ -1145,7 +1146,7 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1186,7 +1187,7 @@ describe('IssueList', function () {
         body: projects,
       });
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1237,7 +1238,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1284,7 +1285,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });

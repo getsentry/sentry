@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +13,7 @@ import {
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [TestStubs.Project()],
   });

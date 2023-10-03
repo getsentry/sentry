@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Role', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     orgRole: 'admin',
     orgRoleList: [
       {
@@ -123,7 +124,7 @@ describe('Role', function () {
 
     it('handles no organization.orgRoleList', function () {
       render(
-        <Role role="member" organization={{...organization, orgRoleList: undefined}}>
+        <Role role="member" organization={{...organization, orgRoleList: []}}>
           {childrenMock}
         </Role>,
         {context: routerContext}

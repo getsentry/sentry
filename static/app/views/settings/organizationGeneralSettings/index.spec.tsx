@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -114,7 +115,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = TestStubs.Organization({features: ['customer-domains']});
+    const org = Organization({features: ['customer-domains']});
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -146,7 +147,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    const readOnlyOrg = Organization({access: ['org:read']});
 
     render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
       organization: readOnlyOrg,
@@ -173,7 +174,7 @@ describe('OrganizationGeneralSettings', function () {
     render(
       <OrganizationGeneralSettings
         {...defaultProps}
-        organization={TestStubs.Organization({
+        organization={Organization({
           access: ['org:write'],
         })}
       />
@@ -190,7 +191,7 @@ describe('OrganizationGeneralSettings', function () {
     render(
       <OrganizationGeneralSettings
         {...defaultProps}
-        organization={TestStubs.Organization({access: ['org:admin']})}
+        organization={Organization({access: ['org:admin']})}
       />
     );
     renderGlobalModal();

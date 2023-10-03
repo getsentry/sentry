@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -5,7 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import useProjects from 'sentry/utils/useProjects';
 
 describe('useProjects', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   const mockProjects = [TestStubs.Project()];
 

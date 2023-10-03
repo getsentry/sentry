@@ -1,4 +1,5 @@
 import range from 'lodash/range';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -82,7 +83,7 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         projects={[project]}
         period="8w"
         teamId="0"
@@ -110,7 +111,7 @@ describe('TeamMisery', () => {
   it('should render empty state', () => {
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         projects={[]}
         period="8w"
         teamId="0"
@@ -132,7 +133,7 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         projects={[TestStubs.Project()]}
         period="8w"
         teamId="0"

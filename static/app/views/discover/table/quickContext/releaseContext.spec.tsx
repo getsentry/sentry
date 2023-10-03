@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ export const mockedReleaseWithHealth = TestStubs.Release({
 });
 
 const renderReleaseContext = () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <ReleaseContext dataRow={defaultRow} organization={organization} />

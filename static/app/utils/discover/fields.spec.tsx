@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -297,7 +299,7 @@ describe('aggregateMultiPlotType', function () {
 });
 
 describe('generateAggregateFields', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   it('gets default aggregates', function () {
     expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
   });

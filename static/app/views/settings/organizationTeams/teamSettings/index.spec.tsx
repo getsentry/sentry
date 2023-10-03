@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -71,7 +72,7 @@ describe('TeamSettings', function () {
         orgRole: 'owner',
       },
     });
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:admin'],
       features: ['org-roles-for-teams'],
     });
@@ -112,7 +113,7 @@ describe('TeamSettings', function () {
 
   it('needs team:admin in order to see an enabled Remove Team button', function () {
     const team = TestStubs.Team();
-    const organization = TestStubs.Organization({access: []});
+    const organization = Organization({access: []});
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
@@ -123,7 +124,7 @@ describe('TeamSettings', function () {
 
   it('needs org:admin in order to set team org-role', function () {
     const team = TestStubs.Team();
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: [],
       features: ['org-roles-for-teams'],
     });
@@ -137,7 +138,7 @@ describe('TeamSettings', function () {
 
   it('cannot set team org-role for idp:provisioned team', function () {
     const team = TestStubs.Team({flags: {'idp:provisioned': true}});
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:admin'],
       features: ['org-roles-for-teams'],
     });

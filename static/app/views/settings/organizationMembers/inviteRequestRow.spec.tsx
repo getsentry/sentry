@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -36,10 +37,10 @@ const roles: OrgRole[] = [
 ];
 
 describe('InviteRequestRow', function () {
-  const orgWithoutAdminAccess = TestStubs.Organization({
+  const orgWithoutAdminAccess = Organization({
     access: [],
   });
-  const orgWithAdminAccess = TestStubs.Organization({
+  const orgWithAdminAccess = Organization({
     access: ['member:admin'],
   });
   const inviteRequestBusy: Record<string, boolean> = {};

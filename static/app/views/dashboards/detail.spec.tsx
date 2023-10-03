@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,7 +19,7 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Detail', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [TestStubs.Project()];
@@ -136,7 +137,7 @@ describe('Dashboards > Detail', function () {
         ),
       });
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [TestStubs.Project()],
         }),
@@ -474,7 +475,7 @@ describe('Dashboards > Detail', function () {
       });
 
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1006,7 +1007,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1070,7 +1071,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1117,7 +1118,7 @@ describe('Dashboards > Detail', function () {
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1174,7 +1175,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1235,7 +1236,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1294,7 +1295,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1334,7 +1335,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1381,7 +1382,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1440,7 +1441,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1502,7 +1503,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',

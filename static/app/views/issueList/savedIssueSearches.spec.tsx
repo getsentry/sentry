@@ -1,4 +1,5 @@
 import {ComponentProps, Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 import {Search} from 'sentry-fixture/search';
 
 import {
@@ -17,7 +18,7 @@ import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   const recommendedSearch = Search({
     id: 'global-search',

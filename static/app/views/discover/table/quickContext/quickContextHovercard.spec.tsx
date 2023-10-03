@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,7 @@ const renderQuickContextContent = (
   contextType: ContextType = ContextType.ISSUE,
   eventView?: EventView
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper

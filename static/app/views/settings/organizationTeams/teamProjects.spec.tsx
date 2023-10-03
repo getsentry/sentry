@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   const {routerContext, routerProps, organization} = initializeOrg({
-    organization: TestStubs.Organization({slug: 'org-slug'}),
+    organization: Organization({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
   });

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -50,7 +51,7 @@ describe('ExternalIssueForm', () => {
       <ExternalIssueForm
         Body={styledWrapper()}
         Footer={styledWrapper()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         Header={c => <span>{c.children}</span>}
         group={group}
         integration={integration}

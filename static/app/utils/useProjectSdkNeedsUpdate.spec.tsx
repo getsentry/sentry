@@ -1,4 +1,5 @@
 import {ReactNode} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +7,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 
-const MOCK_ORG = TestStubs.Organization();
+const MOCK_ORG = Organization();
 const MOCK_PROJECT = TestStubs.Project();
 
 function wrapper({children}: {children?: ReactNode}) {

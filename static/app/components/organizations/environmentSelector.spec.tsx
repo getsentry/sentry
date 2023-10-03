@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
@@ -25,7 +27,7 @@ describe('EnvironmentSelector', function () {
       isMember: false,
     }),
   ];
-  const organization = TestStubs.Organization({projects});
+  const organization = Organization({projects});
   const selectedProjects = [1, 2];
   const routerContext = TestStubs.routerContext([
     {

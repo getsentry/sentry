@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -131,7 +133,7 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = TestStubs.Organization({projects: [project, projectWithouReleases]});
+    const org = Organization({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',

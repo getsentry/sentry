@@ -2,6 +2,7 @@ import {ComponentProps} from 'react';
 import omit from 'lodash/omit';
 import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
 import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -32,12 +33,12 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'test-org'})],
+      body: [Organization({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'foo-org'})],
+      body: [Organization({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

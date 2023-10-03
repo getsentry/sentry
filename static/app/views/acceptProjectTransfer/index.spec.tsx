@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +20,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: TestStubs.Project(),
-        organizations: [TestStubs.Organization({teams: [TestStubs.Team()]})],
+        organizations: [Organization({teams: [TestStubs.Team()]})],
       },
     });
 

@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
 describe('EventEntries', function () {
   const defaultProps = {
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     project: TestStubs.Project(),
     event: TestStubs.Event(),
     location: TestStubs.location(),
@@ -37,7 +39,7 @@ describe('EventEntries', function () {
           },
         })}
       />,
-      {organization: TestStubs.Organization({features: ['session-replay']})}
+      {organization: Organization({features: ['session-replay']})}
     );
 
     await screen.findByText(/message/i);

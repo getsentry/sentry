@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +7,7 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const integration = TestStubs.GitHubIntegration();
   let resetReposSpy;
 
@@ -128,7 +129,7 @@ describe('IntegrationRepos', function () {
       render(
         <IntegrationRepos
           integration={integration}
-          organization={TestStubs.Organization({access: []})}
+          organization={Organization({access: []})}
         />
       );
       expect(screen.getByText('Add Repository')).toBeEnabled();

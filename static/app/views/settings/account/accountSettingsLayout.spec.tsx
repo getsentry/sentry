@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +13,7 @@ describe('AccountSettingsLayout', function () {
 
   const {routerProps} = initializeOrg();
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     id: '44',
     name: 'Org Index',
     slug: 'org-index',
@@ -57,7 +59,7 @@ describe('AccountSettingsLayout', function () {
 
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout {...routerProps} organization={TestStubs.Organization()}>
+        <AccountSettingsLayout {...routerProps} organization={Organization()}>
           content
         </AccountSettingsLayout>
       </BreadcrumbContextProvider>

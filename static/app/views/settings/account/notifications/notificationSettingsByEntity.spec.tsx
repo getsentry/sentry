@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -10,8 +12,8 @@ describe('NotificationSettingsByEntity', function () {
   });
 
   it('should default to the subdomain org', async function () {
-    const organization = TestStubs.Organization();
-    const otherOrganization = TestStubs.Organization({
+    const organization = Organization();
+    const otherOrganization = Organization({
       id: '2',
       slug: 'other-org',
       name: 'other org',

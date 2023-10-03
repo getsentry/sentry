@@ -1,4 +1,5 @@
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -44,7 +45,7 @@ const MOCK_DATA = JSON.stringify({
   ],
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['event-attachments'],
 });
 const event = TestStubs.Event();

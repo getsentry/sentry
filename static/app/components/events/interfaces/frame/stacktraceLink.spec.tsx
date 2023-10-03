@@ -1,4 +1,5 @@
 import {Commit} from 'sentry-fixture/commit';
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -12,7 +13,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {StacktraceLink} from './stacktraceLink';
 
 describe('StacktraceLink', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const platform = 'python';
   const project = TestStubs.Project({});
   const event = TestStubs.Event({

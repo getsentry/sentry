@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
@@ -17,7 +19,7 @@ describe('HookOrDefault', () => {
       ),
     });
 
-    render(<Component organization={TestStubs.Organization()}>Test</Component>);
+    render(<Component organization={Organization()}>Test</Component>);
     expect(screen.getByTestId('default-component')).toBeInTheDocument();
     expect(screen.getByText('Default Component')).toBeInTheDocument();
   });
@@ -38,7 +40,7 @@ describe('HookOrDefault', () => {
       ),
     });
 
-    render(<Component organization={TestStubs.Organization()}>Test</Component>);
+    render(<Component organization={Organization()}>Test</Component>);
 
     expect(screen.getByTestId('hook-component')).toBeInTheDocument();
     expect(screen.queryByTestId('default-component')).not.toBeInTheDocument();

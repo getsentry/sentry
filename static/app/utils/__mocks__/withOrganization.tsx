@@ -1,8 +1,7 @@
 import {Component} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 
 import SentryTypes from 'sentry/sentryTypes';
-
-declare const TestStubs;
 
 const withOrganizationMock = WrappedComponent =>
   class WithOrganizationMockWrapper extends Component {
@@ -12,7 +11,7 @@ const withOrganizationMock = WrappedComponent =>
     render() {
       return (
         <WrappedComponent
-          organization={this.context.organization || TestStubs.Organization()}
+          organization={this.context.organization || Organization()}
           {...this.props}
         />
       );

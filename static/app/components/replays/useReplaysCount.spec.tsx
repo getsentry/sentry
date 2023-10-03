@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types';
@@ -22,7 +24,7 @@ describe('useReplaysCount', () => {
     key: '',
   });
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 

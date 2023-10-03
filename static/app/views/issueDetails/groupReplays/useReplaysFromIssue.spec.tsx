@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -20,7 +21,7 @@ describe('useReplaysFromIssue', () => {
   };
   jest.mocked(useLocation).mockReturnValue(location);
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 

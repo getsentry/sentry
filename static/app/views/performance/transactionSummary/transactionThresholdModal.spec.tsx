@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
@@ -17,7 +18,7 @@ import TransactionThresholdModal, {
 
 function mountModal(
   eventView: EventView,
-  organization: Organization,
+  organization: TOrganization,
   onApply: React.ComponentProps<typeof TransactionThresholdModal>['onApply']
 ) {
   render(
@@ -38,7 +39,7 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
+  const organization = Organization({features: ['performance-view']});
   const project = TestStubs.Project();
   const eventView = EventView.fromSavedQuery({
     id: '1',

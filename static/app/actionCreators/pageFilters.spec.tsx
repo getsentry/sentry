@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -15,7 +17,7 @@ import localStorage from 'sentry/utils/localStorage';
 jest.mock('sentry/utils/localStorage');
 
 describe('PageFilters ActionCreators', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   beforeEach(function () {
     jest.spyOn(PageFiltersStore, 'updateProjects');

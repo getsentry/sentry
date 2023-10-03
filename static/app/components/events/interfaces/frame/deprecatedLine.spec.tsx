@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
@@ -156,7 +158,7 @@ describe('Frame - Line', function () {
 
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
-      const org = {...TestStubs.Organization(), features: ['anr-analyze-frames']};
+      const org = {...Organization(), features: ['anr-analyze-frames']};
       const eventWithThreads = {
         ...event,
         entries: [

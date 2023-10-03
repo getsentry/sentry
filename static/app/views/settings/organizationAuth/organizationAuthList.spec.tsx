@@ -1,4 +1,5 @@
 import {AuthProviders} from 'sentry-fixture/authProviders';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,9 +7,7 @@ import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organ
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    render(
-      <OrganizationAuthList organization={TestStubs.Organization()} providerList={[]} />
-    );
+    render(<OrganizationAuthList organization={Organization()} providerList={[]} />);
 
     expect(
       screen.queryByText('No authentication providers are available.')
@@ -18,7 +17,7 @@ describe('OrganizationAuthList', function () {
   it('renders', function () {
     render(
       <OrganizationAuthList
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         providerList={AuthProviders()}
       />
     );
@@ -30,12 +29,12 @@ describe('OrganizationAuthList', function () {
 
   it('renders for members', function () {
     const context = TestStubs.routerContext([
-      {organization: TestStubs.Organization({access: ['org:read']})},
+      {organization: Organization({access: ['org:read']})},
     ]);
 
     render(
       <OrganizationAuthList
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         providerList={AuthProviders()}
         activeProvider={AuthProviders()[0]}
       />,
@@ -51,7 +50,7 @@ describe('OrganizationAuthList', function () {
     const withSAML = {features: ['sso-saml2']};
 
     it('renders', function () {
-      const organization = TestStubs.Organization({...require2fa, ...withSSO});
+      const organization = Organization({...require2fa, ...withSSO});
       const context = TestStubs.routerContext([{organization}]);
 
       render(
@@ -68,7 +67,7 @@ describe('OrganizationAuthList', function () {
     });
 
     it('renders with saml available', function () {
-      const organization = TestStubs.Organization({...require2fa, ...withSAML});
+      const organization = Organization({...require2fa, ...withSAML});
       const context = TestStubs.routerContext([{organization}]);
 
       render(
@@ -85,7 +84,7 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render without sso available', function () {
-      const organization = TestStubs.Organization({...require2fa});
+      const organization = Organization({...require2fa});
       const context = TestStubs.routerContext([{organization}]);
 
       render(
@@ -102,7 +101,7 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with sso and require 2fa disabled', function () {
-      const organization = TestStubs.Organization({...withSSO});
+      const organization = Organization({...withSSO});
       const context = TestStubs.routerContext([{organization}]);
 
       render(
@@ -119,7 +118,7 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with saml and require 2fa disabled', function () {
-      const organization = TestStubs.Organization({...withSAML});
+      const organization = Organization({...withSAML});
       const context = TestStubs.routerContext([{organization}]);
 
       render(

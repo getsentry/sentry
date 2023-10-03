@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -10,7 +12,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
 
 describe('Dashboards > Create', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 

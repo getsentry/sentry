@@ -1,4 +1,5 @@
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -63,7 +64,7 @@ describe('Modals -> ScreenshotModal', function () {
   let getAttachmentsMock;
   beforeEach(() => {
     initialData = initializeOrg({
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       router: {
         params: {groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},

@@ -1,5 +1,6 @@
 /* global global */
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +19,7 @@ describe('AddIntegrationButton', function () {
       <AddIntegrationButton
         provider={provider}
         onAddIntegration={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
       />
     );
 

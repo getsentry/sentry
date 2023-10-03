@@ -1,4 +1,5 @@
 import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +11,7 @@ describe('ExternalIssuesList', () => {
   const event = TestStubs.Event();
   const group = TestStubs.Group();
   const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   beforeEach(() => {
     SentryAppInstallationStore.init!();
