@@ -82,6 +82,7 @@ describe('OrganizationMembersList', function () {
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
+      name: 'active',
     },
   });
   const router = TestStubs.router();
@@ -249,6 +250,7 @@ describe('OrganizationMembersList', function () {
       slug: 'org-two',
       status: {
         id: 'active',
+        name: 'active',
       },
     });
     OrganizationsStore.addOrReplace(secondOrg);
@@ -463,6 +465,7 @@ describe('OrganizationMembersList', function () {
       const org = Organization({
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -488,6 +491,7 @@ describe('OrganizationMembersList', function () {
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -525,6 +529,7 @@ describe('OrganizationMembersList', function () {
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -559,6 +564,7 @@ describe('OrganizationMembersList', function () {
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
