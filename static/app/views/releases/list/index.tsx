@@ -108,8 +108,11 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
      * disableEntireQuery - enable/disable query params?
      * allowError - () => bool, function to determine whether to dynamically determine whether to persist an error response
      */
+    // TODO: IF v2 releases UI enabled, fetch for thresholds for releases on page.
+    //  Could waterfall + pass list of releases
+    //  OR could simply query for the same window of results
     // const query = this.props.location.query;
-    const testQuery = location.query;
+    // const testQuery = location.query;
     //     "organizations:release-ui-v2": False,
     const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
@@ -121,9 +124,11 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       ],
     ];
     if (hasV2ReleaseUIEnabled) {
-      endpoints.push(
-        ['transferDetails', '/accept-transfer/', {testQuery}] // test endpoint
-      );
+      // IF has v2 release ui enabled
+      // fetch thresholds api
+      // endpoints.push(
+      //   ['transferDetails', '/accept-transfer/', {testQuery}] // test endpoint
+      // );
     }
 
     return endpoints;
@@ -456,15 +461,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const selectedProject = this.getSelectedProject();
     const hasReleasesSetup = selectedProject?.features.includes('releases');
     const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
-
-    // TODO: modify inner body depending on thresholds view?
-    // maintain filters
-
-    // {hasThresholdsFlag && router.location.query.view === 'thresholds' ? (
-    //   <div>Foobar</div>
-    // ) : (
-    //   <div>Bar</div>
-    // )}
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;

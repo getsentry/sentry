@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -20,7 +20,11 @@ type Props = {
 };
 
 function Header({router, hasV2ReleaseUIEnabled}: Props) {
-  const location = router.location;
+  const [selected, setSelected] = useState(router.location.query.view);
+  // const selected = useMemo(() => {
+  //   return ;
+  // }, [router]);
+  const location = useMemo(() => router.location, [router]);
   const {
     cursor: _cursor,
     page: _page,
@@ -31,15 +35,17 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
   const tabs = hasV2ReleaseUIEnabled
     ? [
         {
-          name: t('Foobar'),
+          key: 'monitor',
+          label: t('Monitor'),
           description: '',
-          view: 'release_list',
+          query: 'monitor',
         },
         {
-          name: t('Thresholds'),
+          key: 'thresholds',
+          label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
-          view: 'thresholds',
+          query: 'thresholds',
         },
       ]
     : [];
@@ -52,6 +58,10 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
       // Opt for the simplest solution
     }
   });
+
+  const onTabSelect = key => {
+    setSelected(key);
+  };
 
   return (
     <Layout.Header noActionWrap>
@@ -66,26 +76,26 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <StyledTabs>
+      <StyledTabs value={selected} onChange={onTabSelect}>
         <TabList hideBorder>
-          {tabs.map(({name: queryName, description, view}) => {
+          {tabs.map(({key, label, description, query}) => {
             const to_url = normalizeUrl({
               query: {
-                view,
+                view: query,
                 ...queryParams,
               },
               pathname: location.pathname,
             });
 
             return (
-              <TabList.Item key={queryName} to={to_url} textValue={queryName}>
+              <TabList.Item key={key} to={to_url} textValue={label}>
                 <Tooltip
                   title={description}
                   position="bottom"
                   isHoverable
                   delay={SLOW_TOOLTIP_DELAY}
                 >
-                  {queryName}
+                  {label}
                 </Tooltip>
               </TabList.Item>
             );
