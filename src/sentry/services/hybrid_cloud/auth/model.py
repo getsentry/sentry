@@ -46,7 +46,7 @@ class RpcApiKey(RpcModel):
 
 class RpcAuthenticatorType(IntEnum):
     UNUSUED_ONE = 0
-    TOKEN_AUTHENTICATION = 1
+    USER_AUTH_TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
     ORG_AUTH_TOKEN_AUTHENTICATION = 3
 
@@ -54,19 +54,25 @@ class RpcAuthenticatorType(IntEnum):
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
-        from sentry.api.authentication import OrgAuthTokenAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            OrgAuthTokenAuthentication,
+            UserAuthTokenAuthentication,
+        )
 
-        if auth == TokenAuthentication:
-            return RpcAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == UserAuthTokenAuthentication:
+            return RpcAuthenticatorType.USER_AUTH_TOKEN_AUTHENTICATION
         if auth == OrgAuthTokenAuthentication:
             return RpcAuthenticatorType.ORG_AUTH_TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
-        from sentry.api.authentication import OrgAuthTokenAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            OrgAuthTokenAuthentication,
+            UserAuthTokenAuthentication,
+        )
 
-        if self == self.TOKEN_AUTHENTICATION:
-            return TokenAuthentication()
+        if self == self.USER_AUTH_TOKEN_AUTHENTICATION:
+            return UserAuthTokenAuthentication()
         if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
             return OrgAuthTokenAuthentication()
         else:
