@@ -66,7 +66,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
-        operation_id="List Available Integrations",
+        operation_id="List an Organization's Available Integrations",
         parameters=[
             GlobalParams.ORG_SLUG,
             IntegrationParams.PROVIDER_KEY,
@@ -86,9 +86,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         """
         feature_filters = request.GET.getlist("features", [])
         # TODO: Remove provider_key in favor of ProviderKey after removing from frontend
-        provider_key = request.GET.get("provider_key", "")
-        if provider_key == "":
-            provider_key = request.GET.get("providerKey", "")
+        provider_key = request.GET.get("provider_key") | request.GET.get("providerKey")
         include_config_raw = request.GET.get("includeConfig")
 
         # Include the configurations by default if includeConfig is not present.
