@@ -123,7 +123,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
-        operation_id="Retrieve Summarized Event Counts for Projects in an Organization",
+        operation_id="Retrieve an Organization's Events Count by Project",
         parameters=[GlobalParams.ORG_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
@@ -135,7 +135,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
     )
     def get(self, request: Request, organization) -> HttpResponse:
         """
-        Query summarized event counts by project for your Organization.
+        Query summarized event counts by project for your Organization. Also see https://docs.sentry.io/api/organizations/retrieve-event-counts-for-an-organization-v2/ for reference.
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
