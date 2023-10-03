@@ -11,7 +11,7 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {FieldObject, JsonFormObject} from './types';
 
-type Props = {
+export interface FormPanelProps {
   /**
    * List of fields to render
    */
@@ -44,7 +44,7 @@ type Props = {
    * Panel title
    */
   title?: React.ReactNode;
-};
+}
 
 function FormPanel({
   additionalFieldProps = {},
@@ -57,7 +57,7 @@ function FormPanel({
   collapsible,
   initiallyCollapsed = false,
   ...otherProps
-}: Props) {
+}: FormPanelProps) {
   const [collapsed, setCollapse] = useState(initiallyCollapsed);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
