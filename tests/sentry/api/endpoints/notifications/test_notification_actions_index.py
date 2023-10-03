@@ -138,7 +138,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 assert serialize(action) in response.data
 
     def test_post_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             status_code=status.HTTP_400_BAD_REQUEST,

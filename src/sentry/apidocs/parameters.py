@@ -67,14 +67,6 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
-    PROJECT = OpenApiParameter(
-        name="project",
-        location="query",
-        required=False,
-        many=True,
-        type=int,
-        description="The IDs of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
-    )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
         location="query",
@@ -93,6 +85,32 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             type=str,
             description=description,
         )
+
+
+class OrganizationParams:
+    PROJECT_SLUG = OpenApiParameter(
+        name="project_slug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT = OpenApiParameter(
+        name="project",
+        location="query",
+        required=False,
+        many=True,
+        type=int,
+        description="""The IDs of projects to filter by. `-1` means all available projects.
+For example the following are valid parameters:
+- `/?project=1234&project=56789`
+- `/?project=-1`
+""",
+    )
 
 
 class SCIMParams:
@@ -270,4 +288,14 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.UUID,
         description="""The ID of the replay you'd like to retrieve.""",
+    )
+
+
+class NotificationParams:
+    TRIGGER_TYPE = OpenApiParameter(
+        name="triggerType",
+        location="query",
+        required=False,
+        type=str,
+        description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
     )
