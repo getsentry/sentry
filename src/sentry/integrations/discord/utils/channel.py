@@ -66,6 +66,9 @@ def validate_channel_id(
             )
             raise IntegrationError("Bad response from Discord channel lookup.")
 
+    if not isinstance(result, dict):
+        raise IntegrationError("Bad response from Discord channel lookup.")
+
     if result["guild_id"] != guild_id:
         # The channel exists and we have access to it, but it does not belong
         # to the specified guild! We'll use the same message as generic 404,
