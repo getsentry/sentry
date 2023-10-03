@@ -291,7 +291,7 @@ def find_all_region_names() -> Iterable[str]:
     return load_global_regions().by_name.keys()
 
 
-def find_all_multitenant_region_names() -> Iterable[str]:
+def find_all_multitenant_region_names() -> List[str]:
     return [
         region.name
         for region in load_global_regions().regions
