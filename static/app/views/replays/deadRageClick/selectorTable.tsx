@@ -65,21 +65,27 @@ interface Props {
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
-  {key: 'project_id', name: 'project'},
+  {key: 'project_id', name: 'project', width: 100},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},
   {key: 'aria_label', name: 'aria label'},
 ];
 
-function ProjectInfo({id}: {id: number}) {
+export function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === id.toString());
   const platform = project?.platform;
   const slug = project?.slug;
-  return (
+  return isWidget ? (
+    <ProjectContainer>
+      <Tooltip title={slug}>
+        <PlatformIcon size={16} platform={platform ?? 'default'} />
+      </Tooltip>
+    </ProjectContainer>
+  ) : (
     <ProjectContainer>
       <PlatformIcon size={16} platform={platform ?? 'default'} />
-      <ProjectText>{slug}</ProjectText>
+      <TextOverflow>{slug}</TextOverflow>
     </ProjectContainer>
   );
 }
@@ -132,7 +138,7 @@ export default function SelectorTable({
         case 'aria_label':
           return <TextOverflow>{value}</TextOverflow>;
         case 'project_id':
-          return <ProjectInfo id={value} />;
+          return <ProjectInfo id={value} isWidget={false} />;
         default:
           return renderClickCount<DeadRageSelectorItem>(column, dataRow);
       }
@@ -224,8 +230,4 @@ const ProjectContainer = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.75)};
-`;
-
-const ProjectText = styled(TextOverflow)`
-  max-width: 100px;
 `;
