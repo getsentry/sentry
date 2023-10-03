@@ -280,7 +280,4 @@ _chunk_load_error_filter = _FilterSpec(
     description="It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out "
     "of sync with the backend which results in a ChunkLoadError. The application refreshes and everything "
     "should work as expected.",
-    serializer_cls=None,
-    # This filter is an error message filter and multiple such filters can exist.
-    config_name="errorMessages",
 )
