@@ -14,7 +14,7 @@ from sentry.silo import SiloMode
 
 
 class ControlOrganizationProvisioningRpcService(RpcService):
-    key = "organization_provisioning"
+    key = "control_org_provisioning"
     local_mode = SiloMode.CONTROL
 
     @abstractmethod
