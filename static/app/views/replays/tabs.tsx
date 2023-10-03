@@ -5,7 +5,7 @@ interface Props {
   selected: 'replays' | 'selectors';
 }
 
-const SELECTOR_IDX_ROUTE = 'selectors';
+const SELECTOR_IDX_ROUTE = 'selectors/';
 const REPLAY_IDX_ROUTE = '';
 
 const TABS = [
