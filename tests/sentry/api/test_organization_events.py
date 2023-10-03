@@ -2,9 +2,11 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
@@ -27,6 +29,14 @@ class OrganizationEventsEndpointTestBase(APITestCase):
             self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        self.login_as(user=self.user)
+        with self.feature(features):
+            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
 
 @region_silo_test(stable=True)
@@ -84,3 +94,54 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
 
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_invalid_referrer(self, mock):
+        mock.return_value = {}
+
+        query = {
+            "field": ["user"],
+            "referrer": "api.performance.invalid",
+            "project": [self.project.id],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], self.referrer)
+
+    @mock.patch("sentry.snuba.discover.query")
+    def test_empty_referrer(self, mock):
+        mock.return_value = {}
+
+        query = {
+            "field": ["user"],
+            "project": [self.project.id],
+        }
+        self.do_request(query)
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], self.referrer)
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_handling_snuba_errors(self, mock_snql_query):
+        self.create_project()
+
+        mock_snql_query.side_effect = RateLimitExceeded("test")
+
+        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
+
+        mock_snql_query.side_effect = QueryExecutionError("test")
+
+        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
+        response = self.do_request(query)
+        assert response.status_code == 500, response.content
+        assert response.data["detail"] == "Internal error. Your query failed to run."
+
+        mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
+
+        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
+        response = self.do_request(query)
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
