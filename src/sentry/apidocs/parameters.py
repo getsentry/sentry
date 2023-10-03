@@ -299,3 +299,45 @@ class NotificationParams:
         type=str,
         description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
     )
+
+
+class IntegrationParams:
+    PROVIDER_KEY = OpenApiParameter(
+        name="providerKey",
+        location="query",
+        required=False,
+        type=str,
+        description="""Specific integration provider to filter by such as `slack`. See our [Integrations Documentation](/product/integrations/) for an updated list of providers.""",
+    )
+    FEATURES = OpenApiParameter(
+        name="features",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""Integration features to filter by. See our [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
+- alert-rule
+- chat-unfurl
+- codeowners
+- commits
+- data-forwarding
+- deployment
+- enterprise-alert-rule
+- enterprise-incident-management
+- incident-management
+- issue-basic
+- issue-sync
+- mobile
+- serverless
+- session-replay
+- stacktrace-link
+- ticket-rules
+    """,
+    )
+    INCLUDE_CONFIG = OpenApiParameter(
+        name="includeConfig",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
+    )
