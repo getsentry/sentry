@@ -86,7 +86,9 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         """
         feature_filters = request.GET.getlist("features", [])
         # TODO: Remove provider_key in favor of ProviderKey after removing from frontend
-        provider_key = request.GET.get("provider_key") | request.GET.get("providerKey")
+        provider_key = request.GET.get("providerKey")
+        if provider_key is None:
+            provider_key = request.GET.get("provider_key", "")
         include_config_raw = request.GET.get("includeConfig")
 
         # Include the configurations by default if includeConfig is not present.
