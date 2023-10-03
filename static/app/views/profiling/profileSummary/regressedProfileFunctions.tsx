@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -47,6 +48,8 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     cursor: fnTrendCursor,
   });
 
+  const trends = trendsQuery?.data ?? [];
+
   return (
     <RegressedFunctionsContainer>
       <RegressedFunctionsTitleContainer>
@@ -57,16 +60,27 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           size="xs"
         />
       </RegressedFunctionsTitleContainer>
-      <div>
-        {trendsQuery.isLoading && 'Loading...'}
-        {!trendsQuery.isLoading &&
-          trendsQuery?.data?.map((f, i) => <div key={i}>{f.function}</div>)}
-      </div>
+      {trendsQuery.isLoading ? (
+        <RegressedFunctionsQueryState>
+          <LoadingIndicator size={36} />
+        </RegressedFunctionsQueryState>
+      ) : trendsQuery.isError ? (
+        <RegressedFunctionsQueryState>
+          {t('Failed to fetch regressed functions')}
+        </RegressedFunctionsQueryState>
+      ) : !trends.length ? (
+        <RegressedFunctionsQueryState>
+          {t('Horay, no regressed functions detected!')}
+        </RegressedFunctionsQueryState>
+      ) : (
+        trends.map((f, i) => <div key={i}>{f.function}</div>)
+      )}
     </RegressedFunctionsContainer>
   );
 }
 
 const RegressedFunctionsContainer = styled('div')`
+  min-height: 80px;
   margin-top: ${space(0.5)};
 `;
 
@@ -78,6 +92,13 @@ const RegressedFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(0.5)};
+`;
+
+const RegressedFunctionsQueryState = styled('div')`
+  text-align: center;
+  padding: ${space(2)} ${space(0.5)};
+  color: ${p => p.theme.subText};
 `;
 
 const RegressedFunctionsTitle = styled('div')`

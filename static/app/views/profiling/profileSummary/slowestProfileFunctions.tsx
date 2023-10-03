@@ -1,10 +1,13 @@
 import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
@@ -12,8 +15,6 @@ import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {TextTruncateOverflow} from '../../../components/profiling/textTruncateOverflow';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
@@ -28,7 +29,7 @@ const functionsFields = [
 
 type FunctionsField = (typeof functionsFields)[number];
 
-const countFormatter = Intl.NumberFormat('en-US', {});
+const countFormatter = Intl.NumberFormat();
 interface SlowestProfileFunctionsProps {
   transaction: string;
 }
@@ -83,6 +84,8 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   });
 
   const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
+  const functions = functionsQuery.data?.data ?? [];
+
   return (
     <SlowestFunctionsContainer>
       <SlowestFunctionsTitleContainer>
@@ -99,30 +102,40 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           size="xs"
         />
       </SlowestFunctionsTitleContainer>
-      <div>{functionsQuery.isLoading && 'Loading...'}</div>
-      <div>{functionsQuery.error && 'Error'}</div>
       <div>
-        {functionsQuery.data?.data?.map((fn, i) => (
-          <SlowestFunctionRow key={i}>
-            <SlowestFunctionMainRow>
-              <div>
-                <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
-              </div>
-              <div>
-                <PerformanceDuration nanoseconds={fn['sum()'] as number} abbreviation />
-              </div>
-            </SlowestFunctionMainRow>
-            <SlowestFunctionMetricsRow>
-              <div>
-                <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
-              </div>
-              <div>
-                {countFormatter.format(fn['count()'] as number)},{' '}
-                <PerformanceDuration nanoseconds={fn['p75()'] as number} abbreviation />
-              </div>
-            </SlowestFunctionMetricsRow>
-          </SlowestFunctionRow>
-        ))}
+        {functionsQuery.isLoading ? (
+          <SlowestFunctionsQueryState>
+            <LoadingIndicator size={36} />
+          </SlowestFunctionsQueryState>
+        ) : functionsQuery.isError ? (
+          <SlowestFunctionsQueryState>
+            {t('Failed to fetch slowest functions')}
+          </SlowestFunctionsQueryState>
+        ) : !functions.length ? (
+          Sentry.captureMessage('No regressed functions detected for flamegraph')
+        ) : (
+          functions.map((fn, i) => (
+            <SlowestFunctionRow key={i}>
+              <SlowestFunctionMainRow>
+                <div>
+                  <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
+                </div>
+                <div>
+                  <PerformanceDuration nanoseconds={fn['sum()'] as number} abbreviation />
+                </div>
+              </SlowestFunctionMainRow>
+              <SlowestFunctionMetricsRow>
+                <div>
+                  <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
+                </div>
+                <div>
+                  {countFormatter.format(fn['count()'] as number)},{' '}
+                  <PerformanceDuration nanoseconds={fn['p75()'] as number} abbreviation />
+                </div>
+              </SlowestFunctionMetricsRow>
+            </SlowestFunctionRow>
+          ))
+        )}
       </div>
     </SlowestFunctionsContainer>
   );
@@ -130,6 +143,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
 
 const SlowestFunctionsContainer = styled('div')`
   margin-top: ${space(0.5)};
+  flex: 1;
 `;
 
 const SlowestFunctionsPagination = styled(Pagination)`
@@ -140,6 +154,7 @@ const SlowestFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(0.5)};
 `;
 
 const SlowestFunctionsTypeSelect = styled(CompactSelect)`
@@ -147,6 +162,12 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
     margin: 0;
     padding: 0;
   }
+`;
+
+const SlowestFunctionsQueryState = styled('div')`
+  text-align: center;
+  padding: ${space(2)} ${space(0.5)};
+  color: ${p => p.theme.subText};
 `;
 
 const SlowestFunctionRow = styled('div')`

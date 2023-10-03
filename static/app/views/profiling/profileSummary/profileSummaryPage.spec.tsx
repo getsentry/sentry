@@ -125,7 +125,9 @@ describe('ProfileSummaryPage', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: [],
+      body: {
+        data: [],
+      },
     });
 
     MockApiClient.addMockResponse({

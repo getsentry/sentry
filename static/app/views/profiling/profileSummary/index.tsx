@@ -14,6 +14,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
@@ -43,10 +44,12 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -55,6 +58,7 @@ import {
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -383,32 +387,11 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 </FlamegraphStateProvider>
               </ProfileGroupProvider>
             </ProfileVisualization>
-            <ProfileDigest>
-              <ProfileDigestHeader>
-                <div>
-                  <span>Last Seen</span>
-                  <div>@TODO</div>
-                </div>
-                <div>
-                  <span>p75</span>
-                  <div>@TODO</div>
-                </div>
-                <div>
-                  <span>p95</span>
-                  <div>@TODO</div>
-                </div>
-                <div>
-                  <span>p99</span>
-                  <div>@TODO</div>
-                </div>
-                <div>
-                  <span>profiles</span>
-                  <div>@TODO</div>
-                </div>
-              </ProfileDigestHeader>
+            <ProfileDigestContainer>
+              <ProfileDigest />
               <MostRegressedProfileFunctions transaction={transaction} />
               <SlowestProfileFunctions transaction={transaction} />
-            </ProfileDigest>
+            </ProfileDigestContainer>
           </ProfileVisualizationContainer>
         </PageFiltersContainer>
       </ProfileSummaryContainer>
@@ -496,11 +479,13 @@ const ProfileVisualization = styled('div')`
   grid-area: visualization;
 `;
 
-const ProfileDigest = styled('div')`
+const ProfileDigestContainer = styled('div')`
   grid-area: digest;
   border-left: 1px solid ${p => p.theme.border};
   padding: ${space(0.5)};
   background-color: ${p => p.theme.background};
+  display: flex;
+  flex-direction: column;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -524,16 +509,91 @@ const ProfileSummaryContainer = styled('div')`
   }
 `;
 
+const PROFILE_DIGEST_FIELDS = [
+  'last_seen()',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+] satisfies ProfilingFieldType[];
+
+const percentiles = ['p75()', 'p95()', 'p99()'] as const;
+const countFormatter = new Intl.NumberFormat();
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'long',
+});
+
+function ProfileDigest() {
+  const location = useLocation();
+  const profilesCursor = useMemo(
+    () => decodeScalar(location.query.cursor),
+    [location.query.cursor]
+  );
+
+  const profiles = useProfileEvents<ProfilingFieldType>({
+    cursor: profilesCursor,
+    fields: PROFILE_DIGEST_FIELDS,
+    query: '',
+    sort: {key: 'last_seen()', order: 'desc'},
+    referrer: 'api.profiling.profile-summary-table',
+  });
+
+  const data = profiles.data?.data?.[0];
+
+  return (
+    <ProfileDigestHeader>
+      <div>
+        <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
+        <div>
+          {profiles.isLoading
+            ? ''
+            : profiles.isError
+            ? ''
+            : dateFormatter.format(new Date(data?.['last_seen()'] as string))}
+        </div>
+      </div>
+
+      {percentiles.map(p => {
+        return (
+          <div key={p}>
+            <ProfileDigestLabel>{p}</ProfileDigestLabel>
+            <div>
+              {profiles.isLoading ? (
+                ''
+              ) : profiles.isError ? (
+                ''
+              ) : (
+                <PerformanceDuration nanoseconds={data?.[p] as number} abbreviation />
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <div>
+        <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
+        <div>
+          {profiles.isLoading
+            ? ''
+            : profiles.isError
+            ? ''
+            : countFormatter.format((data?.['count()'] as number) ?? 0)}
+        </div>
+      </div>
+    </ProfileDigestHeader>
+  );
+}
+
 const ProfileDigestHeader = styled('div')`
   display: flex;
   justify-content: space-between;
+`;
 
-  span:first-child {
-    color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeSmall};
-    font-weight: 700;
-    text-transform: uppercase;
-  }
+const ProfileDigestLabel = styled('span')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  text-transform: uppercase;
 `;
 
 export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {
