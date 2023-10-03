@@ -17,7 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Collection, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 
@@ -130,7 +130,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         return _check_has_health_data(projects_list, now=now)

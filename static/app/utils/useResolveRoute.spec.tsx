@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -7,8 +9,8 @@ import useResolveRoute from './useResolveRoute';
 describe('useResolveRoute', () => {
   let devUi, host;
 
-  const organization = TestStubs.Organization();
-  const otherOrg = TestStubs.Organization({
+  const organization = Organization();
+  const otherOrg = Organization({
     features: ['customer-domains'],
     slug: 'other-org',
   });

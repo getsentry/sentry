@@ -420,6 +420,8 @@ type FetchIssueTagsParameters = {
   isStatisticalDetector?: boolean;
   statisticalDetectorParameters?: {
     durationBaseline: number;
+    end: string;
+    start: string;
     transaction: string;
   };
 };
@@ -440,9 +442,11 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
   environment,
   statisticalDetectorParameters,
 }: FetchIssueTagsParameters): ApiQueryKey => {
-  const {transaction, durationBaseline} = statisticalDetectorParameters ?? {
+  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
     transaction: '',
     durationBaseline: 0,
+    start: undefined,
+    end: undefined,
   };
   return [
     `/organizations/${orgSlug}/events-facets/`,
@@ -452,6 +456,8 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
         transaction,
         includeAll: true,
         query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+        start,
+        end,
       },
     },
   ];
@@ -481,6 +487,7 @@ type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;
   tagKey: string;
+  cursor?: string;
   environment?: string[];
   sort?: string | string[];
 };
@@ -491,9 +498,10 @@ export const makeFetchIssueTagValuesQueryKey = ({
   tagKey,
   environment,
   sort,
+  cursor,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
-  {query: {environment, sort}},
+  {query: {environment, sort, cursor}},
 ];
 
 export function useFetchIssueTagValues(

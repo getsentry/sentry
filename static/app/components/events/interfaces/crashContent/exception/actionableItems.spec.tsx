@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
-  const organization = TestStubs.Organization({});
+  const organization = Organization({});
   const project = TestStubs.Project();
 
   const url = `/projects/${organization.slug}/${project.slug}/events/1/actionable-items/`;
