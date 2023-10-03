@@ -10,7 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
@@ -218,7 +218,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
-            serialize(i, request.user)
+            serialize(i, request.user, IntegrationSerializer())
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]

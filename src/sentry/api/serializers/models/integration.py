@@ -31,7 +31,6 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 
 
 @register(Integration)
-@register(RpcIntegration)
 class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
