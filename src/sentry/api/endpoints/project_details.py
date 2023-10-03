@@ -814,7 +814,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "filters:chunk-load-error" in options:
                 project.update_option(
                     "filters:chunk-load-error",
-                    bool(options["filters:chunk-load-error"]),
+                    "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
