@@ -44,7 +44,7 @@ describe('actionCreators/onboardingTasks', function () {
       const detailedOrg = Organization({
         teams: [TestStubs.Team()],
         projects: [TestStubs.Project()],
-        onboardingTasks: [{task: 'send_first_event', status: 'skipped'}],
+        onboardingTasks: [{task: OnboardingTaskKey.FIRST_EVENT, status: 'skipped'}],
       });
 
       const testTask = {
