@@ -21,6 +21,7 @@ describe('OrganizationMembersWrapper', function () {
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
+      name: 'active',
     },
   });
 
@@ -72,6 +73,7 @@ describe('OrganizationMembersWrapper', function () {
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
+        name: 'active',
       },
     });
     render(<OrganizationMembersWrapper organization={org} {...routerProps} />);
@@ -85,6 +87,7 @@ describe('OrganizationMembersWrapper', function () {
       access: [],
       status: {
         id: 'active',
+        name: 'active',
       },
     });
 
