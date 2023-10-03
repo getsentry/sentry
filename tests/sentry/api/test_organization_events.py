@@ -2,14 +2,14 @@ from unittest import mock
 
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTestBase(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -30,7 +30,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 @region_silo_test(stable=True)
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
     def test_api_key_request(self):
         self.store_event(
             data={
