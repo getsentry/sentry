@@ -59,9 +59,14 @@ Future<void> main() async {
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
       // We recommend adjusting this value in production.
       options.tracesSampleRate = 1.0;
-    });
-
+    },
+    appRunner: initApp, // Init your App.
+  );
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
+}
+
+void initApp() {
+  // your app code
 }
         `,
         additionalInfo: (
