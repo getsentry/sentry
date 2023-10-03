@@ -64,7 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
   const organization = Organization({
-    FEATURES,
+    features: FEATURES,
     projects,
   });
 
