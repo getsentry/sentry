@@ -1334,7 +1334,7 @@ def get_alert_rule_trigger_action_discord_channel_id(
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
-        raise Integration.DoesNotExist()
+        raise InvalidTriggerActionError("Discord integration not found.")
     try:
         validate_channel_id(
             channel_id=name,
