@@ -38,6 +38,7 @@ type TestStubFixtures = {
   Members: OverridableStubList;
   MetricRule: OverridableStub;
   OrgRoleList: OverridableStub;
+  Organization: OverridableStub;
   PageFilters: OverridableStub;
   PlatformExternalIssue: OverridableStub;
   Plugin: OverridableStub;
