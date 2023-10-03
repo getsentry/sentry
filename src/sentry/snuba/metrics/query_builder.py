@@ -788,8 +788,7 @@ class SnubaQueryBuilder:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
-            # This transformation is currently supported only for group by because OrderBy doesn't support the Function
-            # type.
+            # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
                     use_case_id, org_id, metric_action_by_field.alias
