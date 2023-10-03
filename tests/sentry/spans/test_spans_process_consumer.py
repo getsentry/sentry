@@ -7,7 +7,10 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.receivers import create_default_projects
-from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory, _build_snuba_span
+from sentry.spans.consumers.process.factory import (
+    ProcessSpansStrategyFactory,
+    _process_relay_span_v0,
+)
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -76,7 +79,7 @@ def test_ingest_span(request):
 
 def test_null_tags_and_data():
     relay_span: Dict[str, Any] = {
-        "data": None,
+        "sentry_tags": None,
         "description": "f1323e9063f91b5745a7d33e580f9f92.jpg (56 KB)",
         "event_id": "3f0bba60b0a7471abe18732abe6506c2",
         "exclusive_time": 8.635998,
@@ -94,7 +97,7 @@ def test_null_tags_and_data():
         "trace_id": "3f0bba60b0a7471abe18732abe6506c2",
         "type": "trace",
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert "tags" in snuba_span and len(snuba_span["tags"]) == 0
 
@@ -102,26 +105,26 @@ def test_null_tags_and_data():
         "none_tag": None,
         "false_value": False,
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert all([v is not None for v in snuba_span["tags"].values()])
     assert "false_value" in snuba_span["tags"]
     assert "sentry_tags" in snuba_span and len(snuba_span["sentry_tags"]) == 2
 
-    relay_span["data"] = {
+    relay_span["sentry_tags"] = {
         "span.description": "",
         "span.system": None,
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
     assert all([v is not None for v in snuba_span["sentry_tags"].values()])
     assert "description" in snuba_span["sentry_tags"]
 
-    relay_span["data"] = {
-        "status_code": "undefined",
-        "group": "[Filtered]",
+    relay_span["sentry_tags"] = {
+        "span.status_code": "undefined",
+        "span.group": "[Filtered]",
     }
-    snuba_span = _build_snuba_span(relay_span)
+    snuba_span = _process_relay_span_v0(relay_span)
 
-    assert snuba_span["sentry_tags"].get("group") is None
-    assert snuba_span["sentry_tags"].get("status_code") is None
+    assert "group" not in snuba_span["sentry_tags"]
+    assert "status_code" not in snuba_span["sentry_tags"]
