@@ -27,8 +27,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
 
     def get_max_length(self) -> int:
-        # typecast needed for typing, though these will always be ints
-        return int(MAX_RAW_LENGTH)
+        return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values

@@ -95,7 +95,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     def test_put_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,

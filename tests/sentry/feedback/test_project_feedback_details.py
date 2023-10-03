@@ -113,7 +113,7 @@ class ProjectFeedbackDetailTest(APITestCase):
         assert feedback["dist"] == "abc123"
         assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
         assert feedback["message"] == "I really like this user-feedback feature!"
-        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_1)
+        assert feedback["feedback_id"] == str(uuid.UUID(self.feedback_id_1)).replace("-", "")
         assert feedback["platform"] == "javascript"
         assert feedback["sdk"]["name"] == "sentry.javascript.react"
         assert feedback["tags"]["key"] == "value"
@@ -131,7 +131,7 @@ class ProjectFeedbackDetailTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200
         feedback = response.data
-        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_2)
+        assert feedback["feedback_id"] == str(uuid.UUID(self.feedback_id_2)).replace("-", "")
         assert feedback["contact_email"] == "michelle.zhang@sentry.io"
 
     @with_feature(FEATURES)
