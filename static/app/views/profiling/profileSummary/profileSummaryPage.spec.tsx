@@ -126,7 +126,7 @@ describe('ProfileSummaryPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
-        data: [],
+        data: [{'last_seen()': new Date()}],
       },
     });
 
