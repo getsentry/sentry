@@ -11,14 +11,14 @@ import pytest
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
-from sentry.backup.helpers import ImportFlags, get_exportable_sentry_models
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
     import_in_config_scope,
     import_in_global_scope,
     import_in_organization_scope,
     import_in_user_scope,
 )
-from sentry.backup.scopes import ExportScope, RelocationScope
+from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -46,6 +46,7 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.utils import json
+from tests.sentry.backup import get_matching_exportable_models
 
 
 class ImportTestCase(BackupTestCase):
@@ -472,6 +473,24 @@ class ScopingTests(ImportTestCase):
     Ensures that only models with the allowed relocation scopes are actually imported.
     """
 
+    @staticmethod
+    def verify_model_inclusion(scope: ImportScope):
+        """
+        Ensure all in-scope models are included, and that no out-of-scope models are included.
+        """
+        included_models = get_matching_exportable_models(
+            lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
+        )
+        excluded_models = get_matching_exportable_models(
+            lambda mr: mr.get_possible_relocation_scopes() != {RelocationScope.Excluded}
+            and not (mr.get_possible_relocation_scopes() & scope.value)
+        )
+
+        for model in included_models:
+            assert model.objects.count() > 0
+        for model in excluded_models:
+            assert model.objects.count() == 0
+
     def test_user_import_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
 
@@ -479,10 +498,7 @@ class ScopingTests(ImportTestCase):
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path) as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
-                exportable = get_exportable_sentry_models()
-                for model in exportable:
-                    if RelocationScope.User not in model.get_possible_relocation_scopes():
-                        assert model.objects.count() == 0
+                self.verify_model_inclusion(ImportScope.User)
 
     def test_organization_import_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
@@ -491,13 +507,25 @@ class ScopingTests(ImportTestCase):
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
-                exportable = get_exportable_sentry_models()
-                for model in exportable:
-                    if {
-                        RelocationScope.User,
-                        RelocationScope.Organization,
-                    } in model.get_possible_relocation_scopes():
-                        assert model.objects.count() == 0
+                self.verify_model_inclusion(ImportScope.Organization)
+
+    def test_config_import_scoping(self):
+        self.create_exhaustive_instance(is_superadmin=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
+                self.verify_model_inclusion(ImportScope.Config)
+
+    def test_global_import_scoping(self):
+        self.create_exhaustive_instance(is_superadmin=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+                self.verify_model_inclusion(ImportScope.Global)
 
 
 class FilterTests(ImportTestCase):
@@ -860,8 +888,8 @@ class CollisionTests(ImportTestCase):
             )
 
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
-        self.create_exhaustive_global_configs()
-        self.create_exhaustive_user("owner", is_admin=True)
+        owner = self.create_exhaustive_user("owner", is_admin=True)
+        self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
         colliding_option = Option.objects.all().first()
@@ -911,8 +939,8 @@ class CollisionTests(ImportTestCase):
             assert actual_permission == old_user_role_permissions[i]
 
     def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
-        self.create_exhaustive_global_configs()
-        self.create_exhaustive_user("owner", is_admin=True)
+        owner = self.create_exhaustive_user("owner", is_admin=True)
+        self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
         colliding_option = Option.objects.all().first()
@@ -961,8 +989,8 @@ class CollisionTests(ImportTestCase):
         assert actual_user_role.permissions[0] == "other.admin"
 
     def test_colliding_configs_overwrite_configs_enabled_in_global_scope(self):
-        self.create_exhaustive_global_configs()
-        self.create_exhaustive_user("owner", is_admin=True)
+        owner = self.create_exhaustive_user("owner", is_admin=True)
+        self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
         colliding_option = Option.objects.all().first()
@@ -1012,8 +1040,8 @@ class CollisionTests(ImportTestCase):
             assert actual_permission == old_user_role_permissions[i]
 
     def test_colliding_configs_overwrite_configs_disabled_in_global_scope(self):
-        self.create_exhaustive_global_configs()
-        self.create_exhaustive_user("owner", is_admin=True)
+        owner = self.create_exhaustive_user("owner", is_admin=True)
+        self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
         colliding_option = Option.objects.all().first()

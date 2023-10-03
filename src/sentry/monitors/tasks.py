@@ -284,8 +284,15 @@ def check_timeout(current_datetime: datetime):
 def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
-    checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)
+    checkin = (
+        MonitorCheckIn.objects.select_related("monitor_environment")
+        .select_related("monitor_environment__monitor")
+        .get(id=checkin_id)
+    )
+
     monitor_environment = checkin.monitor_environment
+    monitor = monitor_environment.monitor
+
     logger.info(
         "monitor_environment.checkin-timeout",
         extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
@@ -302,6 +309,17 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
-        # TODO(epurkhiser): We should not be using timezone.now here, but need
-        # to verify what actually makes sense.
-        mark_failed(checkin, ts=timezone.now())
+        # Similar to mark_missed we compute when the most recent check-in should
+        # have happened to use as our reference time for mark_failed.
+        #
+        # XXX(epurkhiser): For ScheduleType.INTERVAL this MAY compute an
+        # incorrect next_checkin from what the actual user task might expect,
+        # since we don't know the behavior of the users task scheduling in the
+        # scenario that it 1) doesn't complete, or 2) runs for longer than
+        # their configured time-out time.
+        #
+        # See `test_timeout_using_interval`
+        start_ts = checkin.date_added.replace(tzinfo=None)
+        most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+
+        mark_failed(checkin, ts=most_recent_expected_ts)
