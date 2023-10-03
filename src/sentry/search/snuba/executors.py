@@ -418,7 +418,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_categories = {
                 gc
                 for gc in get_search_strategies().keys()
-                if gc != GroupCategory.PROFILE.value
+                if (gc != GroupCategory.PROFILE.value and gc != GroupCategory.FEEDBACK.value)
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
 

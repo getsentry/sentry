@@ -31,7 +31,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
 )
 # This should probably be configurable per team
-ISSUE_QUOTA = Quota(3600, 60, 5)
+ISSUE_QUOTA = Quota(3600, 60, 50000000000)  # TODO: fix this
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,6 @@ def save_issue_occurrence(
     # Note: For now we trust the project id passed along with the event. Later on we should make
     # sure that this is somehow validated.
     occurrence.save()
-
     try:
         release = Release.get(event.project, event.release)
     except Release.DoesNotExist:
@@ -149,7 +148,6 @@ def save_issue_from_occurrence(
     # We need to augment the message with occurrence data here since we can't build a `GroupEvent`
     # until after we have created a `Group`.
     issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
-
     # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
     # Note that additional fingerprints won't be used to generated additional issues, they'll be
     # used to map the occurrence to a specific issue.
@@ -171,11 +169,9 @@ def save_issue_from_occurrence(
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
             )[0]
-
         if not granted_quota.granted:
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
-
         with sentry_sdk.start_span(
             op="issues.save_issue_from_occurrence.transaction"
         ) as span, metrics.timer(
@@ -235,7 +231,6 @@ def send_issue_occurrence_to_eventstream(
 ) -> None:
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
-
     eventstream.insert(
         event=group_event,
         is_new=group_info.is_new,

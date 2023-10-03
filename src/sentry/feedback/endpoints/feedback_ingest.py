@@ -21,7 +21,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.feedback.models import Feedback
+from sentry.feedback.usecases.create_feedback import create_feedback
 from sentry.models import Environment, Organization, ProjectKey
 from sentry.models.project import Project
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -111,7 +111,6 @@ class FeedbackIngestEndpoint(Endpoint):
         **kwargs,
     ):
         using_dsn_auth = isinstance(request.auth, ProjectKey)
-
         # When using DSN auth we're able to infer the organization slug
         if not organization_slug and using_dsn_auth:
             organization_slug = request.auth.project.organization.slug  # type: ignore
@@ -167,5 +166,6 @@ class FeedbackIngestEndpoint(Endpoint):
             name=result["environment"], organization_id=organization.id
         )[0]
         result["environment"] = env
-        Feedback.objects.create(**result)
+
+        create_feedback(result)
         return self.respond(status=201)

@@ -219,7 +219,7 @@ def _query_params_for_generic(
             logging.error("Category is required in _query_params_for_generic")
             return None
 
-        category_ids = {gc.value for gc in categories}
+        category_ids = {gc.value for gc in categories if gc != GroupCategory.FEEDBACK}
         group_types = {
             gt.type_id
             for gt in grouptype.registry.get_visible(organization, actor)
