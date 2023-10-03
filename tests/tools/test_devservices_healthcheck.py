@@ -73,7 +73,7 @@ def test_postgres_running(mock_subprocess_run: mock.MagicMock) -> None:
     assert mock_subprocess_run.call_count == 2
 
 
-def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
+def test_kafka_running(mock_subprocess_run: mock.MagicMock) -> None:
     running = mock.Mock()
     running.stdout = "running\n"
     running.code = 0
@@ -89,15 +89,6 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
             "inspect",
             "-f",
             "{{.State.Status}}",
-            "sentry_zookeeper",
-        ):
-            return running
-        elif cmd_args == (
-            "docker",
-            "container",
-            "inspect",
-            "-f",
-            "{{.State.Status}}",
             "sentry_kafka",
         ):
             return running
@@ -106,16 +97,8 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
             "exec",
             "sentry_kafka",
             "kafka-topics",
-            "--zookeeper",
-            "sentry_zookeeper:2181",
-            "--list",
-        ) or (
-            "docker",
-            "exec",
-            "sentry_kafka",
-            "kafka-topics",
-            "--zookeeper",
-            "127.0.0.1:2181",
+            "--bootstrap-server",
+            "127.0.0.1:9092",
             "--list",
         ):
             return healthcheck
@@ -124,4 +107,4 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
     mock_subprocess_run.side_effect = run
 
     check_health(["kafka"])
-    assert mock_subprocess_run.call_count == 3
+    assert mock_subprocess_run.call_count == 2

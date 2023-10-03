@@ -172,7 +172,7 @@ runs:
         fi
 
         if [ "$NEED_KAFKA" = "true" ]; then
-          services+=(zookeeper kafka)
+          services+=(kafka)
         fi
 
         sentry devservices up "${services[@]}"

@@ -48,8 +48,8 @@ def check_kafka():
             "exec",
             "sentry_kafka",
             "kafka-topics",
-            "--zookeeper",
-            "sentry_zookeeper:2181",
+            "--bootstrap-server",
+            "127.0.0.1:9092",
             "--list",
         ),
         check=True,
@@ -75,12 +75,6 @@ all_service_healthchecks = {
         "sentry_kafka",
         os.getenv("NEED_KAFKA") == "true",
         check_kafka,
-        deps=["zookeeper"],
-    ),
-    "zookeeper": HealthCheck(
-        "zookeeper",
-        "sentry_zookeeper",
-        os.getenv("NEED_KAFKA") == "true",
     ),
 }
 
