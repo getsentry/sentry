@@ -638,11 +638,7 @@ def query_transactions(
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            # HACK: the allocation policy is going to reject this query unless there is an org_id
-            # passed in. The allocation policy will be updated to handle cross-org queries better
-            # As it is now (09-13-2023), this query will likely be throttled (i.e be slower) by the allocation
-            # policy as soon as we start scanning more than just the sentry org
-            "organization_id": -42069,
+            "cross_org_query": 1,
             "use_case_id": use_case_id.value,
         },
     )
