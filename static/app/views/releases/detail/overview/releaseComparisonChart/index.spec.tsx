@@ -1,4 +1,8 @@
 import {browserHistory} from 'react-router';
+import {
+  SessionUserCountByStatus,
+  SessionUserCountByStatus2,
+} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,8 +13,8 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const {routerContext, organization, project} = initializeOrg();
   const api = new MockApiClient();
   const release = TestStubs.Release();
-  const releaseSessions = TestStubs.SessionUserCountByStatus();
-  const allSessions = TestStubs.SessionUserCountByStatus2();
+  const releaseSessions = SessionUserCountByStatus();
+  const allSessions = SessionUserCountByStatus2();
 
   it('displays correct all/release/change data', () => {
     render(

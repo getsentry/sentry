@@ -1,3 +1,5 @@
+import {InstallWizard} from 'sentry-fixture/installWizard';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +29,7 @@ describe('App', function () {
 
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard(),
+      body: InstallWizard(),
     });
   });
 

@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -409,6 +410,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
     "sentry.feedback",
+    "sentry.hybridcloud",
 )
 
 # Silence internal hints from Django's system checks
@@ -546,7 +548,7 @@ AUTHENTICATION_BACKENDS = (
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
-        "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 8},
     },
     {
@@ -732,7 +734,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.organization_mapping",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
@@ -942,12 +943,6 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
-        "options": {"expires": 3600},
-    },
 }
 
 # Most tasks run in the regions
@@ -1050,15 +1045,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-monthly-invite-missing-org-members": {
-        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour=7,
-            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
-        ),
-        "options": {"expires": 60 * 25},
-    },
+    # "schedule-monthly-invite-missing-org-members": {
+    #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+    #     "schedule": crontab(
+    #         minute=0,
+    #         hour=7,
+    #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+    #     ),
+    #     "options": {"expires": 60 * 25},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1341,7 +1336,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DISABLE_ERRORS_AND_WARNINGS": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "COMPONENT_SPLIT_PATCH": False,
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
         "DESCRIPTION": "Sentry Public API",
@@ -1456,6 +1451,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
+    # Enable profiling statistical detectors
+    "organizations:profiling-statistical-detectors": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1536,6 +1533,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
@@ -1570,10 +1569,6 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
-    # Enable sorting Issue detail events by 'most helpful'
-    "organizations:issue-details-most-helpful-event": False,
-    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
-    "organizations:issue-details-most-helpful-event-ui": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1641,8 +1636,6 @@ SENTRY_FEATURES = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
-    # Enable root cause analysis for statistical detector perf issues
-    "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1700,6 +1693,8 @@ SENTRY_FEATURES = {
     "organizations:project-performance-settings-admin": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable dashboard widget indicators.
+    "organizations:dashboard-widget-indicators": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1789,8 +1784,6 @@ SENTRY_FEATURES = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
     "organizations:notifications-double-write": True,
-    # Excludes measurement config from project config builds.
-    "organizations:projconfig-exclude-measurements": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable data forwarding functionality for projects.
@@ -2153,8 +2146,16 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
@@ -2244,13 +2245,39 @@ SENTRY_SCOPES = {
     "event:read",
     "event:write",
     "event:admin",
-    "alerts:write",
     "alerts:read",
+    "alerts:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_SCOPE_HIERARCHY_MAPPING = {
+    "org:read": {"org:read"},
+    "org:write": {"org:read", "org:write"},
+    "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
+    "org:integrations": {"org:integrations"},
+    "org:ci": {"org:ci"},
+    "member:read": {"member:read"},
+    "member:write": {"member:read", "member:write"},
+    "member:admin": {"member:read", "member:write", "member:admin"},
+    "team:read": {"team:read"},
+    "team:write": {"team:read", "team:write"},
+    "team:admin": {"team:read", "team:write", "team:admin"},
+    "project:read": {"project:read"},
+    "project:write": {"project:read", "project:write"},
+    "project:admin": {"project:read", "project:write", "project:admin"},
+    "project:releases": {"project:releases"},
+    "event:read": {"event:read"},
+    "event:write": {"event:read", "event:write"},
+    "event:admin": {"event:read", "event:write", "event:admin"},
+    "alerts:read": {"alerts:read"},
+    "alerts:write": {"alerts:read", "alerts:write"},
+    "openid": {"openid"},
+    "profile": {"profile"},
+    "email": {"email"},
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2301,7 +2328,7 @@ SENTRY_DEFAULT_ROLE = "member"
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
+SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2412,7 +2439,7 @@ SENTRY_ROLES = (
     },
 )
 
-SENTRY_TEAM_ROLES = (
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "contributor",
         "name": "Contributor",
@@ -2652,7 +2679,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
             "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
-            "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
+            "environment": {
+                "ZOOKEEPER_CLIENT_PORT": "2181",
+                "KAFKA_OPTS": "-Dzookeeper.4lw.commands.whitelist=ruok",
+            },
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
         }

@@ -1,3 +1,5 @@
+import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
@@ -5,8 +7,8 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
-  const entries123Target = TestStubs.Entries123Target();
-  const entries123Base = TestStubs.Entries123Base();
+  const entries123Target = Entries123Target();
+  const entries123Base = Entries123Base();
   const api = new MockApiClient();
   const project = TestStubs.Project();
 

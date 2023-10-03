@@ -1,8 +1,9 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
@@ -37,6 +38,40 @@ def _is_filter(data):
 
     rule_cls = rules.get(data["id"])
     return rule_cls.rule_type == "filter/event"
+
+
+class RuleCreatedBy(TypedDict):
+    id: int
+    name: str
+    email: str
+
+
+class RuleSerializerResponseOptional(TypedDict, total=False):
+    owner: Optional[str]
+    createdBy: Optional[RuleCreatedBy]
+    environment: Optional[str]
+    lastTriggered: Optional[str]
+    snoozeCreatedBy: Optional[str]
+    snoozeForEveryone: Optional[bool]
+
+
+class RuleSerializerResponse(RuleSerializerResponseOptional):
+    """
+    This represents a Sentry Rule.
+    """
+
+    id: str
+    conditions: List[dict]
+    filters: List[dict]
+    actions: List[dict]
+    actionMatch: str
+    filterMatch: str
+    frequency: int
+    name: str
+    dateCreated: str
+    projects: List[str]
+    status: str
+    snooze: bool
 
 
 @register(Rule)
@@ -139,7 +174,7 @@ class RuleSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
@@ -186,19 +221,27 @@ class RuleSerializer(Serializer):
         if rule_snooze.exists():
             d["snooze"] = True
             snooze = rule_snooze[0]
+            created_by = None
             if user.id == snooze.owner_id:
                 created_by = "You"
             else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
-            d["snoozeCreatedBy"] = created_by
-            d["snoozeForEveryone"] = snooze.user_id is None
+                creator = user_service.get_user(snooze.owner_id)
+                if creator:
+                    creator_name = creator.get_display_name()
+                    created_by = creator_name
+
+            if created_by is not None:
+                d["snoozeCreatedBy"] = created_by
+                d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
 
         try:
             neglected_rule = NeglectedRule.objects.get(
-                rule=obj, organization=obj.project.organization_id, opted_out=False
+                rule=obj,
+                organization=obj.project.organization_id,
+                opted_out=False,
+                sent_initial_email_date__isnull=False,
             )
             d["disableReason"] = "noisy"
             d["disableDate"] = neglected_rule.disable_date

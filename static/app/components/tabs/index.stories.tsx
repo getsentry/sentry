@@ -7,7 +7,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('Tabs', story => {
+export default storyBook(Tabs, story => {
   const TABS = [
     {key: 'one', label: 'One', content: 'This is the first Panel.'},
     {key: 'two', label: 'Two', content: 'This is the second panel'},
@@ -51,17 +51,14 @@ export default storyBook('Tabs', story => {
     return (
       <Fragment>
         <p>When there are many items, they will overflow into a dropdown menu.</p>
-        <SizingWindow style={{height: '210px', width: '400px'}}>
-          {/* The inner <div> is needed because SizingWindow has overflow:hidden */}
-          <div style={{height: '100%', width: '100%'}}>
-            <Tabs defaultValue="two">
-              <TabList>
-                {tabs.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
-          </div>
+        <SizingWindow display="block" style={{height: '210px', width: '400px'}}>
+          <Tabs defaultValue="two">
+            <TabList>
+              {tabs.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
         </SizingWindow>
       </Fragment>
     );

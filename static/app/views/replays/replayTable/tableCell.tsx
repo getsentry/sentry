@@ -43,7 +43,12 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+export type ReferrerTableType =
+  | 'main'
+  | 'dead-table'
+  | 'errors-table'
+  | 'rage-table'
+  | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -287,12 +292,14 @@ export function ReplayCell({
   replay,
   showUrl,
   referrer_table,
+  isWidget,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
   showUrl: boolean;
+  isWidget?: boolean;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -329,8 +336,8 @@ export function ReplayCell({
       case 'errors-table':
         return replayDetailsErrorTab;
       case 'dead-table':
-        return replayDetailsDOMEventsTab;
       case 'rage-table':
+      case 'selector-widget':
         return replayDetailsDOMEventsTab;
       default:
         return replayDetails;
@@ -384,7 +391,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item>
+    <Item isWidget={isWidget}>
       <UserBadgeFullWidth
         avatarSize={24}
         displayName={
@@ -627,11 +634,14 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean}>`
+const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: ${space(1.5)};
+  ${p =>
+    p.isWidget
+      ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
+      : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
 `;
 

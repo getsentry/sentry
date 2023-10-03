@@ -39,7 +39,7 @@ pytestmark = pytest.mark.sentry_metrics
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
-    "name": SessionMRI.SESSION.value,
+    "name": SessionMRI.RAW_SESSION.value,
     "tags": {
         "environment": "production",
         "session.status": "init",
@@ -69,7 +69,7 @@ distribution_payload = {
 distribution_headers = [("namespace", b"sessions")]
 
 set_payload = {
-    "name": SessionMRI.ERROR.value,
+    "name": SessionMRI.RAW_ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",

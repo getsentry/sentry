@@ -101,15 +101,18 @@ class IndexerBatch:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, ParsedMessage] = {}
 
+        disabled_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
+
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
 
-            if namespace := self._extract_namespace(msg.payload.headers) in options.get(
+            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
                 "sentry-metrics.indexer.disabled-namespaces"
             ):
+                assert namespace
                 self.skipped_offsets.add(partition_offset)
-                metrics.incr("process_messages.namespace_disabled", tags={"namespace": namespace})
+                disabled_msgs_cnt[namespace] += 1
                 continue
             try:
                 parsed_payload: ParsedMessage = json.loads(
@@ -164,6 +167,13 @@ class IndexerBatch:
             _: IngestMetric = parsed_payload
 
             self.parsed_payloads_by_offset[partition_offset] = parsed_payload
+
+        for namespace, cnt in disabled_msgs_cnt.items():
+            metrics.incr(
+                "process_messages.namespace_disabled",
+                amount=cnt,
+                tags={"namespace": namespace},
+            )
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:

@@ -22,6 +22,7 @@ __all__ = (
     "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
+    "ErrorsMRI",
     "parse_mri",
     "get_available_operations",
 )
@@ -33,22 +34,25 @@ from typing import List, Optional
 
 from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
-NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 # This regex allows for a string of words composed of small letters alphabet characters with
 # allowed the underscore character, optionally separated by a single dot
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
-MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
     # Ingested
-    SESSION = "c:sessions/session@none"
-    ERROR = "s:sessions/error@none"
-    USER = "s:sessions/user@none"
+    # Do *not* use these metrics in product queries. Use the derived metrics below instead.
+    # The raw metrics do not necessarily add up in intuitive ways. For example, `RAW_SESSION`
+    # double-counts crashed sessions.
+    RAW_SESSION = "c:sessions/session@none"
+    RAW_ERROR = "s:sessions/error@none"
+    RAW_USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
 
     # Derived
@@ -139,6 +143,9 @@ class TransactionMRI(Enum):
     DIST_ON_DEMAND = "d:transactions/on_demand@none"
     SET_ON_DEMAND = "s:transactions/on_demand@none"
 
+    # Less granular coarse metrics
+    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
+
 
 class SpanMRI(Enum):
     USER = "s:spans/user@none"
@@ -153,6 +160,10 @@ class SpanMRI(Enum):
     HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
     HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
     HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
+
+
+class ErrorsMRI(Enum):
+    EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
 
 
 @dataclass
@@ -198,6 +209,7 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
         "d": "distributions",
         "g": "gauges",
     }
+
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":

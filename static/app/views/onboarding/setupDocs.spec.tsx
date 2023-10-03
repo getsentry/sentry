@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = TestStubs.ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeys()[0];
 
 function renderMockRequests({
   project,
@@ -34,13 +36,13 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/sdks/`,
     body: {
-      'sentry.java': {
+      'sentry.java.android.gradle-plugin': {
         canonical: 'maven:io.sentry:sentry',
         main_docs_url: 'https://docs.sentry.io/platforms/java',
         name: 'io.sentry:sentry',
         package_url: 'https://search.maven.org/artifact/io.sentry/sentry',
         repo_url: 'https://github.com/getsentry/sentry-java',
-        version: '6.28.0',
+        version: '3.12.0',
       },
     },
   });
@@ -139,7 +141,9 @@ describe('Onboarding Setup Docs', function () {
       }
     );
 
-    expect(await screen.findByText(/"sentry" % "6.28.0"/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/id "io.sentry.jvm.gradle" version "3.12.0"/)
+    ).toBeInTheDocument();
   });
 
   describe('renders Product Selection', function () {
@@ -466,6 +470,50 @@ describe('Onboarding Setup Docs', function () {
           success: expect.any(Function),
         }
       );
+    });
+  });
+
+  describe('special platforms', () => {
+    it('renders platform other', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'other',
+            platform: 'other',
+          },
+        ],
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      render(
+        <OnboardingContextProvider>
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            search=""
+            recentCreatedProject={project}
+          />
+        </OnboardingContextProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure Other SDK'})
+      ).toBeInTheDocument();
     });
   });
 });

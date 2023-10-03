@@ -137,7 +137,7 @@ def test_spec_simple_query_distribution():
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
-    assert spec.field_to_extract == "event.measurements.fp"
+    assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
@@ -256,6 +256,39 @@ def test_spec_in_operator():
     }
 
 
+def test_spec_with_custom_measurement():
+    spec = OnDemandMetricSpec("avg(measurements.memoryUsed)", "measurements.memoryUsed:>100")
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.memoryUsed.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "name": "event.measurements.memoryUsed.value",
+        "op": "gt",
+        "value": 100.0,
+    }
+
+
+def test_spec_with_has():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "has:measurements.lcp AND !has:measurements.memoryUsage"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": {"name": "event.measurements.lcp.value", "op": "eq", "value": None},
+                "op": "not",
+            },
+            {"name": "event.measurements.memoryUsage.value", "op": "eq", "value": None},
+        ],
+        "op": "and",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
@@ -297,6 +330,28 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+
+
+@django_db_all
+def test_spec_epm(default_project):
+    spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_epm"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
+
+
+@django_db_all
+def test_spec_eps(default_project):
+    spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_eps"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
 
 
 def test_cleanup_equivalent_specs():
