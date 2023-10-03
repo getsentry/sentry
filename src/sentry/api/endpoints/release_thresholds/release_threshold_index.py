@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
@@ -23,11 +23,10 @@ class ReleaseThresholdIndexGETSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class ReleaseThresholdEndpoint(ProjectEndpoint):
+class ReleaseThresholdEndpoint(OrganizationEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
@@ -37,17 +36,17 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        environments_list = serializer.validated_data.get("environment")
-        project_ids_list = serializer.validated_data.get("project")
+        environments_list = self.get_environments(request, organization)
+        projects_list = self.get_projects(request, organization)
 
         release_query = Q()
         if environments_list:
             release_query &= Q(
-                environment__name__in=environments_list,
+                environment__in=environments_list,
             )
-        if project_ids_list:
+        if projects_list:
             release_query &= Q(
-                project__id__in=project_ids_list,
+                project__in=projects_list,
             )
 
         release_thresholds = ReleaseThreshold.objects.filter(release_query)
