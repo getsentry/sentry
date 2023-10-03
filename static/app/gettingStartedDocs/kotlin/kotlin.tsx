@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -22,10 +23,17 @@ interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   packageManager: PackageManager;
+  organizationSlug?: string;
+  projectSlug?: string;
   sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
 }
 
 // Configuration Start
+const packageManagerName: Record<PackageManager, string> = {
+  [PackageManager.GRADLE]: 'Gradle',
+  [PackageManager.MAVEN]: 'Maven',
+};
+
 const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
   packageManager: {
     label: t('Package Manager'),
@@ -63,42 +71,78 @@ export const steps = ({
   sourcePackageRegistries,
   hasPerformance,
   packageManager,
+  projectSlug,
+  organizationSlug,
 }: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    configurations:
-      packageManager === PackageManager.GRADLE
+    description: t(`Install the SDK via %s:`, packageManagerName[packageManager]),
+    configurations: [
+      {
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: <Link to="/settings/auth-tokens/" />,
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+      },
+      ...(packageManager === PackageManager.GRADLE
         ? [
             {
               language: 'groovy',
+              partialLoading: sourcePackageRegistries?.isLoading,
               description: (
                 <p>
-                  {tct('Add the Sentry SDK to your [code:build.gradle] file:', {
-                    code: <code />,
-                  })}
+                  {tct(
+                    'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                    {
+                      code: <code />,
+                      link: (
+                        <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                      ),
+                    }
+                  )}
                 </p>
               ),
-              partialLoading: sourcePackageRegistries?.isLoading,
               code: `
-// Make sure mavenCentral is there.
-repositories {
-  mavenCentral()
+buildscript {
+  repositories {
+    mavenCentral()
+  }
 }
 
-dependencies {
-  implementation 'io.sentry:sentry:${
+plugins {
+  id "io.sentry.jvm.gradle" version "${
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
-  }'
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "${organizationSlug}"
+  projectName = "${projectSlug}"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
         `,
             },
           ]
-        : [
+        : []),
+      ...(packageManager === PackageManager.MAVEN
+        ? [
             {
-              language: 'xml',
-              partialLoading: sourcePackageRegistries?.isLoading,
               description: (
                 <p>
                   {tct('Add the Sentry SDK to your [code:pom.xml] file:', {
@@ -106,19 +150,84 @@ dependencies {
                   })}
                 </p>
               ),
-              code: `
+              configurations: [
+                {
+                  language: 'xml',
+                  partialLoading: sourcePackageRegistries?.isLoading,
+                  code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
   <version>${
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
   }</version>
 </dependency>
-        `,
+            `,
+                },
+                {
+                  language: 'xml',
+                  partialLoading: sourcePackageRegistries?.isLoading,
+                  description: t(
+                    'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
+                  ),
+                  code: `
+<build>
+  <plugins>
+    <plugin>
+      <groupId>io.sentry</groupId>
+      <artifactId>sentry-maven-plugin</artifactId>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.4'
+      }</version>
+      <configuration>
+      <!-- for showing output of sentry-cli -->
+      <debugSentryCli>true</debugSentryCli>
+
+      <org>${organizationSlug}</org>
+
+      <project>${projectSlug}</project>
+
+      <!-- in case you're self hosting, provide the URL here -->
+      <!--<url>http://localhost:8000/</url>-->
+
+      <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
+      <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
+      </configuration>
+      <executions>
+        <execution>
+            <phase>generate-resources</phase>
+            <goals>
+                <goal>uploadSourceBundle</goal>
+            </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+...
+</build>
+            `,
+                },
+              ],
             },
-          ],
+          ]
+        : []),
+    ],
+    additionalInfo: (
+      <p>
+        {tct(
+          'To upload your source code to Sentry so it can be shown in stack traces, please refer to [link:Manually Uploading Source Context].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/" />
+            ),
+          }
+        )}
+      </p>
+    ),
   },
   {
     type: StepType.CONFIGURE,
@@ -182,49 +291,24 @@ try {
           </Fragment>
         ),
       },
-      ...(hasPerformance
-        ? [
-            {
-              description: <h5>{t('Measure Performance')}</h5>,
-              configurations: [
-                {
-                  description: t(
-                    'You can capture transactions using the SDK. For example:'
-                  ),
-                  language: 'kotlin',
-                  code: `
-import io.sentry.Sentry
-import io.sentry.SpanStatus
-
-// A good name for the transaction is key, to help identify what this is about
-val transaction = Sentry.startTransaction("processOrderBatch()", "task")
-try {
-  processOrderBatch()
-} catch (e: Exception) {
-  transaction.throwable = e
-  transaction.status = SpanStatus.INTERNAL_ERROR
-throw e
-} finally {
-  transaction.finish();
-}`,
-                  additionalInfo: (
-                    <p>
-                      {tct(
-                        'For more information about the API and automatic instrumentations included in the SDK, visit the docs.',
-                        {
-                          docsLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/java/performance/" />
-                          ),
-                        }
-                      )}
-                    </p>
-                  ),
-                },
-              ],
-            },
-          ]
-        : []),
     ],
+  },
+];
+
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+  {
+    id: 'performance-monitoring',
+    name: t('Performance Monitoring'),
+    description: t(
+      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
+    ),
+    link: 'https://docs.sentry.io/platforms/java/performance/',
   },
 ];
 // Configuration End
@@ -232,6 +316,8 @@ throw e
 export function GettingStartedWithKotlin({
   dsn,
   sourcePackageRegistries,
+  projectSlug,
+  organization,
   activeProductSelection = [],
   ...props
 }: ModuleProps) {
@@ -239,16 +325,23 @@ export function GettingStartedWithKotlin({
   const hasPerformance = activeProductSelection.includes(
     ProductSolution.PERFORMANCE_MONITORING
   );
+
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
         dsn,
         sourcePackageRegistries,
+        projectSlug: projectSlug ?? '___PROJECT_SLUG___',
+        organizationSlug: organization?.slug ?? '___ORG_SLUG___',
         packageManager: optionValues.packageManager as PackageManager,
         hasPerformance,
       })}
       introduction={introduction}
       platformOptions={platformOptions}
+      nextSteps={nextStepDocs}
+      projectSlug={projectSlug}
       {...props}
     />
   );
