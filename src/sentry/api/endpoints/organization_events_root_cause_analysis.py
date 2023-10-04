@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 from rest_framework.response import Response
-from snuba_sdk import Column, Function, LimitBy
+from snuba_sdk import Column, Condition, Function, LimitBy, Op, Or
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,12 +18,13 @@ from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
 SNUBA_QUERY_LIMIT = 10000
+BUFFER = timedelta(hours=6)
 
 
 def query_spans(transaction, regression_breakpoint, params):
     selected_columns = [
         "count(span_id) as span_count",
-        "sumArray(spans_exclusive_time) as total_span_self_time",
+        "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
         "array_join(spans_op) as span_op",
         "array_join(spans_group) as span_group",
         # want a single event id to fetch from nodestore for the span description
@@ -34,7 +37,7 @@ def query_spans(transaction, regression_breakpoint, params):
         selected_columns=selected_columns,
         equations=[],
         query=f"transaction:{transaction}",
-        orderby=["span_op", "span_group", "total_span_self_time"],
+        orderby=["span_op", "span_group", "p95_self_time"],
         limit=SNUBA_QUERY_LIMIT,
         config=QueryBuilderConfig(
             auto_aggregations=True,
@@ -61,6 +64,16 @@ def query_spans(transaction, regression_breakpoint, params):
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
     builder.groupby.append(Column("period"))
     builder.limitby = LimitBy([Column("period")], SNUBA_QUERY_LIMIT // 2)
+    builder.add_conditions(
+        [
+            Or(
+                [
+                    Condition(Column("timestamp"), Op.GT, regression_breakpoint + BUFFER),
+                    Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
+                ]
+            )
+        ]
+    )
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")

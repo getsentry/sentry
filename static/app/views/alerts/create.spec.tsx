@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Groups} from 'sentry-fixture/groups';
+import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
@@ -637,7 +638,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('shows archived to escalating instead of ignored to unresolved', async () => {
     createWrapper({
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from archived to escalating',

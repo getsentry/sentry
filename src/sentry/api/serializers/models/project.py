@@ -216,6 +216,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -379,7 +380,7 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    (_, has_enabled_subscriptions, _) = subscriptions[project.id]
                     is_subscribed = has_enabled_subscriptions
                 else:
                     value = get_most_specific_notification_setting_value(

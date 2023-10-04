@@ -172,10 +172,12 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
-        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization.id)
+        rule = CustomDynamicSamplingRule.get_rule_for_org(
+            condition, organization.id, requested_projects_ids
+        )
 
         if rule is None:
-            return Response(status=204)  # no rule found, nothing to reutrn
+            return Response(status=204)  # no rule found, nothing to return
 
         # we have a rule, check to see if the projects match
 
