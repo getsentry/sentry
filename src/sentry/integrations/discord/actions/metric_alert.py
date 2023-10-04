@@ -43,7 +43,12 @@ def send_incident_alert_notification(
         return
 
     message = DiscordMetricAlertMessageBuilder(
-        incident.alert_rule, incident, new_status, metric_value, chart_url, notification_uuid
+        alert_rule=incident.alert_rule,
+        notification_uuid=notification_uuid,
+        incident=incident,
+        new_status=new_status,
+        metric_value=metric_value,
+        chart_url=chart_url,
     )
 
     client = DiscordClient(integration_id=incident.identifier)
