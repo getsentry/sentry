@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import connections, models, router, transaction
 from django.db.models import Q
@@ -28,12 +28,12 @@ class TooManyRules(ValueError):
     pass
 
 
-def get_rule_hash(condition: Any, project_ids: List[int]) -> str:
+def get_rule_hash(condition: Any, project_ids: Sequence[int]) -> str:
     """
     Returns the hash of the rule based on the condition and projects
     """
     condition_string = to_order_independent_string(condition)
-    project_string = to_order_independent_string(project_ids)
+    project_string = to_order_independent_string(list(project_ids))
     rule_string = f"{condition_string}-{project_string}"
     # make it a bit shorter
     return hashlib.sha1(rule_string.encode("utf-8")).hexdigest()
@@ -133,7 +133,7 @@ class CustomDynamicSamplingRule(Model):
     def get_rule_for_org(
         condition: Any,
         organization_id: int,
-        project_ids: List[int],
+        project_ids: Sequence[int],
     ) -> Optional["CustomDynamicSamplingRule"]:
         """
         Returns an active rule for the given condition and organization if it exists otherwise None
