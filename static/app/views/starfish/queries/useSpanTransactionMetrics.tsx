@@ -5,7 +5,7 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {MetricsFilters, SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
@@ -22,7 +22,7 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  filters: {'span.group'?: string; transaction?: string[] | string},
+  filters: MetricsFilters,
   sorts?: Sort[],
   cursor?: string,
   referrer = 'api.starfish.span-transaction-metrics'
@@ -41,11 +41,7 @@ export const useSpanTransactionMetrics = (
   });
 };
 
-function getEventView(
-  location: Location,
-  filters: {[key: string]: string[] | string} = {},
-  sorts?: Sort[]
-) {
+function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: Sort[]) {
   const search = new MutableSearch('');
 
   Object.entries(filters).forEach(([key, value]) => {

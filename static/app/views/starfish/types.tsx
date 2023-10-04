@@ -61,6 +61,10 @@ export type MetricsResponse = {
   'time_spent_percentage(local)': number;
 };
 
+export type MetricsFilters = {
+  [Property in SpanStringFields as `${Property}`]?: string | string[];
+};
+
 export type MetricsProperty = keyof MetricsResponse;
 
 export enum SpanIndexedField {
