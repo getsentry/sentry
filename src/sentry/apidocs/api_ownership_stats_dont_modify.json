@@ -639,6 +639,9 @@
     "enterprise": {
         "block_start": 639,
         "public": [
+            "NotificationActionsDetailsEndpoint::DELETE",
+            "NotificationActionsDetailsEndpoint::GET",
+            "NotificationActionsDetailsEndpoint::PUT",
             "NotificationActionsIndexEndpoint::GET",
             "NotificationActionsIndexEndpoint::POST",
             "OrganizationIntegrationsEndpoint::GET",
@@ -663,9 +666,6 @@
         ],
         "experimental": [
             "NotificationActionsAvailableEndpoint::GET",
-            "NotificationActionsDetailsEndpoint::DELETE",
-            "NotificationActionsDetailsEndpoint::GET",
-            "NotificationActionsDetailsEndpoint::PUT",
             "OrganizationAuditLogsEndpoint::GET",
             "OrganizationMissingMembersEndpoint::GET",
             "OrganizationProjectsExperimentEndpoint::POST",
