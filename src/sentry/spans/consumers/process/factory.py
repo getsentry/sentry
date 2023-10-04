@@ -12,6 +12,9 @@ from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
 from django.conf import settings
+from sentry_kafka_schemas import ValidationError, get_codec
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpans
 
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
@@ -21,6 +24,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 SPAN_SCHEMA_V1 = 1
 SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
+SPAN_SCHEMA: Codec[IngestSpans] = get_codec("ingest-spans")
 
 
 def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
@@ -108,7 +112,7 @@ def _format_event_id(payload: Mapping[str, Any], key="event_id") -> Optional[str
 
 
 def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
-    return json.loads(payload, use_rapid_json=True)
+    return SPAN_SCHEMA.decode(payload)
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
@@ -127,6 +131,12 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
 def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     try:
         return _process_message(message)
+    except ValidationError as e:
+        assert isinstance(message.value, BrokerValue)
+        raise InvalidMessage(
+            message.value.partition,
+            message.value.offset,
+        ) from e
     except Exception as e:
         metrics.incr("spans.consumer.message_processing_error")
         if random.random() < 0.05:
