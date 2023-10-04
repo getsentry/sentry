@@ -78,14 +78,12 @@ class DiscordClient(IntegrationProxyClient):
         """
         return self.get(self.CHANNEL_URL.format(channel_id=channel_id))
 
-    def send_message(
-        self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
-    ) -> None:
+    def send_message(self, channel_id: str, message: DiscordMessageBuilder) -> None:
         """
         Send a message to the specified channel.
         """
         self.post(
             self.MESSAGE_URL.format(channel_id=channel_id),
-            data=message.build(notification_uuid=notification_uuid),
+            data=message.build(),
             timeout=5,
         )
