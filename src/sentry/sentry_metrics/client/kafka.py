@@ -69,6 +69,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Union[int, float],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
@@ -78,12 +79,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
+
         counter_metric = {
             "org_id": org_id,
             "project_id": project_id,
             "name": build_mri(metric_name, "c", use_case_id, unit),
             "value": value,
-            "timestamp": int(datetime.now().timestamp()),
+            "timestamp": payload_timestamp,
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "c",
@@ -100,6 +106,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[int],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
@@ -109,12 +116,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
+
         set_metric = {
             "org_id": org_id,
             "project_id": project_id,
             "name": build_mri(metric_name, "s", use_case_id, unit),
             "value": value,
-            "timestamp": int(datetime.now().timestamp()),
+            "timestamp": payload_timestamp,
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "s",
@@ -131,6 +143,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[Union[int, float]],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
@@ -139,12 +152,18 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         will return immediately even if the metric message has not been
         produced to the broker yet.
         """
+
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
+
         dist_metric = {
             "org_id": org_id,
             "project_id": project_id,
             "name": build_mri(metric_name, "d", use_case_id, unit),
             "value": value,
-            "timestamp": int(datetime.now().timestamp()),
+            "timestamp": payload_timestamp,
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "d",

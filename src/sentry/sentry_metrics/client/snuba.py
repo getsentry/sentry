@@ -50,11 +50,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         value: Union[int, float],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
         Emit a counter metric for internal use cases only.
         """
+
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
 
         BaseMetricsTestCase.store_metric(
             name=build_mri(metric_name, "c", use_case_id, unit),
@@ -63,7 +69,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
             org_id=org_id,
             project_id=project_id,
             type="counter",
-            timestamp=int(datetime.now().timestamp()),
+            timestamp=payload_timestamp,
             use_case_id=use_case_id,
         )
 
@@ -76,12 +82,18 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         value: Sequence[int],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
         Emit a set metric for internal use cases only. Can support
         a sequence of values.
         """
+
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
 
         for val in value:
             BaseMetricsTestCase.store_metric(
@@ -91,7 +103,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
                 org_id=org_id,
                 project_id=project_id,
                 type="set",
-                timestamp=int(datetime.now().timestamp()),
+                timestamp=payload_timestamp,
                 use_case_id=use_case_id,
             )
 
@@ -104,12 +116,19 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         value: Sequence[Union[int, float]],
         tags: Dict[str, str],
         unit: Optional[str],
+        timestamp: Optional[int],
     ) -> None:
 
         """
         Emit a distribution metric for internal use cases only. Can
         support a sequence of values.
         """
+
+        if timestamp is not None:
+            payload_timestamp = timestamp
+        else:
+            payload_timestamp = int(datetime.now().timestamp())
+
         for val in value:
             BaseMetricsTestCase.store_metric(
                 name=build_mri(metric_name, "d", use_case_id, unit),
@@ -118,7 +137,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
                 org_id=org_id,
                 project_id=project_id,
                 type="distribution",
-                timestamp=int(datetime.now().timestamp()),
+                timestamp=payload_timestamp,
                 use_case_id=use_case_id,
             )
 
