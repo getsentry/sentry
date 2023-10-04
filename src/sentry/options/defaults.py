@@ -975,6 +975,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to tune the percentage of indexer batches that get analyzed for throughput and published to shared-resources-usage for cogs analysis
+register(
+    "sentry-metrics.indexer.record-throughput-cogs-rollout",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {

@@ -508,9 +508,10 @@ class IndexerBatch:
         return new_messages
 
     def __record_cogs(self, use_case_id: UseCaseID) -> None:
-        record_cogs(
-            resource_id="sentry_metrics_indexer_processor",
-            app_feature=f"sentrymetricsindexer_{use_case_id.value}",
-            amount=self.__message_size_sum[use_case_id],
-            usage_type=UsageUnit.BYTES,
-        )
+        if random.random() <= options.get("sentry-metrics.indexer.record-throughput-cogs-rollout"):
+            record_cogs(
+                resource_id="sentry_metrics_indexer_processor",
+                app_feature=f"sentrymetricsindexer_{use_case_id.value}",
+                amount=self.__message_size_sum[use_case_id],
+                usage_type=UsageUnit.BYTES,
+            )
