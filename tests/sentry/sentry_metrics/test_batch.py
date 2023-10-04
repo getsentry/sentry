@@ -1,7 +1,6 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 from unittest.mock import patch
 
@@ -19,21 +18,13 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
-
-class MockUseCaseID(Enum):
-    TRANSACTIONS = "transactions"
-    SESSIONS = "sessions"
-    USE_CASE_1 = "use_case_1"
-    USE_CASE_2 = "use_case_2"
-
-
 MOCK_METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.fcp@millisecond": AggregationOption.HIST,
     "d:transactions/measurements.lcp@millisecond": AggregationOption.HIST,
     "d:transactions/alert@none": AggregationOption.TEN_SECOND,
 }
 
-MOCK_USE_CASE_AGG_OPTION = {MockUseCaseID.TRANSACTIONS: AggregationOption.TEN_SECOND}
+MOCK_USE_CASE_AGG_OPTION = {UseCaseID.TRANSACTIONS: AggregationOption.TEN_SECOND}
 
 
 pytestmark = pytest.mark.sentry_metrics
@@ -198,7 +189,6 @@ def _get_string_indexer_log_records(caplog):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 @pytest.mark.parametrize(
     "should_index_tag_values, expected",
     [
@@ -262,7 +252,6 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids():
     """
     Verify that the extract string method can handle payloads that has multiple
@@ -351,8 +340,7 @@ def test_extract_strings_with_multiple_use_case_ids():
     }
 
 
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_2"]})
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["escalating_issues"]})
 def test_extract_strings_with_single_use_case_ids_blocked():
     """
     Verify that the extract string method will work normally when a single use case ID is blocked
@@ -426,8 +414,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
     }
 
 
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_1", "use_case_2"]})
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
 def test_extract_strings_with_multiple_use_case_ids_blocked():
     """
     Verify that the extract string method will work normally when multiple use case IDs are blocked
@@ -500,7 +487,6 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_invalid_mri():
     """
     Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
@@ -603,7 +589,6 @@ def test_extract_strings_with_invalid_mri():
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     """
     Verify that the extract string method can handle payloads that has multiple
@@ -694,7 +679,6 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.aggregation_option_registry.METRIC_ID_AGG_OPTION",
     MOCK_METRIC_ID_AGG_OPTION,
@@ -849,7 +833,6 @@ def test_resolved_with_aggregation_options(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -998,7 +981,6 @@ def test_all_resolved(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_all_resolved_with_routing_information(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1153,7 +1135,6 @@ def test_all_resolved_with_routing_information(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_all_resolved_retention_days_honored(caplog, settings):
     """
     Tests that the indexer batch honors the incoming retention_days values
@@ -1309,7 +1290,6 @@ def test_all_resolved_retention_days_honored(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
     Tests that the indexer batch skips resolving tag values for indexing and
@@ -1459,7 +1439,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1574,7 +1553,6 @@ def test_metric_id_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1666,7 +1644,6 @@ def test_tag_key_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1807,7 +1784,6 @@ def test_tag_value_rate_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1929,7 +1905,6 @@ def test_one_org_limited(caplog, settings):
 
 
 @pytest.mark.django_db
-@patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
 def test_cardinality_limiter(caplog, settings):
     """
     Test functionality of the indexer batch related to cardinality-limiting. More concretely, assert that `IndexerBatch.filter_messages`:
