@@ -143,7 +143,7 @@ const initializeMockRequests = () => {
         const {query} = options;
         return (
           query?.referrer === 'api.starfish.sidebar-span-metrics' &&
-          query?.yAxis === 'p95(span.self_time)'
+          query?.yAxis === 'avg(span.self_time)'
         );
       },
     ],
