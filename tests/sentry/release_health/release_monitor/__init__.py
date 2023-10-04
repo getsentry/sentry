@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
-class BaseFetchProjectsWithRecentSessionsTest:
+class BaseFetchProjectsWithRecentSessionsTest(TestCase, SnubaTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
@@ -42,7 +46,9 @@ class BaseFetchProjectsWithRecentSessionsTest:
         }
 
 
-class BaseFetchProjectReleaseHealthTotalsTest:
+class BaseFetchProjectReleaseHealthTotalsTest(TestCase, SnubaTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):

@@ -130,11 +130,7 @@ class TestCreator(TestCase):
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
-        self.creator.schema = ""
-        assert self.creator.run(user=self.user)
-
-    def test_none_schema(self):
-        self.creator.schema = None
+        self.creator.schema = {}
         assert self.creator.run(user=self.user)
 
     def test_schema_with_no_elements(self):

@@ -55,7 +55,7 @@ def request_factory(f):
 
 
 @request_factory
-def make_request() -> Tuple[HttpRequest, User]:
+def make_request() -> tuple[HttpRequest, AnonymousUser]:
     request = HttpRequest()
     request.method = "GET"
     request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -127,9 +127,11 @@ def clear_env_request():
 )
 @django_db_all(transaction=True)
 def test_client_config_in_silo_modes(request_factory: RequestFactory):
-    request = request_factory()
-    if request is not None:
-        request, _ = request
+    request_ret = request_factory()
+    if request_ret is not None:
+        request, _ = request_ret
+    else:
+        request = None
 
     base_line = get_client_config(request)
     # Removing the region list as it varies based on silo mode.
