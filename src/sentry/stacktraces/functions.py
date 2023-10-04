@@ -298,7 +298,7 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
             # the path starts with a "/" so the first element is empty string
             del path_parts[0]
 
-        # at minimum, the path must have an author/org, a repo, and a file TODO: how to detect the last element is a valid file (don't want to link to a folder)
+        # at minimum, the path must have an author/org, a repo, and a file
         if len(path_parts) >= 3:
             source_link = "https://www.github.com/" + path_parts[0] + "/" + path_parts[1] + "/blob"
             for remaining_part in path_parts[2:]:
