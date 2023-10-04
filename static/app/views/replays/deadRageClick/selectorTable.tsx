@@ -65,7 +65,7 @@ interface Props {
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
-  {key: 'project_id', name: 'project', width: 100},
+  {key: 'project_id', name: 'project'},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},
   {key: 'aria_label', name: 'aria label'},
