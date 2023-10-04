@@ -76,7 +76,8 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       transaction: endpoint,
     },
     [sort],
-    cursor
+    cursor,
+    Boolean(span[SpanMetricsField.SPAN_GROUP])
   );
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {

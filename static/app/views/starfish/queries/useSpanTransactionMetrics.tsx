@@ -25,6 +25,7 @@ export const useSpanTransactionMetrics = (
   filters: MetricsFilters,
   sorts?: Sort[],
   cursor?: string,
+  enabled: boolean = true,
   referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
@@ -34,7 +35,7 @@ export const useSpanTransactionMetrics = (
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(filters['span.group']),
+    enabled,
     limit: 25,
     referrer,
     cursor,
