@@ -132,11 +132,13 @@ def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     try:
         return _process_message(message)
     except ValidationError as e:
+        if random.random() < 0.05:
+            sentry_sdk.capture_exception(e)
         assert isinstance(message.value, BrokerValue)
         raise InvalidMessage(
             message.value.partition,
             message.value.offset,
-        ) from e
+        )
     except Exception as e:
         metrics.incr("spans.consumer.message_processing_error")
         if random.random() < 0.05:
