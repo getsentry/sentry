@@ -7,6 +7,7 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -83,6 +84,9 @@ function Console() {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
       <ConsoleFilters frames={frames} {...filterProps} />
@@ -113,6 +117,10 @@ function Console() {
         ) : (
           <Placeholder height="100%" />
         )}
+        <JumpButtons
+          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+          onClick={() => {}}
+        />
       </TabItemContainer>
     </FluidHeight>
   );

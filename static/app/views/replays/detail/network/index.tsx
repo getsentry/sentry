@@ -2,8 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -251,28 +251,10 @@ function NetworkList() {
                   />
                 )}
               </AutoSizer>
-              {showJumpUpButton ? (
-                <JumpButton
-                  onClick={handleClick}
-                  aria-label={t('Jump Up')}
-                  priority="primary"
-                  size="xs"
-                  style={{top: '30px'}}
-                >
-                  {t('↑ Jump to current timestamp')}
-                </JumpButton>
-              ) : null}
-              {showJumpDownButton ? (
-                <JumpButton
-                  onClick={handleClick}
-                  aria-label={t('Jump Down')}
-                  priority="primary"
-                  size="xs"
-                  style={{bottom: '5px'}}
-                >
-                  {t('↓ Jump to current timestamp')}
-                </JumpButton>
-              ) : null}
+              <JumpButtons
+                jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+                onClick={handleClick}
+              />
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -311,11 +293,6 @@ const OverflowHidden = styled('div')`
   height: 100%;
   overflow: hidden;
   display: grid;
-`;
-
-const JumpButton = styled(Button)`
-  position: absolute;
-  justify-self: center;
 `;
 
 const NetworkTable = styled(FluidHeight)`
