@@ -1,40 +1,62 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {Environment, Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import {HeaderCell, Table, TableData} from '../components/table';
 
-import {ThresholdGroupRow} from './thresholdGroupRow';
+// import {ThresholdGroupRow} from './thresholdGroupRow';
 
 type ThresholdQuery = {
-  environments?: string[] | undefined;
-  projects?: string[] | undefined;
+  environment?: string[] | undefined;
+  project?: number[] | undefined;
+};
+
+type Threshold = {
+  date_added: string;
+  environment: Environment;
+  id: string;
+  project: Project;
+  threshold_type: string;
+  trigger_type: string;
+  value: number;
+  window_in_seconds: number;
 };
 
 type Props = {
   organization: Organization;
+  selectedEnvs: string[];
+  selectedProjects: number[];
 };
 
-function ThresholdsList({organization}: Props) {
+function ThresholdsList({organization, selectedEnvs, selectedProjects}: Props) {
   // TODO: fetch threshold groupings
   const api = useApi();
-  const [selectedProjects, setSelectedProjects] = useState([]);
-  const [selectedEnvs, setSelectedEnvs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [_featureEnabledFlag, setFeatureEnabledFlag] = useState<boolean>(true);
+  const [thresholds, setThresholds] = useState<Threshold[]>([]);
+  const [errors, setErrors] = useState<string | null>();
 
   const fetchThresholds = useCallback(async () => {
-    const path = `${organization.slug}/release-threshold-statuses/`;
+    //   re_path(
+    //     r"^(?P<organization_slug>[^\/]+)/releases/thresholds/$",
+    //     ReleaseThresholdIndexEndpoint.as_view(),
+    //     name="sentry-api-0-organization-release-thresholds",
+    // ),
+    const path = `/organizations/${organization.id}/releases/thresholds/`;
     const query: ThresholdQuery = {};
     if (selectedProjects.length) {
-      query.projects = selectedProjects;
+      query.project = selectedProjects;
+    } else {
+      query.project = [-1];
     }
     if (selectedEnvs.length) {
-      query.environments = selectedEnvs;
+      query.environment = selectedEnvs;
     }
     try {
       setIsLoading(true);
@@ -42,11 +64,31 @@ function ThresholdsList({organization}: Props) {
         method: 'GET',
         query,
       });
+      setThresholds(resp);
     } catch (err) {
-      console.log();
+      if (err.status === 404) {
+        setErrors('Error fetching release thresholds');
+      } else if (err.status === 403) {
+        // NOTE: If release thresholds are not enabled, API will return a 403 not found
+        // So capture this case and set enabled to false
+        setFeatureEnabledFlag(false);
+      } else {
+        setErrors(err.statusText);
+      }
     }
     setIsLoading(false);
   }, [api, organization, selectedEnvs, selectedProjects]);
+
+  useEffect(() => {
+    fetchThresholds();
+  }, [fetchThresholds, selectedEnvs, selectedProjects]);
+
+  if (errors) {
+    return <LoadingError onRetry={fetchThresholds} message={errors} />;
+  }
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <Wrapper>
@@ -75,13 +117,21 @@ function ThresholdsList({organization}: Props) {
             <TableData>conditions</TableData>
             <TableData>actions</TableData>
           </tr>
+          {thresholds &&
+            thresholds.map((threshold: Threshold) => {
+              return (
+                <tr key={threshold.id}>
+                  <TableData>{threshold.project.name}</TableData>
+                </tr>
+              );
+            })}
         </tbody>
       </Table>
     </Wrapper>
   );
 }
 
-export default withOrganization(ThresholdsList);
+export default ThresholdsList;
 
 const Wrapper = styled('div')`
   margin: ${space(2)} 0;
