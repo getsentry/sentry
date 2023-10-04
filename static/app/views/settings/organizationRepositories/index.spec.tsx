@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositoriesContainer from 'sentry/views/settings/organizationRepositories';
 
 describe('OrganizationRepositoriesContainer', function () {
   const context = TestStubs.routerContext();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const router = TestStubs.router();
 
   beforeEach(function () {

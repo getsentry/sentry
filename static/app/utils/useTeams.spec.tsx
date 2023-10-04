@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -5,7 +7,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {useTeams} from 'sentry/utils/useTeams';
 
 describe('useTeams', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   const mockTeams = [TestStubs.Team()];
 

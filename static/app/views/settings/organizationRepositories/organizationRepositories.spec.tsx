@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -5,7 +6,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const router = TestStubs.router();
   const location = router.location;
 
