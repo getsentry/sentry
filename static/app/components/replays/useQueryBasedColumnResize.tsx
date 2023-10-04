@@ -6,23 +6,29 @@ import dropRightWhile from 'lodash/dropRightWhile';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 
-interface Props {
-  columns: GridColumnOrder<string>[];
-  location: Location<{widths: string[]}>;
+interface Props<K extends string> {
+  columns: GridColumnOrder<K>[];
+  location: Location;
+  paramName?: string;
 }
 
-export default function useQueryBasedColumnResize({columns, location}: Props) {
+export default function useQueryBasedColumnResize<K extends string>({
+  columns,
+  location,
+  paramName = 'width',
+}: Props<K>) {
+  const queryParam = location.query[paramName];
   const columnsWidthWidths = useMemo(() => {
-    const widths = decodeList(location.query.widths);
+    const widths = decodeList(queryParam);
 
     return columns.map((column, i) => {
       column.width = decodeInteger(widths[i], COL_WIDTH_UNDEFINED);
       return column;
     });
-  }, [columns, location.query.widths]);
+  }, [columns, queryParam]);
 
   const handleResizeColumn = useCallback(
-    (columnIndex, resizedColumn) => {
+    (columnIndex: number, resizedColumn: GridColumnOrder<K>) => {
       const widths = columns.map(
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
@@ -31,11 +37,11 @@ export default function useQueryBasedColumnResize({columns, location}: Props) {
         pathname: location.pathname,
         query: {
           ...location.query,
-          widths: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
+          [paramName]: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
         },
       });
     },
-    [columns, location.pathname, location.query]
+    [columns, location.pathname, location.query, paramName]
   );
 
   return {
