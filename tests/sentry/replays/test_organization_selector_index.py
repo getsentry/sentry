@@ -99,3 +99,11 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
+            assert response_data["data"][0]["element"]["alt"] == "Alt"
+            assert response_data["data"][0]["element"]["aria_label"] == "AriaLabel"
+            assert response_data["data"][0]["element"]["class"] == ["class1", "class2"]
+            assert response_data["data"][0]["element"]["id"] == "myid"
+            assert response_data["data"][0]["element"]["role"] == "button"
+            assert response_data["data"][0]["element"]["tag"] == "div"
+            assert response_data["data"][0]["element"]["testid"] == "1"
+            assert response_data["data"][0]["element"]["title"] == "MyTitle"

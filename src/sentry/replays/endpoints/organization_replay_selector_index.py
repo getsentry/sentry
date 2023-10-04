@@ -213,10 +213,21 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     return [
         {
-            "project_id": row["project_id"],
-            "dom_element": make_selector_name(row),
             "count_dead_clicks": row["count_dead_clicks"],
             "count_rage_clicks": row["count_rage_clicks"],
+            "dom_element": make_selector_name(row),
+            "element": {
+                "alt": row["click_alt"],
+                "aria_label": row["click_aria_label"],
+                "class": row["click_class"],
+                "id": row["click_id"],
+                "project_id": row["project_id"],
+                "role": row["click_role"],
+                "tag": row["click_tag"],
+                "testid": row["click_testid"],
+                "title": row["click_title"],
+            },
+            "project_id": row["project_id"],
         }
         for row in response
     ]
