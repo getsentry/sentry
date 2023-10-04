@@ -13,7 +13,7 @@ import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics'
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {Series} from 'sentry/views/ddm/metricsExplorer';
+import {Series} from 'sentry/views/ddm/metricWidget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export function SummaryTable({
@@ -89,7 +89,7 @@ export function SummaryTable({
                 <Cell>
                   <ColorDot color={color} isHidden={!!hidden} />
                 </Cell>
-                <Cell>{getNameFromMRI(seriesName)}</Cell>
+                <TextOverflowCell>{getNameFromMRI(seriesName)}</TextOverflowCell>
                 {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                 <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
                 <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
@@ -181,6 +181,12 @@ const Cell = styled('div')<{right?: boolean}>`
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
+const TextOverflowCell = styled(Cell)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   background-color: ${p =>
     p.isHidden ? 'transparent' : colorFn(p.color).alpha(1).string()};
@@ -194,7 +200,7 @@ const CellWrapper = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell} {
+    ${Cell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }
