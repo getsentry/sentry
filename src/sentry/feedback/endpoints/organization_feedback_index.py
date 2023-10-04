@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from sentry.feedback.serializers import shim_issue_to_feedback_response
 from sentry.models import Organization
 
 
@@ -24,4 +25,19 @@ class OrganizationFeedbackIndexEndpoint(OrganizationGroupIndexEndpoint):
         if not features.has("organizations:user-feedback-ingest", organization, actor=request.user):
             return Response(status=404)
 
-        return super().get(request, organization)
+        mod = request.GET.copy()
+        mod["issue.category"] = "feedback"
+        mod["collapse"] = "stats"
+        mod["expand"] = ["owners", "inbox"]
+
+        shim_response = request.GET.get("shim_response", True)
+
+        request.GET = mod
+
+        response = super().get(request, organization)
+
+        if shim_response:
+            shimmed_data = [shim_issue_to_feedback_response(issue) for issue in response.data]
+            response.data = shimmed_data
+
+        return response

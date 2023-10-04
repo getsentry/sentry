@@ -56,3 +56,57 @@ class FeedbackSerializer(Serializer):
             "url": obj.url,
         }
         return res
+
+
+def transform_tags(tags):
+    return {}
+
+
+def shim_issue_to_feedback_response(issue):
+    return {
+        "browser": issue.get("browser", {}),
+        "locale": issue.get("locale", {}),
+        "tags": transform_tags(issue.get("tags", {})),
+        "device": issue.get("device", {}),
+        "os": issue.get("os", {}),
+        "user": issue.get("user", {}),
+        "replay_id": issue.get("replay_id", None),
+        "dist": issue.get("dist", None),
+        "sdk": issue.get("sdk", {}),
+        "contact_email": issue.get("metadata", {}).get("contact_email", None),
+        "environment": issue.get("environment", None),
+        "feedback_id": str(issue.get("id", "")).replace("-", ""),
+        "message": issue.get("metadata", {}).get("message", None),
+        "platform": issue.get("platform", None),
+        "project_id": issue.get("project", {}).get("id", None),
+        "release": issue.get("release", None),
+        "status": issue.get("status", "unresolved"),
+        "timestamp": issue.get("timestamp", None),
+        "url": issue.get("feedback", {}).get("url", ""),
+    }
+
+
+def shim_event_to_feedback_response(event):
+    return {
+        "browser": event.get("browser", {}),
+        "locale": event.get("locale", {}),
+        "tags": transform_tags(event.get("tags", {})),
+        "device": event.get("device", {}),
+        "os": event.get("os", {}),
+        "user": event.get("user", {}),
+        "replay_id": event.get("replay_id", None),
+        "dist": event.get("dist", None),
+        "sdk": event.get("sdk", {}),
+        "contact_email": event.get("occurrence", {})
+        .get("evidenceData", {})
+        .get("contactEmail", None),
+        "environment": event.get("environment", None),
+        "feedback_id": str(event.get("id", "")).replace("-", ""),
+        "message": event.get("occurrence", {}).get("evidenceData", {}).get("message", None),
+        "platform": event.get("platform", None),
+        "project_id": event.get("project", {}).get("id", None),
+        "release": event.get("release", None),
+        "status": event.get("status", "unresolved"),
+        "timestamp": event.get("timestamp", None),
+        "url": event.get("feedback", {}).get("url", "example.com"),
+    }

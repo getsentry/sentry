@@ -2088,7 +2088,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     # Feedback
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/feedback/(?P<feedback_id>[\w-]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/feedback/(?P<issue_id>[\w-]+)/$",
         ProjectFeedbackDetailsEndpoint.as_view(),
         name="sentry-api-0-project-feedback-details",
     ),

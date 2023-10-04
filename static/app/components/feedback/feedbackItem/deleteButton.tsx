@@ -17,7 +17,6 @@ import type {
   FeedbackItemLoaderQueryParams,
   HydratedFeedbackItem,
 } from 'sentry/utils/feedback/item/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,7 +24,7 @@ interface Props {
   feedbackItem: HydratedFeedbackItem;
 }
 
-function openDeleteModal(organization, projectSlug, feedbackId, location) {
+function openDeleteModal(organization, feedbackId, location) {
   openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
     <Fragment>
       <Body>
@@ -38,7 +37,7 @@ function openDeleteModal(organization, projectSlug, feedbackId, location) {
             priority="danger"
             onClick={() => {
               closeModal();
-              deleteFeedback(organization, projectSlug, feedbackId, location);
+              deleteFeedback(organization, feedbackId, location);
             }}
           >
             {t('Delete')}
@@ -49,14 +48,13 @@ function openDeleteModal(organization, projectSlug, feedbackId, location) {
   ));
 }
 
-async function deleteFeedback(organization, projectSlug, feedbackId, location) {
+async function deleteFeedback(organization, feedbackId, location) {
   const api = new Client();
   addLoadingMessage(t('Deleting feedback...'));
   try {
-    await api.requestPromise(
-      `/projects/${organization.slug}/${projectSlug}/feedback/${feedbackId}/`,
-      {method: 'DELETE'}
-    );
+    await api.requestPromise(`/projects/${organization.slug}/feedback/${feedbackId}/`, {
+      method: 'DELETE',
+    });
     addSuccessMessage(t('Deleted feedback'));
     browserHistory.push({
       ...location,
@@ -71,15 +69,13 @@ export default function DeleteButton({feedbackItem}: Props) {
   const organization = useOrganization();
   const location = useLocation<FeedbackItemLoaderQueryParams>();
   const feedbackId = feedbackItem.feedback_id;
-  const feedbackSlug = decodeScalar(location.query.feedbackSlug);
-  const projectSlug = feedbackSlug?.split(':')[0];
 
   return (
     <Button
       priority="danger"
       size="xs"
       icon={<IconDelete size="xs" />}
-      onClick={() => openDeleteModal(organization, projectSlug, feedbackId, location)}
+      onClick={() => openDeleteModal(organization, feedbackId, location)}
     >
       {t('Delete')}
     </Button>

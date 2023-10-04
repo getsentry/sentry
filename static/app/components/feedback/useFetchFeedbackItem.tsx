@@ -14,7 +14,7 @@ export default function useFetchFeedbackItem(
   options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
 ) {
   const {data, ...result} = useApiQuery<FeedbackItemResponse>(
-    [`/projects/${organization.slug}/${project?.slug}/feedback/${feedbackId}/`],
+    [`/projects/${organization.slug}/feedback/${feedbackId}/`],
     {staleTime: 0, enabled: Boolean(project), ...options}
   );
 
