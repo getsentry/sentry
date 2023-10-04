@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
-import useLocationQuery from 'sentry/components/feedback/useLocationQuery';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -19,6 +18,7 @@ import {
   HydratedFeedbackItem,
 } from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

@@ -1,6 +1,6 @@
-import useLocationQuery from 'sentry/components/feedback/useLocationQuery';
 import {QueryView} from 'sentry/utils/feedback/list/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 export default function useFeedbackListQueryView({
   queryReferrer,
