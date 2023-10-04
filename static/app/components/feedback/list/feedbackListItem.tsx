@@ -1,4 +1,5 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, forwardRef} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -17,7 +18,7 @@ import {
   HydratedFeedbackItem,
 } from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -43,57 +44,69 @@ function UnreadBadge() {
   return <FeatureBadge type="new" variant="indicator" />;
 }
 
-export default function FeedbackListItem({className, feedbackItem, style}: Props) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const location = useLocation<FeedbackItemLoaderQueryParams>();
-  const feedbackSlug = decodeScalar(location.query.feedbackSlug);
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+  const {feedbackSlug} = useLocationQuery<FeedbackItemLoaderQueryParams>({
+    fields: {feedbackSlug: decodeScalar},
+  });
   const [, feedbackId] = feedbackSlug?.split(':') ?? [];
-
-  const isSelected = feedbackId === feedbackItem.feedback_id;
-
-  const project = projects.find(p => p.id === String(feedbackItem.project_id));
-  if (!project) {
-    // TODO[feedback]: Guard against invalid test data that has no valid project.
-    return null;
-  }
-
-  return (
-    <Wrapper
-      className={className}
-      style={style}
-      data-selected={isSelected}
-      to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-        query: {
-          referrer: 'feedback_list_page',
-          feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
-        },
-      }}
-      onClick={() => {
-        trackAnalytics('feedback_list.details_link.click', {organization});
-      }}
-    >
-      <InteractionStateLayer />
-      <Flex column style={{gridArea: 'right'}}>
-        <input type="checkbox" />
-        <UnreadBadge />
-      </Flex>
-      <strong style={{gridArea: 'user'}}>
-        <FeedbackItemUsername feedbackItem={feedbackItem} />
-      </strong>
-      <span style={{gridArea: 'time'}}>
-        <TimeSince date={feedbackItem.timestamp} />
-      </span>
-      <div style={{gridArea: 'message'}}>
-        <TextOverflow>{feedbackItem.message}</TextOverflow>
-      </div>
-      <Flex style={{gridArea: 'icons'}}>
-        {feedbackItem.replay_id ? <ReplayBadge /> : null}
-      </Flex>
-    </Wrapper>
-  );
+  return feedbackId === feedbackItem.feedback_id;
 }
+
+const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
+  ({className, feedbackItem, style}: Props, ref) => {
+    const organization = useOrganization();
+    const {projects} = useProjects();
+
+    const isSelected = useIsSelectedFeedback({feedbackItem});
+
+    const project = projects.find(p => p.id === String(feedbackItem.project_id));
+    if (!project) {
+      // TODO[feedback]: Guard against invalid test data that has no valid project.
+      return null;
+    }
+
+    return (
+      <Wrapper
+        ref={ref}
+        className={className}
+        style={style}
+        data-selected={isSelected}
+        to={() => {
+          const location = browserHistory.getCurrentLocation();
+          return {
+            pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+            query: {
+              ...location.query,
+              referrer: 'feedback_list_page',
+              feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
+            },
+          };
+        }}
+        onClick={() => {
+          trackAnalytics('feedback_list.details_link.click', {organization});
+        }}
+      >
+        <InteractionStateLayer />
+        <Flex column style={{gridArea: 'right'}}>
+          <input type="checkbox" />
+          <UnreadBadge />
+        </Flex>
+        <strong style={{gridArea: 'user'}}>
+          <FeedbackItemUsername feedbackItem={feedbackItem} />
+        </strong>
+        <span style={{gridArea: 'time'}}>
+          <TimeSince date={feedbackItem.timestamp} />
+        </span>
+        <div style={{gridArea: 'message'}}>
+          <TextOverflow>{feedbackItem.message}</TextOverflow>
+        </div>
+        <Flex style={{gridArea: 'icons'}}>
+          {feedbackItem.replay_id ? <ReplayBadge /> : null}
+        </Flex>
+      </Wrapper>
+    );
+  }
+);
 
 const Wrapper = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
@@ -118,3 +131,5 @@ const Wrapper = styled(Link)`
   gap: ${space(1)};
   place-items: stretch;
 `;
+
+export default FeedbackListItem;
