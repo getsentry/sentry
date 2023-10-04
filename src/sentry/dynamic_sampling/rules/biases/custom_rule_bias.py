@@ -20,7 +20,7 @@ class CustomRuleBias(Bias):
             condition = json.loads(rule.condition)
             ret_val.append(
                 {
-                    "samplingValue": {"type": "sampleRate", "value": rule.sample_rate},
+                    "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
                     "type": "transaction",
                     "id": rule.external_rule_id,
                     "condition": cast(Condition, condition),
@@ -28,11 +28,6 @@ class CustomRuleBias(Bias):
                         "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                         "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                     },
-                    # TODO: (Raduw) switch to reservoir sampling when available
-                    # "decayingFn": {
-                    #     "type": "reservoir",
-                    #     "limit": rule.num_samples,
-                    # },
                 }
             )
         return ret_val
