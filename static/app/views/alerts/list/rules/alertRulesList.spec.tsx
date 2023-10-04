@@ -1,5 +1,6 @@
 import {Incident} from 'sentry-fixture/incident';
 import {MetricRule} from 'sentry-fixture/metricRule';
+import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -22,7 +23,7 @@ import AlertRulesList from './alertRulesList';
 jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
-  const defaultOrg = TestStubs.Organization({
+  const defaultOrg = Organization({
     access: ['alerts:write'],
   });
   TeamStore.loadInitialData([TestStubs.Team()], false, null);

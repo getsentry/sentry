@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization as TOrganization, Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
@@ -39,9 +40,9 @@ function initialize({
   project = project || TestStubs.Project();
   query = query || {};
   const data = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features,
-      projects: [project],
+      projects: project ? [project] : [],
     }),
     router: {
       location: {
@@ -62,7 +63,7 @@ function WrappedComponent({
   organization,
 }: {
   location: Location;
-  organization: Organization;
+  organization: TOrganization;
 }) {
   return (
     <OrganizationContext.Provider value={organization}>

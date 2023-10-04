@@ -58,6 +58,11 @@ repos:
       types: [python]
       exclude: ^src/sentry/metrics/minimetrics.py$
 
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    -   id: python-use-type-annotations
+
 -   repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.24.1
     hooks:
