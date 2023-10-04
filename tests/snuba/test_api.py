@@ -45,7 +45,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         results = run_metrics_query(
-            field=f"sum({TransactionMRI.DURATION.value})",
+            field=f"sum({TransactionMRI.DURATION.value}) max({TransactionMRI.DURATION.value})",
             query="",
             group_by="transaction",
             start=(self.now() - timedelta(minutes=30)).isoformat(),

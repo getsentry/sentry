@@ -186,8 +186,8 @@ def _merge_intervals_with_values(
     return zerofilled_series
 
 
-def _translate_result(
-    metric_name: str, group_bys: Sequence[GroupBy], interval: int, snuba_result: Mapping[str, Any]
+def _translate_query_results(
+    interval: int, query_results: Sequence[Tuple[str, Sequence[GroupBy], int, Mapping[str, Any]]]
 ) -> Mapping[str, Any]:
     """
     from
@@ -208,32 +208,47 @@ def _translate_result(
         },
     }
     """
-    data = snuba_result["data"]
-    start = snuba_result["start"]
-    end = snuba_result["end"]
+    if len(query_results) == 0:
+        return {}
 
-    intervals = _build_intervals(start, end, interval)
+    intervals = None
+    start = None
+    end = None
 
-    groups: Dict[Tuple[Tuple[str, str], ...], List[Tuple[str, Any]]] = {}
-    for value in data:
-        grouped_values = []
-        for group_by in group_bys:
-            grouped_values.append((group_by.key, value.get(group_by.key)))
+    groups: Dict[Tuple[Tuple[str, str], ...], Dict[str, List[Tuple[str, Any]]]] = {}
+    for metric_name, group_bys, interval, snuba_result in query_results:
+        # Very ugly way to build the intervals start and end from the run queries, since they are all using
+        # the same params. This would be solved once this code is embedded within the layer itself.
+        if start is None:
+            start = snuba_result["start"]
+        if end is None:
+            end = snuba_result["end"]
+        if intervals is None:
+            intervals = _build_intervals(start, end, interval)
 
-        group_key = tuple(sorted(grouped_values))
-        series = groups.setdefault(group_key, [])
-        series.append((value.get("time"), value.get("aggregate_value")))
+        data = snuba_result["data"]
+        for value in data:
+            grouped_values = []
+            for group_by in group_bys:
+                grouped_values.append((group_by.key, value.get(group_by.key)))
+
+            # The group key must be ordered, in order to be consistent across execution.
+            group_key = tuple(sorted(grouped_values))
+            serieses = groups.setdefault(group_key, {})
+            series = serieses.setdefault(metric_name, [])
+            series.append((value.get("time"), value.get("aggregate_value")))
 
     final_groups = []
-    for group_key, group_series in groups.items():
+    for group_key, group_serieses in groups.items():
         inner_group = {
             "by": {name: value for name, value in group_key},
             "series": {
-                metric_name: _merge_intervals_with_values(
-                    start.timestamp(), len(intervals), interval, group_series
+                series_metric_name: _merge_intervals_with_values(
+                    start.timestamp(), len(intervals), interval, series
                 )
+                for series_metric_name, series in group_serieses.items()
             },
-            "totals": {metric_name: None},
+            "totals": {},
         }
 
         final_groups.append(inner_group)
@@ -280,7 +295,7 @@ def run_metrics_query(
     snql_group_bys = _group_bys_to_snql(group_bys)
 
     # For each field generate the query.
-    results = []
+    query_results = []
     for field in fields:
         base_query.query = _build_snql_query(field, snql_filters, snql_group_bys)
         request = Request(
@@ -289,16 +304,19 @@ def run_metrics_query(
             query=base_query,
             tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
         )
-        result = run_query(request=request)
-        results.append(
-            _translate_result(
-                metric_name=base_query.query.metric.mri
-                if field.refers_to_mri()
-                else base_query.query.metric.public_name,
-                group_bys=group_bys,
-                interval=base_query.rollup.interval,
-                snuba_result=result,
+        snuba_result = run_query(request=request)
+
+        query_results.append(
+            (
+                f"{field.aggregate}({field.metric_name})",
+                group_bys,
+                base_query.rollup.interval,
+                snuba_result,
             )
         )
 
-    return results
+    translated_results = _translate_query_results(
+        interval=base_query.rollup.interval, query_results=query_results
+    )
+
+    return translated_results
