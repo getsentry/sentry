@@ -15,7 +15,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.release import Release
-from sentry.models.releasefile import ReleaseFile
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ARTIFACT_INDEX_TYPE, ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1406,3 +1406,236 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert release_process_result["source_map_lookup_result"] == "found"
             assert release_process_result["source_map_reference"] == "bundle.min.js.map"
             assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
+
+    def test_frame_release_file_success(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame(
+                            {"abs_path": "http://example.com/bundle.min.js"}
+                        )
+                    ],
+                    release="some-release",
+                    dist="some-dist",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+            dist = Distribution.objects.get(name="some-dist", release=release)
+
+            artifact_index = File.objects.create(
+                name="artifact-index.json",
+                type=ARTIFACT_INDEX_TYPE,
+            )
+
+            artifact_index.putfile(
+                ContentFile(
+                    json.dumps(
+                        {
+                            "files": {
+                                "~/bundle.min.js": {
+                                    "type": "minified_source",
+                                    "archive_ident": ReleaseFile.get_ident(
+                                        "release-artifacts.zip", dist.name
+                                    ),
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                                "~/bundle.min.js.map": {
+                                    "type": "source_map",
+                                    "archive_ident": ReleaseFile.get_ident(
+                                        "release-artifacts.zip", dist.name
+                                    ),
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                            },
+                        }
+                    ).encode()
+                )
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=artifact_index,
+                name=ARTIFACT_INDEX_FILENAME,
+                ident=ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist.name),
+                dist_id=dist.id,
+                artifact_count=2,
+            )
+
+            compressed = BytesIO(b"SYSB")
+            with zipfile.ZipFile(compressed, "a") as zip_file:
+                zip_file.writestr(
+                    "files/_/_/bundle.min.js",
+                    b'console.log("hello world");\n//# sourceMappingURL=bundle.min.js.map\n',
+                )
+                zip_file.writestr("files/_/_/bundle.min.js.map", b"")
+                zip_file.writestr(
+                    "manifest.json",
+                    json.dumps(
+                        {
+                            "files": {
+                                "files/_/_/bundle.min.js": {
+                                    "url": "~/bundle.min.js",
+                                    "type": "minified_source",
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                                "files/_/_/bundle.min.js.map": {
+                                    "url": "~/bundle.min.js.map",
+                                    "type": "source_map",
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                            },
+                        }
+                    ),
+                )
+            compressed.seek(0)
+            release_artifact_bundle = File.objects.create(
+                name="release-artifacts.zip", type="release.bundle"
+            )
+            release_artifact_bundle.putfile(compressed)
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=release_artifact_bundle,
+                name="release-artifacts.zip",
+                ident=ReleaseFile.get_ident("release-artifacts.zip", dist.name),
+                dist_id=dist.id,
+                artifact_count=0,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "found"
+            assert release_process_result["source_map_lookup_result"] == "found"
+            assert release_process_result["source_map_reference"] == "bundle.min.js.map"
+            assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
+
+    def test_frame_release_file_wrong_dist(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame(
+                            {"abs_path": "http://example.com/bundle.min.js"}
+                        )
+                    ],
+                    release="some-release",
+                    dist="some-dist",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            artifact_index = File.objects.create(
+                name="artifact-index.json",
+                type=ARTIFACT_INDEX_TYPE,
+            )
+
+            artifact_index.putfile(
+                ContentFile(
+                    json.dumps(
+                        {
+                            "files": {
+                                "~/bundle.min.js": {
+                                    "type": "minified_source",
+                                    "archive_ident": ReleaseFile.get_ident("release-artifacts.zip"),
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                                "~/bundle.min.js.map": {
+                                    "type": "source_map",
+                                    "archive_ident": ReleaseFile.get_ident("release-artifacts.zip"),
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                            },
+                        }
+                    ).encode()
+                )
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=artifact_index,
+                name=ARTIFACT_INDEX_FILENAME,
+                ident=ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME),
+                artifact_count=2,
+            )
+
+            compressed = BytesIO(b"SYSB")
+            with zipfile.ZipFile(compressed, "a") as zip_file:
+                zip_file.writestr(
+                    "files/_/_/bundle.min.js",
+                    b'console.log("hello world");\n//# sourceMappingURL=bundle.min.js.map\n',
+                )
+                zip_file.writestr("files/_/_/bundle.min.js.map", b"")
+                zip_file.writestr(
+                    "manifest.json",
+                    json.dumps(
+                        {
+                            "files": {
+                                "files/_/_/bundle.min.js": {
+                                    "url": "~/bundle.min.js",
+                                    "type": "minified_source",
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                                "files/_/_/bundle.min.js.map": {
+                                    "url": "~/bundle.min.js.map",
+                                    "type": "source_map",
+                                    "headers": {
+                                        "content-type": "application/json",
+                                    },
+                                },
+                            },
+                        }
+                    ),
+                )
+            compressed.seek(0)
+            release_artifact_bundle = File.objects.create(
+                name="release-artifacts.zip", type="release.bundle"
+            )
+            release_artifact_bundle.putfile(compressed)
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=release_artifact_bundle,
+                name="release-artifacts.zip",
+                ident=ReleaseFile.get_ident("release-artifacts.zip"),
+                artifact_count=0,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "wrong-dist"
+            assert release_process_result["source_map_lookup_result"] == "unsuccessful"
