@@ -9,7 +9,7 @@ import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconPin} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -26,7 +26,7 @@ function getPercent(value, total) {
 }
 
 type SpanGroupBarProps = {
-  onHover: (string) => void;
+  onHover: (string: string | null) => void;
 };
 
 export function SpanGroupBar(props: SpanGroupBarProps) {
@@ -78,7 +78,7 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
                 setPinnedModule(null);
                 onHover(null);
               } else {
-                setPinnedModule(spanModule as string);
+                setPinnedModule(spanModule);
                 onHover(spanModule);
               }
             }
@@ -88,7 +88,9 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
                 onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
                 onClick={handleModulePin}
               >
-                <div>Time spent on {spanModule} across all endpoints</div>
+                <div>
+                  {tct('Time spent on [spanModule] across all endpoints', {spanModule})}
+                </div>
                 <IconPin isSolid={spanModule === pinnedModule} /> {percent}%
               </div>
             );
@@ -106,13 +108,13 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
                   onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
                   onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
                 >
-                  {spanModule === pinnedModule && (
-                    <StyledIconPin
-                      isSolid
-                      iconColor={theme.barBreakdownFontColors[index]}
-                    />
-                  )}
                   <SegmentText fontColor={theme.barBreakdownFontColors[index]}>
+                    {spanModule === pinnedModule && (
+                      <StyledIconPin
+                        isSolid
+                        iconColor={theme.barBreakdownFontColors[index]}
+                      />
+                    )}
                     {spanModule} {percent}%
                   </SegmentText>
                 </Segment>
@@ -149,19 +151,18 @@ const Segment = styled(Link)<{color: string; hasLink: boolean}>`
   overflow: hidden;
   direction: rtl;
   width: 100%;
-  display: block ruby;
+  display: block;
   ${p => !p.hasLink && 'cursor: auto'}
 `;
 
 const StyledTooltip = styled(Tooltip)<{percent: number}>`
   width: ${p => p.percent}%;
-  min-width: 16px;
+  min-width: 20px;
 `;
 
 const StyledIconPin = styled(IconPin)<{iconColor: string}>`
   color: ${p => p.iconColor};
   padding: 0 ${space(0.25)};
-  margin-right: ${space(0.25)};
   height: 100%;
 `;
 
