@@ -11,7 +11,6 @@ import useFeedbackListQueryView from 'sentry/components/feedback/useFeedbackList
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,13 +37,7 @@ export default function FeedbackListPage({}: Props) {
         <FullViewport>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Bug Reports')}
-                <PageHeadingQuestionTooltip
-                  title={t('Feedback and bug reports submitted by users on your page.')}
-                  docsUrl="https://docs.sentry.io/product/user-feedback/"
-                />
-              </Layout.Title>
+              <Layout.Title>{t('Bug Reports')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
           <PageFiltersContainer>

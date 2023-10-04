@@ -33,7 +33,7 @@ export default function FeedbackList() {
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = totalHits ? totalHits > 0 : true;
+  const hasRows = totalHits === undefined ? true : totalHits > 0;
   const deps = useMemo(() => [queryView, hasRows], [queryView, hasRows]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
