@@ -49,6 +49,7 @@ class DiscordNotifyServiceForm(forms.Form):
                     channel_id=channel_id,
                     guild_id=integration.external_id,
                     integration_id=integration.id,
+                    guild_name=integration.name,
                 )
             except ValidationError as e:
                 raise forms.ValidationError(

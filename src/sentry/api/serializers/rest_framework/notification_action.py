@@ -272,6 +272,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
                 integration_id=self.integration.id,
+                guild_name=self.integration.name,
             )
         except Exception as e:
             raise serializers.ValidationError({"target_identifier": str(e)})
