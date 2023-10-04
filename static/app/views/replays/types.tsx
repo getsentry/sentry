@@ -181,6 +181,17 @@ export type DeadRageSelectorListResponse = {
   data: {count_dead_clicks: number; count_rage_clicks: number; dom_element: string}[];
 };
 
+export type Element = {
+  alt: string;
+  aria_label: string;
+  class: string[];
+  id: string;
+  role: string;
+  tag: string;
+  testid: string;
+  title: string;
+};
+
 export interface DeadRageSelectorQueryParams {
   isWidgetData: boolean;
   cursor?: string | string[] | undefined | null;

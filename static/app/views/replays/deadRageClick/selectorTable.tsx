@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
+import {DeadRageSelectorItem, Element} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
@@ -32,6 +32,21 @@ export function getAriaLabel(str: string) {
   return pre.substring(0, pre.lastIndexOf('"]'));
 }
 
+function constructSelector(element: Element) {
+  const alt = '[alt="' + element.alt + '"]';
+  const aria_label = '[aria="' + element.aria_label + '"]';
+  const classes = element.class.join('.');
+  const id = '[id="' + element.id + '"]';
+  const role = '[role="' + element.role + '"]';
+  const tag = element.tag;
+  const testid = '[data-test-id="' + element.testid + '"]';
+  const title = '[title="' + element.title + '"]';
+
+  const selector =
+    tag + '#' + id + '.' + classes + role + aria_label + testid + alt + title;
+  return selector;
+}
+
 export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
   return data.map(d => ({
     ...(clickType
@@ -40,7 +55,8 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
           count_dead_clicks: d.count_dead_clicks,
           count_rage_clicks: d.count_rage_clicks,
         }),
-    dom_element: d.dom_element,
+    // dom_element: d.dom_element,
+    dom_element: constructSelector(d.element),
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
