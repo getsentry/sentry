@@ -22,9 +22,17 @@ function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
   const {setPageError} = usePageError();
 
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
   const {data: spanMetrics, error} = useSpanMetrics(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [
       SPAN_OP,
       'spm()',

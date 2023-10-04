@@ -41,14 +41,25 @@ export const useSpanSamples = (options: Options) => {
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
     `transaction:"${transactionName}"`,
-    `transaction.method:${transactionMethod}`,
   ]);
+
+  if (transactionMethod) {
+    query.addFilterValue('transaction.method', transactionMethod);
+  }
+
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );

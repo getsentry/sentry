@@ -38,9 +38,17 @@ function SampleTable({
   onMouseOverSample,
   transactionMethod,
 }: Props) {
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
   );
