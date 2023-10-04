@@ -102,14 +102,14 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=["sessions"]
         )
         # TODO(ogi): make proper assertions here
-        assert type(response.data) == list
+        assert isinstance(response.data, list)
 
     def test_metrics_meta_transactions(self):
         response = self.get_success_response(
             self.organization.slug, project=[self.project.id], useCase=["transactions"]
         )
 
-        assert type(response.data) == list
+        assert isinstance(response.data, list)
 
     def test_metrics_meta_invalid_use_case(self):
         response = self.get_error_response(

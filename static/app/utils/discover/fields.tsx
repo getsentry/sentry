@@ -124,6 +124,13 @@ export enum RateUnits {
   PER_HOUR = '1/hour',
 }
 
+// Rates normalized to /second unit
+export const RATE_UNIT_MULTIPLIERS = {
+  [RateUnits.PER_SECOND]: 1,
+  [RateUnits.PER_MINUTE]: 1 / 60,
+  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+};
+
 export const RATE_UNIT_LABELS = {
   [RateUnits.PER_SECOND]: '/s',
   [RateUnits.PER_MINUTE]: '/min',
@@ -1184,7 +1191,13 @@ function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunc
   };
 }
 
-const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+const alignedTypes: ColumnValueType[] = [
+  'number',
+  'duration',
+  'integer',
+  'percentage',
+  'percent_change',
+];
 
 export function fieldAlignment(
   columnName: string,

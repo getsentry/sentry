@@ -25,7 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     InviteStatus,
@@ -135,7 +135,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -168,7 +168,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
             "UpdateOrgMemberRoles",
@@ -359,7 +359,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -418,12 +418,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         proj_list = list(
             Project.objects.filter(organization=organization).values_list("id", flat=True)
         )
-        uos = [
-            uo
-            for uo in user_option_service.get_many(
+
+        if member.user_id is None:
+            uos = ()
+        else:
+            uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
             )
-        ]
 
         with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the

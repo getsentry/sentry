@@ -5,7 +5,7 @@ import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -188,7 +188,7 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
@@ -198,7 +198,7 @@ export function updateNote(
     }
   );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
@@ -420,6 +420,8 @@ type FetchIssueTagsParameters = {
   isStatisticalDetector?: boolean;
   statisticalDetectorParameters?: {
     durationBaseline: number;
+    end: string;
+    start: string;
     transaction: string;
   };
 };
@@ -440,9 +442,11 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
   environment,
   statisticalDetectorParameters,
 }: FetchIssueTagsParameters): ApiQueryKey => {
-  const {transaction, durationBaseline} = statisticalDetectorParameters ?? {
+  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
     transaction: '',
     durationBaseline: 0,
+    start: undefined,
+    end: undefined,
   };
   return [
     `/organizations/${orgSlug}/events-facets/`,
@@ -452,6 +456,8 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
         transaction,
         includeAll: true,
         query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+        start,
+        end,
       },
     },
   ];
@@ -476,3 +482,63 @@ export const useFetchIssueTags = (
     ...options,
   });
 };
+
+type FetchIssueTagValuesParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+  cursor?: string;
+  environment?: string[];
+  sort?: string | string[];
+};
+
+export const makeFetchIssueTagValuesQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+  cursor,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  {query: {environment, sort, cursor}},
+];
+
+export function useFetchIssueTagValues(
+  parameters: FetchIssueTagValuesParameters,
+  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
+) {
+  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
+
+type FetchIssueTagParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+};
+
+export const makeFetchIssueTagQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTag(
+  parameters: FetchIssueTagParameters,
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+) {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}

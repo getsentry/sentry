@@ -95,6 +95,7 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -2522,10 +2523,17 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         severity = _get_severity_score(event)
 
+        payload = {
+            "message": "NopeError: Nopey McNopeface",
+            "has_stacktrace": 0,
+            "log_level": "error",
+            "handled": 1,
+        }
+
         mock_urlopen.assert_called_with(
             "POST",
             "/issues/severity-score",
-            body='{"message":"NopeError: Nopey McNopeface"}',
+            body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
         )
         mock_logger_info.assert_called_with(
@@ -2533,7 +2541,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": payload,
             },
         )
         assert severity == 0.1231
@@ -2554,15 +2562,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(**case))
+            manager = EventManager(make_event(level="info", **case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
 
+            payload = {
+                "message": "Dogs are great!",
+                "has_stacktrace": 0,
+                "log_level": "info",
+                "handled": 1,
+            }
+
             mock_urlopen.assert_called_with(
                 "POST",
                 "/issues/severity-score",
-                body='{"message":"Dogs are great!"}',
+                body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
             mock_logger_info.assert_called_with(
@@ -2570,7 +2585,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
-                    "event_message": "Dogs are great!",
+                    "payload": payload,
                 },
             )
             assert severity == 0.1231
@@ -2595,7 +2610,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         _get_severity_score(event)
 
-        assert mock_urlopen.call_args.kwargs["body"] == '{"message":"Dogs are great!"}'
+        assert json.loads(mock_urlopen.call_args.kwargs["body"])["message"] == "Dogs are great!"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -2653,7 +2668,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": {
+                    "message": "NopeError: Nopey McNopeface",
+                    "has_stacktrace": 0,
+                    "log_level": "error",
+                    "handled": 1,
+                },
             },
         )
         assert severity is None
@@ -2680,10 +2700,40 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
-                "event_message": "NopeError: Nopey McNopeface",
+                "payload": {
+                    "message": "NopeError: Nopey McNopeface",
+                    "has_stacktrace": 0,
+                    "log_level": "error",
+                    "handled": 1,
+                },
             },
         )
         assert severity is None
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_get_severity_score_not_called_on_second_event(
+        self, mock_get_severity_score: MagicMock
+    ):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            nope_event = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    fingerprint=["dogs_are_great"],
+                )
+            ).save(self.project.id)
+
+            assert mock_get_severity_score.call_count == 1
+
+            broken_stuff_event = EventManager(
+                make_event(
+                    exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
+                    fingerprint=["dogs_are_great"],
+                )
+            ).save(self.project.id)
+
+            # Same group, but no extra `_get_severity_score` call
+            assert broken_stuff_event.group_id == nope_event.group_id
+            assert mock_get_severity_score.call_count == 1
 
     @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
     def test_severity_score_flag_on(self, mock_get_severity_score: MagicMock):
@@ -2740,6 +2790,40 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             mock_get_severity_score.assert_called()
             assert event.group and event.group.get_event_metadata().get("severity") == 0
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_severity_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            with TaskRunner():  # Needed because updating groups is normally async
+                nope_event = EventManager(
+                    make_event(
+                        exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                        fingerprint=["dogs_are_great"],
+                    )
+                ).save(self.project.id)
+
+                group = Group.objects.get(id=nope_event.group_id)
+
+                # This first assertion isn't useful in and of itself, but it allows us to prove
+                # below that the data gets updated
+                assert group.data["metadata"]["type"] == "NopeError"
+                assert group.data["metadata"]["severity"] == 0.1121
+
+                broken_stuff_event = EventManager(
+                    make_event(
+                        exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
+                        fingerprint=["dogs_are_great"],
+                    )
+                ).save(self.project.id)
+
+                # Both events landed in the same group
+                assert broken_stuff_event.group_id == nope_event.group_id
+
+                group.refresh_from_db()
+
+                # Metadata has been updated, but severity hasn't been clobbered in the process
+                assert group.data["metadata"]["type"] == "BrokenStuffError"
+                assert group.get_event_metadata()["severity"] == 0.1121
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

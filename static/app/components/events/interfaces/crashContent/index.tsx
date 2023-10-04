@@ -1,4 +1,4 @@
-import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
+import {ExceptionType, ExceptionValue, PlatformKey} from 'sentry/types';
 
 import {ExceptionContent} from './exception';
 import {StackTraceContent} from './stackTrace';
@@ -29,7 +29,7 @@ export function CrashContent({
   exception,
   stacktrace,
 }: Props) {
-  const platform = (event.platform ?? 'other') as PlatformType;
+  const platform = (event.platform ?? 'other') as PlatformKey;
 
   if (exception) {
     return (

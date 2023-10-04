@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
@@ -5,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 
 describe('Feature', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['org-foo', 'org-bar', 'bar'],
   });
   const project = TestStubs.Project({
@@ -93,7 +95,7 @@ describe('Feature', function () {
     });
 
     it('can specify org from props', function () {
-      const customOrg = TestStubs.Organization({features: ['org-bazar']});
+      const customOrg = Organization({features: ['org-bazar']});
       render(
         <Feature organization={customOrg} features={['org-bazar']}>
           {childrenMock}

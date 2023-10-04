@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -8,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 
 describe('SearchBar', () => {
   let eventsMock;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   const testProps: SearchBarProps = {
     onSearch: jest.fn(),

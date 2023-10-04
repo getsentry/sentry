@@ -1,9 +1,6 @@
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {
-  FeedbackListQueryParams,
-  FeedbackListResponse,
-  HydratedFeedbackItem,
-} from 'sentry/utils/feedback/types';
+import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {FeedbackListResponse} from 'sentry/utils/feedback/list/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -11,11 +8,11 @@ type Response = {
   data: HydratedFeedbackItem[] | undefined;
   isError: boolean;
   isLoading: boolean;
-  pageLinks: string | undefined;
+  pageLinks: string | string[] | undefined;
 };
 
 export default function useFetchFeedbackList(
-  params: {query: FeedbackListQueryParams} = {
+  params: {query: Record<string, string | string[] | undefined>} = {
     query: {},
   },
   options: undefined | Partial<UseApiQueryOptions<FeedbackListResponse>> = {}
@@ -27,7 +24,7 @@ export default function useFetchFeedbackList(
   );
 
   return {
-    data: data?.map(hydrateFeedbackRecord),
+    data: data?.filter(Boolean).map(hydrateFeedbackRecord),
     isError,
     isLoading,
     pageLinks: getResponseHeader?.('Link') ?? undefined,

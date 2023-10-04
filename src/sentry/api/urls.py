@@ -22,9 +22,14 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
-from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
-from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
-from sentry.api.endpoints.release_threshold_status_index import ReleaseThresholdStatusIndexEndpoint
+from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
+from sentry.api.endpoints.release_thresholds.release_threshold_details import (
+    ReleaseThresholdDetailsEndpoint,
+)
+from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
+    ReleaseThresholdStatusIndexEndpoint,
+)
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -442,10 +447,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import (
-    ProjectDynamicSamplingDistributionEndpoint,
-    ProjectDynamicSamplingRateEndpoint,
-)
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingRateEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -1732,6 +1734,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/stats-summary/$",
+        OrganizationStatsSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-stats-summary",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/teams/$",
         OrganizationTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-teams",
@@ -2524,11 +2531,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
         ProjectDynamicSamplingRateEndpoint.as_view(),
         name="sentry-api-0-project-dynamic-sampling-rate",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
-        ProjectDynamicSamplingDistributionEndpoint.as_view(),
-        name="sentry-api-0-project-dynamic-sampling-distribution",
     ),
 ]
 

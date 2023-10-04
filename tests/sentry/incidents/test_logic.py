@@ -1425,6 +1425,69 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration_id=integration.id,
             )
 
+    @responses.activate
+    def test_discord(self):
+        guild_id = "example-discord-server"
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+        }
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=guild_id,
+            metadata=metadata,
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_id = "channel-id"
+        responses.add(
+            method=responses.GET,
+            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            json=metadata,
+        )
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
+
+    def test_discord_flag_off(self):
+        guild_id = "example-discord-server"
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+        }
+        integration = Integration.objects.create(
+            provider="discord",
+            external_id=guild_id,
+            metadata=metadata,
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_id = "channel-id"
+
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
+
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
@@ -1722,6 +1785,50 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 target_identifier=target_identifier,
                 integration_id=integration.id,
             )
+
+    @responses.activate
+    def test_discord(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):

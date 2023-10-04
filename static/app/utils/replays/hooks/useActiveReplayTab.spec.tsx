@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +28,7 @@ function mockLocation(query: string = '') {
 
 function mockOrganization(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  jest.mocked(useOrganization).mockReturnValue(TestStubs.Organization({features}));
+  jest.mocked(useOrganization).mockReturnValue(Organization({features}));
 }
 
 describe('useActiveReplayTab', () => {
