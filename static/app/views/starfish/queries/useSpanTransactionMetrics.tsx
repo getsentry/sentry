@@ -23,13 +23,14 @@ export type SpanTransactionMetrics = {
 
 export const useSpanTransactionMetrics = (
   group: string,
-  options: {sorts?: Sort[]; transactions?: string[]},
+  options: {transactions?: string[]},
+  sorts?: Sort[],
   referrer = 'api.starfish.span-transaction-metrics',
   cursor?: string
 ) => {
   const location = useLocation();
 
-  const {transactions, sorts} = options;
+  const {transactions} = options;
 
   const eventView = getEventView(group, location, transactions ?? [], sorts);
 

@@ -74,8 +74,8 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     span[SpanMetricsField.SPAN_GROUP],
     {
       transactions: endpoint ? [endpoint] : undefined,
-      sorts: [sort],
     },
+    [sort],
     undefined,
     cursor
   );
