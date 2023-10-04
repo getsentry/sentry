@@ -94,6 +94,7 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     },
   ],
   'java-spring-boot': [],
+  'java-quartz': [],
 };
 
 function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
