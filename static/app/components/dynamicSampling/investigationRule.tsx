@@ -65,7 +65,7 @@ function makeRuleExistsQueryKey(
 }
 
 function hasTooFewSamples(numSamples: number | null | undefined) {
-  // check if we have got the samples, but they are too few of them
+  // check if we have got the samples, but there are too few of them
   return (
     numSamples !== null &&
     numSamples !== undefined &&
@@ -169,7 +169,7 @@ function InvestigationRuleCreationInternal(props: Props) {
   const haveInvestigationRuleInProgress = rule !== null;
 
   if (haveInvestigationRuleInProgress) {
-    // investigation rule in progress just show a message
+    // investigation rule in progress, just show a message
     const existingRule = rule as CustomDynamicSamplingRule;
     const ruleStartDate = new Date(existingRule.startDate);
     const now = new Date();
@@ -195,7 +195,7 @@ function InvestigationRuleCreationInternal(props: Props) {
     );
   }
 
-  // no investigation rule in progress show a button to create one
+  // no investigation rule in progress, show a button to create one
   return (
     <Tooltip
       isHoverable
