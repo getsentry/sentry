@@ -46,8 +46,8 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # If we're getting a file, and the preferred write file
-        # type isn't present, move data over to new storage async.
+        # If we're getting a file, and the preferred write file type isn't
+        # present, move data over to new storage async.
         file_id = getattr(self, self.file_write_fk(), None)
         file_class = self.file_class()
 

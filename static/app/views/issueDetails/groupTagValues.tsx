@@ -48,10 +48,12 @@ function useTagQueries({
   tagKey,
   environments,
   sort,
+  cursor,
 }: {
   group: Group;
   sort: string | string[];
   tagKey: string;
+  cursor?: string;
   environments?: string[];
 }) {
   const organization = useOrganization();
@@ -67,6 +69,7 @@ function useTagQueries({
     tagKey,
     environment: environments,
     sort,
+    cursor,
   });
   const {data: tag, isError: tagIsError} = useFetchIssueTag({
     orgSlug: organization.slug,
@@ -85,7 +88,7 @@ function useTagQueries({
     tag,
     isLoading: tagValueListIsLoading,
     isError: tagValueListIsError,
-    pageLinks: getResponseHeader?.('pageLinks'),
+    pageLinks: getResponseHeader?.('Link'),
   };
 }
 
@@ -93,7 +96,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const {orgId, tagKey = ''} = useParams<RouteParams>();
-  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+  const {cursor, page: _page, ...currentQuery} = location.query;
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
@@ -104,6 +107,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
     sort,
     tagKey,
     environments,
+    cursor: typeof cursor === 'string' ? cursor : undefined,
   });
 
   const lastSeenColumnHeader = (

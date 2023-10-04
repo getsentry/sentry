@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,7 +16,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Group, GroupActivityType, Organization} from 'sentry/types';
+import {Group, GroupActivityType, Organization as TOrganization} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
@@ -40,7 +41,7 @@ describe('GroupActivity', function () {
     organization: additionalOrg,
   }: {
     activity?: Group['activity'];
-    organization?: Organization;
+    organization?: TOrganization;
   } = {}) {
     const group = TestStubs.Group({
       id: '1337',
@@ -406,7 +407,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
@@ -437,7 +438,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -461,7 +462,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -577,7 +578,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'

@@ -16,7 +16,7 @@ def backfill_user_avatar(apps, schema_editor):
         if avatar is None:
             continue
         user.avatar_type = avatar.avatar_type
-        # type 1 = uploaded file.
+        # avatar_type 1 = uploaded file.
         if avatar.avatar_type == 1:
             user.avatar_url = f"{generate_region_url()}/avatar/{avatar.ident}/"
         user.save(update_fields=["avatar_url", "avatar_type"])

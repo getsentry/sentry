@@ -21,7 +21,7 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import RegionResolutionError, get_region_for_organization
+from sentry.types.region import Region, RegionResolutionError, get_region_for_organization
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,11 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
         logger.info("region_resolution_error", extra={"org_slug": org_slug})
         raise NotFound from e
 
+    return proxy_region_request(request, region)
+
+
+def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpResponse:
+    """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities

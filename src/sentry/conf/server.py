@@ -656,6 +656,8 @@ RPC_SHARED_SECRET = None
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
+# This region name is also used by the ApiGateway to proxy org-less region
+# requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
@@ -1786,6 +1788,8 @@ SENTRY_FEATURES = {
     "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2674,37 +2678,28 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
-    "zookeeper": lambda settings, options: (
-        {
-            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
-            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
-            "environment": {
-                "ZOOKEEPER_CLIENT_PORT": "2181",
-                "KAFKA_OPTS": "-Dzookeeper.4lw.commands.whitelist=ruok",
-            },
-            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
-            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
-        }
-    ),
     "kafka": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
             "ports": {"9092/tcp": 9092},
+            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
             "environment": {
-                "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
-                "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-                "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
-                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
-                "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+                "KAFKA_PROCESS_ROLES": "broker,controller",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
+                "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
+                "KAFKA_NODE_ID": "1",
+                "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
+                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
                 "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
                 "KAFKA_LOG_RETENTION_HOURS": "24",
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS

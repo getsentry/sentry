@@ -26,7 +26,7 @@ ACTOR_TYPES = {"team": 0, "user": 1}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
-    # type will be 0 or 1 and we want to get Team or User
+    # `type` will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
     if type == ACTOR_TYPES["team"]:
@@ -96,7 +96,7 @@ def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
 
 
 def actor_type_to_string(type: int) -> str | None:
-    # type will be 0 or 1 and we want to get "team" or "user"
+    # `type` will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
         if v == type:
             return k
