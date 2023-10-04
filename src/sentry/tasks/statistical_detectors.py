@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -190,7 +190,7 @@ def detect_transaction_change_points(
 
 
 def _detect_transaction_change_points(
-    transactions: List[Tuple[int, str]],
+    transactions: List[Tuple[int, Union[int, str]]],
     start: datetime,
 ) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
@@ -307,7 +307,7 @@ def query_transactions_timeseries(
     transactions: List[Tuple[int, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[Tuple[int, int, Any], None, None]:
+) -> Generator[Tuple[int, Union[int, str], Any], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     interval = 3600  # 1 hour
 
@@ -320,7 +320,7 @@ def query_transactions_timeseries(
         }
         results = metrics_performance.timeseries_query(
             selected_columns=[agg_function],
-            query=f"transaction:{transaction_name}",
+            query=f"transaction:#{transaction_name}",
             params=params,
             rollup=interval,
             referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
