@@ -190,7 +190,7 @@ const getColumnOrder = (
 ): TableColumnHeader[] => [
   {
     key: 'transaction',
-    name: 'Found In Endpoints',
+    name: t('Found In Endpoints'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
