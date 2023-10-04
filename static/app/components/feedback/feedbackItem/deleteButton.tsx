@@ -9,6 +9,7 @@ import {
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/profiling/flex';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,17 +32,18 @@ function openDeleteModal(organization, projectSlug, feedbackId, location) {
         {t('Deleting this feedback is permanent. Are you sure you wish to continue?')}
       </Body>
       <Footer>
-        <Button onClick={closeModal}>{t('Cancel')}</Button>
-        <Button
-          style={{marginLeft: space(1)}}
-          priority="danger"
-          onClick={() => {
-            closeModal();
-            deleteFeedback(organization, projectSlug, feedbackId, location);
-          }}
-        >
-          {t('Delete')}
-        </Button>
+        <Flex gap={space(1)}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            priority="danger"
+            onClick={() => {
+              closeModal();
+              deleteFeedback(organization, projectSlug, feedbackId, location);
+            }}
+          >
+            {t('Delete')}
+          </Button>
+        </Flex>
       </Footer>
     </Fragment>
   ));
@@ -76,7 +78,7 @@ export default function DeleteButton({feedbackItem}: Props) {
     <Button
       priority="danger"
       size="xs"
-      icon={<IconDelete />}
+      icon={<IconDelete size="xs" />}
       onClick={() => openDeleteModal(organization, projectSlug, feedbackId, location)}
     >
       {t('Delete')}
