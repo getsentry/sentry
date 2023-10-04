@@ -160,7 +160,7 @@ function InvestigationRuleCreationInternal(props: Props) {
   }
 
   if (request.error !== null) {
-    const errorResponse = t('Unable to fetch custom performance metrics');
+    const errorResponse = t('Unable to fetch investigation rule');
     addErrorMessage(errorResponse);
     return null;
   }

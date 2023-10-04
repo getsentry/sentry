@@ -152,23 +152,21 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 }
 
 function TableActions(props: Props) {
-  const investigationRuleProps = {...props, numSamples: props.tableData?.data?.length};
   return (
-    <div className="table-actions">
-      <Fragment>
-        <InvestigationRuleCreation
-          {...investigationRuleProps}
-          key="investigationRuleCreation"
-        />
-        <FeatureWrapper {...props} key="edit">
-          {renderEditButton}
-        </FeatureWrapper>
-        <FeatureWrapper {...props} key="download">
-          {renderDownloadButton}
-        </FeatureWrapper>
-        {renderSummaryButton(props)}
-      </Fragment>
-    </div>
+    <Fragment>
+      <InvestigationRuleCreation
+        {...props}
+        numSamples={props.tableData?.data?.length}
+        key="investigationRuleCreation"
+      />
+      <FeatureWrapper {...props} key="edit">
+        {renderEditButton}
+      </FeatureWrapper>
+      <FeatureWrapper {...props} key="download">
+        {renderDownloadButton}
+      </FeatureWrapper>
+      {renderSummaryButton(props)}
+    </Fragment>
   );
 }
 
