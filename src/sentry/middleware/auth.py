@@ -12,7 +12,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.models import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
@@ -53,7 +53,7 @@ class SessionAuthenticationMiddleware(MiddlewareMixin):
 
         if auth:
             for authenticator_class in [
-                TokenAuthentication,
+                UserAuthTokenAuthentication,
                 OrgAuthTokenAuthentication,
                 ApiKeyAuthentication,
             ]:

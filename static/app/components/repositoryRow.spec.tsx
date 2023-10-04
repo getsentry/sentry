@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {
@@ -23,7 +24,7 @@ describe('RepositoryRow', function () {
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -58,7 +59,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:write'],
     });
 
@@ -84,7 +85,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -111,7 +112,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 

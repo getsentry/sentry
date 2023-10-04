@@ -44,7 +44,11 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -75,7 +79,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
     SessionAuthentication,
@@ -121,7 +125,10 @@ def allow_cors_options(func):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Access-Control-Expose-Headers"] = (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
 
         if request.META.get("HTTP_ORIGIN") == "null":
             # if ORIGIN header is explicitly specified as 'null' leave it alone

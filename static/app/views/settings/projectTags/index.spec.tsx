@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -45,7 +46,7 @@ describe('ProjectTags', function () {
 
   it('disables delete button for users without access', function () {
     render(<ProjectTags {...routerProps} organization={org} project={project} />, {
-      organization: TestStubs.Organization({access: []}),
+      organization: Organization({access: []}),
     });
 
     screen

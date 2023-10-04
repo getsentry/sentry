@@ -149,6 +149,7 @@ def query_selector_dataset(
         query=Query(
             match=Entity("replays"),
             select=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
@@ -168,6 +169,7 @@ def query_selector_dataset(
             ],
             orderby=sorting,
             groupby=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
@@ -211,6 +213,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     return [
         {
+            "project_id": row["project_id"],
             "dom_element": make_selector_name(row),
             "count_dead_clicks": row["count_dead_clicks"],
             "count_rage_clicks": row["count_rage_clicks"],

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import DeleteButton from 'sentry/components/feedback/feedbackItem/deleteButton';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -16,7 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -47,6 +48,9 @@ export default function FeedbackItem({feedbackItem}: Props) {
             </ErrorBoundary>
             <ErrorBoundary mini>
               <ResolveButton feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <DeleteButton feedbackItem={feedbackItem} />
             </ErrorBoundary>
           </Flex>
         </Flex>
@@ -126,5 +130,6 @@ const Blockquote = styled('blockquote')`
     font-size: ${p => p.theme.fontSizeMedium};
     line-height: 1.6;
     padding: 0;
+    word-break: break-word;
   }
 `;

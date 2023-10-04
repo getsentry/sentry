@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -64,7 +65,7 @@ describe('TableView > CellActions', function () {
     jest.mocked(browserHistory.push).mockReset();
     jest.mocked(browserHistory.replace).mockReset();
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
     });
@@ -342,7 +343,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('renders size columns correctly', function () {
-    const orgWithFeature = TestStubs.Organization({
+    const orgWithFeature = Organization({
       projects: [TestStubs.Project()],
     });
     render(
@@ -393,7 +394,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('shows events with value less than selected custom performance metric', async function () {
-    const orgWithFeature = TestStubs.Organization({
+    const orgWithFeature = Organization({
       projects: [TestStubs.Project()],
     });
 

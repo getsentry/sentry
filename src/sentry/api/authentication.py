@@ -315,7 +315,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 
 
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
-class TokenAuthentication(StandardAuthentication):
+class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
     _hybrid_cloud_rollout_level = 3
 
