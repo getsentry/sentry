@@ -182,6 +182,7 @@ export type Frame = {
   package: string | null;
   platform: PlatformKey | null;
   rawFunction: string | null;
+  sourceLink: string | null;
   symbol: string | null;
   symbolAddr: string | null;
   trust: any | null;
