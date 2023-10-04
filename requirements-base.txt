@@ -81,6 +81,8 @@ zstandard>=0.18.0
 msgpack>=1.0.4
 cryptography>=38.0.3
 
+sentry-usage-accountant==0.0.10
+
 # celery
 billiard>=3.6.4
 kombu>=4.6.11

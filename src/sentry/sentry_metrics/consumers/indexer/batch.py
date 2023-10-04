@@ -27,8 +27,10 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
+from usageaccountant import UsageUnit
 
 from sentry import options
+from sentry.cogs.accountant import record_cogs
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
@@ -502,4 +504,13 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
+            self.__record_cogs(use_case_id)
         return new_messages
+
+    def __record_cogs(self, use_case_id: UseCaseID) -> None:
+        record_cogs(
+            resource_id="sentry_metrics_indexer_processor",
+            app_feature=f"sentrymetricsindexer_{use_case_id.value}",
+            amount=self.__message_size_sum[use_case_id],
+            usage_type=UsageUnit.BYTES,
+        )
