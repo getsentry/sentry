@@ -233,6 +233,7 @@ def test_trim_function_name_cocoa():
             "https://notraw.githubusercontent.com/notauthor/notrepo/notfile/foo/bar/baz.js",
         ],
         [{"lineno": "543"}, None],
+        [{"source_link": "woejfdsiwjidsoi", "lineNo": "7"}, None],
     ],
 )
 def test_get_source_link_for_frame(input, output):

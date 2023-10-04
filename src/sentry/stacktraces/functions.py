@@ -4,6 +4,9 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+
 from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
@@ -282,6 +285,12 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
         source_link = frame.get("source_link")
     except KeyError:
         return None
+
+    try:
+        URLValidator()(source_link)
+    except ValidationError:
+        return None
+
     parse_result = urlparse(source_link)
     if parse_result.netloc == "raw.githubusercontent.com":
         path_parts = parse_result.path.split("/")
