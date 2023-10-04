@@ -38,6 +38,7 @@ export const mobile: PlatformKey[] = [
   'ionic',
   'react-native',
   'flutter',
+  'dart-flutter',
   'unity',
   'dotnet-maui',
   'dotnet-xamarin',
