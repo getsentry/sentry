@@ -36,7 +36,7 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
         occurrence,
         **{
             "project_id": 123,
-            "issue_title": "Exp Transactio Duration Regression",
+            "issue_title": "Exp Transaction Duration Regression",
             "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
             "resource_id": None,
             "evidence_data": mock_regressions[0],
