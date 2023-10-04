@@ -365,7 +365,7 @@ function ProfileIdsSubMenu(props: {
         }}
       >
         <Flex w="100%" justify="space-between" align="center">
-          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)} </Flex.Item>
+          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)}</Flex.Item>
           <IconChevron direction="right" size="xs" />
         </Flex>
       </ProfilingContextMenuItemButton>

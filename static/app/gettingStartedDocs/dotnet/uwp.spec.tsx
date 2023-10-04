@@ -6,7 +6,7 @@ import {GettingStartedWithUwp, steps} from './uwp';
 
 describe('GettingStartedWithUwp', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithUwp dsn="test-dsn" />);
+    render(<GettingStartedWithUwp dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithUwp', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from typing import Optional, Tuple
+
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
     ArrayField,
@@ -15,7 +21,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
+
+MAX_NAME_LENGTH = 255
 
 
 def validate_scope_list(value):
@@ -26,14 +35,14 @@ def validate_scope_list(value):
 
 @control_silo_only_model
 class OrgAuthToken(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     # The JWT token in hashed form
     token_hashed = models.TextField(unique=True, null=False)
     # An optional representation of the last characters of the original token, to be shown to the user
     token_last_characters = models.CharField(max_length=4, null=True)
-    name = models.CharField(max_length=255, null=False, blank=False)
+    name = models.CharField(max_length=MAX_NAME_LENGTH, null=False, blank=False)
     scope_list = ArrayField(
         models.TextField(),
         validators=[validate_scope_list],
@@ -72,6 +81,47 @@ class OrgAuthToken(Model):
 
     def is_active(self) -> bool:
         return self.date_deactivated is None
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
+        # source module in such a way that this is no longer an issue.
+        from sentry.api.utils import generate_region_url
+        from sentry.utils.security.orgauthtoken_token import (
+            SystemUrlPrefixMissingException,
+            generate_token,
+            hash_token,
+        )
+
+        # If there is a token collision, or the token does not exist for some reason, generate a new
+        # one.
+        matching_token_hashed = self.__class__.objects.filter(
+            token_hashed=self.token_hashed
+        ).first()
+        if (not self.token_hashed) or matching_token_hashed:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=self.organization_id
+            ).first()
+            if org_mapping is None:
+                return None
+            try:
+                token_str = generate_token(org_mapping.slug, generate_region_url())
+            except SystemUrlPrefixMissingException:
+                return None
+            self.token_hashed = hash_token(token_str)
+            self.token_last_characters = token_str[-4:]
+
+        (key, created) = OrgAuthToken.objects.get_or_create(
+            token_hashed=self.token_hashed,
+            token_last_characters=self.token_last_characters,
+            defaults=model_to_dict(self),
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
 
 
 def is_org_auth_token_auth(auth: object) -> bool:

@@ -22,6 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -37,6 +38,7 @@ from sentry.db.models import (
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.types.group import (
@@ -45,11 +47,12 @@ from sentry.types.group import (
     GroupSubStatus,
 )
 from sentry.utils import metrics
+from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Environment, Organization, Team
+    from sentry.models import Environment, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -264,6 +267,13 @@ def get_recommended_event_for_environments(
     end = group.last_seen + timedelta(minutes=1)
     start = end - timedelta(days=7)
 
+    expired, _ = outside_retention_with_modified_start(
+        start, end, Organization(group.project.organization_id)
+    )
+
+    if expired:
+        return None
+
     events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
@@ -474,7 +484,7 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(
@@ -543,6 +553,7 @@ class Group(Model):
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
             ("project", "status", "substatus", "id"),
+            ("status", "substatus", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -647,10 +658,17 @@ class Group(Model):
             )
             return cached_has_replays
 
+        data_source = (
+            Dataset.IssuePlatform
+            if self.issue_category == GroupCategory.PERFORMANCE
+            else Dataset.Discover
+        )
+
         counts = get_replay_counts(
             make_snuba_params_for_replay_count_query(),
             f"issue.id:[{self.id}]",
             return_ids=False,
+            data_source=data_source,
         )
 
         has_replays = counts.get(self.id, 0) > 0  # type: ignore

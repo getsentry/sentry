@@ -116,6 +116,7 @@ class TestCreator(TestCase):
 
         assert install.status == SentryAppInstallationStatus.INSTALLED
 
+    @responses.activate
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
         SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb",).run(

@@ -17,17 +17,17 @@ import {
 import {
   performance as performancePlatforms,
   Platform,
-  PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
@@ -77,7 +77,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   );
 
   const products = useMemo(
-    () => (location.query.product ?? []) as ProductSolution[],
+    () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
 

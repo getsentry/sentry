@@ -184,7 +184,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction1).toBeInTheDocument();
     expect(transaction1).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/flamechart/?frameName=bar&framePackage=foo'
+      '/organizations/org-slug/profiling/profile/proj-slug/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/flamegraph/?frameName=bar&framePackage=foo'
     );
     expect(screen.getByText('1k')).toBeInTheDocument();
     expect(screen.getByText('1.00ms')).toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction2).toBeInTheDocument();
     expect(transaction2).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/cccccccccccccccccccccccccccccccc/flamechart/?frameName=bar&framePackage=foo'
+      '/organizations/org-slug/profiling/profile/proj-slug/cccccccccccccccccccccccccccccccc/flamegraph/?frameName=bar&framePackage=foo'
     );
     expect(screen.getByText('2.5k')).toBeInTheDocument();
     expect(screen.getByText('0.50ms')).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction3).toBeInTheDocument();
     expect(transaction3).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/dddddddddddddddddddddddddddddddd/flamechart/?frameName=qux&framePackage=baz'
+      '/organizations/org-slug/profiling/profile/proj-slug/dddddddddddddddddddddddddddddddd/flamegraph/?frameName=qux&framePackage=baz'
     );
     expect(screen.getByText('2k')).toBeInTheDocument();
     expect(screen.getByText('2.00ms')).toBeInTheDocument();
@@ -219,7 +219,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction4).toBeInTheDocument();
     expect(transaction4).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/ffffffffffffffffffffffffffffffff/flamechart/?frameName=qux&framePackage=baz'
+      '/organizations/org-slug/profiling/profile/proj-slug/ffffffffffffffffffffffffffffffff/flamegraph/?frameName=qux&framePackage=baz'
     );
     expect(screen.getByText('3.5k')).toBeInTheDocument();
     expect(screen.getByText('0.70ms')).toBeInTheDocument();

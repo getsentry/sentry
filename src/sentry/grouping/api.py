@@ -230,6 +230,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
     per_variant_components: dict[str, list[BaseVariant]] = {}
 
     for strategy in context.config.iter_strategies():
+        # Defined in src/sentry/grouping/strategies/base.py
         rv = strategy.get_grouping_component_variants(event, context=context)
         for (variant, component) in rv.items():
             per_variant_components.setdefault(variant, []).append(component)

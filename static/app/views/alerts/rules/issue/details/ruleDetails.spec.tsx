@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
+import {Organization} from 'sentry-fixture/organization';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +14,7 @@ describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule({
+  const rule = ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
   const member = TestStubs.Member();
@@ -186,6 +188,101 @@ describe('AlertRuleDetails', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('rule disabled banner because of missing actions and hides some actions', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: ProjectAlertRule({
+        actions: [],
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
+  });
+
+  it('rule disabled banner generic', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: ProjectAlertRule({
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('rule to be disabled can opt out', async () => {
+    const disabledRule = ProjectAlertRule({
+      disableDate: moment().add(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert is scheduled to be disabled/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {...disabledRule, optOutExplicit: true}})
+    );
+    expect(
+      screen.queryByText(/This alert is scheduled to be disabled/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('disabled rule can be re-enabled', async () => {
+    const disabledRule = ProjectAlertRule({
+      status: 'disabled',
+      disableDate: moment().subtract(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const enableMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/enable/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert was disabled due to lack of activity/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
+
+    expect(enableMock).toHaveBeenCalled();
+    expect(
+      screen.queryByText(/This alert was disabled due to lack of activity/)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/This alert is disabled/)).not.toBeInTheDocument();
+  });
+
   it('renders the mute button and can mute/unmute alerts', async () => {
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
@@ -233,9 +330,9 @@ describe('AlertRuleDetails', () => {
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
-    const orgWithoutAccess = {
+    const orgWithoutAccess = Organization({
       access: [],
-    };
+    });
 
     const contextWithoutAccess = initializeOrg({
       organization: orgWithoutAccess,

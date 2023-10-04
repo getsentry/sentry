@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import datetime
 
-from django.db import IntegrityError, router
+from django.db import IntegrityError, router, transaction
 
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import AuditLogEntry, OutboxCategory, OutboxScope, RegionOutbox, User, UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.silo import unguarded_write
@@ -13,7 +14,8 @@ class DatabaseBackedLogService(LogService):
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         entry = AuditLogEntry.from_event(event)
         try:
-            entry.save()
+            with enforce_constraints(transaction.atomic(router.db_for_write(AuditLogEntry))):
+                entry.save()
         except IntegrityError as e:
             error_message = str(e)
             if '"auth_user"' in error_message:

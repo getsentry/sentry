@@ -1,8 +1,10 @@
 import hashlib
 from typing import Optional
+from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
+from django.utils.text import slugify
 from typing_extensions import TypedDict
 
 from sentry import roles
@@ -34,21 +36,22 @@ def create_organization_with_outbox_message(
 
 
 def create_organization_and_member_for_monolith(
-    organization_name,
-    user_id,
+    organization_name: str,
+    user_id: int,
     slug: str,
+    create_default_team: bool,
+    is_test: bool = False,
 ) -> OrganizationAndMemberCreationResult:
-    org = create_organization_with_outbox_message(
-        create_options={"name": organization_name, "slug": slug}
-    )
-
-    team = org.team_set.create(name=org.name)
+    org = Organization.objects.create(name=organization_name, slug=slug, is_test=is_test)
 
     om = OrganizationMember.objects.create(
         user_id=user_id, organization=org, role=roles.get_top_dog().id
     )
 
-    OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+    team = None
+    if create_default_team:
+        team = org.team_set.create(name=org.name)
+        OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
 
     return OrganizationAndMemberCreationResult(organization=org, org_member=om, team=team)
 
@@ -83,7 +86,7 @@ def mark_organization_as_pending_deletion_with_outbox_message(
         if not update_count:
             return None
 
-        Organization.outbox_for_update(org_id=org_id).save()
+        Organization(id=org_id).outbox_for_update().save()
 
         org = Organization.objects.get(id=org_id)
         return org
@@ -104,7 +107,7 @@ def unmark_organization_as_pending_deletion_with_outbox_message(
         if not update_count:
             return None
 
-        Organization.outbox_for_update(org_id=org_id).save()
+        Organization(id=org_id).outbox_for_update().save()
 
         org = Organization.objects.get(id=org_id)
         return org
@@ -122,8 +125,16 @@ def generate_deterministic_organization_slug(
     :param owning_user_id:
     :return:
     """
+
+    # Start by slugifying the original name using django utils
+    slugified_base_str = slugify(desired_slug_base)
+
+    # If the slug cannot be encoded as ASCII, we need to select a random fallback
+    if len(slugified_base_str) == 0:
+        slugified_base_str = uuid4().hex[0:10]
+
     hashed_org_data = hashlib.md5(
-        "/".join([desired_slug_base, desired_org_name, str(owning_user_id)]).encode("utf8")
+        "/".join([slugified_base_str, desired_org_name, str(owning_user_id)]).encode("utf8")
     ).hexdigest()
 
-    return f"{desired_slug_base[:20]}-{hashed_org_data[:9]}"
+    return f"{slugified_base_str[:20]}-{hashed_org_data[:9]}"

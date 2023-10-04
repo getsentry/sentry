@@ -3,6 +3,7 @@ from collections import defaultdict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -13,6 +14,10 @@ from sentry.models.commitfilechange import CommitFileChange
 
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data

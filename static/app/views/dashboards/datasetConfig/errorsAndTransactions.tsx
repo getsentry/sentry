@@ -232,14 +232,12 @@ function getEventsTableFieldOptions(
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-    customMeasurements:
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
-            key,
-            functions,
-          }))
-        : undefined,
+    customMeasurements: Object.values(customMeasurements ?? {}).map(
+      ({key, functions}) => ({
+        key,
+        functions,
+      })
+    ),
   });
 }
 
@@ -457,18 +455,14 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
-  organization: Organization,
+  _organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
-  const isMEPEnabled =
-    (organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')) &&
-    defined(mepSetting) &&
-    mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -515,11 +509,7 @@ function getEventsSeriesRequest(
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
   const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
-  const isMEPEnabled =
-    (organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')) &&
-    defined(mepSetting) &&
-    mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   let requestData;
   if (displayType === DisplayType.TOP_N) {

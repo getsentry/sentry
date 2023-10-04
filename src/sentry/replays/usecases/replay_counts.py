@@ -7,7 +7,7 @@ from typing import Any
 from sentry.api.event_search import parse_search_query
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -20,11 +20,11 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
 
 
-def get_replay_counts(snuba_params: SnubaParams, query, return_ids) -> dict[str, Any]:
+def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
-    replay_ids_mapping = _get_replay_id_mappings(query, snuba_params)
+    replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
@@ -40,10 +40,12 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids) -> dict[str,
         return _get_counts(replay_results, replay_ids_mapping)
 
 
-def _get_replay_id_mappings(query, snuba_params) -> dict[str, list[str]]:
+def _get_replay_id_mappings(
+    query, snuba_params, data_source=Dataset.Discover
+) -> dict[str, list[str]]:
 
     select_column, value = _get_select_column(query)
-    query = query + FILTER_HAS_A_REPLAY
+    query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
@@ -51,14 +53,16 @@ def _get_replay_id_mappings(query, snuba_params) -> dict[str, list[str]]:
         return {v: [v] for v in value}
 
     builder = QueryBuilder(
-        dataset=Dataset.Discover,
+        dataset=data_source,
         params={},
         snuba_params=snuba_params,
         selected_columns=["group_uniq_array(100,replayId)", select_column],
         query=query,
         limit=25,
         offset=0,
-        functions_acl=["group_uniq_array"],
+        config=QueryBuilderConfig(
+            functions_acl=["group_uniq_array"],
+        ),
     )
 
     discover_results = builder.run_query(

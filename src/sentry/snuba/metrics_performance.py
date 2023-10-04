@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence
 
@@ -9,11 +10,15 @@ from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+
+logger = logging.getLogger(__name__)
 
 INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 
@@ -43,24 +48,26 @@ def query(
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             params,
+            dataset=Dataset.PerformanceMetrics,
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=[],
             orderby=orderby,
-            # Auto fields will add things like id back in if enabled
-            auto_fields=False,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            allow_metric_aggregates=allow_metric_aggregates,
-            functions_acl=functions_acl,
             limit=limit,
             offset=offset,
-            dataset=Dataset.PerformanceMetrics,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            use_metrics_layer=use_metrics_layer,
             granularity=granularity,
-            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            config=QueryBuilderConfig(
+                auto_aggregations=auto_aggregations,
+                use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
+                functions_acl=functions_acl,
+                # Auto fields will add things like id back in if enabled
+                auto_fields=False,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+            ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
@@ -107,10 +114,12 @@ def bulk_timeseries_query(
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
-                    functions_acl=functions_acl,
-                    allow_metric_aggregates=allow_metric_aggregates,
-                    use_metrics_layer=use_metrics_layer,
                     groupby=groupby,
+                    config=QueryBuilderConfig(
+                        functions_acl=functions_acl,
+                        allow_metric_aggregates=allow_metric_aggregates,
+                        use_metrics_layer=use_metrics_layer,
+                    ),
                 )
                 snql_query = metrics_query.get_snql_query()
                 metrics_queries.append(snql_query[0])
@@ -202,11 +211,13 @@ def timeseries_query(
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
                 selected_columns=columns,
-                functions_acl=functions_acl,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_metrics_layer=use_metrics_layer,
                 groupby=groupby,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                config=QueryBuilderConfig(
+                    functions_acl=functions_acl,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    use_metrics_layer=use_metrics_layer,
+                    on_demand_metrics_enabled=on_demand_metrics_enabled,
+                ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)
@@ -246,6 +257,123 @@ def timeseries_query(
         params["end"],
         rollup,
     )
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    orderby,
+    rollup,
+    limit,
+    organization,
+    equations=None,
+    referrer=None,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    include_other=False,
+    functions_acl=None,
+):
+    if top_events is None:
+        top_events = query(
+            selected_columns,
+            query=user_query,
+            params=params,
+            equations=equations,
+            orderby=orderby,
+            limit=limit,
+            referrer=referrer,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+
+    top_events_builder = TopMetricsQueryBuilder(
+        Dataset.PerformanceMetrics,
+        params,
+        rollup,
+        top_events["data"],
+        other=False,
+        query=user_query,
+        selected_columns=selected_columns,
+        timeseries_columns=timeseries_columns,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+        ),
+    )
+    if len(top_events["data"]) == limit and include_other:
+        other_events_builder = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            params,
+            rollup,
+            top_events["data"],
+            other=True,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+        )
+
+        # TODO: use bulk_snql_query
+        other_result = other_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer)
+    else:
+        result = top_events_builder.run_query(referrer)
+        other_result = {"data": []}
+    if (
+        not allow_empty
+        and not len(result.get("data", []))
+        and not len(other_result.get("data", []))
+    ):
+        return SnubaTSResult(
+            {
+                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else [],
+            },
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    result = top_events_builder.process_results(result)
+
+    translated_groupby = top_events_builder.translated_groupby
+
+    results = (
+        {discover.OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+        if len(other_result.get("data", []))
+        else {}
+    )
+    # Using the top events add the order to the results
+    for index, item in enumerate(top_events["data"]):
+        result_key = discover.create_result_key(item, translated_groupby, {})
+        results[result_key] = {"order": index, "data": []}
+    for row in result["data"]:
+        result_key = discover.create_result_key(row, translated_groupby, {})
+        if result_key in results:
+            results[result_key]["data"].append(row)
+        else:
+            logger.warning(
+                "spans_metrics.top-events.timeseries.key-mismatch",
+                extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+            )
+    for key, item in results.items():
+        results[key] = SnubaTSResult(
+            {
+                "data": discover.zerofill(
+                    item["data"], params["start"], params["end"], rollup, "time"
+                )
+                if zerofill_results
+                else item["data"],
+                "order": item["order"],
+            },
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    return results
 
 
 def histogram_query(
@@ -321,7 +449,9 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
-        use_metrics_layer=use_metrics_layer,
+        config=QueryBuilderConfig(
+            use_metrics_layer=use_metrics_layer,
+        ),
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)

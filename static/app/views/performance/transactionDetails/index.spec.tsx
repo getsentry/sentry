@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -8,7 +10,7 @@ const alertText =
 
 describe('EventDetails', () => {
   const project = TestStubs.Project();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['performance-view'],
     projects: [project],
   });

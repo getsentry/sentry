@@ -9,8 +9,9 @@ from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 git_blame = [
@@ -81,9 +82,10 @@ class BaseProjectStacktraceLink(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
     def setUp(self):
-        self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.organization, self.user)
-        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration.add_organization(self.organization, self.user)
+            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
         self.repo = self.create_repo(
             project=self.project,
@@ -111,7 +113,7 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -263,7 +265,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)

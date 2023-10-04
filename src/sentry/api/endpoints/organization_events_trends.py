@@ -10,14 +10,16 @@ from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
-from sentry.search.events.types import Alias, SelectType, WhereType
+from sentry.search.events.types import Alias, QueryBuilderConfig, SelectType, WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -76,6 +78,9 @@ class TrendQueryBuilder(QueryBuilder):
 
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
         "p75": "percentile_range({column}, 0.75, {condition}, {boundary}) as {query_alias}",
@@ -172,7 +177,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             avg_range_1 = aggregate_range_1
             avg_range_2 = aggregate_range_2
 
-        t_test = query.resolve_division(
+        t_test = function_aliases.resolve_division(
             Function("minus", [avg_range_1, avg_range_2]),
             Function(
                 "sqrt",
@@ -200,7 +205,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ),
             "t_test",
         )
-        trend_percentage = query.resolve_division(
+        trend_percentage = function_aliases.resolve_division(
             aggregate_range_2, aggregate_range_1, "trend_percentage"
         )
         trend_difference = Function(
@@ -211,7 +216,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ],
             "trend_difference",
         )
-        count_percentage = query.resolve_division(count_range_2, count_range_1, "count_percentage")
+        count_percentage = function_aliases.resolve_division(
+            count_range_2, count_range_1, "count_percentage"
+        )
         return {
             "aggregate_range_1": aggregate_range_1,
             "aggregate_range_2": aggregate_range_2,
@@ -463,9 +470,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 dataset=Dataset.Discover,
                 params=params,
                 selected_columns=selected_columns,
-                auto_fields=False,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
+                config=QueryBuilderConfig(
+                    auto_fields=False,
+                    auto_aggregations=True,
+                    use_aggregate_conditions=True,
+                ),
             )
             snql_trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
             trend_query.columns.extend(snql_trend_columns.values())
@@ -476,7 +485,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             # Both orderby and conditions need to be resolved after the columns because of aliasing
             trend_query.orderby = trend_query.resolve_orderby(orderby)
             trend_query.groupby = trend_query.resolve_groupby()
-            where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
+            where, having = trend_query.resolve_conditions(query)
             trend_query.where += where
             trend_query.having += having
 
@@ -510,6 +519,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def build_result_handler(
         self,
         request,

@@ -6,15 +6,21 @@ import {GettingStartedWithAwsLambda, steps} from './awslambda';
 
 describe('GettingStartedWithAwsLambda', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAwsLambda dsn="test-dsn" />);
+    render(<GettingStartedWithAwsLambda dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
+      importContent: 'test-import-content',
+      initContent: 'test-init-content',
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

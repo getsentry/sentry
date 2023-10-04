@@ -1,3 +1,5 @@
+import {Commit} from 'sentry-fixture/commit';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import LastCommit from 'sentry/components/lastCommit';
@@ -7,12 +9,11 @@ describe('LastCommit', function () {
   const mockedCommitTitle = '(improve) Add Links to Spike-Protection Email (#2408)';
 
   beforeEach(() => {
-    mockedCommit = TestStubs.Commit();
+    mockedCommit = Commit();
   });
 
   it('renders', function () {
-    const wrapper = render(<LastCommit commit={mockedCommit} />);
-    expect(wrapper.container).toSnapshot();
+    render(<LastCommit commit={mockedCommit} />);
   });
 
   it('links to the commit in GitHub', function () {

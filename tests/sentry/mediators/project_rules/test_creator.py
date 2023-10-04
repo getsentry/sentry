@@ -48,7 +48,6 @@ class TestCreator(TestCase):
             "actions": [
                 {
                     "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
                 }
             ],
             "conditions": [

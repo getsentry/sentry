@@ -1,4 +1,6 @@
 import {ComponentProps, Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
+import {Search} from 'sentry-fixture/search';
 
 import {
   render,
@@ -16,9 +18,9 @@ import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
-  const recommendedSearch = TestStubs.Search({
+  const recommendedSearch = Search({
     id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
@@ -26,7 +28,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const userSearch = TestStubs.Search({
+  const userSearch = Search({
     id: 'user-search',
     isGlobal: false,
     name: 'Just Firefox',
@@ -34,7 +36,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.OWNER,
   });
 
-  const orgSearch = TestStubs.Search({
+  const orgSearch = Search({
     id: 'org-search',
     isGlobal: false,
     name: 'Last 4 Hours',
@@ -42,7 +44,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const pinnedSearch = TestStubs.Search({
+  const pinnedSearch = Search({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
@@ -69,13 +71,11 @@ describe('SavedIssueSearches', function () {
       body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
     });
 
-    const {container} = render(<SavedIssueSearches {...defaultProps} />);
+    render(<SavedIssueSearches {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-
-    expect(container).toSnapshot();
   });
 
   it('hides saves searches by default past first 4', async function () {

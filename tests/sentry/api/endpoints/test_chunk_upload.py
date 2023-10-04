@@ -95,6 +95,14 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.data["url"] == self.url.lstrip(API_PREFIX)
 
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.20.5",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
         # < 1.70.1
         response = self.client.get(
             self.url,

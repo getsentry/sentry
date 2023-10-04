@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
@@ -18,11 +17,19 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconEllipsis,
+  IconMute,
+  IconNot,
+  IconUser,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Actor, Project} from 'sentry/types';
+import type {Actor, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
   AlertRuleComparisonType,
@@ -45,16 +52,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedMetricIssueAlerts;
-  // Set of team ids that the user belongs to
-  userTeams: Set<string>;
 };
-
-/**
- * Memoized function to find a project from a list of projects
- */
-const getProject = memoize((slug: string, projects: Project[]) =>
-  projects.find(project => project.slug === slug)
-);
 
 function RuleListRow({
   rule,
@@ -63,9 +61,9 @@ function RuleListRow({
   orgId,
   onDelete,
   onOwnerChange,
-  userTeams,
   hasEditAccess,
 }: Props) {
+  const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
@@ -107,9 +105,33 @@ function RuleListRow({
     );
   }
 
+  function renderSnoozeStatus(): React.ReactNode {
+    return (
+      <IssueAlertStatusWrapper>
+        <IconMute size="sm" color="subText" />
+        {t('Muted')}
+      </IssueAlertStatusWrapper>
+    );
+  }
+
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
+      if (rule.status === 'disabled') {
+        return (
+          <IssueAlertStatusWrapper>
+            <IconNot size="sm" color="subText" />
+            {t('Disabled')}
+          </IssueAlertStatusWrapper>
+        );
+      }
+      if (rule.snooze) {
+        return renderSnoozeStatus();
+      }
       return null;
+    }
+
+    if (rule.snooze) {
+      return renderSnoozeStatus();
     }
 
     const criticalTrigger = rule.triggers.find(
@@ -188,7 +210,7 @@ function RuleListRow({
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
 
-  const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
 
   const IssueStatusText: Record<IncidentStatus, string> = {
     [IncidentStatus.CRITICAL]: t('Critical'),
@@ -246,13 +268,12 @@ function RuleListRow({
     disabled: false,
   };
 
-  const projectRow = projects.filter(project => project.slug === slug);
-  const projectRowTeams = projectRow[0].teams;
-  const filteredProjectTeams = projectRowTeams?.filter(projTeam => {
-    return userTeams.has(projTeam.id);
+  const project = projects.find(p => p.slug === slug);
+  const filteredProjectTeams = (project?.teams ?? []).filter(projTeam => {
+    return userTeams.some(team => team.id === projTeam.id);
   });
   const dropdownTeams = filteredProjectTeams
-    ?.map((team, idx) => ({
+    .map((team, idx) => ({
       value: team.id,
       searchKey: team.slug,
       label: ({inputValue}) => (
@@ -269,7 +290,7 @@ function RuleListRow({
     .concat(unassignedOption);
 
   const teamId = assignee?.split(':')[1];
-  const teamName = filteredProjectTeams?.find(team => team.id === teamId);
+  const teamName = filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
     type: 'team' as Actor['type'],
@@ -333,7 +354,7 @@ function RuleListRow({
         <ProjectBadgeContainer>
           <ProjectBadge
             avatarSize={18}
-            project={!projectsLoaded ? {slug} : getProject(slug, projects)}
+            project={projectsLoaded && project ? project : {slug}}
           />
         </ProjectBadgeContainer>
       </FlexCenter>
@@ -404,11 +425,18 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
+const IssueAlertStatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: 2;
+`;
+
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+  ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
@@ -420,16 +448,6 @@ const AlertNameAndStatus = styled('div')`
 const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
-
-  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
-    max-width: 300px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    max-width: 165px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    max-width: 100px;
-  }
 `;
 
 const AlertIncidentDate = styled('div')`

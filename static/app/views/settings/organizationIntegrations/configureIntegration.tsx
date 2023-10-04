@@ -125,8 +125,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  hasCodeOwners() {
-    return this.props.organization.features.includes('integrations-codeowners');
+  hasCodeOwners(provider: IntegrationProvider) {
+    return (
+      provider.features.includes('codeowners') &&
+      this.props.organization.features.includes('integrations-codeowners')
+    );
   }
 
   onTabChange = (value: Tab) => {
@@ -166,13 +169,27 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     }
   };
 
-  handleOpsgenieMigration = () => {
-    this.setState(
-      {
-        plugins: (this.state.plugins || []).filter(({id}) => id === 'opsgenie'),
-      },
-      () => addSuccessMessage(t("This doesn't do anything yet!"))
-    );
+  handleOpsgenieMigration = async () => {
+    const {
+      organization,
+      params: {integrationId},
+    } = this.props;
+    try {
+      await this.api.requestPromise(
+        `/organizations/${organization.slug}/integrations/${integrationId}/migrate-opsgenie/`,
+        {
+          method: 'PUT',
+        }
+      );
+      this.setState(
+        {
+          plugins: (this.state.plugins || []).filter(({id}) => id === 'opsgenie'),
+        },
+        () => addSuccessMessage(t('Migration in progress.'))
+      );
+    } catch (error) {
+      addErrorMessage(t('Something went wrong! Please try again.'));
+    }
   };
 
   isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
@@ -414,8 +431,8 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     const tabs = [
       ['repos', t('Repositories')],
       ['codeMappings', t('Code Mappings')],
-      ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
-      ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
+      ...(this.hasCodeOwners(provider) ? [['userMappings', t('User Mappings')]] : []),
+      ...(this.hasCodeOwners(provider) ? [['teamMappings', t('Team Mappings')]] : []),
     ] as [id: Tab, label: string][];
 
     return (

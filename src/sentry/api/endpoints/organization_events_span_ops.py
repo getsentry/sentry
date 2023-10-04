@@ -3,6 +3,7 @@ from typing import Any, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -19,6 +20,10 @@ class SpanOp(TypedDict):
 
 @region_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:

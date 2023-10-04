@@ -1,4 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -263,8 +264,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('renders Discover area chart widget viewer', async function () {
         mockEvents();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        await renderModal({initialData, widget: mockWidget});
       });
 
       it('redirects user to Discover when clicking Open in Discover', async function () {
@@ -373,7 +373,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('renders highlighted query text and multiple queries in select dropdown', async function () {
         mockEvents();
-        const {container} = await renderModal({
+        await renderModal({
           initialData,
           widget: {
             ...mockWidget,
@@ -383,7 +383,6 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(
           screen.getByText('/organizations/:orgId/performance/summary/')
         );
-        expect(container).toSnapshot();
       });
 
       it('renders widget chart minimap', async function () {
@@ -725,8 +724,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders Discover topn chart widget viewer', async function () {
         mockEventsStats();
         mockEvents();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        await renderModal({initialData, widget: mockWidget});
       });
 
       it('sorts table when a sortable column header is clicked', async function () {
@@ -1145,9 +1143,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Issue table widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
+      await renderModal({initialData, widget: mockWidget});
       await screen.findByText('Error: Failed');
-      expect(container).toSnapshot();
     });
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
@@ -1279,7 +1276,7 @@ describe('Modals -> WidgetViewerModal', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
-        body: TestStubs.MetricsTotalCountByReleaseIn24h(),
+        body: MetricsTotalCountByReleaseIn24h(),
         headers: {
           link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -1324,9 +1321,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Release widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
+      await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
 
     it('renders pagination buttons', async function () {

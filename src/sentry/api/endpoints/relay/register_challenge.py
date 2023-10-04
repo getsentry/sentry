@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from sentry_relay.auth import create_register_challenge, is_version_supported
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
@@ -21,8 +23,12 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 
 @region_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
+    owner = ApiOwner.OWNERS_INGEST
 
     enforce_rate_limit = True
     rate_limits = RELAY_AUTH_RATE_LIMITS

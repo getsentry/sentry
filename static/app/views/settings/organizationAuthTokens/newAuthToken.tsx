@@ -84,7 +84,15 @@ function AuthTokenCreateForm({
       onCreatedToken(token);
     },
     onError: error => {
-      const message = t('Failed to create a new auth token.');
+      const detail = error.responseJSON?.detail;
+      const code = detail && typeof detail === 'object' ? detail.code : undefined;
+
+      const message =
+        code === 'missing_system_url_prefix'
+          ? t(
+              'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
+            )
+          : t('Failed to create a new auth token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
     },
@@ -181,7 +189,7 @@ export function OrganizationAuthTokensNewAuthToken({
 
       <TextBlock>
         {t(
-          "Authentication tokens allow you to perform actions against the Sentry API on behalf of your organization. They're the easiest way to get started using the API."
+          'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
         )}
       </TextBlock>
       <TextBlock>

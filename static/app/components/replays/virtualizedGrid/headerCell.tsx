@@ -27,7 +27,7 @@ interface SortSpanFrame {
 type Props = {
   field: string;
   handleSort: (fieldName: string) => void;
-  label: string;
+  label: ReactNode;
   sortConfig: SortCrumbs | SortBreadcrumbFrame | SortSpanFrame;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;

@@ -17,10 +17,8 @@ from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organ
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_and_member_for_monolith,
 )
-from sentry.services.hybrid_cloud.organization_provisioning import (
-    OrganizationProvisioningOptions,
-    OrganizationProvisioningService,
-)
+from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningService
+from sentry.services.organization import OrganizationProvisioningOptions
 
 
 class SlugMismatchException(Exception):
@@ -37,6 +35,10 @@ def create_post_provision_outbox(
         object_identifier=org_id,
         payload=provisioning_options.post_provision_options.json(),
     )
+
+
+class InvalidOrganizationProvisioningSlugQueryException(Exception):
+    pass
 
 
 class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningService):
@@ -61,6 +63,8 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
+                create_default_team=provision_options.create_default_team,
+                is_test=provision_options.is_test,
             )
 
             org = org_creation_result.organization
@@ -75,6 +79,10 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
     ) -> Optional[RpcOrganization]:
         sentry_org_options = org_provision_args.provision_options
         try:
+            assert (
+                org_provision_args.provision_options.owning_user_id
+            ), "An owning user ID must be provided when provisioning an idempotent organization"
+
             with outbox_context(transaction.atomic(router.db_for_write(Organization))):
                 org = self.provision_organization(
                     region_name=region_name, org_provision_args=org_provision_args
@@ -90,13 +98,27 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
             # We've collided with another organization slug and can't fully
             #  provision the org, so we rollback the insert and validate
             #  whether the provided user ID owns the existing organization.
-            existing_organization = Organization.objects.get(
+            existing_organization = Organization.objects.filter(
                 slug=org_provision_args.provision_options.slug
             )
-            if self._validate_organization_belongs_to_user(
-                user_id=sentry_org_options.owning_user_id, organization=existing_organization
-            ):
-                return serialize_rpc_organization(existing_organization)
 
-            capture_exception()
+            if existing_organization.count() == 1 and self._validate_organization_belongs_to_user(
+                user_id=sentry_org_options.owning_user_id, organization=existing_organization[0]
+            ):
+                return serialize_rpc_organization(existing_organization[0])
+
+            if existing_organization.count() > 1:
+                capture_exception(
+                    InvalidOrganizationProvisioningSlugQueryException(
+                        f"Too many organizations ({existing_organization.count()})"
+                        + " were returned when checking for idempotency"
+                    )
+                )
+            else:
+                capture_exception(
+                    InvalidOrganizationProvisioningSlugQueryException(
+                        "No organization was found when validating an organization collision"
+                        + f" for slug '{org_provision_args.provision_options.slug}'"
+                    )
+                )
             return None

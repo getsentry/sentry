@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, NamedTuple, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 
@@ -300,7 +300,9 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
         return "system-only"
 
 
-def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
+def normalize_stacktraces_for_grouping(
+    data: MutableMapping[str, Any], grouping_config=None
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
@@ -336,9 +338,10 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_containers):
+            for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, exception_data
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so

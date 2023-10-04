@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -7,7 +8,9 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
@@ -24,6 +27,8 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
     quickTrace.error ||
     ((!defined(quickTrace.trace) || quickTrace.trace.length === 0) &&
       (!quickTrace.orphanErrors || quickTrace.orphanErrors?.length === 0));
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+  const {start, end} = getTraceTimeRangeFromEvent(event);
 
   useRouteAnalyticsParams({
     trace_status: isTraceMissing
@@ -36,7 +41,12 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
   if (isTraceMissing) {
     return (
       <QuickTraceWrapper>
-        <TraceLink event={event} noTrace />
+        <TraceLink
+          quickTrace={quickTrace}
+          event={event}
+          traceMeta={null}
+          source="issues"
+        />
       </QuickTraceWrapper>
     );
   }
@@ -44,16 +54,33 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
   return (
     <ErrorBoundary mini>
       <QuickTraceWrapper>
-        <QuickTrace
-          event={event}
-          quickTrace={quickTrace}
+        <TraceMetaQuery
           location={location}
-          organization={organization}
-          anchor="left"
-          errorDest="issue"
-          transactionDest="performance"
-        />
-        <TraceLink noTrace={false} event={event} />
+          orgSlug={organization.slug}
+          traceId={traceId}
+          start={start}
+          end={end}
+        >
+          {metaResults => (
+            <Fragment>
+              <QuickTrace
+                event={event}
+                quickTrace={quickTrace}
+                location={location}
+                organization={organization}
+                anchor="left"
+                errorDest="issue"
+                transactionDest="performance"
+              />
+              <TraceLink
+                quickTrace={quickTrace}
+                event={event}
+                traceMeta={metaResults?.meta ?? null}
+                source="issues"
+              />
+            </Fragment>
+          )}
+        </TraceMetaQuery>
       </QuickTraceWrapper>
     </ErrorBoundary>
   );
@@ -62,6 +89,7 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
 const QuickTraceWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.75)};
   flex-wrap: wrap;
   margin-top: ${space(0.75)};
   height: 20px;

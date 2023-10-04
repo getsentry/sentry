@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +28,7 @@ function mockLocation(query: string = '') {
 
 function mockOrganization(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  jest.mocked(useOrganization).mockReturnValue(TestStubs.Organization({features}));
+  jest.mocked(useOrganization).mockReturnValue(Organization({features}));
 }
 
 describe('useActiveReplayTab', () => {
@@ -73,17 +74,32 @@ describe('useActiveReplayTab', () => {
     });
   });
 
-  it('should allow ERRORS', () => {
+  it('should disallow PERF by default', () => {
     mockOrganization({
-      features: ['session-replay-errors-tab'],
+      features: [],
+    });
+
+    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+
+    result.current.setActiveTab(TabKey.PERF);
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: '',
+      query: {t_main: TabKey.CONSOLE},
+    });
+  });
+
+  it('should allow PERF when the feature is enabled', () => {
+    mockOrganization({
+      features: ['session-replay-trace-table'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
     expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
 
-    result.current.setActiveTab(TabKey.ERRORS);
+    result.current.setActiveTab(TabKey.PERF);
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.ERRORS},
+      query: {t_main: TabKey.PERF},
     });
   });
 });

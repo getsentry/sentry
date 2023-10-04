@@ -1,197 +1,147 @@
-import * as Sentry from '@sentry/react';
 import {Replayer} from '@sentry-internal/rrweb';
-import first from 'lodash/first';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
-import type {
-  BreadcrumbFrame,
-  RecordingFrame,
-  SpanFrame,
-} from 'sentry/utils/replays/types';
-import {EventType} from 'sentry/utils/replays/types';
-import requestIdleCallback from 'sentry/utils/window/requestIdleCallback';
+import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
 export type Extraction = {
-  frame: BreadcrumbFrame | SpanFrame;
-  html: string;
+  frame: ReplayFrame;
+  html: string | null;
   timestamp: number;
 };
 
 type Args = {
-  finishedAt: Date | undefined;
-  frames: (BreadcrumbFrame | SpanFrame)[] | undefined;
+  frames: ReplayFrame[] | undefined;
   rrwebEvents: RecordingFrame[] | undefined;
 };
 
-function _extractDomNodes({
-  frames,
+export default function extractDomNodes({
+  frames = [],
   rrwebEvents,
-  finishedAt,
 }: Args): Promise<Extraction[]> {
-  // Get a list of the BreadcrumbFrames that relate directly to the DOM, for each
-  // frame we will extract the referenced HTML.
-  if (!frames || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
-    return Promise.reject();
-  }
-
-  return new Promise((resolve, reject) => {
-    const domRoot = document.createElement('div');
-    domRoot.className = 'sentry-block';
-    const {style} = domRoot;
-    style.position = 'fixed';
-    style.inset = '0';
-    style.width = '0';
-    style.height = '0';
-    style.overflow = 'hidden';
-
-    document.body.appendChild(domRoot);
-
-    // Grab the last event, but skip the synthetic `replay-end` event that the
-    // ReplayerReader added. RRWeb will skip that event when it comes time to render
-    const lastEvent = rrwebEvents[rrwebEvents.length - 2];
-
-    const isLastRRWebEvent = (event: RecordingFrame) => lastEvent === event;
-
-    const replayerRef = new Replayer(rrwebEvents, {
-      root: domRoot,
-      loadTimeout: 1,
-      showWarning: false,
-      blockClass: 'sentry-block',
-      speed: 99999,
-      skipInactive: true,
-      triggerFocus: false,
-      plugins: [
-        new BreadcrumbReferencesPlugin({
-          frames,
-          isFinished: isLastRRWebEvent,
-          onFinish: rows => {
-            resolve(rows);
-            setTimeout(() => {
-              if (document.body.contains(domRoot)) {
-                document.body.removeChild(domRoot);
-              }
-            }, 0);
-          },
-        }),
-      ],
-      mouseTail: false,
-    });
-
-    try {
-      // Run the replay to the end, we will capture data as it streams into the plugin
-      replayerRef.pause(finishedAt.getTime());
-    } catch (error) {
-      Sentry.captureException(error);
-      reject(error);
-    }
-  });
-}
-
-export default function extractDomNodes(args: Args): Promise<Extraction[]> {
-  return new Promise((resolve, reject) => {
-    requestIdleCallback(
-      () => {
-        _extractDomNodes(args).then(resolve).catch(reject);
-      },
-      {
-        timeout: 2500,
-      }
-    );
-  });
-}
-
-type PluginOpts = {
-  frames: (BreadcrumbFrame | SpanFrame)[];
-  isFinished: (event: RecordingFrame) => boolean;
-  onFinish: (mutations: Extraction[]) => void;
-};
-
-class BreadcrumbReferencesPlugin {
-  frames: (BreadcrumbFrame | SpanFrame)[];
-  isFinished: (event: RecordingFrame) => boolean;
-  onFinish: (mutations: Extraction[]) => void;
-
-  nextExtract: null | Extraction['html'] = null;
-  activities: Extraction[] = [];
-
-  constructor({frames, isFinished, onFinish}: PluginOpts) {
-    this.frames = frames;
-    this.isFinished = isFinished;
-    this.onFinish = onFinish;
-  }
-
-  handler(event: RecordingFrame, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    if (event.type === EventType.FullSnapshot) {
-      this.extractNextFrame({replayer});
-    } else if (event.type === EventType.IncrementalSnapshot) {
-      this.extractCurrentFrame(event, {replayer});
-      this.extractNextFrame({replayer});
-    }
-
-    if (this.isFinished(event)) {
-      this.onFinish(this.activities);
-    }
-  }
-
-  extractCurrentFrame(event: RecordingFrame, {replayer}: {replayer: Replayer}) {
-    const frame = first(this.frames);
-
-    if (!frame || !frame?.timestampMs || frame.timestampMs > event.timestamp) {
+  return new Promise(resolve => {
+    if (!frames.length) {
+      resolve([]);
       return;
     }
 
-    const truncated = extractNode(frame, replayer) || this.nextExtract;
-    if (truncated) {
-      this.activities.push({
+    const extractions = new Map<ReplayFrame, Extraction>();
+
+    const player = createPlayer(rrwebEvents);
+    const mirror = player.getMirror();
+
+    const nextFrame = (function () {
+      let i = 0;
+      return () => frames[i++];
+    })();
+
+    const onDone = () => {
+      resolve(Array.from(extractions.values()));
+    };
+
+    const nextOrDone = () => {
+      const next = nextFrame();
+      if (next) {
+        matchFrame(next);
+      } else {
+        onDone();
+      }
+    };
+
+    type FrameRef = {
+      frame: undefined | ReplayFrame;
+      nodeId: undefined | number;
+    };
+
+    const nodeIdRef: FrameRef = {
+      frame: undefined,
+      nodeId: undefined,
+    };
+
+    const handlePause = () => {
+      if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
+        return;
+      }
+      const frame = nodeIdRef.frame as ReplayFrame;
+      const nodeId = nodeIdRef.nodeId as number;
+
+      const html = extractHtml(nodeId as number, mirror);
+      extractions.set(frame as ReplayFrame, {
         frame,
-        html: truncated,
+        html,
         timestamp: frame.timestampMs,
       });
-    }
+      nextOrDone();
+    };
 
-    this.nextExtract = null;
-    this.frames.shift();
-  }
+    const matchFrame = frame => {
+      nodeIdRef.frame = frame;
+      nodeIdRef.nodeId =
+        frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
 
-  extractNextFrame({replayer}: {replayer: Replayer}) {
-    const frame = first(this.frames);
+      if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
+        nextOrDone();
+        return;
+      }
 
-    if (!frame || !frame?.timestampMs) {
-      return;
-    }
+      window.setTimeout(() => {
+        player.pause(frame.offsetMs);
+      }, 0);
+    };
 
-    this.nextExtract = extractNode(frame, replayer);
-  }
+    player.on('pause', handlePause);
+    matchFrame(nextFrame());
+  });
 }
 
-function extractNode(frame: BreadcrumbFrame | SpanFrame, replayer: Replayer) {
-  const mirror = replayer.getMirror();
-  // @ts-expect-error
-  const nodeId = (frame.data?.nodeId ?? -1) as number;
-  const node = mirror.getNode(nodeId);
-  // @ts-expect-error
-  const html = node?.outerHTML || node?.textContent || '';
+function createPlayer(rrwebEvents): Replayer {
+  const domRoot = document.createElement('div');
+  domRoot.className = 'sentry-block';
+  const {style} = domRoot;
 
+  style.position = 'fixed';
+  style.inset = '0';
+  style.width = '0';
+  style.height = '0';
+  style.overflow = 'hidden';
+
+  document.body.appendChild(domRoot);
+
+  const replayerRef = new Replayer(rrwebEvents, {
+    root: domRoot,
+    loadTimeout: 1,
+    showWarning: false,
+    blockClass: 'sentry-block',
+    speed: 99999,
+    skipInactive: true,
+    triggerFocus: false,
+    mouseTail: false,
+  });
+  return replayerRef;
+}
+
+function extractHtml(nodeId: number, mirror: Mirror): string | null {
+  const node = mirror.getNode(nodeId);
+
+  const html =
+    (node && 'outerHTML' in node ? (node.outerHTML as string) : node?.textContent) || '';
   // Limit document node depth to 2
   let truncated = removeNodesAtLevel(html, 2);
   // If still very long and/or removeNodesAtLevel failed, truncate
   if (truncated.length > 1500) {
     truncated = truncated.substring(0, 1500);
   }
-  return truncated;
+  return truncated ? truncated : null;
 }
 
 function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
   for (let i = 0; i < collection.length; i++) {
     const child = collection[i];
-
     if (child.nodeName === 'STYLE') {
       child.textContent = '/* Inline CSS */';
     }
-
     if (child.nodeName === 'svg') {
       child.innerHTML = '<!-- SVG -->';
     }
-
     if (max <= current) {
       if (child.childElementCount > 0) {
         child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
@@ -202,11 +152,11 @@ function removeChildLevel(max: number, collection: HTMLCollection, current: numb
   }
 }
 
-function removeNodesAtLevel(html: string, level: number) {
+function removeNodesAtLevel(html: string, level: number): string {
   const parser = new DOMParser();
+
   try {
     const doc = parser.parseFromString(html, 'text/html');
-
     removeChildLevel(level, doc.body.children);
     return doc.body.innerHTML;
   } catch (err) {

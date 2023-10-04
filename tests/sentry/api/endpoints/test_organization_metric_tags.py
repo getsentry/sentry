@@ -139,7 +139,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         indexer.record(
             use_case_id=UseCaseID.SESSIONS,
             org_id=self.organization.id,
-            string=SessionMRI.SESSION.value,
+            string=SessionMRI.RAW_SESSION.value,
         )
         assert (
             self.get_response(

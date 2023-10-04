@@ -51,6 +51,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   traceEventView: EventView;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
 
@@ -132,7 +133,12 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   renderTraceLoading() {
-    return <LoadingIndicator />;
+    return (
+      <LoadingContainer>
+        <StyledLoadingIndicator />
+        {t('Hang in there, as we build your trace view!')}
+      </LoadingContainer>
+    );
   }
 
   renderTraceRequiresDateRangeSelection() {
@@ -199,7 +205,7 @@ class TraceDetailsContent extends Component<Props, State> {
         <TraceSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
-          placeholder={t('Search for transactions')}
+          placeholder={t('Search for events')}
           onSearch={this.handleTransactionFilter}
         />
       </TraceSearchContainer>
@@ -268,9 +274,6 @@ class TraceDetailsContent extends Component<Props, State> {
 
     let warning: React.ReactNode = null;
 
-    const hasOnlyOrphanErrors =
-      hasTraceData(traces, orphanErrors) && (!traces || traces.length <= 0);
-
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
@@ -299,14 +302,14 @@ class TraceDetailsContent extends Component<Props, State> {
           </ExternalLink>
         </Alert>
       );
-    } else if (hasOnlyOrphanErrors) {
+    } else if (orphanErrors && orphanErrors.length > 1) {
       warning = (
         <Alert type="info" showIcon>
           {tct(
-            "The good news is we know these errors are related to each other. The bad news is you haven't enabled tracing to tell you more than that. [tracingLink: Configure Tracing]",
+            "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
             {
               tracingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/distributed-tracing/" />
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
               ),
             }
           )}
@@ -370,6 +373,7 @@ class TraceDetailsContent extends Component<Props, State> {
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
+              handleLimitChange={this.props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>
@@ -416,6 +420,16 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin-bottom: 0;
+`;
+
+const LoadingContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.subText};
+  text-align: center;
+`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};

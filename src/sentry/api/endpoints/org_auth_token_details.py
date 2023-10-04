@@ -3,11 +3,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -16,6 +18,12 @@ from sentry.services.hybrid_cloud.organization.model import (
 
 @control_silo_endpoint
 class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)
 
     def get(
@@ -51,7 +59,12 @@ class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         name = request.data.get("name")
 
         if not name:
-            return Response({"detail": ["The name cannot be blank."]}, status=400)
+            return Response({"detail": "The name cannot be blank."}, status=400)
+
+        if len(name) > MAX_NAME_LENGTH:
+            return Response(
+                {"detail": "The name cannot be longer than 255 characters."}, status=400
+            )
 
         instance.update(name=name)
 

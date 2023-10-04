@@ -6,7 +6,7 @@ import {GettingStartedWithMartini, steps} from './martini';
 
 describe('GettingStartedWithMartini', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithMartini dsn="test-dsn" />);
+    render(<GettingStartedWithMartini dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithMartini', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -21,9 +21,15 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
 def build_incident_attachment(
-    incident, integration_key, new_status: IncidentStatus, metric_value: int | None = None
+    incident,
+    integration_key,
+    new_status: IncidentStatus,
+    metric_value: int | None = None,
+    notfiication_uuid: str | None = None,
 ) -> dict[str, Any]:
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(
+        incident, new_status, metric_value, notfiication_uuid, referrer="metric_alert_pagerduty"
+    )
     severity = "info"
     if new_status == IncidentStatus.CRITICAL:
         severity = "critical"
@@ -55,7 +61,8 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
@@ -95,9 +102,12 @@ def send_incident_alert_notification(
     client = PagerDutyProxyClient(
         org_integration_id=org_integration_id, integration_key=integration_key
     )
-    attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
+    attachment = build_incident_attachment(
+        incident, integration_key, new_status, metric_value, notification_uuid
+    )
     try:
         client.send_trigger(attachment)
+        return True
     except ApiError as e:
         logger.info(
             "rule.fail.pagerduty_metric_alert",

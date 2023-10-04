@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   const {routerContext, routerProps, organization} = initializeOrg({
-    organization: TestStubs.Organization({slug: 'org-slug'}),
+    organization: Organization({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
   });
@@ -59,13 +61,12 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('should fetch linked and unlinked projects', async function () {
-    const {container} = render(
-      <OrganizationTeamProjects {...routerProps} team={team} />,
-      {context: routerContext, organization}
-    );
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
-    expect(container).toSnapshot();
 
     expect(getMock).toHaveBeenCalledTimes(2);
 

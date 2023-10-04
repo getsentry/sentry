@@ -22,30 +22,32 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseEnvironment,
     Repository,
-    ScheduledDeletion,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.silo import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
-        org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
         org_member = OrganizationMember.objects.get(organization_id=org.id, user_id=org_owner.id)
         self.assert_org_member_mapping(org_member=org_member)
 
         org_owner2 = self.create_user()
         org2 = self.create_organization(name="test2", owner=org_owner2)
-        org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
 
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")
@@ -108,12 +110,14 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert Organization.objects.filter(id=org2.id).exists()
-        assert OrganizationMapping.objects.filter(id=org_mapping2.id).exists()
-        assert OrganizationMemberMapping.objects.filter(organization_id=org2.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert OrganizationMapping.objects.filter(id=org_mapping2.id).exists()
+            assert OrganizationMemberMapping.objects.filter(organization_id=org2.id).exists()
 
         assert not Organization.objects.filter(id=org.id).exists()
-        assert not OrganizationMapping.objects.filter(id=org_mapping.id).exists()
-        assert not OrganizationMemberMapping.objects.filter(organization_id=org.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not OrganizationMapping.objects.filter(id=org_mapping.id).exists()
+            assert not OrganizationMemberMapping.objects.filter(organization_id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
         assert not ReleaseEnvironment.objects.filter(id=release_env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
@@ -141,7 +145,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
 
         assert Organization.objects.filter(id=org.id).exists()
         assert Release.objects.filter(id=release.id).exists()
-        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+        assert not self.ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
     def test_large_child_relation_deletion(self):
         org = self.create_organization(name="test")
@@ -276,7 +280,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         org = self.create_organization(**name_filter)
 
         assert Organization.objects.filter(**name_filter).count() == 1
-        assert ScheduledDeletion.objects.count() == 0
+        assert self.ScheduledDeletion.objects.count() == 0
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=org, days=0)

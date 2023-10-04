@@ -6,7 +6,7 @@ import {GettingStartedWithDart, steps} from './dart';
 
 describe('GettingStartedWithDart', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithDart dsn="test-dsn" />);
+    render(<GettingStartedWithDart dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithDart', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

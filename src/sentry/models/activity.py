@@ -9,6 +9,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -86,7 +87,7 @@ class ActivityManager(BaseManager):
 
 @region_silo_only_model
 class Activity(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)

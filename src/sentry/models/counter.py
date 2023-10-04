@@ -5,6 +5,7 @@ from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
@@ -18,7 +19,7 @@ from sentry.silo import SiloMode, unguarded_write
 
 @region_silo_only_model
 class Counter(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     value = BoundedBigIntegerField()

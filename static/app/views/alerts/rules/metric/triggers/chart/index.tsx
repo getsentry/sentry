@@ -1,18 +1,17 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequest';
-import OptionSelector from 'sentry/components/charts/optionSelector';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
   ChartControls,
@@ -20,6 +19,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -33,7 +33,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -190,8 +190,8 @@ class TriggersChart extends PureComponent<Props, State> {
     return AVAILABLE_TIME_PERIODS;
   }
 
-  handleStatsPeriodChange = (timePeriod: string) => {
-    this.setState({statsPeriod: timePeriod as TimePeriod});
+  handleStatsPeriodChange = (timePeriod: TimePeriod) => {
+    this.setState({statsPeriod: timePeriod});
   };
 
   getStatsPeriod = () => {
@@ -294,6 +294,12 @@ class TriggersChart extends PureComponent<Props, State> {
     const isExtrapolatedChartData =
       seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
+    const totalCountLabel = isSessionAggregate(aggregate)
+      ? SESSION_AGGREGATE_TO_HEADING[aggregate]
+      : isExtrapolatedChartData
+      ? t('Estimated Transactions')
+      : t('Total Transactions');
+
     return (
       <Fragment>
         {header}
@@ -327,25 +333,26 @@ class TriggersChart extends PureComponent<Props, State> {
 
         <ChartControls>
           <InlineContainer data-test-id="alert-total-events">
-            <SectionHeading>
-              {isSessionAggregate(aggregate)
-                ? SESSION_AGGREGATE_TO_HEADING[aggregate]
-                : t('Total Events')}
-            </SectionHeading>
+            <SectionHeading>{totalCountLabel}</SectionHeading>
             <SectionValue>
               {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
             </SectionValue>
           </InlineContainer>
           <InlineContainer>
-            <OptionSelector
+            <CompactSelect
+              size="sm"
               options={statsPeriodOptions.map(timePeriod => ({
-                label: TIME_PERIOD_MAP[timePeriod],
                 value: timePeriod,
-                disabled: isLoading || isReloading,
+                label: TIME_PERIOD_MAP[timePeriod],
               }))}
-              selected={period}
-              onChange={this.handleStatsPeriodChange}
-              title={t('Display')}
+              value={period}
+              onChange={opt => this.handleStatsPeriodChange(opt.value)}
+              position="bottom-end"
+              triggerProps={{
+                borderless: true,
+                prefix: t('Display'),
+              }}
+              disabled={isLoading || isReloading}
             />
           </InlineContainer>
         </ChartControls>

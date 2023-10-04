@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder import TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType, SelectType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType
 from sentry.snuba.dataset import Dataset
 
 
@@ -17,10 +17,8 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
-        has_metrics: bool = False,
-        skip_tag_resolution: bool = False,
+        config: Optional[QueryBuilderConfig] = None,
     ):
         super().__init__(
             dataset,
@@ -29,9 +27,7 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
             query=query,
             selected_columns=selected_columns,
             equations=equations,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
-            skip_tag_resolution=skip_tag_resolution,
+            config=config,
         )
         self.groupby = [self.time_column]
 

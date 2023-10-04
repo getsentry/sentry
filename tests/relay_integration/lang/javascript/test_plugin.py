@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
 from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -30,7 +31,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
 
 # IMPORTANT:
@@ -41,6 +42,9 @@ from sentry.utils import json
 # If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
 # entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
@@ -2511,6 +2515,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert frame.data["resolved_with"] == "index"
         assert frame.data["symbolicated"]
+
+        # explicitly trigger the task that is refreshing bundles, usually this
+        # happens on a schedule:
+        refresh_artifact_bundles_in_use()
 
         artifact_bundles = ArtifactBundle.objects.filter(
             organization_id=self.organization.id,

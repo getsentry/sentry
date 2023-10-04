@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -33,7 +34,7 @@ class CommitManager(BaseManager):
 
 @region_silo_only_model
 class Commit(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()

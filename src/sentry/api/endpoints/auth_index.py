@@ -10,6 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
@@ -39,6 +41,12 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 
 @control_silo_endpoint
 class AuthIndexEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Manage session authentication
 
@@ -47,6 +55,7 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
+    owner = ApiOwner.ENTERPRISE
     authentication_classes = (QuietBasicAuthentication, SessionAuthentication)
 
     permission_classes = ()

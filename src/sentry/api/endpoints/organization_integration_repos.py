@@ -3,6 +3,8 @@ from typing import Any, Optional, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
@@ -21,6 +23,11 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(
         self,
         request: Request,

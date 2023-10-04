@@ -12,7 +12,10 @@ from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test

@@ -6,12 +6,12 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
-import MeasureSize from 'sentry/views/replays/detail/layout/measureSize';
 import SidebarArea from 'sentry/views/replays/detail/layout/sidebarArea';
 import SideTabs from 'sentry/views/replays/detail/layout/sideTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
@@ -34,6 +34,9 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
   });
+
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width, height} = useDimensions({elementRef: measureRef});
 
   const timeline = (
     <ErrorBoundary mini>
@@ -74,12 +77,14 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     </ErrorBoundary>
   );
 
+  const hasSize = width + height > 0;
+
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyContent>
         {timeline}
-        <MeasureSize>
-          {({width}) => (
+        <FluidHeight ref={measureRef}>
+          {hasSize ? (
             <SplitPanel
               key={layout}
               availableSize={width}
@@ -91,8 +96,8 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
               }}
               right={sidebarArea}
             />
-          )}
-        </MeasureSize>
+          ) : null}
+        </FluidHeight>
       </BodyContent>
     );
   }
@@ -101,8 +106,8 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     return (
       <BodyContent>
         {timeline}
-        <MeasureSize>
-          {({height, width}) => (
+        <FluidHeight ref={measureRef}>
+          {hasSize ? (
             <SplitPanel
               key={layout}
               availableSize={width}
@@ -126,8 +131,8 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
               }}
               right={focusArea}
             />
-          )}
-        </MeasureSize>
+          ) : null}
+        </FluidHeight>
       </BodyContent>
     );
   }
@@ -136,8 +141,8 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   return (
     <BodyContent>
       {timeline}
-      <MeasureSize>
-        {({height, width}) => (
+      <FluidHeight ref={measureRef}>
+        {hasSize ? (
           <SplitPanel
             key={layout}
             availableSize={height}
@@ -160,8 +165,8 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
             }}
             bottom={focusArea}
           />
-        )}
-      </MeasureSize>
+        ) : null}
+      </FluidHeight>
     </BodyContent>
   );
 }
@@ -172,6 +177,7 @@ const BodyContent = styled('main')`
   height: 100%;
   display: grid;
   grid-template-rows: auto 1fr;
+  gap: ${space(2)};
   overflow: hidden;
   padding: ${space(2)};
 `;

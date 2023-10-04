@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {DeprecatedAggregateFlamegraph} from 'sentry/components/profiling/flamegraph/deprecatedAggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -22,13 +22,12 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   );
 
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
-
   const isEmpty = data?.shared.frames.length === 0;
 
   return (
     <Flex column gap={space(1)}>
       <Flex align="center" gap={space(0.5)}>
-        <HeaderTitle>{t('Flamegraph')}</HeaderTitle>
+        <HeaderTitle>{t('Aggregate Flamegraph')}</HeaderTitle>
         <QuestionTooltip
           size="sm"
           position="right"
@@ -38,7 +37,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
               <p>{t('An aggregate of profiles for this transaction.')}</p>
               <p>
                 {t(
-                  'Navigate the flamegraph by scrolling and by double clicking a frame to zoom.'
+                  'Navigate the aggregate flamegraph by scrolling and by double clicking a frame to zoom.'
                 )}
               </p>
             </TooltipContent>
@@ -63,13 +62,13 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
             <Panel>
               <Flex h={400} column justify="center">
                 {isLoading ? (
-                  <LoadingIndicator>{t('Loading Flamegraph')}</LoadingIndicator>
+                  <LoadingIndicator>{t('Loading Aggregate Flamegraph')}</LoadingIndicator>
                 ) : isEmpty ? (
                   <EmptyStateWarning>
-                    <p>{t(`A flamegraph isn't available for your query`)}</p>
+                    <p>{t(`Aggregate flamegraph isn't available for your query`)}</p>
                   </EmptyStateWarning>
                 ) : (
-                  <AggregateFlamegraph
+                  <DeprecatedAggregateFlamegraph
                     hideSystemFrames={hideSystemFrames}
                     setHideSystemFrames={setHideSystemFrames}
                   />

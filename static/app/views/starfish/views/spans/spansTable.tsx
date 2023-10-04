@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
@@ -27,7 +27,7 @@ type Row = {
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'span.description': string;
-  'span.domain': string;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
@@ -47,8 +47,8 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID, SPAN_DOMAIN} =
+  SpanMetricsField;
 
 export default function SpansTable({
   moduleName,
@@ -62,7 +62,7 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
@@ -72,13 +72,13 @@ export default function SpansTable({
     [sort],
     limit,
     'api.starfish.use-span-list',
-    spansCursor
+    cursor
   );
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.CURSOR]: cursor},
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
 
@@ -103,7 +103,13 @@ export default function SpansTable({
             },
           ]}
           grid={{
-            renderHeadCell: column => renderHeadCell({column, sort, location}),
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.SPANS_SORT,
+              }),
             renderBodyCell: (column, row) =>
               renderBodyCell(
                 column,
@@ -171,6 +177,7 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
+
 function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
     return 'URL Request';
@@ -202,7 +209,6 @@ function getColumns(
   transaction?: string
 ): Column[] {
   const description = getDescriptionHeader(moduleName, spanCategory);
-
   const domain = getDomainHeader(moduleName);
 
   const order = [

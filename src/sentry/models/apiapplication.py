@@ -7,6 +7,7 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -38,7 +39,7 @@ class ApiApplicationStatus:
 
 @control_silo_only_model
 class ApiApplication(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
     client_secret = models.TextField(default=generate_token)

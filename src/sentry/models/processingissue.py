@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -124,7 +125,7 @@ class ProcessingIssueManager(BaseManager):
 
 @region_silo_only_model
 class ProcessingIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
     checksum = models.CharField(max_length=40, db_index=True)
@@ -152,7 +153,7 @@ class ProcessingIssue(Model):
 
 @region_silo_only_model
 class EventProcessingIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     raw_event = FlexibleForeignKey("sentry.RawEvent")
     processing_issue = FlexibleForeignKey("sentry.ProcessingIssue")

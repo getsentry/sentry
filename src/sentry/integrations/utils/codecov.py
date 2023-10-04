@@ -9,8 +9,8 @@ from rest_framework import status
 from sentry_sdk import configure_scope
 
 from sentry import options
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.integration import integration_service
 
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
@@ -41,10 +41,10 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id, provider="github"
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["github"]
     )
-    if not integrations.exists():
+    if not integrations:
         logger.info(
             "codecov.get_integrations",
             extra={"error": "Missing github integration", "org_id": organization.id},

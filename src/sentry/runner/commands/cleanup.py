@@ -162,7 +162,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
-        from sentry.sentry_metrics.indexer.postgres import models as metrics_indexer_models
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -194,8 +193,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.GroupRuleStatus, "date_added", None),
             (RuleFireHistory, "date_added", None),
             (monitor_models.MonitorCheckIn, "date_added", None),
-            (metrics_indexer_models.StringIndexer, "last_seen", None),
-            (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
         ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
@@ -212,6 +209,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             # used this index instead of a more appropriate one. This was causing a lot of postgres
             # load, so we had to remove it.
             (models.Group, "last_seen", "last_seen"),
+            (models.ProjectDebugFile, "date_accessed", "date_accessed"),
         ]
 
         if not silent:
@@ -272,8 +270,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo("Bulk NodeStore deletion not available for project selection", err=True)
             project_id = get_project(project)
             # These models span across projects, so let's skip them
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.StringIndexer, "last_seen", None))
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.PerfStringIndexer, "last_seen", None))
             DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
             if project_id is None:
                 click.echo("Error: Project not found", err=True)

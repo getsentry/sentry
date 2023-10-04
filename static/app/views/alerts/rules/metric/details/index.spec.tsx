@@ -1,3 +1,6 @@
+import {EventsStats} from 'sentry-fixture/events';
+import {Incident} from 'sentry-fixture/incident';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -21,7 +24,7 @@ describe('MetricAlertDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2017-10-10T02%3A41%3A20',
@@ -37,7 +40,7 @@ describe('MetricAlertDetails', () => {
 
   it('renders', async () => {
     const {routerContext, organization, routerProps} = initializeOrg();
-    const incident = TestStubs.Incident();
+    const incident = Incident();
     const rule = TestStubs.MetricRule({
       projects: [project.slug],
       latestIncident: incident,
@@ -79,7 +82,7 @@ describe('MetricAlertDetails', () => {
   it('renders selected incident', async () => {
     const {routerContext, organization, router, routerProps} = initializeOrg();
     const rule = TestStubs.MetricRule({projects: [project.slug]});
-    const incident = TestStubs.Incident();
+    const incident = Incident();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
@@ -125,7 +128,7 @@ describe('MetricAlertDetails', () => {
 
   it('renders mute button for metric alert', async () => {
     const {routerContext, organization, routerProps} = initializeOrg();
-    const incident = TestStubs.Incident();
+    const incident = Incident();
     const rule = TestStubs.MetricRule({
       projects: [project.slug],
       latestIncident: incident,

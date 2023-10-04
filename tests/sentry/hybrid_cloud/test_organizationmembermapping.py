@@ -1,4 +1,4 @@
-from django.db import router
+from django.db import router, transaction
 
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -6,7 +6,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -16,20 +16,46 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, regi
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
     def test_upsert_stale_user_id(self):
-        assert (
+        organizationmember_mapping_service.upsert_mapping(
+            organization_id=self.organization.id,
+            organizationmember_id=111111,
+            mapping=RpcOrganizationMemberMappingUpdate(
+                role=self.organization.default_role,
+                user_id=10001,
+                email=None,
+                inviter_id=self.user.id,
+                invite_status=None,
+            ),
+        )
+
+        omm = OrganizationMemberMapping.objects.get(
+            organization_id=self.organization.id, organizationmember_id=111111
+        )
+        assert omm.user_id is None
+        assert omm.inviter_id == self.user.id
+
+    def test_upsert_stale_inviter_id(self):
+        self.user
+        self.organization
+
+        with transaction.atomic(router.db_for_write(OrganizationMemberMapping)):
             organizationmember_mapping_service.upsert_mapping(
                 organization_id=self.organization.id,
                 organizationmember_id=111111,
                 mapping=RpcOrganizationMemberMappingUpdate(
                     role=self.organization.default_role,
-                    user_id=10001,
+                    user_id=self.user.id,
                     email=None,
-                    inviter_id=None,
+                    inviter_id=1000001,
                     invite_status=None,
                 ),
             )
-            is None
-        )
+
+            omm = OrganizationMemberMapping.objects.get(
+                organization_id=self.organization.id, organizationmember_id=111111
+            )
+            assert omm.user_id == self.user.id
+            assert omm.inviter_id is None
 
     def test_upsert_email_invite(self):
         om = OrganizationMember(
@@ -171,10 +197,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
-            org_member.update(role="owner")
-        region_outbox = org_member.save_outbox_for_update()
-        region_outbox.drain_shard()
+        org_member.update(role="owner")
 
         assert OrganizationMember.objects.all().count() == 2
         with assume_test_silo_mode(SiloMode.CONTROL):

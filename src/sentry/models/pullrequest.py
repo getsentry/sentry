@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -50,7 +51,7 @@ class PullRequestManager(BaseManager):
 
 @region_silo_only_model
 class PullRequest(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
@@ -81,7 +82,7 @@ class PullRequest(Model):
 
 @region_silo_only_model
 class PullRequestCommit(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     commit = FlexibleForeignKey("sentry.Commit")
 
@@ -102,7 +103,7 @@ class CommentType:
 
 @region_silo_only_model
 class PullRequestComment(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     external_id = BoundedBigIntegerField()
     pull_request = FlexibleForeignKey("sentry.PullRequest")

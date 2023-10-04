@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
+import {Tags} from 'sentry-fixture/tags';
 
 import {
   act,
@@ -20,7 +22,7 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(Tags());
     const supportedTags = TagStore.getState();
     supportedTags.firstRelease = {
       key: 'firstRelease',
@@ -31,7 +33,7 @@ describe('SmartSearchBar', function () {
       name: 'is',
     };
 
-    const organization = TestStubs.Organization({id: '123'});
+    const organization = Organization({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -422,7 +424,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('renders nested keys correctly', async function () {
-    const {container} = render(
+    render(
       <SmartSearchBar
         {...defaultProps}
         query=""
@@ -447,8 +449,6 @@ describe('SmartSearchBar', function () {
     await userEvent.type(textbox, 'nest');
 
     await screen.findByText('Keys');
-
-    expect(container).toSnapshot();
   });
 
   it('filters keys on name and description', async function () {

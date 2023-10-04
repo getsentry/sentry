@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.hashlib import md5_text
 
@@ -19,7 +20,6 @@ from . import backend as ratelimiter
 if TYPE_CHECKING:
     from sentry.models import Organization, User
     from sentry.models.apitoken import ApiToken
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
@@ -57,7 +57,7 @@ def get_rate_limit_key(
     ):
         return None
 
-    view = view_func.__qualname__
+    view = view_func.view_class.__name__
     http_method = request.method
 
     # This avoids touching user session, which means we avoid

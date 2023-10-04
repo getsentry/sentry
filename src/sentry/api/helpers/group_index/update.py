@@ -121,7 +121,7 @@ def self_subscribe_and_assign_issue(
     # representation of current user
     if acting_user:
         GroupSubscription.objects.subscribe(
-            user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
+            subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
 
         if self_assign_issue == "1" and not group.assignee_set.exists():
@@ -736,7 +736,7 @@ def handle_is_bookmarked(
                 user_id=acting_user.id if acting_user else None,
             )
             GroupSubscription.objects.subscribe(
-                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
+                subscriber=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
             )
     elif is_bookmarked is False:
         GroupBookmark.objects.filter(

@@ -1,15 +1,17 @@
 from functools import cached_property
 
-from freezegun import freeze_time
-
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.silo import SiloMode
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-class BaseIncidentDetailsTest:
+class BaseIncidentDetailsTest(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):
@@ -42,7 +44,7 @@ class BaseIncidentDetailsTest:
 
 
 @region_silo_test(stable=True)
-class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
     @freeze_time()
     def test_simple(self):
         incident = self.create_incident(seen_by=[self.user])
@@ -65,7 +67,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 
 
 @region_silo_test(stable=True)
-class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
     method = "put"
 
     def get_success_response(self, *args, **params):

@@ -26,6 +26,7 @@
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 
 ## Event Ingestion
@@ -139,6 +140,9 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
+/src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
+/src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
 ## Workflow
@@ -218,6 +222,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
+/static/app/components/events/eventStatisticalDetector/                   @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
@@ -256,10 +261,12 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Starfish
 /src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/team-starfish
 /src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
+/static/app/views/performance/database                                              @getsentry/team-starfish
 ## Endof Starfish
 
 
@@ -288,6 +295,15 @@ yarn.lock                                                @getsentry/owners-js-de
 ## End of Replays
 
 
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
+
+
 ## Integrations
 /src/sentry/api/endpoints/integrations/                              @getsentry/issues
 /src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
@@ -295,6 +311,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
+/src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -370,8 +387,14 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/scim/                                                       @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/enterprise
+/src/sentry/tasks/invite_missing_org_members.py                         @getsentry/enterprise
+/static/app/components/modals/inviteMissingMembersModal/                @getsentry/enterprise
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
+/src/sentry/models/release_threshold                                    @getsentry/enterprise
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -404,7 +427,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## SDK
-/src/sentry/utils/sdk.py   @getsentry/team-web-sdk-backend
+/src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
@@ -412,7 +436,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py          @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
@@ -432,12 +455,12 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
+
+/static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
 ## Growth
-/src/sentry/api/endpoints/client_state.py                       @getsentry/growth
-/src/sentry/api/endpoints/organization_web_vitals_overview.py   @getsentry/growth
 /src/sentry/api/endpoints/organization_onboarding*              @getsentry/growth
 /src/sentry/web/frontend/auth_login.py                          @getsentry/growth
 /static/app/utils/analytics.tsx                                 @getsentry/growth
@@ -465,4 +488,5 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
 ## End of Issues

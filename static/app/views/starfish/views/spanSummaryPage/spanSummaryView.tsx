@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -16,7 +16,7 @@ import {
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getThroughputChartTitle,
@@ -51,50 +51,50 @@ export function SpanSummaryView({groupId}: Props) {
     groupId,
     queryFilter,
     [
-      SpanMetricsFields.SPAN_OP,
-      SpanMetricsFields.SPAN_DESCRIPTION,
-      SpanMetricsFields.SPAN_ACTION,
-      SpanMetricsFields.SPAN_DOMAIN,
+      SpanMetricsField.SPAN_OP,
+      SpanMetricsField.SPAN_DESCRIPTION,
+      SpanMetricsField.SPAN_ACTION,
+      SpanMetricsField.SPAN_DOMAIN,
       'count()',
-      `${StarfishFunctions.SPM}()`,
-      `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
-      `${StarfishFunctions.HTTP_ERROR_COUNT}()`,
+      `${SpanFunction.SPM}()`,
+      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
     ...spanMetrics,
-    [SpanMetricsFields.SPAN_GROUP]: groupId,
+    [SpanMetricsField.SPAN_GROUP]: groupId,
   } as {
-    [SpanMetricsFields.SPAN_OP]: string;
-    [SpanMetricsFields.SPAN_DESCRIPTION]: string;
-    [SpanMetricsFields.SPAN_ACTION]: string;
-    [SpanMetricsFields.SPAN_DOMAIN]: string;
-    [SpanMetricsFields.SPAN_GROUP]: string;
+    [SpanMetricsField.SPAN_OP]: string;
+    [SpanMetricsField.SPAN_DESCRIPTION]: string;
+    [SpanMetricsField.SPAN_ACTION]: string;
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
+    [SpanMetricsField.SPAN_GROUP]: string;
   };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
+    seriesName: span?.[SpanMetricsField.SPAN_OP]?.startsWith('db')
       ? 'Queries'
       : 'Requests',
     data: spanMetricsSeriesData?.['spm()'].data,
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderContainer>
         <FilterOptionsContainer>
           <StarfishDatePicker />
@@ -103,14 +103,13 @@ export function SpanSummaryView({groupId}: Props) {
         <SpanMetricsRibbon spanMetrics={span} />
       </HeaderContainer>
 
-      {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
+      {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
         <DescriptionContainer>
           <SpanDescription
             span={{
               ...span,
-              [SpanMetricsFields.SPAN_DESCRIPTION]:
-                fullSpan?.description ??
-                spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
+              [SpanMetricsField.SPAN_DESCRIPTION]:
+                fullSpan?.description ?? spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
             }}
           />
         </DescriptionContainer>
@@ -118,7 +117,7 @@ export function SpanSummaryView({groupId}: Props) {
 
       <BlockContainer>
         <Block>
-          <ChartPanel title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}>
+          <ChartPanel title={getThroughputChartTitle(span?.[SpanMetricsField.SPAN_OP])}>
             <Chart
               height={CHART_HEIGHT}
               data={[spanMetricsThroughputSeries]}
@@ -140,7 +139,7 @@ export function SpanSummaryView({groupId}: Props) {
           <ChartPanel title={DataTitles.avg}>
             <Chart
               height={CHART_HEIGHT}
-              data={[spanMetricsSeriesData?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]]}
+              data={[spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
               loading={areSpanMetricsSeriesLoading}
               utc={false}
               chartColors={[AVG_COLOR]}
@@ -150,7 +149,7 @@ export function SpanSummaryView({groupId}: Props) {
           </ChartPanel>
         </Block>
 
-        {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
+        {span?.[SpanMetricsField.SPAN_OP]?.startsWith('http') && (
           <Block>
             <ChartPanel title={DataTitles.errorCount}>
               <Chart
@@ -166,7 +165,7 @@ export function SpanSummaryView({groupId}: Props) {
           </Block>
         )}
       </BlockContainer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

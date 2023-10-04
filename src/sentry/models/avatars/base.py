@@ -10,6 +10,7 @@ from django.utils.encoding import force_bytes
 from PIL import Image
 from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.models.files.file import File
 from sentry.silo import SiloMode
@@ -25,7 +26,7 @@ class AvatarBase(Model):
     avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
@@ -45,8 +46,8 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # If we're getting a file, and the preferred write file
-        # type isn't present, move data over to new storage async.
+        # If we're getting a file, and the preferred write file type isn't
+        # present, move data over to new storage async.
         file_id = getattr(self, self.file_write_fk(), None)
         file_class = self.file_class()
 

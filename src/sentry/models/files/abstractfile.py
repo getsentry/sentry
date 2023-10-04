@@ -15,6 +15,7 @@ from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
@@ -195,7 +196,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class AbstractFile(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     name = models.TextField()
     type = models.CharField(max_length=64)

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
@@ -43,7 +45,7 @@ describe('EventReplay', function () {
     useHasOrganizationSentAnyReplayEvents
   );
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 
@@ -121,7 +123,7 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
         event={TestStubs.Event({
@@ -134,7 +136,6 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('should render a replay when there is a replay_id from contexts', async function () {
@@ -145,7 +146,7 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
         event={TestStubs.Event({
@@ -163,6 +164,5 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 });

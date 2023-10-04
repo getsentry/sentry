@@ -67,9 +67,11 @@ import {
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
+  getWidgetIndicatorColor,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
+import ThresholdsHoverWrapper from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -91,6 +93,8 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import CircleIndicator from '../circleIndicator';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -1005,8 +1009,28 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          organization.features.includes(
+                            'dashboard-widget-indicators'
+                          ) && (
+                            <ThresholdsHoverWrapper
+                              thresholds={widget.thresholds}
+                              tableData={tableData}
+                            >
+                              <CircleIndicator
+                                color={getWidgetIndicatorColor(
+                                  widget.thresholds,
+                                  tableData
+                                )}
+                                size={12}
+                              />
+                            </ThresholdsHoverWrapper>
+                          )}
+                      </WidgetTitleRow>
                       {widget.description && (
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       )}
@@ -1033,7 +1057,7 @@ function WidgetViewerModal(props: Props) {
                           return null;
                         }}
                       </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1208,10 +1232,16 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

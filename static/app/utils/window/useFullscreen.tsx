@@ -10,15 +10,12 @@ interface Props<Element extends HTMLElement> {
   elementRef: RefObject<Element>;
 }
 
-// See: https://developer.mozilla.org/en-US/docs/web/api/element/requestfullscreen#options_2
-interface FullscreenOptions {
-  navigationUI: 'hide' | 'show' | 'auto';
-}
-
 interface Return {
   /**
    * Render, in fullscreen, the `ref` that this instance relates to. If `ref`
    * is unset, then `<html>` will be used.
+   *
+   * FullscreenOptions: https://developer.mozilla.org/en-US/docs/web/api/element/requestfullscreen#options_2
    */
   enter: (options?: FullscreenOptions) => void;
 
@@ -35,6 +32,9 @@ interface Return {
   toggle: () => void;
 }
 
+/**
+ * Enable/Disable/Toggle fullscreen mode for a specified element.
+ */
 export default function useFullscreen<Element extends HTMLElement>({
   elementRef,
 }: Props<Element>): Return {

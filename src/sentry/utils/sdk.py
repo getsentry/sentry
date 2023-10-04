@@ -13,8 +13,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import push_scope  # NOQA
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, push_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -36,7 +35,7 @@ logger = logging.getLogger(__name__)
 UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/tasks/process_buffer.py",
-    "sentry/ingest/ingest_consumer.py",
+    "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -128,7 +127,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.check_missing": 1.0,
+    "sentry.monitors.tasks.mark_environment_missing": 0.05,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
@@ -397,7 +398,7 @@ def configure_sdk():
                     return
 
             # Sentry4Sentry (upstream) should get the event first because
-            # it is most isolated from the this sentry installation.
+            # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
                 metrics.incr("internal.captured.events.upstream")
                 # TODO(mattrobenolt): Bring this back safely.
@@ -405,10 +406,20 @@ def configure_sdk():
                 # install_id = options.get('sentry:install-id')
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
-                getattr(sentry4sentry_transport, method_name)(*args, **kwargs)
+                s4s_args = args
+                if method_name == "capture_envelope":
+                    args_list = list(args)
+                    envelope = args_list[0]
+                    # Do not forward metrics to s4s
+                    safe_items = [x for x in envelope.items if x.data_category != "statsd"]
+                    if len(safe_items) != len(envelope.items):
+                        relay_envelope = copy.copy(envelope)
+                        relay_envelope.items = safe_items
+                        s4s_args = [relay_envelope, *args_list[1:]]
+                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-                # If this is an envelope ensure envelope and it's items are distinct references
+                # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
                     envelope = args_list[0]
@@ -443,11 +454,26 @@ def configure_sdk():
                     return False
             return True
 
+        def flush(
+            self,
+            timeout,
+            callback=None,
+        ):
+            # flush transports in case we received a kill signal
+            if experimental_transport:
+                getattr(experimental_transport, "flush")(timeout, callback)
+            if sentry4sentry_transport:
+                getattr(sentry4sentry_transport, "flush")(timeout, callback)
+            if sentry_saas_transport:
+                getattr(sentry_saas_transport, "flush")(timeout, callback)
+
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
+
+    from sentry.metrics import minimetrics
 
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
@@ -455,6 +481,12 @@ def configure_sdk():
         "sync-options",
         "schedule-digests",
     ]
+
+    # turn on minimetrics
+    sdk_options.setdefault("_experiments", {}).update(
+        enable_metrics=True,
+        before_emit_metric=minimetrics.before_emit_metric,
+    )
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
@@ -476,6 +508,8 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    minimetrics.patch_sentry_sdk()
 
 
 class RavenShim:

@@ -10,7 +10,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -21,11 +20,6 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 import useVirtualizedInspector from '../useVirtualizedInspector';
 
-interface Props {
-  frames: undefined | BreadcrumbFrame[];
-  startTimestampMs: number;
-}
-
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
 const cellMeasurer = {
@@ -33,13 +27,16 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console({frames, startTimestampMs}: Props) {
+function Console() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getConsoleFrames();
 
   const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-  const {currentTime, currentHoverTime} = useReplayContext();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 

@@ -2,7 +2,7 @@ import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
 import {Group, PlatformType, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
-import {StackType, StackView} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
@@ -47,7 +47,6 @@ export function StackTrace({
   return (
     <TraceEventDataSection
       type={EntryType.STACKTRACE}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       platform={platform}

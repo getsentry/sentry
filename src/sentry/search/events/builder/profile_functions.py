@@ -7,7 +7,13 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.types import ParamsType, SelectType, SnubaParams, WhereType
+from sentry.search.events.types import (
+    ParamsType,
+    QueryBuilderConfig,
+    SelectType,
+    SnubaParams,
+    WhereType,
+)
 from sentry.snuba.dataset import Dataset
 
 
@@ -78,9 +84,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
+        config: Optional[QueryBuilderConfig] = None,
         limit: Optional[int] = 10000,
-        skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -92,9 +97,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
             equations=None,  # TODO: equations are not supported at this time
-            functions_acl=functions_acl,
             limit=limit,
-            skip_tag_resolution=skip_tag_resolution,
+            config=config,
         )
 
         self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
@@ -136,7 +140,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
 

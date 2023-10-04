@@ -31,6 +31,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_mon
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -236,7 +237,10 @@ class GetActiveOrgs:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(
@@ -420,7 +424,10 @@ class GetActiveOrgsVolumes:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(

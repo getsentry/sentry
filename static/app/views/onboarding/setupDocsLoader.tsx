@@ -14,9 +14,9 @@ import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -25,6 +25,7 @@ import useApi from 'sentry/utils/useApi';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
+  defaultComponent: ProductSelection,
 });
 
 export function SetupDocsLoader({
@@ -33,14 +34,12 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
-  newOrg,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
-  newOrg?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -143,17 +142,13 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      {!newOrg ? (
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          lazyLoader
-          skipLazyLoader={close}
-          platform={currentPlatform}
-        />
-      ) : (
-        <ProductSelection lazyLoader skipLazyLoader={close} platform={currentPlatform} />
-      )}
-
+      <ProductSelectionAvailabilityHook
+        organization={organization}
+        lazyLoader
+        skipLazyLoader={close}
+        platform={currentPlatform}
+      />
+      <Divider />
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
@@ -198,14 +193,31 @@ function ProjectKeyInfo({
 
   const loaderLink = projectKey.dsn.cdn;
   const currentPlatform = platform ?? project?.platform ?? 'other';
+  const hasPerformance = products.includes(ProductSolution.PERFORMANCE_MONITORING);
+  const hasSessionReplay = products.includes(ProductSolution.SESSION_REPLAY);
 
   const configCodeSnippet = beautify.html(
     `<script>
 Sentry.onLoad(function() {
-  Sentry.init({
-    // No need to configure DSN here, it is already configured in the loader script
-    // You can add any additional configuration here
-    sampleRate: 0.5,
+  Sentry.init({${
+    !(hasPerformance || hasSessionReplay)
+      ? `
+    // You can add any additional configuration here`
+      : ''
+  }${
+    hasPerformance
+      ? `
+    // Performance Monitoring
+    tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
+      : ''
+  }${
+    hasSessionReplay
+      ? `
+    // Session Replay
+    replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+    replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }
   });
 });
 </script>`,
@@ -338,4 +350,11 @@ const ToggleButton = styled(Button)`
   :hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;

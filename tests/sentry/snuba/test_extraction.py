@@ -1,14 +1,19 @@
+from unittest.mock import patch
+
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    apdex_tag_spec,
     cleanup_query,
+    failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
 )
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.mark.parametrize(
@@ -23,7 +28,10 @@ from sentry.snuba.metrics.extraction import (
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
+        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
+        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
+        ("apdex(10)", "", True),  # every apdex query is on-demand
+        ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -52,17 +60,28 @@ class TestCreatesOndemandMetricSpec:
     @pytest.mark.parametrize(
         "aggregate, query",
         [
+            # transaction duration not supported by standard metrics
             ("count()", "transaction.duration:>0"),
+            ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
+            ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
+            ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
                 "count()",
-                "project:a-1 route.action:CloseBatch level:info",
+                "project:a-1 route.action:CloseBatch level:info",  # custom tags not supported by standard metrics
             ),
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
-            ("count()", "foo:bar"),
+            ("count()", "foo:bar"),  # custom tags not supported by standard metrics
+            ("failure_count()", "transaction.duration:>100"),
+            ("failure_rate()", "transaction.duration:>100"),
+            ("apdex(10)", "transaction.duration:>100"),
+            (
+                "apdex(10)",
+                "",
+            ),  # apdex with specified threshold is on-demand metric even without query
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -71,19 +90,34 @@ class TestCreatesOndemandMetricSpec:
     @pytest.mark.parametrize(
         "aggregate, query",
         [
-            ("count()", "release:a"),
-            ("failure_rate()", "transaction.duration:>0"),
-            ("count_unique(user)", "transaction.duration:>0"),
-            ("last_seen()", "transaction.duration:>0"),
-            ("any(user)", "transaction.duration:>0"),
-            ("p95(transaction.duration)", ""),
-            ("count()", "p75(transaction.duration):>0"),
-            ("message", "transaction.duration:>0"),
-            ("equation| count() / count()", "transaction.duration:>0"),
-            ("p75(measurements.lcp)", "!event.type:transaction"),
-            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
+            ("count()", "release:a"),  # supported by standard metrics
+            (
+                "count_unique(user)",
+                "transaction.duration:>0",
+            ),  # count_unique not supported by on demand
+            ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
+            ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
+            ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
+            (
+                "count()",
+                "p75(transaction.duration):>0",
+            ),  # p75 without query is supported by standard metrics
+            ("message", "transaction.duration:>0"),  # message not supported by on demand
+            (
+                "equation| count() / count()",
+                "transaction.duration:>0",
+            ),  # equation not supported by on demand
+            ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
+            (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals not supported by on demand
+            # supported by standard metrics
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
+            ("failure_count()", ""),
+            ("failure_rate()", "release:bar"),
+            ("failure_rate()", ""),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
@@ -93,25 +127,25 @@ class TestCreatesOndemandMetricSpec:
 def test_spec_simple_query_count():
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
     assert spec.op == "sum"
-    assert spec.condition() == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
 def test_spec_simple_query_distribution():
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
-    assert spec.metric_type == "d"
-    assert spec.field == "event.measurements.fp"
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
-    assert spec.condition() == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
 def test_spec_or_condition():
     spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 
-    assert spec.condition() == {
+    assert spec.condition == {
         "inner": [
             {"name": "event.duration", "op": "gte", "value": 100.0},
             {"name": "event.duration", "op": "lt", "value": 1000.0},
@@ -122,7 +156,8 @@ def test_spec_or_condition():
 
 def test_spec_and_condition():
     spec = OnDemandMetricSpec("count()", "release:foo transaction.duration:<10s")
-    assert spec.condition() == {
+
+    assert spec.condition == {
         "inner": [
             {"name": "event.release", "op": "eq", "value": "foo"},
             {"name": "event.duration", "op": "lt", "value": 10000.0},
@@ -133,7 +168,8 @@ def test_spec_and_condition():
 
 def test_spec_nested_condition():
     spec = OnDemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
-    assert spec.condition() == {
+
+    assert spec.condition == {
         "op": "and",
         "inner": [
             {
@@ -150,7 +186,8 @@ def test_spec_nested_condition():
 
 def test_spec_boolean_precedence():
     spec = OnDemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
-    assert spec.condition() == {
+
+    assert spec.condition == {
         "op": "or",
         "inner": [
             {"name": "event.release", "op": "eq", "value": "a"},
@@ -167,7 +204,8 @@ def test_spec_boolean_precedence():
 
 def test_spec_wildcard():
     spec = OnDemandMetricSpec("count()", "release.version:1.*")
-    assert spec.condition() == {
+
+    assert spec.condition == {
         "name": "event.release.version.short",
         "op": "glob",
         "value": ["1.*"],
@@ -177,10 +215,10 @@ def test_spec_wildcard():
 def test_spec_count_if():
     spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
     assert spec.op == "sum"
-    assert spec.condition() == {
+    assert spec.condition == {
         "name": "event.duration",
         "op": "eq",
         "value": 300.0,
@@ -192,7 +230,7 @@ def test_spec_count_if_with_query():
         "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
     )
 
-    assert spec.condition() == {
+    assert spec.condition == {
         "op": "and",
         "inner": [
             {
@@ -211,10 +249,43 @@ def test_spec_in_operator():
     in_spec = OnDemandMetricSpec("count()", "transaction.duration:[1,2,3]")
     not_in_spec = OnDemandMetricSpec("count()", "!transaction.duration:[1,2,3]")
 
-    assert in_spec.condition() == {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]}
-    assert not_in_spec.condition() == {
+    assert in_spec.condition == {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]}
+    assert not_in_spec.condition == {
         "inner": {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]},
         "op": "not",
+    }
+
+
+def test_spec_with_custom_measurement():
+    spec = OnDemandMetricSpec("avg(measurements.memoryUsed)", "measurements.memoryUsed:>100")
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.memoryUsed.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "name": "event.measurements.memoryUsed.value",
+        "op": "gt",
+        "value": 100.0,
+    }
+
+
+def test_spec_with_has():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "has:measurements.lcp AND !has:measurements.memoryUsage"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": {"name": "event.measurements.lcp.value", "op": "eq", "value": None},
+                "op": "not",
+            },
+            {"name": "event.measurements.memoryUsage.value", "op": "eq", "value": None},
+        ],
+        "op": "and",
     }
 
 
@@ -222,13 +293,97 @@ def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
-    assert with_ignored_field.condition() == without_ignored_field.condition()
+    assert with_ignored_field.condition == without_ignored_field.condition
+
+
+@django_db_all
+def test_spec_failure_count(default_project):
+    spec = OnDemandMetricSpec("failure_count()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_failure_count"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+
+
+@django_db_all
+def test_spec_failure_rate(default_project):
+    spec = OnDemandMetricSpec("failure_rate()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_failure_rate"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+
+
+@django_db_all
+@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
+def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
+    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(10)", "release:a")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+
+
+@django_db_all
+def test_spec_epm(default_project):
+    spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_epm"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
+
+
+@django_db_all
+def test_spec_eps(default_project):
+    spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_eps"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
+
+
+def test_cleanup_equivalent_specs():
+    simple_spec = OnDemandMetricSpec("count()", "transaction.duration:>0")
+    event_type_spec = OnDemandMetricSpec(
+        "count()", "transaction.duration:>0 event.type:transaction"
+    )
+    parens_spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>0) AND (event.type:transaction) AND (project:foo)"
+    )
+
+    assert simple_spec.query_hash == event_type_spec.query_hash == parens_spec.query_hash
+
+
+@django_db_all
+@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
+def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
+    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(10)", "")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition is None
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
 
 
 def test_spec_custom_tag():
     custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
 
-    assert custom_tag_spec.condition() == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
+    assert custom_tag_spec.condition == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
 
 
 @pytest.mark.parametrize(

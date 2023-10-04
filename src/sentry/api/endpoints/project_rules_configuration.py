@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
@@ -10,6 +11,10 @@ from sentry.rules import rules
 
 @region_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
@@ -23,6 +28,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
+        has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -64,6 +70,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
+                if (
+                    context["id"] == "sentry.rules.filters.issue_severity.IssueSeverityFilter"
+                    and not has_issue_severity_alerts
+                ):
+                    continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)

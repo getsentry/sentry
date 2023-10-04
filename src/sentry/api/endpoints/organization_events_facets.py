@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -14,6 +15,10 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -76,6 +81,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     resp["device.class"]["topValues"] = filtered_values
 
             return list(resp.values())
+
+        if request.GET.get("includeAll"):
+            return Response(data_fn(0, 10000))
 
         return self.paginate(
             request=request,

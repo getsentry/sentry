@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from sentry.models import (
@@ -260,3 +262,34 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
         )
         assert len(slug) == 30
         assert slug == "areallylongsentryorg-945bda148"
+
+    def test_slug_with_mixed_casing(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="A mixed CASING str",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert slug == "a-mixed-casing-str-9e9173167"
+
+    def test_slug_with_unicode_chars(self):
+        unicoded_str = "Sí Señtry 😅"
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        assert slug == "si-sentry-3471b1b85"
+
+    def test_slug_with_0_length(self):
+        unicoded_str = "😅"
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        random_slug_regex = re.compile(r"^[a-f0-9]{10}-[a-f0-9]{9}")
+        assert random_slug_regex.match(slug)
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
+        )
+        assert random_slug_regex.match(slug)

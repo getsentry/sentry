@@ -107,6 +107,8 @@ class IntegrationFeatures(Enum):
     ALERT_RULE = "alert-rule"
     CHAT_UNFURL = "chat-unfurl"
     COMMITS = "commits"
+    ENTERPRISE_ALERT_RULE = "enterprise-alert-rule"
+    ENTERPRISE_INCIDENT_MANAGEMENT = "enterprise-incident-management"
     INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
@@ -196,7 +198,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        assert type(organization_id) == int
+        assert isinstance(organization_id, int)
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property

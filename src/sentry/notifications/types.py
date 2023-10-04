@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
@@ -69,6 +70,13 @@ class NotificationSettingTypes(ValueEqualityEnum):
     # Notifications about spikes
     SPIKE_PROTECTION = 60
 
+    # Nudge notifications
+    MISSING_MEMBERS = 70
+
+    # new for settings v2 but only with helper functions
+    # This value shouldn't be stored in the DB
+    REPORTS = -1
+
 
 class NotificationSettingEnum(Enum):
     DEFAULT = "default"
@@ -85,6 +93,8 @@ class NotificationSettingEnum(Enum):
     QUOTA_WARNINGS = "quotaWarnings"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
+    MISSING_MEMBERS = "missingMembers"
+    REPORTS = "reports"
 
 
 # TODO(Steve): clean up after we finish migrating to settings 2.0
@@ -103,6 +113,7 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
     NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
+    NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
 }
 
 
@@ -255,6 +266,14 @@ VALID_VALUES_FOR_KEY = {
     },
 }
 
+VALID_VALUES_FOR_KEY_V2 = {
+    **VALID_VALUES_FOR_KEY,
+    NotificationSettingTypes.REPORTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+}
+
 
 class GroupSubscriptionReason:
     implicit = -1  # not for use as a persisted field value
@@ -331,3 +350,10 @@ ASSIGNEE_CHOICES = [
     (AssigneeTargetType.TEAM.value, "Team"),
     (AssigneeTargetType.MEMBER.value, "Member"),
 ]
+
+
+@dataclass
+class GroupSubscriptionStatus:
+    is_disabled: bool
+    is_active: bool
+    has_only_inactive_subscriptions: bool

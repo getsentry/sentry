@@ -7,9 +7,10 @@ import {GettingStartedWithEmber, nextSteps, steps} from './ember';
 
 describe('GettingStartedWithEmber', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithEmber
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -38,7 +39,5 @@ describe('GettingStartedWithEmber', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

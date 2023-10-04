@@ -32,6 +32,7 @@ from django.test import override_settings
 from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
 from sentry.models.notificationsetting import NotificationSetting
@@ -43,7 +44,7 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 TestMethod = Callable[..., None]
 
 _DEFAULT_TEST_REGIONS = (
-    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
     Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 )
@@ -302,17 +303,22 @@ def get_protected_operations() -> List[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+            if issubclass(model, ReplicatedControlModel) or issubclass(
+                model, ReplicatedRegionModel
+            ):
+                _protected_operations.append(protected_table(model._meta.db_table, "insert"))
+                _protected_operations.append(protected_table(model._meta.db_table, "update"))
+                _protected_operations.append(protected_table(model._meta.db_table, "delete"))
 
     # Protect inserts/updates that require outbox messages.
     _protected_operations.extend(
         [
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),
-            protected_table("sentry_organization", "insert"),
-            protected_table("sentry_organization", "update"),
-            protected_table("sentry_organizationmapping", "insert"),
-            protected_table("sentry_organizationmapping", "update"),
             protected_table("sentry_organizationmembermapping", "insert"),
         ]
     )

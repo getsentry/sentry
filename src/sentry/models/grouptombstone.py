@@ -2,6 +2,7 @@ import logging
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -17,7 +18,7 @@ TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "dat
 
 @region_silo_only_model
 class GroupTombstone(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")

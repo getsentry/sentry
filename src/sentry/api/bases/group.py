@@ -4,6 +4,7 @@ import logging
 
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -33,6 +34,7 @@ class GroupPermission(ProjectPermission):
 
 
 class GroupEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
     def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):

@@ -555,6 +555,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("trace", expected=[])
         self.run_test("event_id", expected=[])
         self.run_test("profile_id", expected=[])
+        self.run_test("replay_id", expected=[])
 
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])

@@ -6,6 +6,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 
 @control_silo_only_model
 class LostPasswordHash(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
@@ -37,7 +38,7 @@ class LostPasswordHash(Model):
         self.hash = get_secure_token()
 
     def is_valid(self) -> bool:
-        return self.date_added > timezone.now() - timedelta(hours=48)
+        return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
     def send_email(cls, user, hash, request, mode="recover") -> None:

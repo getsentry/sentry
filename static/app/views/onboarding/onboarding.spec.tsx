@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -8,7 +10,7 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/types';
 import {OnboardingProjectStatus, Project} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
@@ -86,6 +88,11 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
       body: null,
     });
@@ -103,7 +110,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     jest
@@ -171,6 +178,11 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/`,
       body: [reactProject],
     });
@@ -178,7 +190,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -261,6 +273,11 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/`,
       body: [reactProject],
     });
@@ -268,7 +285,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({

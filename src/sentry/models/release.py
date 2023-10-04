@@ -18,6 +18,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
 from sentry import features
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
@@ -97,7 +98,7 @@ class ReleaseProjectModelManager(BaseManager):
 
 @region_silo_only_model
 class ReleaseProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -458,7 +459,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(

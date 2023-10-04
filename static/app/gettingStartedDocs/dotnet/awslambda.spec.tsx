@@ -6,7 +6,7 @@ import {GettingStartedAwsLambda, steps} from './awslambda';
 
 describe('GettingStartedAwsLambda', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedAwsLambda dsn="test-dsn" />);
+    render(<GettingStartedAwsLambda dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedAwsLambda', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

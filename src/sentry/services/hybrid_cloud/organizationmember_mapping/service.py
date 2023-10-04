@@ -4,9 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import cast
 
-from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMapping,
     RpcOrganizationMemberMappingUpdate,
@@ -35,17 +34,8 @@ class OrganizationMemberMappingService(RpcService):
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> Optional[RpcOrganizationMemberMapping]:
+    ) -> RpcOrganizationMemberMapping:
         pass
-
-    def upsert_with_organization_member(
-        self, *, org_member: OrganizationMember
-    ) -> Optional[RpcOrganizationMemberMapping]:
-        return self.upsert_mapping(
-            organizationmember_id=org_member.id,
-            organization_id=org_member.organization_id,
-            mapping=RpcOrganizationMemberMapping.from_orm(org_member),
-        )
 
     @rpc_method
     @abstractmethod

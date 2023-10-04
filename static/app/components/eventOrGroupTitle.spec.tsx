@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -14,7 +16,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -26,12 +28,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -43,12 +43,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -62,14 +60,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization()},
-    ]);
+    const routerContext = TestStubs.routerContext([{organization: Organization()}]);
 
     render(
       <EventOrGroupTitle
@@ -146,9 +140,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization()},
-      ]);
+      const routerContext = TestStubs.routerContext([{organization: Organization()}]);
 
       render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
 

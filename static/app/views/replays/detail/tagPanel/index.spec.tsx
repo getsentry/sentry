@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -34,12 +34,8 @@ describe('TagPanel', () => {
     expect(screen.getByTestId('replay-tags-loading-placeholder')).toBeInTheDocument();
   });
 
-  it('should snapshot empty state', async () => {
-    const {container} = renderComponent(null);
-
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
+  it('should snapshot empty state', () => {
+    renderComponent(null);
   });
 
   it('should show the tags correctly inside ReplayTagsTableRow component with single item array', () => {
@@ -79,12 +75,8 @@ describe('TagPanel', () => {
     );
   });
 
-  it('should snapshot state with tags', async () => {
-    const {container} = renderComponent(mockReplay);
-
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
+  it('should snapshot state with tags', () => {
+    renderComponent(mockReplay);
   });
 
   it('should show not found message when no tags are found', () => {

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -39,12 +40,6 @@ describe('GroupEventCarousel', () => {
   });
 
   describe('recommended event ui', () => {
-    const orgWithRecommendedEvent = TestStubs.Organization({
-      features: [
-        'issue-details-most-helpful-event',
-        'issue-details-most-helpful-event-ui',
-      ],
-    });
     const recommendedUser = TestStubs.User({
       options: {
         defaultIssueEvent: 'recommended',
@@ -64,9 +59,7 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...defaultProps} />);
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
@@ -80,9 +73,7 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...defaultProps} />);
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /latest/i}));
@@ -97,7 +88,6 @@ describe('GroupEventCarousel', () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...defaultProps} />, {
-        organization: orgWithRecommendedEvent,
         router: {
           params: {eventId: 'latest'},
         },
@@ -115,9 +105,7 @@ describe('GroupEventCarousel', () => {
     it('will disable the dropdown if there is only one event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
@@ -126,9 +114,7 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.getByText('Recommended')).toBeInTheDocument();
     });
@@ -137,9 +123,7 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.getByText('Latest')).toBeInTheDocument();
     });
@@ -148,9 +132,7 @@ describe('GroupEventCarousel', () => {
       ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...singleEventProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
+      render(<GroupEventCarousel {...singleEventProps} />);
 
       expect(await screen.getByText('Oldest')).toBeInTheDocument();
     });
@@ -190,7 +172,7 @@ describe('GroupEventCarousel', () => {
 
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      organization: TestStubs.Organization({features: ['discover-basic']}),
+      organization: Organization({features: ['discover-basic']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));

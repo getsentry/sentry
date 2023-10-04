@@ -34,6 +34,7 @@ from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normal
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BaseManager,
@@ -134,7 +135,7 @@ class ProjectDebugFileManager(BaseManager):
 
 @region_silo_only_model
 class ProjectDebugFile(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     file = FlexibleForeignKey("sentry.File")
     checksum = models.CharField(max_length=40, null=True, db_index=True)
@@ -366,7 +367,7 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
 
 @region_silo_only_model
 class ProguardArtifactRelease(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()
     project_id = BoundedBigIntegerField()

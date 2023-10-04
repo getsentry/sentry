@@ -4,9 +4,43 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  PlatformOption,
+  useUrlPlatformOptions,
+} from 'sentry/components/onboarding/platformOptionsControl';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
+export enum PackageManager {
+  GRADLE = 'gradle',
+  MAVEN = 'maven',
+}
+
+type PlaformOptionKey = 'packageManager';
+
+interface StepsParams {
+  dsn: string;
+  hasPerformance: boolean;
+  packageManager: PackageManager;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
+
 // Configuration Start
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  packageManager: {
+    label: t('Package Manager'),
+    items: [
+      {
+        label: t('Gradle'),
+        value: PackageManager.GRADLE,
+      },
+      {
+        label: t('Maven'),
+        value: PackageManager.MAVEN,
+      },
+    ],
+  },
+};
 const introduction = (
   <p>
     {tct(
@@ -26,53 +60,65 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+  hasPerformance,
+  packageManager,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Install the SDK via Gradle or Maven:'),
-    configurations: [
-      {
-        language: 'groovy',
-        description: (
-          <p>
-            {tct('For [strong:Gradle], add to your [code:build.gradle] file:', {
-              strong: <strong />,
-              code: <code />,
-            })}
-          </p>
-        ),
-        code: `
+    configurations:
+      packageManager === PackageManager.GRADLE
+        ? [
+            {
+              language: 'groovy',
+              description: (
+                <p>
+                  {tct('Add the Sentry SDK to your [code:build.gradle] file:', {
+                    code: <code />,
+                  })}
+                </p>
+              ),
+              partialLoading: sourcePackageRegistries?.isLoading,
+              code: `
 // Make sure mavenCentral is there.
 repositories {
   mavenCentral()
 }
 
 dependencies {
-  implementation 'io.sentry:sentry:{{@inject packages.version('sentry.java', '4.0.0') }}'
+  implementation 'io.sentry:sentry:${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
+  }'
 }
         `,
-      },
-      {
-        language: 'xml',
-        description: (
-          <p>
-            {tct('For [strong:Maven], add to your [code:pom.xml] file:', {
-              strong: <strong />,
-              code: <code />,
-            })}
-          </p>
-        ),
-        code: `
+            },
+          ]
+        : [
+            {
+              language: 'xml',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              description: (
+                <p>
+                  {tct('Add the Sentry SDK to your [code:pom.xml] file:', {
+                    code: <code />,
+                  })}
+                </p>
+              ),
+              code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.25.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
+  }</version>
 </dependency>
         `,
-      },
-    ],
+            },
+          ],
   },
   {
     type: StepType.CONFIGURE,
@@ -86,10 +132,14 @@ dependencies {
 import io.sentry.Sentry
 
 Sentry.init { options ->
-  options.dsn = "${dsn}"
+  options.dsn = "${dsn}"${
+    hasPerformance
+      ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
   // We recommend adjusting this value in production.
-  options.tracesSampleRate = 1.0
+  options.tracesSampleRate = 1.0`
+      : ''
+  }
   // When first trying Sentry it's good to see what the SDK is doing:
   options.isDebug = true
 }
@@ -118,30 +168,31 @@ try {
   throw Exception("This is a test.")
 } catch (e: Exception) {
   Sentry.captureException(e)
-}
-        `,
+}`,
+        additionalInfo: (
+          <Fragment>
+            {t(
+              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+            )}
+            <p>
+              {t(
+                "If you're an existing user and have disabled alerts, you won't receive this email."
+              )}
+            </p>
+          </Fragment>
+        ),
       },
-    ],
-    additionalInfo: (
-      <Fragment>
-        {t(
-          "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-        )}
-        <p>
-          {t(
-            "If you're an existing user and have disabled alerts, you won't receive this email."
-          )}
-        </p>
-      </Fragment>
-    ),
-  },
-  {
-    title: t('Measure Performance'),
-    description: t('You can capture transactions using the SDK. For example:'),
-    configurations: [
-      {
-        language: 'kotlin',
-        code: `
+      ...(hasPerformance
+        ? [
+            {
+              description: <h5>{t('Measure Performance')}</h5>,
+              configurations: [
+                {
+                  description: t(
+                    'You can capture transactions using the SDK. For example:'
+                  ),
+                  language: 'kotlin',
+                  code: `
 import io.sentry.Sentry
 import io.sentry.SpanStatus
 
@@ -155,28 +206,52 @@ try {
 throw e
 } finally {
   transaction.finish();
-}
-        `,
-      },
+}`,
+                  additionalInfo: (
+                    <p>
+                      {tct(
+                        'For more information about the API and automatic instrumentations included in the SDK, visit the docs.',
+                        {
+                          docsLink: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/java/performance/" />
+                          ),
+                        }
+                      )}
+                    </p>
+                  ),
+                },
+              ],
+            },
+          ]
+        : []),
     ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'For more information about the API and automatic instrumentations included in the SDK, visit the docs.',
-          {
-            docsLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/performance/" />
-            ),
-          }
-        )}
-      </p>
-    ),
   },
 ];
 // Configuration End
 
-export function GettingStartedWithKotlin({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithKotlin({
+  dsn,
+  sourcePackageRegistries,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+  return (
+    <Layout
+      steps={steps({
+        dsn,
+        sourcePackageRegistries,
+        packageManager: optionValues.packageManager as PackageManager,
+        hasPerformance,
+      })}
+      introduction={introduction}
+      platformOptions={platformOptions}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithKotlin;
