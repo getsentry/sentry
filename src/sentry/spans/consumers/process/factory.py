@@ -186,11 +186,11 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
             relay_span["project_id"],
         )
 
-    if "sentry_tags" not in relay_span and "data" in relay_span:
-        relay_span["sentry_tags"] = relay_span.pop("data")
-
     relay_span["organization_id"] = organization_id
     relay_span["retention_days"] = retention_days
+
+    if "sentry_tags" not in relay_span and "data" in relay_span:
+        relay_span["sentry_tags"] = relay_span.pop("data")
 
     snuba_span = _process_relay_span_v0(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
