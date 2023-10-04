@@ -27,7 +27,7 @@ class ReleaseThresholdIndexGETValidator(serializers.Serializer):
 class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
