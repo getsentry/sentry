@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 
-from django.urls import reverse
-
 from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
@@ -113,10 +111,6 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        self.url = reverse(
-            "sentry-api-0-organization-release-threshold-statuses",
-            kwargs={"organization_slug": self.organization.slug},
-        )
 
     def test_get_success(self):
         """
