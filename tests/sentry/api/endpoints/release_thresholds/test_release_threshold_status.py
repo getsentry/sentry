@@ -386,8 +386,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             },
         ]
 
-        # base threshold within series
-        threshold_healthy: EnrichedThreshold = {
+        # current threshold within series
+        current_threshold_healthy: EnrichedThreshold = {
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -399,10 +399,28 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 4,  # error counts _not_ be over threshold value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+
+        # threshold equal to count
+        threshold_at_limit_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": self.project1,
+            "project_id": self.project1.id,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER,
+            "value": 1,  # error counts equal to threshold limit value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
@@ -418,12 +436,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
             "value": 2,
-            "window_in_seconds": 60,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
 
         # threshold within series but trigger is under
-        threshold_unhealthy: EnrichedThreshold = {
+        threshold_under_unhealthy: EnrichedThreshold = {
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -435,10 +453,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.UNDER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        assert not is_error_count_healthy(
+            ethreshold=threshold_under_unhealthy, timeseries=timeseries
+        )
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
@@ -453,8 +473,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
 
@@ -532,8 +552,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
 
@@ -550,8 +570,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release2.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
 
@@ -629,8 +649,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
 
@@ -647,8 +667,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
 
@@ -727,7 +747,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
             "value": 2,
-            "window_in_seconds": 60,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
 
@@ -744,7 +764,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
-            "value": 2,
-            "window_in_seconds": 60,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)

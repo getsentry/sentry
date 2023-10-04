@@ -317,8 +317,8 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
         total_count += i["count()"]
 
     if ethreshold["trigger_type"] == TriggerType.OVER:
-        # If total is under the threshold value, then it is healthy
-        return total_count < ethreshold["value"]
+        # If total is under/equal the threshold value, then it is healthy
+        return total_count <= ethreshold["value"]
 
-    # Else, if total is over the threshold value, then it is healthy
-    return total_count > ethreshold["value"]
+    # Else, if total is over/equal the threshold value, then it is healthy
+    return total_count >= ethreshold["value"]
