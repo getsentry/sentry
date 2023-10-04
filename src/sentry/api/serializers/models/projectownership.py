@@ -1,10 +1,12 @@
+from typing import Any, Dict
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.projectownership import ProjectOwnership
 
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user, should_return_schema=False):
+    def serialize(self, obj, attrs, user, should_return_schema=False) -> Dict[str, Any]:
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -32,18 +31,6 @@ READ_CACHE_DURATION = 3600
 
 
 _Everyone = enum.Enum("_Everyone", "EVERYONE")
-
-
-# JSON object representing this model in API response
-class ProjectOwnershipResponse(TypedDict):
-    raw: str
-    fallthrough: bool
-    dateCreated: int
-    lastUpdated: int
-    isActive: bool
-    autoAssignment: str
-    codeownersAutoSync: bool
-    schema: dict
 
 
 @region_silo_only_model
