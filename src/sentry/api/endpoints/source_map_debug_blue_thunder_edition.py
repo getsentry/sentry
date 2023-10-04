@@ -50,6 +50,9 @@ NO_DEBUG_ID_SDKS = {
     "sentry.javascript.sveltekit",
 }
 
+# This number will equate to an upper bound of file lookups/downloads
+ARTIFACT_INDEX_LOOKUP_LIMIT = 25
+
 
 class SourceMapDebugIdProcessResult(TypedDict):
     debug_id: Optional[str]
@@ -512,7 +515,7 @@ class ReleaseLookupData:
             release_id=self.release.id,
             file__type="release.artifact-index",
         ).select_related("file")[
-            :25
+            :ARTIFACT_INDEX_LOOKUP_LIMIT
         ]  # limit by something sane in case people have a large number of dists for the same release
 
         return self.artifact_index_release_files
