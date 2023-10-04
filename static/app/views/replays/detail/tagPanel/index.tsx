@@ -44,9 +44,10 @@ function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
-  const tagFrame = replayRecord?.tags;
+  const tagFrames = replayRecord?.tags;
 
-  const filterProps = useTagFilters({tagFrame: tagFrame || {}});
+  const filterProps = useTagFilters({tagFrame: tagFrames || {}});
+  const {items} = filterProps;
 
   const generateUrl = useCallback(
     (name: string, value: ReactNode) =>
@@ -65,13 +66,17 @@ function TagPanel() {
     return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
 
+  // need to change items from Record<string, string[]>[] type to Record<string, string[]> type for search to work
+  const item: Record<string, string[]> = {};
+  Object.entries(items.values).forEach(([key, val]) => {
+    item[key] = val;
+  });
+
   const tags = Object.entries(replayRecord.tags);
 
   return (
     <FluidHeight>
-      <FilterLoadingIndicator isLoading={isFetching}>
-        <TagFilters actions={actions} {...filterProps} />
-      </FilterLoadingIndicator>
+      <TagFilters tagFrames={tags} {...filterProps} />
       <TabItemContainer>
         <FluidPanel>
           {tags.length ? (

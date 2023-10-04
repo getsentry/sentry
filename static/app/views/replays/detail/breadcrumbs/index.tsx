@@ -111,9 +111,9 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <FilterLoadingIndicator isLoading={isFetching}>
+      {/* <FilterLoadingIndicator isLoading={isFetching}>
         <BreadcrumbFilters actions={actions} {...filterProps} />
-      </FilterLoadingIndicator>
+      </FilterLoadingIndicator> */}
       <TabItemContainer>
         {frames ? (
           <AutoSizer onResize={updateList}>

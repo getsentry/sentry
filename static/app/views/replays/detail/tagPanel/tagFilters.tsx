@@ -4,10 +4,10 @@ import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 type Props = {
-  actions: undefined | unknown[];
+  tagFrames: undefined | unknown[];
 } & ReturnType<typeof useTagFilters>;
 
-function TagFilters({actions, searchTerm, setSearchTerm}: Props) {
+function TagFilters({tagFrames, searchTerm, setSearchTerm}: Props) {
   return (
     <FiltersGrid>
       <SearchBar
@@ -15,7 +15,7 @@ function TagFilters({actions, searchTerm, setSearchTerm}: Props) {
         onChange={setSearchTerm}
         placeholder={t('Search Tags')}
         query={searchTerm}
-        disabled={!actions || !actions.length}
+        disabled={!tagFrames || !tagFrames.length}
       />
     </FiltersGrid>
   );
