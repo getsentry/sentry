@@ -166,24 +166,13 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
 
         try:
             with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
-                org_qs = Organization.objects.filter(
-                    id=org_slug_temporary_alias_res.organization_id
-                )
-                if not org_qs.exists():
-                    # The org either hasn't been provisioned yet, or was recently deleted.
-                    return False
-
-                assert (
-                    org_qs.count() == 1
-                ), "Only 1 Organization should be affected by a slug change"
-
-                org = org_qs.first()
+                org = Organization.objects.get(id=org_slug_temporary_alias_res.organization_id)
 
                 if org.slug != org_slug_temporary_alias_res.slug:
                     org.update(slug=org_slug_temporary_alias_res.slug)
 
             return True
-        except IntegrityError as e:
+        except (IntegrityError, Organization.DoesNotExist) as e:
             # We hit a slug collision here and cannot accept the new slug
             #  on the region side
             capture_exception(e)

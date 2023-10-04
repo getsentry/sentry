@@ -40,8 +40,6 @@ def handle_organization_provisioning_outbox_payload(
     :return:
     """
 
-    from sentry.models import OrganizationMapping, OrganizationSlugReservation
-
     org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
         organization_id=organization_id, slug=provisioning_payload.provision_options.slug
     )
@@ -71,15 +69,6 @@ def handle_organization_provisioning_outbox_payload(
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             org_slug_reservation.delete()
         return
-
-    organization_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-    if not organization_mapping:
-        error = OrganizationProvisioningException(
-            f"Expected there to be an organization mapping for org: {organization_id}"
-        )
-        capture_exception(error)
-
-        raise error
 
 
 def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reservation_id: int):
