@@ -173,7 +173,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
               query: omit(location.query, 'endpoint'),
             }}
           >
-            {t('View More Endpoints')}
+            {t('View More')}
           </Button>
         )}
         <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -190,7 +190,7 @@ const getColumnOrder = (
 ): TableColumnHeader[] => [
   {
     key: 'transaction',
-    name: t('Found In Endpoints'),
+    name: t('Found In'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
