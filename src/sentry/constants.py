@@ -178,6 +178,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "syntax",
+        "syntaxfm",
         "team-avatar",
         "teams",
         "terms",
