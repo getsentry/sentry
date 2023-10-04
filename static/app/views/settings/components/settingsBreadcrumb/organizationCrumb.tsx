@@ -47,11 +47,11 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
       params: {...params, orgId: itemOrg.slug},
     });
     const resolvedUrl = resolveRoute(path, organization, itemOrg);
-    const destinationUrl = new URL(resolvedUrl);
-    if (destinationUrl.hostname === window.location.host) {
-      browserHistory.push(path);
+    // If we have a shift in domains, we can't use history
+    if (resolvedUrl.startsWith('http')) {
+      window.location.assign(resolvedUrl);
     } else {
-      window.location.assign(destinationUrl);
+      browserHistory.push(resolvedUrl);
     }
   };
 
