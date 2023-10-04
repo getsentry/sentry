@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence, Union
 
 from snuba_sdk import (
@@ -14,6 +15,7 @@ from snuba_sdk import (
 )
 
 from sentry.models.project import Project
+from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.metrics.fields.base import _get_entity_of_metric_mri, org_id_from_projects
@@ -24,7 +26,31 @@ from sentry.utils.snuba import raw_snql_query
 FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
 
 
-def run_query(request: Request) -> Mapping[str, Any]:
+def _zero_fill(
+    start: datetime, end: datetime, interval: int, results: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    start_seconds = start.timestamp()
+    end_seconds = end.timestamp()
+
+    current_time = start_seconds
+    zerofilled_results = [{"time": datetime.fromtimestamp(current_time, timezone.utc).isoformat()}]
+    while current_time + interval <= end_seconds:
+        next_time = current_time + interval
+        zerofilled_results.append(
+            {"time": datetime.fromtimestamp(next_time, timezone.utc).isoformat()}
+        )
+        current_time = next_time
+
+    data = results["data"]
+    for value in data:
+        time_seconds = parse_datetime_string(value["time"]).timestamp()
+        zerofill_index = int((time_seconds - start_seconds) / interval)
+        zerofilled_results[zerofill_index] = value
+
+    return {**results, "data": zerofilled_results}
+
+
+def run_query(request: Request, zero_fill: bool = False) -> Mapping[str, Any]:
     """
     Entrypoint for executing a metrics query in Snuba.
 
@@ -58,7 +84,12 @@ def run_query(request: Request) -> Mapping[str, Any]:
     resolved_metrics_query = resolve_metrics_query(metrics_query)
     request.query = resolved_metrics_query
 
-    return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    return (
+        _zero_fill(metrics_query.start, metrics_query.end, metrics_query.rollup.interval, results)
+        if zero_fill
+        else results
+    )
 
 
 def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:

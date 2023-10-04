@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
     AliasedExpression,
@@ -29,8 +29,8 @@ GRANULARITIES = [
     60 * 60 * 24,  # 24 hours
 ]
 
-FIELD_REGEX = re.compile(r"(\w+)\((.+)\)(?:\s*)")
-QUERY_REGEX = re.compile(r"(\w+):(.+)(?:\s*)")
+FIELD_REGEX = re.compile(r"(\w+)\(([^\s]+)\)(?:\s*)")
+QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s*)")
 GROUP_BY_REGEX = re.compile(r"(\w+)(?:\s*)")
 
 
@@ -159,6 +159,26 @@ def _get_date_range(interval: str, start: str, end: str) -> Tuple[datetime, date
     return start, end, interval, _get_granularity(interval)
 
 
+def _translate_result(result: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    from
+
+    {'aggregate_value': 4.0,
+    'time': '2023-10-03T10:00:00+00:00',
+    'transaction': '/hello'}
+
+    to
+
+    {
+        "by": {"val": 1, "val": 2},
+        "series": {},
+        "totals": {},
+    }
+    """
+    data = result["data"]
+    return result
+
+
 def run_metrics_query(
     field: str,
     query: str,
@@ -198,7 +218,7 @@ def run_metrics_query(
             query=base_query,
             tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
         )
-        result = run_query(request)
-        results.append(result["data"])
+        result = run_query(request=request, zero_fill=True)
+        results.append(_translate_result(result))
 
     return results
