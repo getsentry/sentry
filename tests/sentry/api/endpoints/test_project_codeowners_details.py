@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import patch
 
@@ -53,14 +54,18 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def test_basic_update(self):
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
+        date = datetime(2023, 10, 3, tzinfo=timezone.utc)
         data = {
-            "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
+            "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n",
+            "date_updated": date,
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == data["raw"].strip()
+        codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
+        assert codeowner.date_updated == date
 
     def test_wrong_codeowners_id(self):
         self.url = reverse(
