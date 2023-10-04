@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Tuple, cast
+from typing import List, Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
@@ -102,7 +102,7 @@ class CustomRulePermission(BasePermission):
 
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
-    permission_classes: Tuple[BasePermission, ...] = (CustomRulePermission,)
+    permission_classes = (CustomRulePermission,)
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
