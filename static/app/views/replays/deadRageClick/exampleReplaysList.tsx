@@ -91,8 +91,8 @@ export default function ExampleReplaysList({
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              showUrl={false}
               referrer_table="selector-widget"
+              isWidget
             />
           );
         })

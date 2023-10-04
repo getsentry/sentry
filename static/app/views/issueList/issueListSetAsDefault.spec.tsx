@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Search} from 'sentry-fixture/search';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -8,7 +9,7 @@ import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault'
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueListSetAsDefault', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   const {router} = initializeOrg();
 

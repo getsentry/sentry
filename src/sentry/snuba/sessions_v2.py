@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import math
@@ -7,13 +9,17 @@ from typing import Any, Dict, List, Optional, Tuple
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
+
+dropped_outcomes = [Outcome.INVALID.api_name(), Outcome.RATE_LIMITED.api_name()]
 
 
 """
@@ -648,6 +654,131 @@ def massage_sessions_result(
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
+    }
+
+
+def massage_sessions_result_summary(
+    query, result_totals, outcome_query=None
+) -> Dict[str, List[Any]]:
+    """
+    Post-processes the query result.
+
+    Given the `query` as defined by [`QueryDefinition`] and its totals and
+    timeseries results from snuba, groups and transforms the result into the
+    expected format.
+
+    For example:
+    ```json
+    {
+      "start": "2020-12-16T00:00:00Z",
+      "end": "2020-12-16T12:00:00Z",
+      "projects": [
+        {
+          "id": 1,
+          "stats": [
+            {
+              "category": "error",
+              "outcomes": {
+                "accepted": 6,
+                "filtered": 0,
+                "rate_limited": 1,
+                "invalid": 0,
+                "abuse": 0,
+                "client_discard": 0,
+              },
+              "totals": {
+                "dropped": 1,
+                "sum(quantity)": 7,
+              },
+            }
+          ]
+        }
+      ]
+    }
+    ```
+    """
+    total_groups = _split_rows_groupby(result_totals, query.groupby)
+
+    def make_totals(totals, group):
+        return {
+            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
+        }
+
+    def get_category_stats(
+        reason, totals, outcome, category, category_stats: None | Dict[str, int] = None
+    ):
+        if not category_stats:
+            category_stats = {
+                "category": category,
+                "outcomes": {o.api_name(): 0 for o in Outcome}
+                if not outcome_query
+                else {o: 0 for o in outcome_query},
+                "totals": {},
+            }
+            if not outcome_query or any([o in dropped_outcomes for o in outcome_query]):
+                category_stats["totals"] = {"dropped": 0}
+            if reason:
+                category_stats["reason"] = reason
+
+        for k, v in totals.items():
+            if k in category_stats["totals"]:
+                category_stats["totals"][k] += v
+            else:
+                category_stats["totals"][k] = v
+
+            category_stats["outcomes"][outcome] += v
+            if outcome in dropped_outcomes:
+                category_stats["totals"]["dropped"] += v
+
+        return category_stats
+
+    keys = set(total_groups.keys())
+    projects = {}
+
+    for key in keys:
+        by = dict(key)
+        project_id = by["project"]
+        outcome = by["outcome"]
+        category = by["category"]
+        reason = by.get("reason")  # optional
+
+        totals = make_totals(total_groups.get(key, [None]), by)
+
+        if project_id not in projects:
+            projects[project_id] = {"categories": {}}
+
+        if category in projects[project_id]["categories"]:
+            # update stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category, projects[project_id]["categories"][category]
+            )
+        else:
+            # create stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category
+            )
+
+    projects = dict(sorted(projects.items()))
+    ids = projects.keys()
+    project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
+    formatted_projects = []
+
+    # format stats for each project
+    for key, values in projects.items():
+        categories = values["categories"]
+        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+
+        for key, stats in categories.items():
+            project_dict["stats"].append(stats)
+
+        project_dict["stats"].sort(key=lambda d: d["category"])
+
+        formatted_projects.append(project_dict)
+
+    return projects, {
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
+        "projects": formatted_projects,
     }
 
 

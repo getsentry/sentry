@@ -7,7 +7,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_webhook_outboxes
+from sentry.testutils.outbox import assert_webhook_outboxes, outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -117,7 +117,8 @@ class JiraRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):
         path = f"{self.path_base}/issue-updated/"
-        request = self.factory.post(path=path)
+        with outbox_runner():
+            request = self.factory.post(path=path)
         parser = JiraRequestParser(request, self.get_response)
 
         assert ControlOutbox.objects.count() == 0

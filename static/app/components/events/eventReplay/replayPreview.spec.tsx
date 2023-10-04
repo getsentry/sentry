@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -83,7 +85,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
+      <OrganizationContext.Provider value={Organization()}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,

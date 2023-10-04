@@ -107,8 +107,8 @@ const Folder = styled('details')`
   &:before {
     content: '⏵';
     position: absolute;
-    left: 0;
-    top: 0;
+    left: ${space(0.25)};
+    top: ${space(0.25)};
   }
   &[open]:before {
     content: '⏷';
@@ -137,6 +137,7 @@ const FolderName = styled('summary')`
 const FolderLink = styled(Link)`
   display: block;
   padding: ${space(0.25)};
+  padding-left: 14px;
 
   color: inherit;
   &:hover {

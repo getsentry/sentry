@@ -1,16 +1,18 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
-const mockUnauthorizedOrg = TestStubs.Organization({
+const mockUnauthorizedOrg = Organization({
   features: [],
 });
 
-const mockAuthorizedOrg = TestStubs.Organization({
+const mockAuthorizedOrg = Organization({
   features: ['discover-query'],
 });
 
@@ -19,7 +21,7 @@ const mockPayload = {
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
 
-const mockRouterContext = (mockOrganization: Organization) =>
+const mockRouterContext = (mockOrganization: TOrganization) =>
   TestStubs.routerContext([
     {
       organization: mockOrganization,
