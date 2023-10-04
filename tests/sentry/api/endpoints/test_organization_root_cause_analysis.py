@@ -254,13 +254,14 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "span_op": "django.middleware",
                 "span_group": "2b9cbb96dbf59baa",
                 "span_description": "middleware span",
-                "score_delta": 10.666666666666666,
+                "score_delta": 1578.0,
                 "freq_before": 1.0,
                 "freq_after": 3.0,
                 "freq_delta": 2.0,
-                "duration_delta": 2.888888888888889,
+                "duration_delta": 486.0,
                 "duration_before": 60.0,
-                "duration_after": 233.33333333333334,
+                "duration_after": 546.0,
+                "is_new_span": False,
             }
         ]
 
@@ -340,15 +341,16 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         assert len(response.data) == 1
         assert response.data == [
             {
-                "span_op": "django.middleware",
-                "span_group": "2b9cbb96dbf59baa",
-                "score_delta": 0.6666666666666666,
-                "freq_before": 1.0,
+                "span_op": "db",
+                "span_group": "d77d5e503ad1439f",
+                "score_delta": 100.0,
+                "freq_before": 0,
                 "freq_after": 1.0,
-                "freq_delta": 0.0,
-                "duration_delta": 0.6666666666666666,
-                "duration_before": 60.0,
+                "freq_delta": 1.0,
+                "duration_delta": 100.0,
+                "duration_before": 0,
                 "duration_after": 100.0,
-                "span_description": "middleware span",
+                "span_description": "db",
+                "is_new_span": True,
             }
         ]

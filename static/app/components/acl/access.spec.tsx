@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['project:write', 'project:read'],
   });
   const routerContext = TestStubs.routerContext([{organization}]);
@@ -41,7 +43,7 @@ describe('Access', function () {
     });
 
     it('read access from team', function () {
-      const org = TestStubs.Organization({access: []});
+      const org = Organization({access: []});
       const nextRouterContext = TestStubs.routerContext([{organization: org}]);
 
       const team1 = TestStubs.Team({access: []});
@@ -78,7 +80,7 @@ describe('Access', function () {
     });
 
     it('read access from project', function () {
-      const org = TestStubs.Organization({access: []});
+      const org = Organization({access: []});
       const nextRouterContext = TestStubs.routerContext([{organization: org}]);
 
       const proj1 = TestStubs.Project({access: []});

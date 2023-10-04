@@ -282,7 +282,6 @@
             "OrganizationIntegrationRequestEndpoint::POST",
             "OrganizationIntegrationServerlessFunctionsEndpoint::GET",
             "OrganizationIntegrationServerlessFunctionsEndpoint::POST",
-            "OrganizationIntegrationsEndpoint::GET",
             "OrganizationInviteRequestDetailsEndpoint::DELETE",
             "OrganizationInviteRequestDetailsEndpoint::GET",
             "OrganizationInviteRequestDetailsEndpoint::PUT",
@@ -553,7 +552,7 @@
         ]
     },
     "owners-native": {
-        "block_start": 555,
+        "block_start": 554,
         "public": [],
         "private": [],
         "experimental": [],
@@ -568,7 +567,7 @@
         ]
     },
     "performance": {
-        "block_start": 570,
+        "block_start": 569,
         "public": [
             "OrganizationEventsEndpoint::GET"
         ],
@@ -623,7 +622,7 @@
         ]
     },
     "discover-n-dashboards": {
-        "block_start": 625,
+        "block_start": 624,
         "public": [],
         "private": [],
         "experimental": [],
@@ -638,10 +637,11 @@
         ]
     },
     "enterprise": {
-        "block_start": 640,
+        "block_start": 639,
         "public": [
             "NotificationActionsIndexEndpoint::GET",
             "NotificationActionsIndexEndpoint::POST",
+            "OrganizationIntegrationsEndpoint::GET",
             "OrganizationSCIMMemberDetails::DELETE",
             "OrganizationSCIMMemberDetails::GET",
             "OrganizationSCIMMemberDetails::PATCH",
@@ -652,7 +652,8 @@
             "OrganizationSCIMTeamDetails::PATCH",
             "OrganizationSCIMTeamIndex::GET",
             "OrganizationSCIMTeamIndex::POST",
-            "OrganizationStatsEndpointV2::GET"
+            "OrganizationStatsEndpointV2::GET",
+            "OrganizationStatsSummaryEndpoint::GET"
         ],
         "private": [
             "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
@@ -706,7 +707,7 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 708,
+        "block_start": 709,
         "public": [],
         "private": [],
         "experimental": [
@@ -721,12 +722,11 @@
             "OrganizationMetricsTagsEndpoint::GET",
             "OrganizationSdksEndpoint::GET",
             "OrganizationSessionsEndpoint::GET",
-            "ProjectDynamicSamplingDistributionEndpoint::GET",
             "ProjectDynamicSamplingRateEndpoint::GET"
         ]
     },
     "team-starfish": {
-        "block_start": 728,
+        "block_start": 727,
         "public": [],
         "private": [],
         "experimental": [],
@@ -736,7 +736,7 @@
         ]
     },
     "growth": {
-        "block_start": 738,
+        "block_start": 737,
         "public": [],
         "private": [],
         "experimental": [],
@@ -745,7 +745,7 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 747,
+        "block_start": 746,
         "public": [],
         "private": [],
         "experimental": [
@@ -757,7 +757,7 @@
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 759,
+        "block_start": 758,
         "public": [],
         "private": [],
         "experimental": [],
@@ -766,7 +766,7 @@
         ]
     },
     "profiling": {
-        "block_start": 768,
+        "block_start": 767,
         "public": [],
         "private": [],
         "experimental": [],
@@ -782,7 +782,7 @@
         ]
     },
     "team-web-sdk-frontend": {
-        "block_start": 784,
+        "block_start": 783,
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -791,7 +791,7 @@
         "unknown": []
     },
     "hybrid-cloud": {
-        "block_start": 793,
+        "block_start": 792,
         "public": [],
         "private": [],
         "experimental": [],

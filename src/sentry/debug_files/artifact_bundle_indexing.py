@@ -462,7 +462,7 @@ MAX_DEBUGIDS_PER_INDEX = 75_000
 # We have seen (legitimate) uploads with over 25_000 unique files.
 MAX_URLS_PER_INDEX = 75_000
 # Some highly joint bundles will have thousands of bundles matching a file
-MAX_BUNDLES_PER_ENTRY = 50
+MAX_BUNDLES_PER_ENTRY = 20
 
 
 Bundles = List[BundleMeta]

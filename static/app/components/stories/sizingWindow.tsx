@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {space} from 'sentry/styles/space';
 
-const SizingWindow = styled(NegativeSpaceContainer)<{display?: 'block' | 'flex'}>`
+export interface Props {
+  display?: 'block' | 'flex';
+}
+
+const SizingWindow = styled(NegativeSpaceContainer)<Props>`
   border: 1px solid ${p => p.theme.yellow400};
   border-radius: ${p => p.theme.borderRadius};
 

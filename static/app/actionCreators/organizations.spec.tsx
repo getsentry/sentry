@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('fetchOrganizations', function () {
   const api = new MockApiClient();
-  const usorg = TestStubs.Organization({slug: 'us-org'});
-  const deorg = TestStubs.Organization({slug: 'de-org'});
+  const usorg = Organization({slug: 'us-org'});
+  const deorg = Organization({slug: 'de-org'});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

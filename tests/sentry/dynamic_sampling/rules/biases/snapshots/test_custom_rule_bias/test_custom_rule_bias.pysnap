@@ -9,8 +9,8 @@ source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
     value: prod1
   id: 3001
   samplingValue:
-    type: sampleRate
-    value: 0.5
+    limit: 100
+    type: reservoir
   timeRange:
     end: '2023-09-19T11:00:00.000000Z'
     start: '2023-09-19T09:00:00.000000Z'
@@ -21,8 +21,8 @@ source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
     value: prod2
   id: 3002
   samplingValue:
-    type: sampleRate
-    value: 0.6
+    limit: 101
+    type: reservoir
   timeRange:
     end: '2023-09-19T11:00:00.000000Z'
     start: '2023-09-19T09:00:00.000000Z'
