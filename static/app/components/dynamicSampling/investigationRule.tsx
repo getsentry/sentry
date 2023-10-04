@@ -3,7 +3,7 @@ import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {BaseButtonProps, Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
@@ -23,6 +23,7 @@ import useApi from 'sentry/utils/useApi';
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
 
 type Props = {
+  buttonProps: BaseButtonProps;
   eventView: EventView;
   numSamples: number | null | undefined;
   organization: OrganizationSummary;
@@ -208,7 +209,7 @@ function InvestigationRuleCreationInternal(props: Props) {
       )}
     >
       <Button
-        size="sm"
+        {...props.buttonProps}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack size="xs" />}
       >

@@ -156,6 +156,7 @@ function TableActions(props: Props) {
     <Fragment>
       <InvestigationRuleCreation
         {...props}
+        buttonProps={{size: 'sm'}}
         numSamples={props.tableData?.data?.length}
         key="investigationRuleCreation"
       />
