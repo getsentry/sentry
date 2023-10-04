@@ -758,14 +758,12 @@ def check_snuba(containers: dict[str, Any]) -> None:
     port = options["ports"]["1218/tcp"]
 
     SNUBA_HEALTH_PROG = (
-        """\
+        f"""\
 import urllib.request
 try:
-    req = urllib.request.urlopen('"""
-        + f"http://{port[0]}:{port[1]}/health_envoy"
-        + """', timeout=1)
+    req = urllib.request.urlopen('http://{port[0]}:{port[1]}/health_envoy', timeout=1)
 except Exception as e:
-    raise SystemExit(f'snuba is not ready: {e}')
+    raise SystemExit(f'snuba is not ready: {{e}}')
 else:
     print('snuba is ready!')
 """
