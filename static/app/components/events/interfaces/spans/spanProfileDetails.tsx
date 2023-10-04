@@ -9,7 +9,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
+import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -314,7 +315,7 @@ function hasApplicationFrame(node: CallTreeNode | null) {
   return false;
 }
 
-function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
+function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[] {
   const frames: Frame[] = [];
 
   while (node && !node.isRoot) {

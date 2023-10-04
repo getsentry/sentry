@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
@@ -40,7 +40,7 @@ export function ExceptionV2({
 
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
-  function getPlatform(): PlatformType {
+  function getPlatform(): PlatformKey {
     const dataValue = data.values?.find(
       value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
     );

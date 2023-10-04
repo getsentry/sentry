@@ -1,4 +1,4 @@
-import {IssueType, PlatformType} from 'sentry/types';
+import {IssueType, PlatformKey} from 'sentry/types';
 
 export type ResourceLink = {
   link: string;
@@ -53,7 +53,7 @@ export type IssueTypeConfig = {
     /**
      * Platform-specific resource links
      */
-    linksByPlatform: Partial<Record<PlatformType, ResourceLink[]>>;
+    linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
    * Is the Similar Issues tab shown for this issue

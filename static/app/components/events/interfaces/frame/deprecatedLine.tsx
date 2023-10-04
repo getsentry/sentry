@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import {
   Frame,
   Organization,
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -80,7 +80,7 @@ export interface DeprecatedLineProps {
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;

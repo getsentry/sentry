@@ -28,7 +28,7 @@ import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
   Frame,
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -47,7 +47,7 @@ type Props = {
   event: Event;
   frame: Frame;
   isUsedForGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;

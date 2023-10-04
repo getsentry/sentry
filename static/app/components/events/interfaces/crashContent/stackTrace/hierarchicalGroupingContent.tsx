@@ -5,7 +5,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformType} from 'sentry/types';
+import {Frame, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -18,7 +18,7 @@ import StacktracePlatformIcon from './platformIcon';
 type Props = {
   data: StacktraceType;
   event: Event;
-  platform: PlatformType;
+  platform: PlatformKey;
   className?: string;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];

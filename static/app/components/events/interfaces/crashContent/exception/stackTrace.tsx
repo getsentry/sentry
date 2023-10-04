@@ -3,7 +3,7 @@ import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/so
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformType} from 'sentry/types';
+import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -18,7 +18,7 @@ type Props = {
   data: ExceptionValue['stacktrace'];
   event: Event;
   hasHierarchicalGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   stacktrace: ExceptionValue['stacktrace'];
   expandFirstFrame?: boolean;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
