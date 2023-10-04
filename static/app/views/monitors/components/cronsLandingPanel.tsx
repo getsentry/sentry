@@ -30,6 +30,7 @@ import {
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
+  JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
@@ -85,6 +86,14 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
+  java: [
+    {
+      Guide: JavaUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'java-spring-boot': [],
 };
 
 function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
