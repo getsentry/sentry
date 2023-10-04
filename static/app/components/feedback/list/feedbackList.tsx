@@ -24,9 +24,7 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-interface Props {}
-
-export default function FeedbackList({}: Props) {
+export default function FeedbackList() {
   const {getRow, isRowLoaded, loadMoreRows, totalHits, countLoadedRows, queryView} =
     useInfiniteFeedbackListData();
 
