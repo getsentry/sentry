@@ -580,6 +580,7 @@ const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 export {
   Button,
   ButtonProps,
+  BaseButtonProps,
   LinkButton,
   LinkButtonProps,
 
