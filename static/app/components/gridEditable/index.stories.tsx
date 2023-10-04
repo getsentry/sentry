@@ -4,6 +4,8 @@ import {Location} from 'history';
 import {Button} from 'sentry/components/button';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {backend, frontend} from 'sentry/data/platformCategories';
