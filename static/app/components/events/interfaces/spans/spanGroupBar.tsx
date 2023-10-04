@@ -50,7 +50,7 @@ import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType} from './types';
+import {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
@@ -271,15 +271,18 @@ export function SpanGroupBar(props: Props) {
           endTimestamp: span.timestamp,
         });
 
-        const isAggregateSpan =
-          event.type === EventOrGroupType.AGGREGATE_TRANSACTION &&
-          span.type === 'aggregate';
+        const firstAggregateSpan = spanGrouping.find(
+          ({span: currentSpan}) => currentSpan.type === 'aggregate'
+        );
+
+        const isAggregateEvent =
+          event.type === EventOrGroupType.AGGREGATE_TRANSACTION && firstAggregateSpan;
 
         const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
         const left =
           treeDepth * (TOGGLE_BORDER_BOX / 2) +
           MARGIN_LEFT +
-          (isAggregateSpan ? FREQUENCY_BOX_WIDTH : 0);
+          (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
 
         return (
           <Row
@@ -300,7 +303,9 @@ export function SpanGroupBar(props: Props) {
                 }}
                 ref={spanTitleRef}
               >
-                {isAggregateSpan && <SpanFrequencyBox span={span} />}
+                {isAggregateEvent && (
+                  <SpanFrequencyBox span={firstAggregateSpan.span as AggregateSpanType} />
+                )}
                 <RowTitleContainer ref={setTransformCallback}>
                   {renderGroupedSpansToggler(props)}
                   <RowTitle
