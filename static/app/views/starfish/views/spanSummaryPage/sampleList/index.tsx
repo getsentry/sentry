@@ -32,10 +32,12 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
-  const detailKey =
-    groupId && transactionName && transactionMethod
-      ? `${groupId}:${transactionName}:${transactionMethod}`
-      : undefined;
+
+  // A a transaction name is required to show the panel, but a transaction
+  // method is not
+  const detailKey = transactionName
+    ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
+    : undefined;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
