@@ -25,8 +25,8 @@ export const useSpanTransactionMetrics = (
   group: string,
   options: {transactions?: string[]},
   sorts?: Sort[],
-  referrer = 'api.starfish.span-transaction-metrics',
-  cursor?: string
+  cursor?: string,
+  referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 

@@ -76,7 +76,6 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       transactions: endpoint ? [endpoint] : undefined,
     },
     [sort],
-    undefined,
     cursor
   );
 
