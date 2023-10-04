@@ -203,6 +203,11 @@
   "sentry.actor": {
     "dangling": true,
     "foreign_keys": {
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
@@ -5920,11 +5925,6 @@
   "sentry.team": {
     "dangling": false,
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",

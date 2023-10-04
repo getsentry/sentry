@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
@@ -337,26 +337,23 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         return owner_ids
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def write_relocation_import(
-        self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
-        written = super().write_relocation_import(scope, flags)
-        if written is not None:
-            (new_pk, _) = written
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
 
-            # `Actor` and `Team` have a direct circular dependency between them for the time being
-            # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and
-            # `Team` foreign keys directly into `Actor`). If we use `INSERT` database calls naively,
-            # they will always fail, because one half of the cycle will always be missing.
-            #
-            # Because `Actor` ends up first in the dependency sorting (see:
-            # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always
-            # null out the `team_id` field of the `Actor` when we import it, and then make sure to
-            # circle back and update the relevant `Actor` after we create the `Team` models, which
-            # is exactly what this method override does.
-            if self.actor_id is not None:
-                actor = Actor.objects.get(pk=self.actor_id)
-                actor.team_id = new_pk
-                actor.save()
+        # `Actor` and `Team` have a direct circular dependency between them for the time being due
+        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
+        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
+        # always fail, because one half of the cycle will always be missing.
+        #
+        # Because `Team` ends up first in the dependency sorting (see:
+        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
+        # out the `actor_id` field of the `Team` when we import it, and then make sure to circle
+        # back and update the relevant `Team` after we create the `Actor` models later on (see the
+        # `write_relocation_import` method override on that class for details).
+        self.actor_id = None
 
-        return written
+        return old_pk

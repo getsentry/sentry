@@ -128,7 +128,7 @@ def _export(
 
     def yield_objects():
         from sentry.db.models.base import BaseModel
-        from sentry.models.actor import Actor
+        from sentry.models.team import Team
 
         deps = dependencies()
 
@@ -157,8 +157,8 @@ def _export(
                 q &= Q(**query)
 
                 # TODO: actor refactor. Remove this conditional. For now, we do no filtering on
-                # actors.
-                if model_name != get_model_name(Actor):
+                # teams.
+                if model_name != get_model_name(Team):
                     # Create a filter for each possible FK reference to constrain the amount of data
                     # being sent over from the database. We only want models where every FK field
                     # references into a model whose PK we've already exported (or `NULL`, if the FK

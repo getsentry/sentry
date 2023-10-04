@@ -314,8 +314,8 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # actor.team_id, which avoids circular imports
-                    if model == Actor and rel_model == Team:
+                    # team.actor_id, which avoids circular imports
+                    if model == Team and rel_model == Actor:
                         continue
 
                     if isinstance(field, FlexibleForeignKey):
