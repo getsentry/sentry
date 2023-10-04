@@ -148,9 +148,11 @@ export default function SelectorTable({
 
   const selectorEmptyMessage = (
     <MessageContainer>
-      <Title>{t('No dead clicks found')}</Title>
+      <Title>{t('No dead or rage clicks found')}</Title>
       <Subtitle>
-        {t("Once your users start clicking around, you'll see the top selectors here.")}
+        {t(
+          "Once your users start clicking around, you'll see the top selectors that were dead or rage clicked here."
+        )}
       </Subtitle>
     </MessageContainer>
   );

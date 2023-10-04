@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {ColorOrAlias} from 'sentry/utils/theme';
@@ -112,8 +112,9 @@ function AccordionWidget({
           <EmptyStateWarning>
             <div>{t('No results found')}</div>
             <EmptySubtitle>
-              {t(
-                "Once your users start clicking around, you'll see the top selectors here."
+              {tct(
+                "Once your users start clicking around, you'll see the top selectors were [type] clicked here.",
+                {type: deadOrRage}
               )}
             </EmptySubtitle>
           </EmptyStateWarning>
@@ -293,6 +294,8 @@ export const RightAlignedCell = styled('div')`
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 2em;
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
 `;
 
 export default DeadRageSelectorCards;
