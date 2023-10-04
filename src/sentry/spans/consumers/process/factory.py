@@ -57,8 +57,10 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
+    snuba_span["organization_id"] = relay_span["organization_id"]
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
+    snuba_span["retention_days"] = relay_span["retention_days"]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
@@ -82,6 +84,8 @@ def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     if sentry_tags:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             if relay_tag not in sentry_tags:
+                if snuba_tag == "group":
+                    metrics.incr("spans.missing_group")
                 continue
             tag_value = sentry_tags.pop(relay_tag)
             if snuba_tag == "group":
@@ -182,11 +186,11 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
             relay_span["project_id"],
         )
 
-    if "sentry_tags" not in relay_span and "data" in relay_span:
-        relay_span["sentry_tags"] = relay_span.pop("data")
-
     relay_span["organization_id"] = organization_id
     relay_span["retention_days"] = retention_days
+
+    if "sentry_tags" not in relay_span and "data" in relay_span:
+        relay_span["sentry_tags"] = relay_span.pop("data")
 
     snuba_span = _process_relay_span_v0(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
