@@ -106,7 +106,7 @@ export function getProductInitParams({
   if (productSelection['performance-monitoring']) {
     params.push(`// Performance Monitoring`);
     params.push(
-      `tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
+      `tracesSampleRate: 1.0,`
     );
   }
 
@@ -115,7 +115,7 @@ export function getProductInitParams({
       `// Set sampling rate for profiling - this is relative to tracesSampleRate`
     );
     params.push(
-      `profilesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
+      `profilesSampleRate: 1.0,`
     );
   }
 
