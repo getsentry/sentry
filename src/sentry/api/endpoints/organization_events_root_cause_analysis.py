@@ -1,7 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Function, LimitBy, Op, Or
+from snuba_sdk import Column, Condition, Function, LimitBy, Op
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -17,11 +18,14 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
-SNUBA_QUERY_LIMIT = 10000
+QUERY_LIMIT = 10000 // 2
 BUFFER = timedelta(hours=6)
+REFERRER = "api.organization-events-root-cause-analysis"
+
+_query_thread_pool = ThreadPoolExecutor()
 
 
-def query_spans(transaction, regression_breakpoint, params):
+def init_query_builder(params, transaction, regression_breakpoint, type):
     selected_columns = [
         "count(span_id) as span_count",
         "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
@@ -38,7 +42,7 @@ def query_spans(transaction, regression_breakpoint, params):
         equations=[],
         query=f"transaction:{transaction}",
         orderby=["span_op", "span_group", "p95_self_time"],
-        limit=SNUBA_QUERY_LIMIT,
+        limit=QUERY_LIMIT,
         config=QueryBuilderConfig(
             auto_aggregations=True,
             use_aggregate_conditions=True,
@@ -63,22 +67,46 @@ def query_spans(transaction, regression_breakpoint, params):
     )
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
     builder.groupby.append(Column("period"))
-    builder.limitby = LimitBy([Column("period")], SNUBA_QUERY_LIMIT // 2)
-    builder.add_conditions(
-        [
-            Or(
-                [
-                    Condition(Column("timestamp"), Op.GT, regression_breakpoint + BUFFER),
-                    Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
-                ]
-            )
+    builder.limitby = LimitBy([Column("period")], QUERY_LIMIT)
+
+    # Filter out timestamp because we want to control the timerange for parallelization
+    builder.where = [
+        condition for condition in builder.where if condition.lhs != Column("timestamp")
+    ]
+    if type == "before":
+        builder.where += [
+            Condition(Column("timestamp"), Op.GTE, params.get("start")),
+            Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
         ]
-    )
+    else:
+        builder.where += [
+            Condition(Column("timestamp"), Op.GTE, regression_breakpoint + BUFFER),
+            Condition(Column("timestamp"), Op.LT, params.get("end")),
+        ]
 
-    snql_query = builder.get_snql_query()
-    results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
+    return builder
 
-    return results.get("data", [])
+
+def get_parallelized_snql_queries(transaction, regression_breakpoint, params):
+    return [
+        init_query_builder(params, transaction, regression_breakpoint, "before").get_snql_query(),
+        init_query_builder(params, transaction, regression_breakpoint, "after").get_snql_query(),
+    ]
+
+
+def query_spans(transaction, regression_breakpoint, params):
+    snql_queries = get_parallelized_snql_queries(transaction, regression_breakpoint, params)
+
+    # Parallelize the request for span data
+    snuba_results = list(_query_thread_pool.map(raw_snql_query, snql_queries, [REFERRER, REFERRER]))
+    span_results = []
+
+    # append all the results
+    for result in snuba_results:
+        output_dict = result["data"]
+        span_results += output_dict
+
+    return span_results
 
 
 @region_silo_endpoint
