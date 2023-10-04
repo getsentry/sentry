@@ -19,7 +19,6 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
-    notification_uuid: str | None = None,
 ) -> None:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
