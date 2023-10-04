@@ -133,7 +133,7 @@ def handle_replication(
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
         destination = ApiTokenReplica(
-            application_id=api_token.application_id,
+            application_id=api_token.application_id,  # type: ignore
             application_is_active=api_token.application_is_active,
             token=api_token.token,
             expires_at=api_token.expires_at,
@@ -147,7 +147,15 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(ApiToken, destination)
 
     def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
-        destination = OrgAuthTokenReplica()
+        destination = OrgAuthTokenReplica(
+            organization_id=token.organization_id,
+            orgauthtoken_id=token.id,
+            token_hashed=token.token_hashed,
+            name=token.name,
+            scope_list=token.scope_list,
+            created_by_id=token.created_by_id,  # type: ignore
+            date_deactivated=token.date_deactivated,
+        )
         handle_replication(OrgAuthToken, destination)
 
     def upsert_replicated_auth_provider(

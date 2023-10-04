@@ -5,7 +5,7 @@ from django.utils.encoding import force_str
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import ApiKeyStatus, HasApiScopes
+from sentry.models import HasApiScopes
 
 
 @region_silo_only_model
@@ -39,10 +39,6 @@ class ApiTokenReplica(Model, HasApiScopes):
             return False
 
         return timezone.now() >= self.expires_at
-
-    @property
-    def is_active(self):
-        return self.status == ApiKeyStatus.ACTIVE
 
     def get_allowed_origins(self):
         if not self.allowed_origins:

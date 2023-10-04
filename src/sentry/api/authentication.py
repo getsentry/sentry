@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, ClassVar, Iterable, List, Optional, Tuple
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -27,6 +27,7 @@ from sentry.models import (
     ProjectKey,
     Relay,
     SentryApp,
+    User,
 )
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
@@ -152,7 +153,11 @@ class QuietBasicAuthentication(BasicAuthentication):
         )
 
     def transform_auth(
-        self, user: int | User | RpcUser | None | AnonymousUser, auth: Any
+        self,
+        user: int | User | RpcUser | None | AnonymousUser,
+        auth: Any,
+        entity_id_tag: str | None = None,
+        **tags: Any,
     ) -> Tuple[User | RpcUser | AnonymousUser, Any]:
         if isinstance(user, int):
             if self._use_rpc_user():
@@ -164,6 +169,13 @@ class QuietBasicAuthentication(BasicAuthentication):
                 user = user_service.get_user(user_id=user.id)
         if user is None:
             user = AnonymousUser()
+
+        auth_token = AuthenticatedToken.from_token(auth)
+        if auth_token and entity_id_tag:
+            with configure_scope() as scope:
+                scope.set_tag(entity_id_tag, auth_token.entity_id)
+                for k, v in tags.items():
+                    scope.set_tag(k, v)
 
         return (
             user,
@@ -256,11 +268,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Key is disabled")
 
-        authenticated_token = AuthenticatedToken.from_token(key)
-        with configure_scope() as scope:
-            scope.set_tag("api_key", authenticated_token.entity_id)
-
-        return self.transform_auth(None, key)
+        return self.transform_auth(None, key, "api_key")
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -332,47 +340,53 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user = AnonymousUser()
+        user: AnonymousUser | RpcUser | None = AnonymousUser()
 
-        token = SystemToken.from_request(request, token_str)
+        token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
+            request, token_str
+        )
         application_is_active = True
 
         if not token:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                token = ApiTokenReplica.objects.filter(token=token_str).last()
-                if not token:
+                atr = token = ApiTokenReplica.objects.filter(token=token_str).last()
+                if not atr:
                     raise AuthenticationFailed("Invalid token")
-                user = user_service.get_user(user_id=token.user_id)
-                application_is_active = token.application_is_active
+                user = user_service.get_user(user_id=atr.user_id)
+                application_is_active = atr.application_is_active
             else:
                 try:
-                    token = (
+                    at = token = (
                         ApiToken.objects.filter(token=token_str)
                         .select_related("user", "application")
                         .get()
                     )
                 except ApiToken.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
-                user = token.user
-                application_is_active = token.application is None or token.application.is_active
-        else:
+                user = at.user
+                application_is_active = at.application is None or at.application.is_active
+        elif isinstance(token, SystemToken):
             user = token.user
+
+        if not token:
+            raise AuthenticationFailed("Invalid token")
 
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
 
-        if not user.is_active:
+        if user and hasattr(user, "is_active") and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
         if not application_is_active:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        with configure_scope() as scope:
-            scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_token", AuthenticatedToken.from_token(token).entity_id)
-            scope.set_tag("api_token_is_sentry_app", getattr(user, "is_sentry_app", False))
-
-        return self.transform_auth(user, token)
+        return self.transform_auth(
+            user,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
+        )
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -406,12 +420,9 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
             except OrgAuthToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
 
-        with configure_scope() as scope:
-            scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_token", AuthenticatedToken.from_token(token).entity_id)
-            scope.set_tag("api_token_is_org_token", True)
-
-        return self.transform_auth(None, token)
+        return self.transform_auth(
+            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+        )
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)

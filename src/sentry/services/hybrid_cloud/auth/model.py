@@ -5,7 +5,18 @@
 
 import contextlib
 import datetime
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Set, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    Union,
+)
 
 from pydantic.fields import Field
 
@@ -56,10 +67,22 @@ class AuthenticatedToken(RpcModel):
     user_id: Optional[int] = None  # only relevant for ApiToken
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
-    _kinds: Dict[str, Set[Type[Any]]] = {}
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id
+
+    @classmethod
+    def kinds(cls) -> Mapping[str, Collection[Type[Any]]]:
+        from sentry.auth.system import SystemToken
+        from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+        from sentry.models import ApiKey, ApiToken, OrgAuthToken
+
+        return {
+            "system": frozenset([SystemToken]),
+            "api_token": frozenset([ApiToken, ApiTokenReplica]),
+            "org_auth_token": frozenset([OrgAuthToken, OrgAuthTokenReplica]),
+            "api_key": frozenset([ApiKey, ApiKeyReplica]),
+        }
 
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
@@ -69,7 +92,7 @@ class AuthenticatedToken(RpcModel):
         if isinstance(token, AuthenticatedToken):
             return token
 
-        for kind, types in cls._kinds.items():
+        for kind, types in cls.kinds().items():
             if any(isinstance(token, kind_cls) for kind_cls in types):
                 break
         else:
@@ -85,10 +108,6 @@ class AuthenticatedToken(RpcModel):
             organization_id=getattr(token, "organization_id", None),
             application_id=getattr(token, "application_id", None),
         )
-
-    @classmethod
-    def register_kind(cls, kind_name: str, t: Type[Any]) -> None:
-        cls._kinds.setdefault(kind_name, set()).add(t)
 
     def get_audit_log_data(self) -> Mapping[str, Any]:
         return self.audit_log_data

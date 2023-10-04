@@ -120,7 +120,7 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 ("date_deactivated", models.DateTimeField(blank=True, null=True)),
                 (
-                    "organization_id",
+                    "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
                     ),

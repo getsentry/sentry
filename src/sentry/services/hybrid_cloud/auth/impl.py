@@ -7,22 +7,17 @@ from django.db import router, transaction
 from django.db.models import Count, F
 
 from sentry import audit_log
-from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.models import (
     ApiKey,
-    ApiToken,
     AuthIdentity,
     AuthProvider,
     OrganizationMemberMapping,
-    OrgAuthToken,
     User,
     outbox_context,
 )
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.services.hybrid_cloud.auth import (
-    AuthenticatedToken,
     AuthService,
     RpcApiKey,
     RpcAuthProvider,
@@ -209,15 +204,6 @@ def _unwrap_b64(input: str | None) -> bytes | None:
         return None
 
     return base64.b64decode(input.encode("utf8"))
-
-
-AuthenticatedToken.register_kind("system", SystemToken)
-AuthenticatedToken.register_kind("api_token", ApiToken)
-AuthenticatedToken.register_kind("api_token", ApiTokenReplica)
-AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
-AuthenticatedToken.register_kind("org_auth_token", OrgAuthTokenReplica)
-AuthenticatedToken.register_kind("api_key", ApiKey)
-AuthenticatedToken.register_kind("api_key", ApiKeyReplica)
 
 
 def promote_request_rpc_user(request: Any) -> User:

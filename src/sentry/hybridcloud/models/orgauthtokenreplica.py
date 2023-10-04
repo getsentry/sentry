@@ -20,9 +20,7 @@ from sentry.models.orgauthtoken import MAX_NAME_LENGTH
 class OrgAuthTokenReplica(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    organization_id = FlexibleForeignKey(
-        "sentry.Organization", null=False, on_delete=models.CASCADE
-    )
+    organization = FlexibleForeignKey("sentry.Organization", null=False, on_delete=models.CASCADE)
     orgauthtoken_id = HybridCloudForeignKey("sentry.OrgAuthToken", null=False, on_delete="cascade")
     # The JWT token in hashed form
     token_hashed = models.TextField(null=False)
