@@ -13,6 +13,7 @@ test_data = {
         "message": "I really like this user-feedback feature!",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "url": "https://docs.sentry.io/platforms/javascript/",
+        "name": "Colton Allen",
     },
     "platform": "javascript",
     "release": "version@1.3",
@@ -61,6 +62,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             assert (
                 feedback.data["feedback"]["message"] == "I really like this user-feedback feature!"
             )
+            assert feedback.data["feedback"]["name"] == "Colton Allen"
             assert feedback.data["tags"]["key"] == "value"
             assert feedback.data["release"] == "version@1.3"
             assert feedback.data["user"]["name"] == "user"
@@ -177,7 +179,6 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         # Optional fields missing should still result in successful save
         test_data_missing_optional_fields = {
             "feedback": {
-                "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
                 "url": "https://docs.sentry.io/platforms/javascript/",
             },

@@ -36,6 +36,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                     "message": "I really like this user-feedback feature!",
                     "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
                     "url": "https://docs.sentry.io/platforms/javascript/",
+                    "name": "Colton Allen",
                 },
                 "platform": "javascript",
                 "release": "version@1.3",
@@ -68,6 +69,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                     "message": "I also really like this user-feedback feature!",
                     "replay_id": "zc3b5xy8b79f417596f7a1tt4fffa5d2",
                     "url": "https://docs.sentry.io/platforms/electron/",
+                    "name": "Michelle Zhang",
                 },
                 "platform": "electron",
                 "release": "version@1.3",
@@ -136,6 +138,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert feedback["sdk"]["name"] == "sentry.javascript.react"
             assert feedback["tags"]["key"] == "value"
             assert feedback["contact_email"] == "colton.allen@sentry.io"
+            assert feedback["name"] == "Colton Allen"
 
             # Test `per_page`
             response = self.client.get(
