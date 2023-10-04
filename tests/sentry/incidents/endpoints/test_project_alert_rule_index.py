@@ -1,12 +1,11 @@
 from copy import deepcopy
 from datetime import timezone
-from functools import cached_property
 
 import requests
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, IncidentStatus
 from sentry.models import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -19,20 +18,6 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 pytestmark = [requires_snuba]
-
-
-class AlertRuleBase:
-    @cached_property
-    def organization(self):
-        return self.create_organization()
-
-    @cached_property
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @cached_property
-    def user(self):
-        return self.create_user()
 
 
 @region_silo_test(stable=True)
@@ -170,6 +155,25 @@ class AlertRuleCreateEndpointTest(APITestCase):
 @region_silo_test(stable=True)
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
+
+    def test_expand_latest_incident(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            organization=self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=alert_rule,
+            status=IncidentStatus.CRITICAL.value,
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            expand_resp = self.get_success_response(
+                self.organization.slug, self.project.slug, expand=["latestIncident"]
+            )
+        assert expand_resp.data[0]["latestIncident"] is not None
+        assert expand_resp.data[0]["latestIncident"]["id"] == str(incident.id)
 
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])

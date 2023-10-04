@@ -34,6 +34,7 @@ from sentry.snuba.tasks import (
     subscription_checker,
     update_subscription_in_snuba,
 )
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.skips import requires_snuba
@@ -57,7 +58,9 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
+class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     status_translations = {
         QuerySubscription.Status.CREATING: "create",
         QuerySubscription.Status.UPDATING: "update",
@@ -132,7 +135,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         )
 
 
-class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
@@ -215,7 +218,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     assert request_body["granularity"] == expected_granularity
 
 
-class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
@@ -239,7 +242,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.subscription_id is not None
 
 
-class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
+class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 

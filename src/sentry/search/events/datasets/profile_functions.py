@@ -55,7 +55,7 @@ class Column:
 
     # the internal name in snuba
     column: str
-    # type kind/type associated with this column
+    # data type associated with this column
     kind: Kind
     # the external name to expose
     alias: Optional[str] = None

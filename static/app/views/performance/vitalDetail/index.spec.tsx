@@ -1,5 +1,6 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {MetricsField} from 'sentry-fixture/metrics';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -14,7 +15,7 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['discover-basic', 'performance-view'],
   projects: [TestStubs.Project()],
 });

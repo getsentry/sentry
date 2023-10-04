@@ -7,11 +7,11 @@ import type {Team} from 'sentry/types';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTeamsById {
-  ids: string[];
+  ids: string[] | undefined;
 }
 
 interface UseTeamsBySlug {
-  slugs: string[];
+  slugs: string[] | undefined;
 }
 
 interface UseAllTeams {}
@@ -44,14 +44,14 @@ function buildTeamsQueryKey(orgSlug: string, teamQuery: TeamQuery | null): ApiQu
  */
 function getQueryFromOptions(options: UseTeamOptions): TeamQuery | null {
   if ('ids' in options) {
-    if (!options.ids.length) {
+    if (!options.ids?.length) {
       return null;
     }
     return ['id', options.ids];
   }
 
   if ('slugs' in options) {
-    if (!options.slugs.length) {
+    if (!options.slugs?.length) {
       return null;
     }
     return ['slug', options.slugs];
