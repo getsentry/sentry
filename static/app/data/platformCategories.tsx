@@ -33,6 +33,8 @@ export const mobile: PlatformKey[] = [
   'apple-ios',
   'cordova',
   'capacitor',
+  'javascript-cordova',
+  'javascript-capacitor',
   'ionic',
   'react-native',
   'flutter',
@@ -121,6 +123,9 @@ export const desktop: PlatformKey[] = [
   'electron',
   'javascript-electron',
   'native',
+  'native-crashpad',
+  'native-breakpad',
+  'native-minidump',
   'native-qt',
   'minidump',
   'unity',
@@ -243,8 +248,10 @@ export const releaseHealth: PlatformKey[] = [
   'android',
   'apple-ios',
   'cordova',
+  'javascript-cordova',
   'react-native',
   'flutter',
+  'dart-flutter',
   // backend
   'bun',
   'native',
@@ -270,6 +277,8 @@ export const releaseHealth: PlatformKey[] = [
   // desktop
   'apple-macos',
   'native',
+  'native-crashpad',
+  'native-breakpad',
   'native-qt',
 ];
 
@@ -279,6 +288,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-backbone',
+  'javascript-capacitor',
   'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
@@ -303,6 +313,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   // 'javascript-backbone', // No docs yet
+  'javascript-capacitor',
   'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
