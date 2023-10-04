@@ -52,7 +52,8 @@ export function transformSelectorQuery(selector: string) {
     .replaceAll('"', `\\"`)
     .replaceAll('aria=', 'aria-label=')
     .replaceAll('testid=', 'data-test-id=')
-    .replaceAll(':', '\\:');
+    .replaceAll(':', '\\:')
+    .replaceAll('*', '\\*');
 }
 interface Props {
   clickCountColumns: {key: string; name: string}[];
