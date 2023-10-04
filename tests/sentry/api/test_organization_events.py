@@ -11,7 +11,8 @@ from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-class OrganizationEventsEndpointTestBase(APITestCase):
+@region_silo_test(stable=True)
+class OrganizationEventsEndpointTest(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -38,9 +39,6 @@ class OrganizationEventsEndpointTestBase(APITestCase):
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
-
-@region_silo_test(stable=True)
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
     def test_api_key_request(self):
         self.store_event(
             data={
