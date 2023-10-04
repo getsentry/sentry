@@ -167,7 +167,7 @@ def test_v1_span():
             },
         }
     ).encode()
-    value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)
+    value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)  # type: ignore
     processed = _process_message(Message(value))
     assert json.loads(processed.value) == {
         "description": "GET /api/0/organizations/?member=1",
