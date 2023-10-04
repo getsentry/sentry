@@ -456,6 +456,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 
+/static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
 /static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
