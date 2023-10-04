@@ -1,6 +1,8 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
@@ -42,7 +44,7 @@ const AM1_FEATURES = [];
 const AM2_FEATURES = ['session-replay'];
 
 function getMockOrganization({features}: {features: string[]}) {
-  const mockOrg = TestStubs.Organization({
+  const mockOrg = Organization({
     features,
     access: [],
   });
@@ -52,7 +54,7 @@ function getMockOrganization({features}: {features: string[]}) {
   return mockOrg;
 }
 
-function getMockContext(mockOrg: Organization) {
+function getMockContext(mockOrg: TOrganization) {
   return TestStubs.routerContext([{organization: mockOrg}]);
 }
 

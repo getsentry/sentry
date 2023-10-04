@@ -61,7 +61,10 @@ FlamegraphChartTooltipProps) {
         );
       })}
       <FlamegraphTooltipTimelineInfo>
-        {t('at')} {chart.timelineFormatter(configSpaceCursor[0])}{' '}
+        {t('at')}{' '}
+        {chart.timelineFormatter(
+          configSpaceCursor[0] + chartView.configSpaceTransform[6]
+        )}{' '}
       </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   ) : null;

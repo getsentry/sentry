@@ -1,3 +1,6 @@
+import {Span} from 'sentry-fixture/span';
+import {TraceError} from 'sentry-fixture/traceError';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TraceErrorList from 'sentry/components/events/interfaces/spans/traceErrorList';
@@ -10,7 +13,7 @@ describe('TraceErrorList', () => {
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -20,17 +23,17 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '2',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '3',
         span: '42118aba',
         level: 'error',
@@ -56,7 +59,7 @@ describe('TraceErrorList', () => {
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -66,7 +69,7 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         level: 'warning',
       }),

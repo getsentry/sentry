@@ -1,10 +1,12 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
+import {Organization} from 'sentry-fixture/organization';
+import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {Organization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
@@ -14,20 +16,20 @@ describe('SentryAppExternalInstallation', () => {
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getInstallationsMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getFeaturesMock: ReturnType<typeof MockApiClient.addMockResponse>,
-    org1: Organization,
-    org1Lite: Pick<Organization, 'slug' | 'name' | 'id'>,
-    org2: Organization,
-    org2Lite: Pick<Organization, 'slug' | 'name' | 'id'>;
+    org1: TOrganization,
+    org1Lite: Pick<TOrganization, 'slug' | 'name' | 'id'>,
+    org2: TOrganization,
+    org2Lite: Pick<TOrganization, 'slug' | 'name' | 'id'>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org1 = TestStubs.Organization({
+    org1 = Organization({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    org2 = TestStubs.Organization({
+    org2 = Organization({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -35,7 +37,7 @@ describe('SentryAppExternalInstallation', () => {
     org1Lite = pick(org1, ['slug', 'name', 'id']);
     org2Lite = pick(org2, ['slug', 'name', 'id']);
 
-    sentryApp = TestStubs.SentryApp({
+    sentryApp = SentryApp({
       status: 'published',
       redirectUrl: 'https://google.com',
     });

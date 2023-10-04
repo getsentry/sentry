@@ -2,6 +2,8 @@ import {ComponentProps} from 'react';
 import omit from 'lodash/omit';
 import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -31,12 +33,12 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'test-org'})],
+      body: [Organization({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'foo-org'})],
+      body: [Organization({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -52,7 +54,7 @@ describe('ApiSource', function () {
     });
     shortIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/test-1/',
-      body: TestStubs.ShortIdQueryResult(),
+      body: ShortIdQueryResult(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',

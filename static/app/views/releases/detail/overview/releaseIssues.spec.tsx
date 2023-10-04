@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -13,7 +15,7 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     version: '1.0.0',
     location: TestStubs.location({query: {}}),
     releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {ComponentProps, Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';
@@ -33,8 +33,8 @@ export default storyBook(FeatureBadge, story => {
         When using an indicator you might want to position it manually using{' '}
         <kbd>styled(FeatureBadge)</kbd>.
       </p>
-      <Matrix
-        component={props => (
+      <Matrix<ComponentProps<typeof FeatureBadge>>
+        render={props => (
           <span>
             Feature X
             <FeatureBadge {...props} />

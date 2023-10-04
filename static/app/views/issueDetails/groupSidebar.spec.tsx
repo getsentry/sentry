@@ -1,3 +1,5 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +8,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import GroupSidebar from './groupSidebar';
 
 describe('GroupSidebar', function () {
-  let group = TestStubs.Group({tags: TestStubs.Tags()});
+  let group = TestStubs.Group({tags: Tags()});
   const {organization, project} = initializeOrg();
   const environment = 'production';
   let tagsMock: jest.Mock;
@@ -61,7 +63,7 @@ describe('GroupSidebar', function () {
     });
     tagsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/tags/`,
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
@@ -6,7 +8,7 @@ describe('OrganizationProjects', function () {
   let projectsGetMock: jest.Mock;
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project();
   const routerProps = TestStubs.routeComponentProps();
   const routerContext = TestStubs.routerContext();

@@ -1,4 +1,5 @@
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -156,7 +157,7 @@ describe('StackTrace', function () {
   });
 
   describe('with stacktrace improvements feature flag enabled', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['issue-details-stacktrace-improvements'],
     });
 

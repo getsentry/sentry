@@ -1,4 +1,6 @@
 import {Broadcast} from 'sentry-fixture/broadcast';
+import {Organization} from 'sentry-fixture/organization';
+import {ServiceIncident} from 'sentry-fixture/serviceIncident';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -76,7 +78,7 @@ describe('Sidebar', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderSidebar({
-      organization: TestStubs.Organization({access: ['member:read']}),
+      organization: Organization({access: ['member:read']}),
     });
 
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
@@ -108,7 +110,7 @@ describe('Sidebar', function () {
     });
     it('has link to Members settings with `member:write`', async function () {
       const {container} = renderSidebar({
-        organization: TestStubs.Organization({access: ['member:read']}),
+        organization: Organization({access: ['member:read']}),
       });
       await waitFor(() => container);
 
@@ -246,7 +248,7 @@ describe('Sidebar', function () {
         .spyOn(incidentActions, 'loadIncidents')
         .mockImplementation((): Promise<SentryServiceStatus | null> => {
           return Promise.resolve({
-            incidents: [TestStubs.ServiceIncident()],
+            incidents: [ServiceIncident()],
             indicator: 'none',
             url: '',
           });

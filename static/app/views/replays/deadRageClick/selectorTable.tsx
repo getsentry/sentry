@@ -1,17 +1,22 @@
 import {ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {PlatformIcon} from 'platformicons';
 
-import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/feedback/table/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBasedSorting';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
@@ -38,9 +43,17 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
     dom_element: d.dom_element,
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
+    project_id: d.project_id,
   }));
 }
 
+export function transformSelectorQuery(selector: string) {
+  return selector
+    .replaceAll('"', `\\"`)
+    .replaceAll('aria=', 'aria-label=')
+    .replaceAll('testid=', 'data-test-id=')
+    .replaceAll(':', '\\:');
+}
 interface Props {
   clickCountColumns: {key: string; name: string}[];
   clickCountSortable: boolean;
@@ -48,15 +61,34 @@ interface Props {
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
-  customHandleResize?: () => void;
   title?: ReactNode;
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
+  {key: 'project_id', name: 'project'},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},
   {key: 'aria_label', name: 'aria label'},
 ];
+
+export function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === id.toString());
+  const platform = project?.platform;
+  const slug = project?.slug;
+  return isWidget ? (
+    <WidgetProjectContainer>
+      <Tooltip title={slug}>
+        <PlatformIcon size={16} platform={platform ?? 'default'} />
+      </Tooltip>
+    </WidgetProjectContainer>
+  ) : (
+    <IndexProjectContainer>
+      <PlatformIcon size={16} platform={platform ?? 'default'} />
+      <TextOverflow>{slug}</TextOverflow>
+    </IndexProjectContainer>
+  );
+}
 
 export default function SelectorTable({
   clickCountColumns,
@@ -65,11 +97,8 @@ export default function SelectorTable({
   isLoading,
   location,
   title,
-  customHandleResize,
   clickCountSortable,
 }: Props) {
-  const organization = useOrganization();
-
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: clickCountColumns[0].key, kind: 'desc'},
     location,
@@ -92,24 +121,29 @@ export default function SelectorTable({
     [currentSort, makeSortLinkGenerator, clickCountColumns, clickCountSortable]
   );
 
+  const queryPrefix = currentSort.field.includes('count_dead_clicks') ? 'dead' : 'rage';
+
   const renderBodyCell = useCallback(
     (column, dataRow) => {
       const value = dataRow[column.key];
       switch (column.key) {
         case 'dom_element':
-          return <SelectorLink organization={organization} value={value} />;
+          return (
+            <SelectorLink
+              value={value}
+              selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(value)}"`}
+            />
+          );
         case 'element':
         case 'aria_label':
-          return (
-            <code>
-              <TextOverflow>{value}</TextOverflow>
-            </code>
-          );
+          return <TextOverflow>{value}</TextOverflow>;
+        case 'project_id':
+          return <ProjectInfo id={value} isWidget={false} />;
         default:
-          return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
+          return renderClickCount<DeadRageSelectorItem>(column, dataRow);
       }
     },
-    [organization]
+    [queryPrefix]
   );
 
   return (
@@ -121,7 +155,7 @@ export default function SelectorTable({
       columnSortBy={[]}
       stickyHeader
       grid={{
-        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        onResizeColumn: handleResizeColumn,
         renderHeadCell,
         renderBodyCell,
       }}
@@ -131,56 +165,73 @@ export default function SelectorTable({
   );
 }
 
-function SelectorLink({
-  organization,
+export function SelectorLink({
   value,
+  selectorQuery,
 }: {
-  organization: Organization;
+  selectorQuery: string;
   value: string;
 }) {
+  const organization = useOrganization();
+  const location = useLocation();
   return (
-    <Link
-      to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-      }}
-    >
-      <TextOverflow>{value}</TextOverflow>
-    </Link>
+    <StyledTextOverflow>
+      <Link
+        to={{
+          pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+          query: {
+            ...location.query,
+            query: selectorQuery,
+            cursor: undefined,
+          },
+        }}
+      >
+        <StyledTooltip
+          position="top-start"
+          title={t('Search for replays with clicks on this selector')}
+        >
+          {value}
+        </StyledTooltip>
+      </Link>
+    </StyledTextOverflow>
   );
 }
 
-function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
-  if (column.key === 'count_dead_clicks') {
-    return (
-      <DeadClickCount>
-        <IconContainer>
-          <IconCursorArrow size="xs" />
-        </IconContainer>
-        {dataRow[column.key]}
-      </DeadClickCount>
-    );
-  }
-  if (column.key === 'count_rage_clicks') {
-    return (
-      <RageClickCount>
-        <IconContainer>
-          <IconCursorArrow size="xs" />
-        </IconContainer>
-        {dataRow[column.key]}
-      </RageClickCount>
-    );
-  }
-  return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
+function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
+  const color = column.key === 'count_dead_clicks' ? 'yellow300' : 'red300';
+
+  return (
+    <ClickColor color={color}>
+      <IconCursorArrow size="xs" />
+      {dataRow[column.key]}
+    </ClickColor>
+  );
 }
 
-const DeadClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.yellow300};
+const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
+  color: ${p => p.theme[p.color]};
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${space(0.75)};
+  align-items: center;
+  justify-content: start;
 `;
 
-const RageClickCount = styled(TextOverflow)`
-  color: ${p => p.theme.red300};
+const StyledTextOverflow = styled(TextOverflow)`
+  color: ${p => p.theme.blue300};
 `;
 
-const IconContainer = styled('span')`
-  margin-right: ${space(1)};
+const StyledTooltip = styled(Tooltip)`
+  display: inherit;
+`;
+
+const WidgetProjectContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const IndexProjectContainer = styled(WidgetProjectContainer)`
+  padding-right: ${space(1)};
 `;

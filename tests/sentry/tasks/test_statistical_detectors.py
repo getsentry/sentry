@@ -292,7 +292,7 @@ def test_detect_function_trends(
     with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_change_points.delay.called
+    assert detect_function_change_points.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")

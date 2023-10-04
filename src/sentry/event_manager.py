@@ -2007,7 +2007,7 @@ def _process_existing_aggregate(
     group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
-    updated_group_values = {"last_seen": last_seen, "data": incoming_group_values["data"]}
+    updated_group_values: dict[str, Any] = {"last_seen": last_seen}
     # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
     # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
     group.last_seen = updated_group_values["last_seen"]
@@ -2030,6 +2030,20 @@ def _process_existing_aggregate(
         updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
+
+    # Merge new data with existing data
+    incoming_data = incoming_group_values["data"]
+    incoming_metadata = incoming_group_values["data"].get("metadata", {})
+
+    existing_data = group.data
+    # Grab a reference to this before it gets clobbered when we update `existing_data`
+    existing_metadata = group.data.get("metadata", {})
+
+    existing_data.update(incoming_data)
+    existing_metadata.update(incoming_metadata)
+
+    updated_group_values["data"] = existing_data
+    updated_group_values["data"]["metadata"] = existing_metadata
 
     update_kwargs = {"times_seen": 1}
 

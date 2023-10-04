@@ -14,10 +14,8 @@ import {
   platformProductAvailability,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {
-  performance as performancePlatforms,
-  Platform,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
+import {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -141,7 +139,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   );
 
   const platform: Platform = {
-    key: currentPlatformKey as PlatformKey,
+    key: currentPlatformKey,
     id: currentPlatform?.id,
     name: currentPlatform?.name,
     link: currentPlatform?.link,

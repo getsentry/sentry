@@ -13,6 +13,7 @@
     "sentry.organizationslugreservation",
     "sentry.user"
   ],
+  "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
@@ -24,6 +25,7 @@
     "sentry.user"
   ],
   "sentry.actor": [
+    "sentry.team",
     "sentry.user"
   ],
   "sentry.alertrule": [
@@ -759,7 +761,6 @@
     "sentry.organization"
   ],
   "sentry.team": [
-    "sentry.actor",
     "sentry.organization"
   ],
   "sentry.teamavatar": [

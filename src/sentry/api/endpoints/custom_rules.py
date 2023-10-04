@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import List, Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,7 +18,7 @@ from sentry.models import CustomDynamicSamplingRule, TooManyRules
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import SearchQueryConverter
+from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
@@ -34,7 +35,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
     """
 
     # the query string in the same format as the Discover query
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=False, allow_blank=True)
     # desired time period for collection (it may be overriden if too long)
     period = serializers.CharField(required=False)
     # list of project ids to collect data from
@@ -51,7 +52,9 @@ class CustomRulesInputSerializer(serializers.Serializer):
         # check that the project exists
         invalid_projects = []
 
+        data["projects"] = _clean_project_list(data["projects"])
         requested_projects = data["projects"]
+
         available_projects = {p.id for p in Project.objects.get_many_from_cache(data["projects"])}
         for project_id in requested_projects:
             if project_id not in available_projects:
@@ -76,8 +79,31 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
+class CustomRulePermission(BasePermission):
+    scope_map = {
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+    }
+
+
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
+    permission_classes = (CustomRulePermission,)
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
@@ -97,15 +123,8 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
         period = serializer.validated_data.get("period")
-
         try:
-            tokens = parse_search_query(query)
-        except InvalidSearchQuery as e:
-            return Response({"query": [str(e)]}, status=400)
-
-        try:
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
+            condition = _get_condition(query)
 
             # the parsing must succeed (it passed validation)
             delta = cast(timedelta, parse_stats_period(period))
@@ -124,6 +143,8 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             )
 
             return _rule_to_response(rule)
+        except InvalidSearchQuery as e:
+            return Response({"query": [str(e)]}, status=400)
 
         except DatabaseError:
             return Response(
@@ -148,6 +169,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         try:
             requested_projects_ids = [int(project_id) for project_id in requested_projects]
+            requested_projects_ids = _clean_project_list(requested_projects_ids)
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
 
@@ -168,20 +190,18 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             org_rule = True
 
         try:
-            tokens = parse_search_query(query)
+            condition = _get_condition(query)
         except InvalidSearchQuery as e:
             return Response({"query": [str(e)]}, status=400)
-
-        try:
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
         except ValueError as e:
             return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
-        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization.id)
+        rule = CustomDynamicSamplingRule.get_rule_for_org(
+            condition, organization.id, requested_projects_ids
+        )
 
         if rule is None:
-            return Response(status=204)  # no rule found, nothing to reutrn
+            return Response(status=204)  # no rule found, nothing to return
 
         # we have a rule, check to see if the projects match
 
@@ -216,3 +236,21 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
         "orgId": rule.organization.id,
     }
     return Response(response_data, status=200)
+
+
+def _get_condition(query: Optional[str]) -> RuleCondition:
+    if not query:
+        # True condition when query not specified
+        condition: RuleCondition = {"op": "and", "inner": []}
+    else:
+        tokens = parse_search_query(query)
+        converter = SearchQueryConverter(tokens)
+        condition = converter.convert()
+    return condition
+
+
+def _clean_project_list(project_ids: List[int]) -> List[int]:
+    if len(project_ids) == 1 and project_ids[0] == -1:
+        # special case for all projects convention ( sends a project id of -1)
+        return []
+    return project_ids

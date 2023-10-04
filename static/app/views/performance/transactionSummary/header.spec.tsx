@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +15,7 @@ type InitialOpts = {
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
   const project = TestStubs.Project({platform});
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     projects: [project],
     features: features ?? [],
   });
