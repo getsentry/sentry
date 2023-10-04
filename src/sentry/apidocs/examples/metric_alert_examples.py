@@ -108,7 +108,7 @@ class MetricAlertExamples:
                 "projects": ["our-project"],
                 "owner": "team:4505676595200000",
                 "originalAlertRuleId": None,
-                "comparisonDelta": "10080",
+                "comparisonDelta": 10080,
                 "dateModified": "2023-09-25T22:01:28.637506Z",
                 "dateCreated": "2023-09-25T22:01:28.637514Z",
                 "createdBy": {

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence
+from datetime import datetime
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Union
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
@@ -35,13 +36,15 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     queryType: Optional[int]
     resolveThreshold: Optional[float]
     dataset: Optional[str]
+    thresholdType: Optional[int]
     eventTypes: Optional[List[str]]
     owner: Optional[str]
     originalAlertRuleId: Optional[str]
-    comparisonDelta: Optional[str]
+    comparisonDelta: Optional[float]
     weeklyAvg: Optional[float]
     totalThisWeek: Optional[int]
     snooze: Optional[bool]
+    latestIncident: Optional[datetime]
 
 
 @extend_schema_serializer(
@@ -53,6 +56,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "excludedProjects",
         "weeklyAvg",
         "totalThisWeek",
+        "latestIncident",
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -66,14 +70,13 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    thresholdType: int
     timeWindow: str
     resolution: float
     thresholdPeriod: int
     triggers: List[dict]
     includeAllProjects: bool
-    dateModified: str
-    dateCreated: str
+    dateModified: datetime
+    dateCreated: datetime
     createdBy: dict
 
 
@@ -191,7 +194,7 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs: Any
+        self, obj: AlertRule, attrs: Mapping[Any, Any], user: Union[User, RpcUser], **kwargs: Any
     ) -> AlertRuleSerializerResponse:
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
@@ -199,7 +202,7 @@ class AlertRuleSerializer(Serializer):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-        data = {
+        data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "organizationId": str(obj.organization_id),
@@ -264,7 +267,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
     def serialize(
         self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs
-    ) -> dict[str, Any]:
+    ) -> AlertRuleSerializerResponse:
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
