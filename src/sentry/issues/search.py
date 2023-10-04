@@ -211,6 +211,7 @@ def _query_params_for_generic(
     conditions: Sequence[Any],
     actor: Optional[Any] = None,
     categories: Optional[Sequence[GroupCategory]] = None,
+    referrer: str = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization and features.has(
@@ -221,6 +222,8 @@ def _query_params_for_generic(
             return None
 
         category_ids = {gc.value for gc in categories}
+        if referrer != "api.feedback_index":
+            category_ids.discard(GroupCategory.FEEDBACK.value)
         group_types = {
             gt.type_id
             for gt in grouptype.registry.get_visible(organization, actor)
@@ -248,13 +251,15 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
+def get_search_strategies(referrer: str) -> Mapping[int, GroupSearchStrategy]:
     strategies = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
         else:
-            strategy = functools.partial(_query_params_for_generic, categories=[group_category])
+            strategy = functools.partial(
+                _query_params_for_generic, categories=[group_category], referrer=referrer
+            )
         strategies[group_category.value] = strategy
     return strategies
 

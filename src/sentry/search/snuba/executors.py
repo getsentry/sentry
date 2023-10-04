@@ -280,6 +280,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         get_sample: bool,
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        referrer: Optional[str] = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -337,7 +338,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
+        strategy = get_search_strategies(referrer)[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -420,7 +421,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies().keys()
+                for gc in get_search_strategies(referrer).keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
@@ -448,6 +449,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     get_sample,
                     actor,
                     aggregate_kwargs,
+                    referrer,
                 )
             except UnsupportedSearchQuery:
                 pass

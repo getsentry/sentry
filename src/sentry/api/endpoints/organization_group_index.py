@@ -164,6 +164,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
+    referrer = "search.group_index"
+
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -182,7 +184,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
+                query_kwargs["referrer"] = self.referrer
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 
