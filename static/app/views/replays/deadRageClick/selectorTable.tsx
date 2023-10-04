@@ -77,16 +77,16 @@ export function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
   const platform = project?.platform;
   const slug = project?.slug;
   return isWidget ? (
-    <ProjectContainer>
+    <WidgetProjectContainer>
       <Tooltip title={slug}>
         <PlatformIcon size={16} platform={platform ?? 'default'} />
       </Tooltip>
-    </ProjectContainer>
+    </WidgetProjectContainer>
   ) : (
-    <ProjectContainer>
+    <IndexProjectContainer>
       <PlatformIcon size={16} platform={platform ?? 'default'} />
       <TextOverflow>{slug}</TextOverflow>
-    </ProjectContainer>
+    </IndexProjectContainer>
   );
 }
 
@@ -225,10 +225,13 @@ const StyledTooltip = styled(Tooltip)`
   display: inherit;
 `;
 
-const ProjectContainer = styled('div')`
+const WidgetProjectContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: ${space(0.75)};
+`;
+
+const IndexProjectContainer = styled(WidgetProjectContainer)`
   padding-right: ${space(1)};
 `;
