@@ -135,6 +135,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+    # TODO: refactor the system to allow management of error messages filtering via the inbound filters, since right
+    #  now the system maps an option to a single top-level filter like "ignoreTransactions".
     enable_react = project.get_option("filters:react-hydration-errors")
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
@@ -145,6 +147,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         error_messages += [
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
         ]
+
+    if project.get_option("filters:chunk-load-error") == "1":
+        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
+        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += ["ChunkLoadError: Loading chunk * failed.\n(error: *)"]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}

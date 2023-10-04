@@ -189,6 +189,7 @@ detailed_project = {
         "sentry:reprocessing_active": False,
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
+        "filters:chunk-load-error": True,
         "filters:releases": "",
         "filters:error_messages": "",
         "feedback:branding": True,

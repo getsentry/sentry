@@ -64,6 +64,7 @@ OPTION_KEYS = frozenset(
         "mail:subject_prefix",
         "mail:subject_template",
         "filters:react-hydration-errors",
+        "filters:chunk-load-error",
     ]
 )
 

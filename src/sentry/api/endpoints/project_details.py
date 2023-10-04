@@ -811,6 +811,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "filters:react-hydration-errors",
                     bool(options["filters:react-hydration-errors"]),
                 )
+            if "filters:chunk-load-error" in options:
+                project.update_option(
+                    "filters:chunk-load-error",
+                    "1" if bool(options["filters:chunk-load-error"]) else "0",
+                )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
                     "sentry:blacklisted_ips",
