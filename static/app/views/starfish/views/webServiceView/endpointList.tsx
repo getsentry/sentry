@@ -99,7 +99,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     column: TableColumnHeader,
     dataRow: TableDataRow,
     _deltaColumnMap: Record<string, string>,
-    issueCounts: Map<string, number>
+    issueCounts: Map<string, null | number>
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -170,7 +170,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const method = dataRow['http.method'];
       let issueCount = issueCounts.has(transactionName)
         ? issueCounts.get(transactionName)
-        : null;
+        : undefined;
+      if (issueCount === null) {
+        issueCount = 0;
+      }
       if (method === undefined && transactionName === 'Overall') {
         issueCount = issueCounts.get('');
       }
@@ -186,7 +189,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         >
           <IconIssues size="sm" />
           <IssueLabel>
-            {issueCount ? issueCount : <LoadingIndicator size={20} mini />}
+            {issueCount !== undefined ? issueCount : <LoadingIndicator size={20} mini />}
             {issueCount === 100 && '+'}
           </IssueLabel>
         </IssueButton>
@@ -225,7 +228,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderBodyCellWithData(
     tableData: TableData | null,
-    issueCounts: Map<string, number>
+    issueCounts: Map<string, null | number>
   ) {
     const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
