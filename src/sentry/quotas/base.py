@@ -218,10 +218,10 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
-        "assign_seat",
-        "unassign_seat",
-        "set_billing_seat_recreate",
-        "remove_billing_seat_recreate",
+        "assign_monitor_seat",
+        "unassign_monitor_seat",
+        "enable_seat_recreate",
+        "disable_seat_recreate",
     )
 
     def __init__(self, **options):
@@ -497,7 +497,7 @@ class Quota(Service):
         :param volume: The volume of transaction of the given project.
         """
 
-    def assign_seat(
+    def assign_monitor_seat(
         self,
         monitor: Monitor,
     ) -> int:
@@ -511,7 +511,7 @@ class Quota(Service):
         monitor.update(status=MonitorStatus.OK)
         return Outcome.ACCEPTED
 
-    def unassign_seat(
+    def unassign_monitor_seat(
         self,
         monitor: Monitor,
     ):
@@ -522,8 +522,8 @@ class Quota(Service):
 
         monitor.update(status=MonitorStatus.DISABLED)
 
-    def set_billing_seat_recreate(self, monitor: Monitor):
+    def enable_seat_recreate(self, monitor: Monitor):
         """Sets the monitor's seat assignment to automatically be recreated at renewal."""
 
-    def remove_billing_seat_recreate(self, monitor: Monitor):
+    def disable_seat_recreate(self, monitor: Monitor):
         """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""
