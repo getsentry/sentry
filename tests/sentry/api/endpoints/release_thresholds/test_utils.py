@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest import mock
 
 from snuba_sdk.column import Column
@@ -17,25 +18,27 @@ class GetErrorCountTimeseriesTest(TestCase):
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
     def test_errors_timeseries_snuba_fetch(self, mock_snql_query):
+        now = datetime.utcnow()
         get_errors_counts_timeseries_by_project_and_release(
-            end=0,
+            end=now,
             organization_id=self.org.id,
             project_id_list=[],
             release_value_list=[],
-            start=0,
+            start=now,
         )
 
         assert mock_snql_query.call_count == 1
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
     def test_errors_timeseries_snuba_fetch_called_with_env(self, mock_snql_query):
+        now = datetime.utcnow()
         env_list = ["foo"]
         get_errors_counts_timeseries_by_project_and_release(
-            end=0,
+            end=now,
             organization_id=self.org.id,
             project_id_list=[],
             release_value_list=[],
-            start=0,
+            start=now,
             environments_list=env_list,
         )
 

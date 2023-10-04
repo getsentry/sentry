@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List
 
 from snuba_sdk import Request as SnubaRequest
@@ -16,11 +17,11 @@ from sentry.utils import snuba
 
 
 def get_errors_counts_timeseries_by_project_and_release(
-    end: int,
+    end: datetime,
     organization_id: int,
     project_id_list: List[int],
     release_value_list: List[str],
-    start: int,
+    start: datetime,
     environments_list: List[str] | None = None,
 ) -> List[Dict[str, Any]]:
     additional_conditions = []
