@@ -35,7 +35,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     )
     fallthrough = serializers.BooleanField(
         required=False,
-        help_text="Indicate if there is no match on explicit rules, to fall through and make everyone an implicit owner.",
+        help_text="Set to `True` to make everyone an implicit owner if there is no match on explicit rules.",
     )
     autoAssignment = serializers.CharField(
         required=False,
@@ -48,7 +48,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     codeownersAutoSync = serializers.BooleanField(
         required=False,
         default=True,
-        help_text="Set to `True` to sync issue owners with CODEOWNERS updates in a realese.",
+        help_text="Set to `True` to sync issue owners with CODEOWNERS updates in a release.",
     )
 
     @staticmethod
