@@ -131,6 +131,7 @@ def _update_escalating_metrics(event: Event) -> None:
         metric_name="event_ingested",
         value=1,
         tags={"group": str(event.group_id)},
+        timestamp=event.data["timestamp"],
         unit=None,
     )
 
