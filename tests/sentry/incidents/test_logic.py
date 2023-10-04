@@ -1462,7 +1462,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.target_display == channel_id
         assert action.integration_id == integration.id
 
-    @responses.activate
     def test_discord_flag_off(self):
         guild_id = "example-discord-server"
         metadata = {
@@ -1479,11 +1478,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_id = "channel-id"
-        responses.add(
-            method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{channel_id}",
-            json=metadata,
-        )
 
         with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(

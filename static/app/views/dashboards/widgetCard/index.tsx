@@ -39,7 +39,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
-import {getWidgetIndicatorColor} from '../utils';
+import {getWidgetIndicatorColor, hasThresholdMaxValue} from '../utils';
+import ThresholdsHoverWrapper from '../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -75,6 +76,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -222,6 +224,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
+    const {onDataFetched} = this.props;
+
+    if (onDataFetched && tableResults) {
+      onDataFetched(tableResults);
+    }
+
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
@@ -310,15 +318,21 @@ class WidgetCard extends Component<Props, State> {
                         <WidgetTitle>{widget.title}</WidgetTitle>
                       </Tooltip>
                       {widget.thresholds &&
+                        hasThresholdMaxValue(widget.thresholds) &&
                         this.state.tableData &&
                         organization.features.includes('dashboard-widget-indicators') && (
-                          <CircleIndicator
-                            color={getWidgetIndicatorColor(
-                              widget.thresholds,
-                              this.state.tableData
-                            )}
-                            size={12}
-                          />
+                          <ThresholdsHoverWrapper
+                            thresholds={widget.thresholds}
+                            tableData={this.state.tableData}
+                          >
+                            <CircleIndicator
+                              color={getWidgetIndicatorColor(
+                                widget.thresholds,
+                                this.state.tableData
+                              )}
+                              size={12}
+                            />
+                          </ThresholdsHoverWrapper>
                         )}
                     </WidgetTitleRow>
                     {widget.description && (

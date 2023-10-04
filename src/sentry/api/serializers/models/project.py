@@ -316,7 +316,7 @@ class ProjectSerializer(Serializer):
 
                 if use_notifications_v2:
                     subscriptions = notifications_service.get_subscriptions_for_projects(
-                        user=user.id,
+                        user_id=user.id,
                         project_ids=project_ids,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
                     )

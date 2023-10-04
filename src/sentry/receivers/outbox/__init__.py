@@ -49,7 +49,9 @@ See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4
 """
 from __future__ import annotations
 
-from typing import Any, Protocol, Type, TypeVar
+from typing import TypeVar
+
+from django.db import models
 
 from sentry.services.hybrid_cloud.tombstone import (
     RpcTombstone,
@@ -58,16 +60,11 @@ from sentry.services.hybrid_cloud.tombstone import (
 )
 from sentry.silo import SiloMode
 
-
-class ModelLike(Protocol):
-    objects: Any
-
-
-T = TypeVar("T", bound=ModelLike)
+T = TypeVar("T", bound=models.Model)
 
 
 def maybe_process_tombstone(
-    model: Type[T], object_identifier: int, region_name: str | None = None
+    model: type[T], object_identifier: int, region_name: str | None = None
 ) -> T | None:
     if instance := model.objects.filter(id=object_identifier).last():
         return instance
