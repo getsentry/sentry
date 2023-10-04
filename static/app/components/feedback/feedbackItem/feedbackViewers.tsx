@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -11,28 +13,22 @@ interface Props {
 }
 
 export default function FeedbackViewers({feedbackItem: _}: Props) {
-  const displayUsers = [
-    {
-      email: 'colton.allen@sentry.io',
-      id: '1',
-      ip_address: '',
-      name: 'Colton Allen',
-      username: 'cmanallen',
-    },
-  ];
+  const displayUsers = [];
 
   return (
-    <AvatarList
-      users={displayUsers}
-      avatarSize={28}
-      maxVisibleAvatars={13}
-      renderTooltip={user => (
-        <Fragment>
-          {userDisplayName(user)}
-          <br />
-          <DateTime date={(user as AvatarUser).lastSeen} />
-        </Fragment>
-      )}
-    />
+    <Tooltip title={t('People who have viewed this report')}>
+      <AvatarList
+        users={displayUsers}
+        avatarSize={28}
+        maxVisibleAvatars={13}
+        renderTooltip={user => (
+          <Fragment>
+            {userDisplayName(user)}
+            <br />
+            <DateTime date={(user as AvatarUser).lastSeen} />
+          </Fragment>
+        )}
+      />
+    </Tooltip>
   );
 }
