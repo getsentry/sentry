@@ -4,9 +4,11 @@ import {
   MutableRefObject,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
 } from 'react';
 import {useTheme} from '@emotion/react';
+import maxBy from 'lodash/maxBy';
 
 import Count from 'sentry/components/count';
 import {
@@ -191,6 +193,7 @@ export function SpanGroupBar(props: Props) {
     toggleSpanGroup,
     getCurrentLeftPos,
     spanBarType,
+    event,
   } = props;
 
   const theme = useTheme();
@@ -231,19 +234,19 @@ export function SpanGroupBar(props: Props) {
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
-    const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      if (Math.abs(e.deltaY) === Math.abs(e.deltaX)) {
         return;
       }
 
-      onWheel(event.deltaX);
+      onWheel(e.deltaX);
     };
 
     if (currentRef) {
@@ -259,24 +262,33 @@ export function SpanGroupBar(props: Props) {
     };
   }, [onWheel]);
 
+  // If this is an aggregate span waterfall, we will use the span with the highest frequency in the grouping to represent
+  // the value shown in the frequency box. Using a memo because otherwise this operation will fire on every vertical scroll tick
+  const mostFrequentSpanInGroup = useMemo(() => {
+    if (event.type !== EventOrGroupType.AGGREGATE_TRANSACTION) {
+      return null;
+    }
+
+    const spanObjects = spanGrouping.map(({span}) => span);
+
+    return maxBy(spanObjects, 'frequency');
+  }, [event, spanGrouping]);
+
   return (
     <DividerHandlerManager.Consumer>
       {(
         dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
       ) => {
-        const {generateBounds, span, treeDepth, spanNumber, event} = props;
+        const {generateBounds, span, treeDepth, spanNumber} = props;
 
         const {isSpanVisibleInView: isSpanVisible} = generateBounds({
           startTimestamp: span.start_timestamp,
           endTimestamp: span.timestamp,
         });
 
-        const firstAggregateSpan = spanGrouping.find(
-          ({span: currentSpan}) => currentSpan.type === 'aggregate'
-        );
-
         const isAggregateEvent =
-          event.type === EventOrGroupType.AGGREGATE_TRANSACTION && firstAggregateSpan;
+          event.type === EventOrGroupType.AGGREGATE_TRANSACTION &&
+          mostFrequentSpanInGroup;
 
         const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
         const left =
@@ -304,7 +316,7 @@ export function SpanGroupBar(props: Props) {
                 ref={spanTitleRef}
               >
                 {isAggregateEvent && (
-                  <SpanFrequencyBox span={firstAggregateSpan.span as AggregateSpanType} />
+                  <SpanFrequencyBox span={mostFrequentSpanInGroup as AggregateSpanType} />
                 )}
                 <RowTitleContainer ref={setTransformCallback}>
                   {renderGroupedSpansToggler(props)}
