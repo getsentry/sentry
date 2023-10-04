@@ -1,5 +1,6 @@
 import {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -46,6 +47,10 @@ function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: 
   const search = new MutableSearch('');
 
   Object.entries(filters).forEach(([key, value]) => {
+    if (!defined(value)) {
+      return;
+    }
+
     if (Array.isArray(value)) {
       search.addFilterValues(key, value);
     } else {
