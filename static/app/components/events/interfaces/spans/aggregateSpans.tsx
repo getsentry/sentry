@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import {AggregateEventTransaction, EntryType, EventOrGroupType} from 'sentry/types/event';
@@ -61,7 +62,7 @@ type Props = {
 
 export function AggregateSpans({transaction}: Props) {
   const organization = useOrganization();
-  const {data} = useAggregateSpans({transaction});
+  const {data, isLoading} = useAggregateSpans({transaction});
 
   function formatSpan(span, total) {
     const {
@@ -139,6 +140,10 @@ export function AggregateSpans({transaction}: Props) {
     };
   }, [parentSpan, flattenedSpans]);
   const waterfallModel = useMemo(() => new WaterfallModel(event, undefined), [event]);
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <Panel>
