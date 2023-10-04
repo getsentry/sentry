@@ -774,6 +774,35 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert updated_omt.role == "admin"
 
     @with_feature("organizations:team-roles")
+    def test_superuser_can_promote_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
+    def test_admin_can_promote_member(self):
+        self.login_as(self.admin_on_team)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
     def test_member_cannot_promote_member(self):
         self.login_as(self.member_on_team)
         other_member = self.create_member(
