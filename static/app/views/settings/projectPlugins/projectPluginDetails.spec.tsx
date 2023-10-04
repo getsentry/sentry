@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Plugin} from 'sentry-fixture/plugin';
 import {Plugins} from 'sentry-fixture/plugins';
 
@@ -9,7 +10,7 @@ import ProjectPluginDetailsContainer, {
 } from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
   const plugins = Plugins();
   const plugin = Plugin();

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -12,7 +14,7 @@ import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
 
 describe('Dashboards - DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [TestStubs.Project()],
   });

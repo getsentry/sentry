@@ -15,7 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   FeedbackItemLoaderQueryParams,
   HydratedFeedbackItem,
-} from 'sentry/utils/feedback/types';
+} from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

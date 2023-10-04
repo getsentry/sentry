@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,7 +14,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 import * as useExperiment from 'sentry/utils/useExperiment';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
@@ -23,7 +24,7 @@ function renderFrameworkModalMockRequests({
   organization,
   teamSlug,
 }: {
-  organization: Organization;
+  organization: TOrganization;
   teamSlug: string;
 }) {
   MockApiClient.addMockResponse({
@@ -133,7 +134,7 @@ describe('CreateProject', function () {
   });
 
   it('should only allow teams which the user is a team-admin', async function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
 
     OrganizationStore.onUpdate(organization);
@@ -382,7 +383,7 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 

@@ -1419,10 +1419,13 @@ def get_available_action_integrations_for_org(organization):
     filtered by the list of registered providers.
     :param organization:
     """
+    # Avoids the case where the discord feature flag is off and the action type is discord
     providers = [
         registration.integration_provider
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
+        if registration.type != AlertRuleTriggerAction.Type.DISCORD
+        or features.has("organizations:integrations-discord-metric-alerts", organization)
     ]
     return Integration.objects.get_active_integrations(organization.id).filter(
         provider__in=providers

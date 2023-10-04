@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -39,7 +40,7 @@ function WrappedComponent({organization, router}) {
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -62,8 +63,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = TestStubs.Organization({
-    FEATURES,
+  const organization = Organization({
+    features: FEATURES,
     projects,
   });
 
