@@ -97,8 +97,10 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       const pathname = `${routingContext.baseURL}/${
         extractRoute(location) ?? 'spans'
       }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
-      const query: {[key: string]: string} = {
+      const query: {[key: string]: string | undefined} = {
         ...location.query,
+        endpoint,
+        endpointMethod,
         transaction: row.transaction,
       };
 
