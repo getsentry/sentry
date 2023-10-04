@@ -194,11 +194,16 @@ function BaseMenuListItem({
   );
 }
 
-const MenuListItem = memo(
-  reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
-    <BaseMenuListItem {...props} forwardRef={ref} />
-  ))
+interface AllBaseMenuProps extends MenuListItemProps, OtherProps {}
+const ForwardRefBaseMenuComponent = reactForwardRef<HTMLLIElement, AllBaseMenuProps>(
+  (props, ref) => <BaseMenuListItem {...props} forwardRef={ref} />
 );
+
+const MenuListItem = memo(
+  ForwardRefBaseMenuComponent
+  // Override the memo type to avoid complex union types
+  // Should be no change in behavior
+) as typeof ForwardRefBaseMenuComponent;
 
 export default MenuListItem;
 
