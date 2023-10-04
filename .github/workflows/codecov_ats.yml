@@ -35,7 +35,7 @@ jobs:
               token: ${{ github.token }}
               filters: .github/file-filters.yml
     coverage-ats:
-        #if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend == 'true'
         needs: files-changed
         runs-on: ubuntu-latest
         # Map a step output to a job output
@@ -89,6 +89,7 @@ jobs:
           id: label_analysis
           continue-on-error: true
           run: |
+            set +e
             BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
             echo $BASE_COMMIT
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT})
