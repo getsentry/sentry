@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/profiling/landing/styles';
 import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
 import {
+  ProjectInfo,
   SelectorLink,
   transformSelectorQuery,
 } from 'sentry/views/replays/deadRageClick/selectorTable';
@@ -81,7 +82,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
-  const [selectedListIndex, setSelectListIndex] = useState(0);
+  const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
     sort: `-${clickType}`,
@@ -129,6 +130,7 @@ function AccordionWidget({
                     selector={d.dom_element}
                     clickColor={clickColor}
                     selectorQuery={selectorQuery}
+                    id={d.project_id}
                   />
                 ),
                 content: () => (
@@ -136,6 +138,7 @@ function AccordionWidget({
                     location={location}
                     clickType={clickType}
                     selectorQuery={selectorQuery}
+                    projectId={d.project_id}
                   />
                 ),
               };
@@ -157,9 +160,11 @@ function AccordionItemHeader({
   clickColor,
   selector,
   selectorQuery,
+  id,
 }: {
   clickColor: ColorOrAlias;
   count: number;
+  id: number;
   selector: string;
   selectorQuery: string;
 }) {
@@ -172,7 +177,10 @@ function AccordionItemHeader({
   return (
     <StyledAccordionHeader>
       <SelectorLink value={selector} selectorQuery={selectorQuery} />
-      <RightAlignedCell>{clickCount}</RightAlignedCell>
+      <RightAlignedCell>
+        {clickCount}
+        <ProjectInfo id={id} isWidget />
+      </RightAlignedCell>
     </StyledAccordionHeader>
   );
 }
@@ -274,6 +282,7 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: ${space(1)};
 `;
 
 export default DeadRageSelectorCards;
