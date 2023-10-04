@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, cast
+from typing import List, Optional, Tuple, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -78,8 +79,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
-@region_silo_endpoint
-class CustomRulesEndpoint(OrganizationEndpoint):
+class CustomRulePermission(BasePermission):
     scope_map = {
         "GET": [
             "org:read",
@@ -97,23 +97,13 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             "project:write",
             "project:admin",
         ],
-        "PUT": [
-            "org:read",
-            "org:write",
-            "org:admin",
-            "project:read",
-            "project:write",
-            "project:admin",
-        ],
-        "DELETE": [
-            "org:read",
-            "org:write",
-            "org:admin",
-            "project:read",
-            "project:write",
-            "project:admin",
-        ],
     }
+
+
+@region_silo_endpoint
+class CustomRulesEndpoint(OrganizationEndpoint):
+    permission_classes: Tuple[BasePermission, ...] = (CustomRulePermission,)
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
