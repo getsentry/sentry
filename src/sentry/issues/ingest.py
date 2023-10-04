@@ -21,7 +21,7 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
-from sentry.issues.grouptype import should_create_group
+from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
@@ -128,6 +128,10 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+
+    if occurrence.type == FeedbackGroup:
+        event_metadata["contact_email"] = occurrence.evidence_data["contact_email"]
+        event_metadata["message"] = occurrence.evidence_data["message"]
 
     return {
         "type": event_type.key,

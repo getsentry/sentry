@@ -1,3 +1,5 @@
+import time
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -23,7 +25,7 @@ test_data = {
     },
     "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
     "tags": {"key": "value"},
-    "timestamp": 1234456,
+    "timestamp": time.time(),
     "user": {
         "email": "username@example.com",
         "id": "123",

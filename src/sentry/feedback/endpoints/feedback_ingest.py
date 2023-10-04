@@ -154,18 +154,18 @@ class FeedbackIngestEndpoint(Endpoint):
         ):
             return Response(status=404)
 
-        feedback_validator = FeedbackValidator(
-            data=request.data, context={"project": project, "organization": organization}
-        )
-        if not feedback_validator.is_valid():
-            return self.respond(feedback_validator.errors, status=400)
+        # feedback_validator = FeedbackValidator(
+        #     data=request.data, context={"project": project, "organization": organization}
+        # )
+        # if not feedback_validator.is_valid():
+        #     return self.respond(feedback_validator.errors, status=400)
 
-        result = feedback_validator.validated_data
+        # result = feedback_validator.validated_data
 
-        env = Environment.objects.get_or_create(
-            name=result["environment"], organization_id=organization.id
-        )[0]
-        result["environment"] = env
+        # env = Environment.objects.get_or_create(
+        #     name=result["environment"], organization_id=organization.id
+        # )[0]
+        # result["environment"] = env
 
-        create_feedback(result)
+        create_feedback(request.data, project.id)
         return self.respond(status=201)

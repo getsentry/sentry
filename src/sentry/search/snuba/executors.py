@@ -276,6 +276,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
         actor: Optional[Any] = None,
+        referrer: Optional[str] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> SnubaQueryParams:
         """
@@ -334,7 +335,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
+        strategy = get_search_strategies(referrer)[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -417,8 +418,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies().keys()
-                if (gc != GroupCategory.PROFILE.value and gc != GroupCategory.FEEDBACK.value)
+                for gc in get_search_strategies(referrer).keys()
+                if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
 
@@ -444,6 +445,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     cursor,
                     get_sample,
                     actor,
+                    referrer,
                     aggregate_kwargs,
                 )
             except UnsupportedSearchQuery:
