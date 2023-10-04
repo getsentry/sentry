@@ -42,7 +42,7 @@ export default function FeedbackListPage({}: Props) {
                 {t('Bug Reports')}
                 <PageHeadingQuestionTooltip
                   title={t(
-                    'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
+                    'Feedback and bug reports submitted by users on your page.'
                   )}
                   docsUrl="https://docs.sentry.io/product/user-feedback/"
                 />
