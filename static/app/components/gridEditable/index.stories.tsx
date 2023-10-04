@@ -214,7 +214,7 @@ export default storyBook(GridEditable, story => {
     />
   ));
 
-  story('Header Agumentations', () => (
+  story('Header Augmentations', () => (
     <Matrix
       render={GridEditable}
       propMatrix={{
