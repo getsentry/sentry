@@ -49,11 +49,11 @@ export const useSpanSamples = (options: Options) => {
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     groupId,
     {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`],
+    [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
+  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
