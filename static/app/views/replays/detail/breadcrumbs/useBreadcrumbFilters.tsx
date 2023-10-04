@@ -8,8 +8,8 @@ import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {
-  f_d_search: string;
-  f_d_type: string[];
+  f_b_search: string;
+  f_b_type: string[];
 };
 
 type Options = {
@@ -39,16 +39,16 @@ function typeToLabel(val: string): string {
 
 const FILTERS = {
   type: (item: Extraction, type: string[]) =>
-    type.length === 0 || type.includes(getFrameOpOrCategory(item.frame)),
+    type.length === 0 || type.includes(item.type),
   searchTerm: (item: Extraction, searchTerm: string) =>
-    JSON.stringify(item.html).toLowerCase().includes(searchTerm),
+    JSON.stringify(item).toLowerCase().includes(searchTerm),
 };
 
 function useBreadcrumbFilters({actions}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
-  const searchTerm = decodeScalar(query.f_d_search, '').toLowerCase();
+  const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
+  const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
@@ -62,16 +62,16 @@ function useBreadcrumbFilters({actions}: Options): Return {
 
   const getMutationsTypes = useCallback(
     () =>
-      uniq(actions.map(mutation => getFrameOpOrCategory(mutation.frame)).concat(type))
+      uniq(actions.map(mutation => getFrameOpOrCategory(mutation)).concat(type))
         .sort()
         .map(value => ({value, label: typeToLabel(value)})),
     [actions, type]
   );
 
-  const setType = useCallback((f_d_type: string[]) => setFilter({f_d_type}), [setFilter]);
+  const setType = useCallback((f_b_type: string[]) => setFilter({f_b_type}), [setFilter]);
 
   const setSearchTerm = useCallback(
-    (f_d_search: string) => setFilter({f_d_search: f_d_search || undefined}),
+    (f_b_search: string) => setFilter({f_b_search: f_b_search || undefined}),
     [setFilter]
   );
 

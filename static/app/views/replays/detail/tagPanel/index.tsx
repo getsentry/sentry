@@ -1,17 +1,22 @@
 import {ReactNode, useCallback} from 'react';
-import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+
+import TabItemContainer from '../tabItemContainer';
+
+import TagFilters from './tagFilters';
+import useTagFilters from './useTagFilters';
 
 const notTags = [
   'browser.name',
@@ -39,6 +44,9 @@ function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
+  const tagFrame = replayRecord?.tags;
+
+  const filterProps = useTagFilters({tagFrame: tagFrame || {}});
 
   const generateUrl = useCallback(
     (name: string, value: ReactNode) =>
@@ -60,32 +68,30 @@ function TagPanel() {
   const tags = Object.entries(replayRecord.tags);
 
   return (
-    <StyledPanel>
-      <FluidPanel>
-        {tags.length ? (
-          <KeyValueTable noMargin>
-            {tags.map(([key, values]) => (
-              <ReplayTagsTableRow
-                key={key}
-                name={key}
-                values={values}
-                generateUrl={generateUrl}
-              />
-            ))}
-          </KeyValueTable>
-        ) : (
-          <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-        )}
-      </FluidPanel>
-    </StyledPanel>
+    <FluidHeight>
+      <FilterLoadingIndicator isLoading={isFetching}>
+        <TagFilters actions={actions} {...filterProps} />
+      </FilterLoadingIndicator>
+      <TabItemContainer>
+        <FluidPanel>
+          {tags.length ? (
+            <KeyValueTable noMargin>
+              {tags.map(([key, values]) => (
+                <ReplayTagsTableRow
+                  key={key}
+                  name={key}
+                  values={values}
+                  generateUrl={generateUrl}
+                />
+              ))}
+            </KeyValueTable>
+          ) : (
+            <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+          )}
+        </FluidPanel>
+      </TabItemContainer>
+    </FluidHeight>
   );
 }
-
-const StyledPanel = styled(Panel)`
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  margin-bottom: 0;
-`;
 
 export default TagPanel;
