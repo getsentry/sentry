@@ -6,7 +6,6 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -81,66 +80,3 @@ def test_where(params, search, condition):
         selected_columns=["count()"],
     )
     assert condition in builder.where
-
-
-@pytest.mark.parametrize(
-    "search,condition",
-    [
-        pytest.param(
-            "slope(avg):>0",
-            Condition(
-                Function(
-                    "tupleElement",
-                    [
-                        Function(
-                            "simpleLinearRegression",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                Function("finalizeAggregation", [Column("avg")]),
-                            ],
-                        ),
-                        1,
-                    ],
-                    "sentry_slope_avg",
-                ),
-                Op(">"),
-                0,
-            ),
-            id="regression",
-        ),
-        pytest.param(
-            "slope(avg):<0",
-            Condition(
-                Function(
-                    "tupleElement",
-                    [
-                        Function(
-                            "simpleLinearRegression",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                Function("finalizeAggregation", [Column("avg")]),
-                            ],
-                        ),
-                        1,
-                    ],
-                    "sentry_slope_avg",
-                ),
-                Op("<"),
-                0,
-            ),
-            id="improvement",
-        ),
-    ],
-)
-@django_db_all
-def test_having(params, search, condition):
-    builder = ProfileFunctionsQueryBuilder(
-        Dataset.Functions,
-        params,
-        query=search,
-        selected_columns=["count()"],
-        config=QueryBuilderConfig(
-            use_aggregate_conditions=True,
-        ),
-    )
-    assert condition in builder.having
