@@ -681,6 +681,26 @@ def check_clickhouse(containers: dict[str, Any]) -> None:
     )
 
 
+def check_kafka(containers: dict[str, Any]) -> None:
+    options = containers["kafka"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "kafka-topics",
+            "--bootstrap-server",
+            # Port is a tuple of (127.0.0.1, <port number>)
+            f"{port[0]}:{port[1]}",
+            "--list",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -692,5 +712,6 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
     "clickhouse": ServiceHealthcheck(check=check_clickhouse),
+    "kafka": ServiceHealthcheck(check=check_kafka),
     "vroom": ServiceHealthcheck(check=check_vroom),
 }
