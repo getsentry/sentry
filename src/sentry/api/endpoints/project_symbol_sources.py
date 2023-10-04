@@ -88,13 +88,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a custom symbol source from a project.
-        ````````````````````````````````````````
-
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
-        :qparam string id: the id of the source to delete.
-
-        :auth: required
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
