@@ -1,6 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 
-import resolveRoute from './resolveRoute';
+import {resolveRoute} from './resolveRoute';
 
 const mockDeployPreviewConfig = jest.fn();
 

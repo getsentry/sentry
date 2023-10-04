@@ -69,4 +69,4 @@ function resolveRoute(
   return `${organizationUrl}${normalizeUrl(route)}`;
 }
 
-export default resolveRoute;
+export {localizeDomain, resolveRoute};

@@ -8,9 +8,10 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import resolveRoute from 'sentry/utils/resolveRoute';
+import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
@@ -42,16 +43,15 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
   const currentOrganization = useOrganization({allowNull: true});
-  const route = resolveRoute('/organizations/new/', currentOrganization);
-
   if (!canCreateOrganization) {
     return null;
   }
-
+  const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
+  const route = '/organizations/new/';
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
   if (currentOrganization?.features.includes('customer-domains')) {
-    menuItemProps.href = route;
+    menuItemProps.href = sentryUrl + route;
     menuItemProps.openInNewTab = false;
   } else {
     menuItemProps.to = route;
