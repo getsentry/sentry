@@ -27,7 +27,7 @@ class DiscordMessageBuilder(AbstractMessageBuilder):
         self.components = components
         self.flags = flags
 
-    def build(self) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
         return self._build(
             self.content,
             self.embeds,

@@ -33,10 +33,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
 
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            notification_uuid=uuid,
-        ).build() == {
+        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
+            notification_uuid=uuid
+        ) == {
             "content": "",
             "embeds": [
                 {
@@ -73,9 +72,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=self.alert_rule,
-            notification_uuid=uuid,
             incident=incident,
-        ).build() == {
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -106,10 +104,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            notification_uuid=uuid,
-        ).build() == {
+        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
+            notification_uuid=uuid
+        ) == {
             "content": "",
             "embeds": [
                 {
@@ -148,8 +145,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             incident=incident,
             new_status=IncidentStatus.CRITICAL,
             metric_value=metric_value,
-            notification_uuid=uuid,
-        ).build() == {
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -181,11 +177,10 @@ class BuildMetricAlertAttachmentTest(TestCase):
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
             alert_rule=self.alert_rule,
-            notification_uuid=uuid,
             incident=incident,
             new_status=new_status,
             chart_url="chart_url",
-        ).build() == {
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {

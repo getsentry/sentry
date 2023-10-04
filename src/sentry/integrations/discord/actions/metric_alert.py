@@ -44,7 +44,6 @@ def send_incident_alert_notification(
 
     message = DiscordMetricAlertMessageBuilder(
         alert_rule=incident.alert_rule,
-        notification_uuid=notification_uuid,
         incident=incident,
         new_status=new_status,
         metric_value=metric_value,
