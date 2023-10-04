@@ -318,9 +318,13 @@ def query_transactions_timeseries(
             "project_id": [project_id],
             "project_objects": [Project.objects.get(id=project_id)],
         }
+
+        escaped_transaction_name = transaction_name.replace('"', '\\"')
+        query = f'transaction:"{escaped_transaction_name}"'
+
         results = metrics_performance.timeseries_query(
             selected_columns=[agg_function],
-            query=f"transaction:{transaction_name}",
+            query=query,
             params=params,
             rollup=interval,
             referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
