@@ -293,7 +293,7 @@ export const RightAlignedCell = styled('div')`
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 2em;
+  line-height: 1.8em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;
