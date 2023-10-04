@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsField;
+const {SPAN_SELF_TIME} = SpanMetricsField;
 
 export type SpanTransactionMetrics = {
   'avg(span.self_time)': number;
@@ -22,22 +22,19 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  group: string,
-  options: {transactions?: string[]},
+  filters: {'span.group'?: string; transaction?: string[] | string},
   sorts?: Sort[],
   cursor?: string,
   referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const {transactions} = options;
-
-  const eventView = getEventView(group, location, transactions ?? [], sorts);
+  const eventView = getEventView(location, filters, sorts);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(group),
+    enabled: Boolean(filters['span.group']),
     limit: 25,
     referrer,
     cursor,
@@ -45,18 +42,19 @@ export const useSpanTransactionMetrics = (
 };
 
 function getEventView(
-  group: string,
   location: Location,
-  transactions: string[],
+  filters: {[key: string]: string[] | string} = {},
   sorts?: Sort[]
 ) {
   const search = new MutableSearch('');
-  search.addFilterValues(SPAN_GROUP, [group]);
-  search.addFilterValues('transaction.op', ['http.server']);
 
-  if (transactions.length > 0) {
-    search.addFilterValues('transaction', transactions);
-  }
+  Object.entries(filters).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      search.addFilterValues(key, value);
+    } else {
+      search.addFilterValue(key, value);
+    }
+  });
 
   const eventView = EventView.fromNewQueryWithLocation(
     {

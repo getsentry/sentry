@@ -71,9 +71,9 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
-    span[SpanMetricsField.SPAN_GROUP],
     {
-      transactions: endpoint ? [endpoint] : undefined,
+      'span.group': span[SpanMetricsField.SPAN_GROUP],
+      transaction: endpoint,
     },
     [sort],
     cursor
