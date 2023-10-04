@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 from rest_framework.response import Response
-from snuba_sdk import Column, Function, LimitBy
+from snuba_sdk import Column, Condition, Function, LimitBy, Op, Or
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,6 +18,7 @@ from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
 SNUBA_QUERY_LIMIT = 10000
+BUFFER = timedelta(hours=6)
 
 
 def query_spans(transaction, regression_breakpoint, params):
@@ -61,6 +64,16 @@ def query_spans(transaction, regression_breakpoint, params):
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
     builder.groupby.append(Column("period"))
     builder.limitby = LimitBy([Column("period")], SNUBA_QUERY_LIMIT // 2)
+    builder.add_conditions(
+        [
+            Or(
+                [
+                    Condition(Column("timestamp"), Op.GT, regression_breakpoint + BUFFER),
+                    Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
+                ]
+            )
+        ]
+    )
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
