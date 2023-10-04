@@ -522,7 +522,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "issue_title": "Exp Duration Regression",
+                "issue_title": "Exp Transaction Duration Regression",
                 "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
                 "resource_id": None,
                 "evidence_data": mock_trends_result[0],
