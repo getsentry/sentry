@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -37,6 +38,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions, metrics_performance
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
@@ -51,7 +53,7 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
@@ -197,10 +199,12 @@ def _detect_transaction_change_points(
 
     trend_function = "p95(transaction.duration)"
 
-    for chunk in chunked(query_transactions_timeseries(transactions, start, trend_function), 10):
+    for chunk in chunked(
+        query_transactions_timeseries(transactions, start, trend_function), TRANSACTIONS_PER_BATCH
+    ):
         data = {}
-        for project_id, transaction_name, timeseries in chunk:
-            serialized = serializer.serialize(timeseries, get_function_alias(trend_function))
+        for project_id, transaction_name, result in chunk:
+            serialized = serializer.serialize(result, get_function_alias(trend_function))
             data[f"{project_id},{transaction_name}"] = {
                 "data": serialized["data"],
                 "data_start": serialized["start"],
@@ -307,11 +311,15 @@ def query_transactions_timeseries(
     transactions: List[Tuple[int, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[Tuple[int, Union[int, str], Any], None, None]:
+) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     interval = 3600  # 1 hour
 
+    grouped_transactions = defaultdict(list)
     for project_id, transaction_name in transactions:
+        grouped_transactions[project_id].append(transaction_name)
+
+    for project_id, transaction_names in transactions:
         params: Dict[str, Any] = {
             "start": end - timedelta(days=14),
             "end": end,
@@ -319,17 +327,56 @@ def query_transactions_timeseries(
             "project_objects": [Project.objects.get(id=project_id)],
         }
 
-        escaped_transaction_name = transaction_name.replace('"', '\\"')
-        query = f'transaction:"{escaped_transaction_name}"'
+        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+        # 336 data points per transaction name, so we can safely get 25 transaction
+        # timeseries.
+        chunk_size = 25
 
-        results = metrics_performance.timeseries_query(
-            selected_columns=[agg_function],
-            query=query,
-            params=params,
-            rollup=interval,
-            referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
-        )
-        yield project_id, transaction_name, results
+        for transactions_chunk in chunked(transaction_names, chunk_size):
+            escaped_transaction_names = [
+                transaction_name.replace('"', '\\"') for transaction_name in transactions_chunk
+            ]
+            query = " OR ".join([f'transaction:"{name}"' for name in escaped_transaction_names])
+
+            raw_results = metrics_performance.timeseries_query(
+                selected_columns=["project_id", "transaction", agg_function],
+                query=query,
+                params=params,
+                rollup=interval,
+                referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
+                groupby=Column("transaction"),
+            )
+
+            results = {}
+            for index, datapoint in enumerate(raw_results.data or []):
+                transaction_name = datapoint["transaction"]
+                if transaction_name not in results:
+                    results[transaction_name] = {
+                        "order": index,
+                        "data": [datapoint],
+                    }
+                else:
+                    data = cast(List, results[transaction_name]["data"])
+                    data.append(datapoint)
+
+            for transaction_name, item in results.items():
+                formatted_result = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"],
+                            params["start"],
+                            params["end"],
+                            interval,
+                            "time",
+                        ),
+                        "project": project_id,
+                        "order": item["order"],
+                    },
+                    params["start"],
+                    params["end"],
+                    interval,
+                )
+                yield project_id, transaction_name, formatted_result
 
 
 @instrumented_task(
