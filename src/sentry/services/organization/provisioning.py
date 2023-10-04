@@ -72,14 +72,13 @@ def handle_organization_provisioning_outbox_payload(
 
 
 def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reservation_id: int):
-    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(id=org_slug_reservation_id)
+    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+        id=org_slug_reservation_id,
+        reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+    )
 
     # Only process temporary aliases for slug swaps
-    if (
-        not org_slug_reservation_qs.exists()
-        or org_slug_reservation_qs.first().reservation_type
-        != OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value
-    ):
+    if not org_slug_reservation_qs.exists():
         return
 
     org_slug_reservation = org_slug_reservation_qs.first()
