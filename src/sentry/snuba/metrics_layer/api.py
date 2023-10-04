@@ -160,6 +160,9 @@ def _get_date_range(interval: str, start: str, end: str) -> Tuple[datetime, date
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[str]:
+    """
+    Builds a list of all the intervals that are queried by the metrics layer.
+    """
     start_seconds = start.timestamp()
     end_seconds = end.timestamp()
 
@@ -173,9 +176,13 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     return intervals
 
 
-def _merge_intervals_with_values(
+def _zerofill_series(
     start_seconds: int, num_intervals: int, interval: int, series: Sequence[Tuple[str, Any]]
 ) -> Sequence[Any]:
+    """
+    Computes a zerofilled series in which given a number of intervals, the start and the interval length,
+    a list of zeros and the merged series values will be returned.
+    """
     zerofilled_series = [0.0] * num_intervals
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
@@ -190,23 +197,7 @@ def _translate_query_results(
     interval: int, query_results: Sequence[Tuple[str, Sequence[GroupBy], int, Mapping[str, Any]]]
 ) -> Mapping[str, Any]:
     """
-    from
-
-    {'aggregate_value': 4.0,
-    'time': '2023-10-03T10:00:00+00:00',
-    'transaction': '/hello'}
-
-    to
-
-    {
-        "by": {"val": 1, "val": 2},
-        "series": {
-            "mri": []
-        },
-        "totals": {
-            "mri": 1.0
-        },
-    }
+    Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
     if len(query_results) == 0:
         return {}
@@ -243,7 +234,7 @@ def _translate_query_results(
         inner_group = {
             "by": {name: value for name, value in group_key},
             "series": {
-                series_metric_name: _merge_intervals_with_values(
+                series_metric_name: _zerofill_series(
                     start.timestamp(), len(intervals), interval, series
                 )
                 for series_metric_name, series in group_serieses.items()
@@ -305,9 +296,9 @@ def run_metrics_query(
             tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
         )
         snuba_result = run_query(request=request)
-
         query_results.append(
             (
+                # TODO: implement aliases in order to distinguish between time series.
                 f"{field.aggregate}({field.metric_name})",
                 group_bys,
                 base_query.rollup.interval,

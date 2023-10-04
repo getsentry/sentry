@@ -2,6 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -20,6 +21,7 @@ from sentry.snuba.metrics import (
     get_tag_values,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
+from sentry.snuba.metrics_layer.api import run_metrics_query
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -154,7 +156,24 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     default_per_page = 50
 
-    def get(self, request: Request, organization) -> Response:
+    def _new_get(self, request: Request, organization) -> Response:
+        projects = self.get_projects(request, organization)
+
+        result = run_metrics_query(
+            field=request.GET.get("field"),
+            query=request.GET.get("query"),
+            group_by=request.GET.get("groupBy"),
+            interval=request.GET.get("interval"),
+            start=request.GET.get("start"),
+            end=request.GET.get("end"),
+            use_case_id=get_use_case_id(request),
+            organization=organization,
+            projects=projects,
+        )
+
+        return result
+
+    def _old_get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
         def data_fn(offset: int, limit: int):
@@ -185,6 +204,14 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             default_per_page=self.default_per_page,
             max_per_page=100,
         )
+
+    def get(self, request: Request, organization) -> Response:
+        if features.has(
+            "organizations:metrics-api-new-metrics-layer", organization, actor=request.user
+        ):
+            return self._new_get(request, organization)
+        else:
+            return self._old_get(request, organization)
 
 
 class MetricsDataSeriesPaginator(GenericOffsetPaginator):
