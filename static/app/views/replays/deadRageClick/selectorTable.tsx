@@ -230,4 +230,5 @@ const ProjectContainer = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.75)};
+  padding-right: ${space(1)};
 `;
