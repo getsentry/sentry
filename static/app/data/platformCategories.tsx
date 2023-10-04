@@ -1,7 +1,5 @@
 // Mirrors src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
-
-import {t} from 'sentry/locale';
 import {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
@@ -12,36 +10,6 @@ export enum PlatformCategory {
   DESKTOP,
   OTHER,
 }
-
-export const popularPlatformCategories: PlatformKey[] = [
-  'javascript',
-  'javascript-react',
-  'javascript-nextjs',
-  'python-django',
-  'python',
-  'python-flask',
-  'python-fastapi',
-  'ruby-rails',
-  'node-express',
-  'php-laravel',
-  'java',
-  'java-spring-boot',
-  'dotnet',
-  'dotnet-aspnetcore',
-  'csharp',
-  'go',
-  'php',
-  'ruby',
-  'node',
-  'react-native',
-  'javascript-angular',
-  'javascript-vue',
-  'android',
-  'apple-ios',
-  'flutter',
-  'dart-flutter',
-  'unity',
-];
 
 export const frontend: PlatformKey[] = [
   'dart',
@@ -167,21 +135,6 @@ export const desktop: PlatformKey[] = [
   'unreal',
 ];
 
-const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
-  {id: 'browser', name: t('Browser'), platforms: frontend},
-  {id: 'server', name: t('Server'), platforms: backend},
-  {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'desktop', name: t('Desktop'), platforms: desktop},
-  {id: 'serverless', name: t('Serverless'), platforms: serverless},
-] as const;
-
-export const deprecatedPlatforms = new Set<PlatformKey>([
-  'node-serverlesscloud',
-  'python-pylons',
-  'python-pymongo',
-]);
-
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
@@ -189,11 +142,11 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing = [
+export const tracing: PlatformKey[] = [
   'python-tracing',
   'node-tracing',
   'react-native-tracing',
-] as const;
+];
 
 export const performance: PlatformKey[] = [
   'bun',
@@ -379,19 +332,3 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
   'javascript',
 ];
-
-/**
- * Additional aliases used for filtering in the platform picker
- */
-export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
-  native: ['cpp', 'c++'],
-};
-
-export default categoryList;
-
-export type Platform = {
-  key: PlatformKey;
-  id?: string;
-  link?: string | null;
-  name?: string;
-};
