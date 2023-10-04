@@ -253,16 +253,19 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     trends = _detect_function_trends(project_ids, start)
     regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
 
+    delay = 12  # hours
+    delayed_start = start + timedelta(hours=delay)
+
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in regression_chunk],
-                start,
+                delayed_start,
             ],
-            # delay the check by 12 hours because we want to make sure there
+            # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
             # that a change has occurred
-            countdown=12 * 60 * 60,
+            countdown=delay * 60 * 60,
         )
 
 

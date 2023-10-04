@@ -4,9 +4,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type Props = {};
-
-export const useProjectWebVitalsQuery = ({}: Props) => {
+export const useProjectWebVitalsQuery = () => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -19,6 +17,7 @@ export const useProjectWebVitalsQuery = ({}: Props) => {
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count()',
       ],
       name: 'Web Vitals',
       query:

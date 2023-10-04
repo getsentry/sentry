@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSelector, {
@@ -18,7 +20,7 @@ describe('ProjectSelector', function () {
     isMember: true,
   });
 
-  const mockOrg = TestStubs.Organization({
+  const mockOrg = Organization({
     id: '1',
     slug: 'org',
     features: ['new-teams', 'global-views'],
@@ -52,7 +54,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         memberProjects={[]}
-        organization={TestStubs.Organization({
+        organization={Organization({
           id: 'org',
           slug: 'org-slug',
           access: [],
@@ -76,7 +78,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         memberProjects={[]}
-        organization={TestStubs.Organization({
+        organization={Organization({
           id: 'org',
           slug: 'org-slug',
           access: ['project:write'],
@@ -366,7 +368,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={TestStubs.Organization({...mockOrg, orgRole: 'owner'})}
+        organization={Organization({...mockOrg, orgRole: 'owner'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -386,7 +388,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={TestStubs.Organization({...mockOrg, orgRole: 'manager'})}
+        organization={Organization({...mockOrg, orgRole: 'manager'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -406,7 +408,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={TestStubs.Organization({
+        organization={Organization({
           ...mockOrg,
           features: [...mockOrg.features, 'open-membership'],
         })}
@@ -429,7 +431,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={TestStubs.Organization({...mockOrg, orgRole: 'manager'})}
+        organization={Organization({...mockOrg, orgRole: 'manager'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}

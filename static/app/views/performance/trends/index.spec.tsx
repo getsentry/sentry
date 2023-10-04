@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -129,7 +130,7 @@ function initializeTrendsData(
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: _projects,
   });

@@ -34,7 +34,7 @@ class UserPasswordTest(APITestCase):
     @override_settings(
         AUTH_PASSWORD_VALIDATORS=[
             {
-                "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
+                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
                 "OPTIONS": {"min_length": 8},
             },
         ]

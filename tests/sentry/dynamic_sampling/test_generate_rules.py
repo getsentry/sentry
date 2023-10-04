@@ -763,7 +763,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
 
     # we have the project rule correctly built
     assert project_rule == {
-        "samplingValue": {"type": "sampleRate", "value": 0.5},
+        "samplingValue": {"type": "reservoir", "limit": 100},
         "type": "transaction",
         "id": CUSTOM_RULE_START + 1,
         "condition": {"op": "eq", "name": "environment", "value": "prod1"},
@@ -771,7 +771,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
     }
     # we have the org rule correctly built
     assert org_rule == {
-        "samplingValue": {"type": "sampleRate", "value": 0.5},
+        "samplingValue": {"type": "reservoir", "limit": 100},
         "type": "transaction",
         "id": CUSTOM_RULE_START + 2,
         "condition": {"op": "eq", "name": "environment", "value": "prod2"},

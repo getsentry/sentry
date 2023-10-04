@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import {Platform} from 'sentry/data/platformCategories';
+import {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

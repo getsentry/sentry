@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {OrganizationIntegrations} from 'sentry-fixture/organizationIntegrations';
 import {UserIdentity} from 'sentry-fixture/userIdentity';
 
@@ -44,7 +45,7 @@ function renderComponent(
   identities: Identity[] = [],
   organizationIntegrations: OrganizationIntegration[] = []
 ) {
-  const org = TestStubs.Organization();
+  const org = Organization();
   renderMockRequests(notificationSettings, identities, organizationIntegrations);
 
   render(<NotificationSettingsByType notificationType="alerts" organizations={[org]} />);
@@ -80,7 +81,7 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should render warning modal when identity not linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
@@ -100,7 +101,7 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should not render warning modal when identity is linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
@@ -118,8 +119,8 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should default to the subdomain org', async function () {
-    const organization = TestStubs.Organization();
-    const otherOrganization = TestStubs.Organization({
+    const organization = Organization();
+    const otherOrganization = Organization({
       id: '2',
       slug: 'other-org',
       name: 'other org',

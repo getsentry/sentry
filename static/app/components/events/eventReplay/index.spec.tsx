@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
@@ -43,7 +45,7 @@ describe('EventReplay', function () {
     useHasOrganizationSentAnyReplayEvents
   );
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 

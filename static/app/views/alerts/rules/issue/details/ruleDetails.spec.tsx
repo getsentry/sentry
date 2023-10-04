@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
+import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -329,9 +330,9 @@ describe('AlertRuleDetails', () => {
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
-    const orgWithoutAccess = {
+    const orgWithoutAccess = Organization({
       access: [],
-    };
+    });
 
     const contextWithoutAccess = initializeOrg({
       organization: orgWithoutAccess,
