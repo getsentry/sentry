@@ -373,6 +373,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/file.min.js"},
+            {"status": "not_attempted", "url": "http://example.com/file.sourcemap.js"},
+            {"status": "not_attempted", "url": "http://example.com/file1.js"},
+        ]
+
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -467,6 +473,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
+
+        assert event.data["scraping_attempts"] == [
+            {"url": "http://example.com/webpack1.min.js", "status": "not_attempted"},
+            {"url": "http://example.com/webpack1.min.js.map", "status": "not_attempted"},
+            {"url": "http://example.com/webpack2.min.js", "status": "not_attempted"},
+            {"url": "http://example.com/webpack2.min.js.map", "status": "not_attempted"},
+        ]
 
         # The first frame should be in_app.
         first_frame = frame_list[0]
@@ -563,6 +576,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/embedded.js"},
+            {"status": "not_attempted", "url": "http://example.com/embedded.js.map"},
+        ]
+
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -627,6 +645,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
+
+        assert event.data["scraping_attempts"] == [
+            {"url": "app:///nofiles.js", "status": "not_attempted"},
+            {"url": "app:///nofiles.js.map", "status": "not_attempted"},
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -698,6 +721,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
+
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/indexed.min.js"},
+            {"status": "not_attempted", "url": "http://example.com/indexed.sourcemap.js"},
+            {"status": "not_attempted", "url": "http://example.com/file1.js"},
+            {"status": "not_attempted", "url": "http://example.com/file2.js"},
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
