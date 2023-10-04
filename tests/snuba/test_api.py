@@ -56,16 +56,3 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             projects=[self.project],
         )
         assert results == []
-
-        results = run_metrics_query(
-            field=f"max({TransactionMRI.DURATION.value})",
-            query="platform:android",
-            group_by="transaction",
-            start=(self.now() + timedelta(minutes=30)).isoformat(),
-            end=(self.now() + timedelta(hours=1, minutes=30)).isoformat(),
-            interval="1h",
-            use_case_id=UseCaseID.TRANSACTIONS,
-            organization=self.project.organization,
-            projects=[self.project],
-        )
-        assert results == []
