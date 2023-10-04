@@ -379,7 +379,7 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    (_, has_enabled_subscriptions, _) = subscriptions[project.id]
                     is_subscribed = has_enabled_subscriptions
                 else:
                     value = get_most_specific_notification_setting_value(
