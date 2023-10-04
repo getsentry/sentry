@@ -1,3 +1,4 @@
+import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {extractSlug} from 'sentry/utils/extractSlug';
@@ -16,6 +17,11 @@ function localizeDomain(domain?: string) {
   if (!window.__SENTRY_DEV_UI || !domain) {
     return domain;
   }
+  // Vercel doesn't support subdomains, so stay on the current host.
+  if (DEPLOY_PREVIEW_CONFIG) {
+    return `https://${window.location.host}`;
+  }
+
   const slugDomain = extractSlug(window.location.host);
   if (!slugDomain) {
     return domain;
@@ -26,6 +32,7 @@ function localizeDomain(domain?: string) {
 /**
  * If organization is passed, then a URL with the route will be returned with the customer domain prefix attached if the
  * organization has customer domain feature enabled.
+ *
  * Otherwise, if the organization is not given, then if the current organization has customer domain enabled, then we
  * use the sentry URL as the prefix.
  */
