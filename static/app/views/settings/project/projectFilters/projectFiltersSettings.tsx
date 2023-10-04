@@ -453,7 +453,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       name: 'filters:chunk-load-error',
                       label: t('Filter out ChunkLoadError(s)'),
                       help: t(
-                        'It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out of sync with the backend which results in a ChunkLoadError. The application refreshes and everything should work as expected.'
+                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}
