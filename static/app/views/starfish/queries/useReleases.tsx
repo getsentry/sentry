@@ -34,7 +34,9 @@ export function useReleaseSelection() {
     decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
 
   const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ?? releases?.[0]?.version ?? undefined;
+    decodeScalar(location.query.secondaryRelease) ?? (releases && releases.length > 1)
+      ? releases?.[1]?.version
+      : undefined;
 
   return {primaryRelease, secondaryRelease, isLoading};
 }
