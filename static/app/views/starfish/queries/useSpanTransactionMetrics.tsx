@@ -51,7 +51,6 @@ function getEventView(
 ) {
   const search = new MutableSearch('');
   search.addFilterValues(SPAN_GROUP, [group]);
-  search.addFilterValues('transaction.op', ['http.server']);
 
   if (transactions.length > 0) {
     search.addFilterValues('transaction', transactions);
