@@ -37,7 +37,8 @@ export type SpanStringFields =
   | 'span.action'
   | 'span.group'
   | 'project.id'
-  | 'transaction';
+  | 'transaction'
+  | 'transaction.method';
 
 export type SpanStringArrayFields = 'span.domain';
 

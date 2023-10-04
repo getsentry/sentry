@@ -74,6 +74,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     {
       'span.group': span[SpanMetricsField.SPAN_GROUP],
       transaction: endpoint,
+      'transaction.method': endpointMethod,
     },
     [sort],
     cursor,
