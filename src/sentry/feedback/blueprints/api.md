@@ -256,32 +256,34 @@ present in the request body.
 
 See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 
-| Column                     | Type             | Description                           |
-| -------------------------- | ---------------- | ------------------------------------- |
-| dist                       | optional[string] | -                                     |
-| environment                | optional[string] | -                                     |
-| event_id                   | optional[string] | Omitted IDs are internally generated. |
-| feedback                   | object           | -                                     |
-| feedback.contact_email     | string           | -                                     |
-| feedback.message           | string           | -                                     |
-| feedback.replay_id         | optional[string] | -                                     |
-| feedback.url               | string           | -                                     |
-| platform                   | string           | -                                     |
-| release                    | optional[string] | -                                     |
-| request                    | optional[object] | -                                     |
-| request.headers            | optional[object] | -                                     |
-| request.headers.User-Agent | optional[string] | -                                     |
-| sdk                        | object           | -                                     |
-| sdk.name                   | string           | -                                     |
-| sdk.version                | string           | -                                     |
-| tags                       | optional[object] | -                                     |
-| timestamp                  | number           | UTC timestamp.                        |
-| user                       | optional[object] | -                                     |
-| user.email                 | optional[string] | -                                     |
-| user.id                    | optional[string] | -                                     |
-| user.ip_address            | optional[string] | -                                     |
-| user.name                  | optional[string] | -                                     |
-| user.username              | optional[string] | -                                     |
+| Column                          | Type             | Description                           |
+| ------------------------------- | ---------------- | ------------------------------------- |
+| dist                            | optional[string] | -                                     |
+| environment                     | optional[string] | -                                     |
+| event_id                        | optional[string] | Omitted IDs are internally generated. |
+| contexts                        | optional[object] | -                                     |
+| replay                          | optional[object] | -                                     |
+| replay.replay_id                | optional[string] | -                                     |
+| contexts.feedback               | object           | -                                     |
+| contexts.feedback.contact_email | string           | -                                     |
+| contexts.feedback.message       | string           | -                                     |
+| contexts.feedback.url           | string           | -                                     |
+| platform                        | string           | -                                     |
+| release                         | optional[string] | -                                     |
+| request                         | optional[object] | -                                     |
+| request.headers                 | optional[object] | -                                     |
+| request.headers.User-Agent      | optional[string] | -                                     |
+| sdk                             | object           | -                                     |
+| sdk.name                        | string           | -                                     |
+| sdk.version                     | string           | -                                     |
+| tags                            | optional[object] | -                                     |
+| timestamp                       | number           | UTC timestamp.                        |
+| user                            | optional[object] | -                                     |
+| user.email                      | optional[string] | -                                     |
+| user.id                         | optional[string] | -                                     |
+| user.ip_address                 | optional[string] | -                                     |
+| user.name                       | optional[string] | -                                     |
+| user.username                   | optional[string] | -                                     |
 
 - Request
 
