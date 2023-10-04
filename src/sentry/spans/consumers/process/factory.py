@@ -33,16 +33,16 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str,
     snuba_span["retention_days"] = relay_span["retention_days"]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
-    snuba_span["tags"] = relay_span["tags"]
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
 
-    if description := relay_span.get("description"):
-        snuba_span["description"] = description
+    for key in {"description", "tags"}:
+        if value := relay_span.get(key):
+            snuba_span[key] = value
 
     # Copy optional event IDs to the Snuba span
     for key in {"event_id", "profile_id"}:
-        if (raw_value := relay_span.get(key)) and (value := _format_event_id(raw_value)):
+        if value := _format_event_id(relay_span, key=key):
             snuba_span[key] = value
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
