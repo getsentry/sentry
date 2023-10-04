@@ -134,10 +134,20 @@ def detect_transaction_trends(
         lambda trend: trend[0] == TrendType.Regressed,
         _detect_transaction_trends(org_ids, project_ids, start),
     )
+
+    delay = 12  # hours
+    delayed_start = start + timedelta(hours=delay)
+
     for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
-        detect_transaction_change_points.delay(
-            [(payload.project_id, payload.group) for _, payload in trends],
-            start,
+        detect_transaction_change_points.apply_async(
+            args=[
+                [(payload.project_id, payload.group) for _, payload in trends],
+                delayed_start,
+            ],
+            # delay the check by delay hours because we want to make sure there
+            # will be enough data after the potential change point to be confident
+            # that a change has occurred
+            countdown=delay * 60 * 60,
         )
 
 
@@ -152,6 +162,37 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
+    for project_id, transaction_name in transactions:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("regressed_project_id", project_id)
+            scope.set_tag("regressed_transaction", transaction_name)
+            scope.set_tag("breakpoint", "no")
+
+            scope.set_context(
+                "statistical_detectors",
+                {"timestamp": start.isoformat()},
+            )
+            sentry_sdk.capture_message("Potential Transaction Regression")
+
+    breakpoint_count = 0
+    breakpoints = _detect_transaction_change_points(transactions, start)
+
+    chunk_size = 100
+
+    for breakpoint_chunk in chunked(breakpoints, chunk_size):
+        breakpoint_count += len(breakpoint_chunk)
+
+    metrics.incr(
+        "statistical_detectors.breakpoint.transactions",
+        amount=breakpoint_count,
+        sample_rate=1.0,
+    )
+
+
+def _detect_transaction_change_points(
+    transactions: List[Tuple[int, str]],
+    start: datetime,
+) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
 
     trend_function = "p95(transaction.duration)"
@@ -164,8 +205,8 @@ def detect_transaction_change_points(
                 "data": serialized["data"],
                 "data_start": serialized["start"],
                 "data_end": serialized["end"],
-                # only look at the last 24 hours as the request data
-                "request_start": serialized["end"] - 24 * 60 * 60,
+                # only look at the last 3 days of the request data
+                "request_start": serialized["end"] - 3 * 24 * 60 * 60,
                 "request_end": serialized["end"],
             }
 
@@ -179,9 +220,11 @@ def detect_transaction_change_points(
             "allow_midpoint": "0",
         }
 
-        breakpoints = detect_breakpoints(request)["data"]
-
-        yield from breakpoints
+        try:
+            yield from detect_breakpoints(request)["data"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
 
 
 def _detect_transaction_trends(
