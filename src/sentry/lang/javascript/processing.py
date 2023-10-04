@@ -248,6 +248,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
+    scraping_attempts = response.get("scraping_attempts", [])
+    if len(scraping_attempts) > 0:
+        data["scraping_attempts"] = scraping_attempts
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
