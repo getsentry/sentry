@@ -43,7 +43,7 @@ test_data = {
 class FeedbackIngestTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-feedback-ingest"
 
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_save_feedback(self, mock_produce_occurrence_to_kafka):
         # Feature enabled should lead to successful save
         with self.feature({"organizations:user-feedback-ingest": True}):

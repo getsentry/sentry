@@ -8,9 +8,10 @@ from sentry.utils.dates import ensure_aware
 
 
 def create_feedback_issue(event, project_id):
+    event["event_id"] = event.get("event_id") or uuid4().hex
     occurrence = IssueOccurrence(
         id=uuid4().hex,
-        event_id=event["event_id"],
+        event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
         fingerprint=[
             uuid4().hex
