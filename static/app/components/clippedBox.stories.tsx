@@ -54,12 +54,8 @@ export default storyBook(ClippedBox, story => {
   ));
 
   story('Custom Button & Fade', () => (
-    <Matrix<typeof ClippedBox>
-      render={props => (
-        <ClippedBox {...props}>
-          <img src={onboardingFrameworkSelectionJavascript} height={150} />
-        </ClippedBox>
-      )}
+    <Matrix
+      render={ClippedBox}
       propMatrix={{
         btnText: ['Custom Label'],
         buttonProps: [undefined, {priority: 'danger'}],
@@ -67,6 +63,9 @@ export default storyBook(ClippedBox, story => {
         clipFade: [
           undefined,
           ({showMoreButton}) => <CustomFade>{showMoreButton}</CustomFade>,
+        ],
+        children: [
+          <img key="img" src={onboardingFrameworkSelectionJavascript} height={150} />,
         ],
       }}
       selectedProps={['buttonProps', 'clipFade']}

@@ -40,17 +40,19 @@ export default storyBook(CollapsePanel, story => {
       </p>
       <SideBySide>
         {[6, 5, 4].map(items => (
-          <SizingWindow key={items} display="block">
-            <CollapsePanel items={items} collapseCount={5}>
-              {({isExpanded, showMoreButton}) => (
-                <Fragment>
-                  <JSXNode name="CollapsePanel" props={{items, collapseCount: 5}} />
-                  <p>isExpanded = {String(isExpanded)}</p>
-                  {showMoreButton}
-                </Fragment>
-              )}
-            </CollapsePanel>
-          </SizingWindow>
+          <Fragment key={items}>
+            <JSXNode name="CollapsePanel" props={{items, collapseCount: 5}} />
+            <SizingWindow display="block">
+              <CollapsePanel items={items} collapseCount={5}>
+                {({isExpanded, showMoreButton}) => (
+                  <Fragment>
+                    <p>isExpanded = {String(isExpanded)}</p>
+                    {showMoreButton}
+                  </Fragment>
+                )}
+              </CollapsePanel>
+            </SizingWindow>
+          </Fragment>
         ))}
       </SideBySide>
     </Fragment>
@@ -87,25 +89,24 @@ export default storyBook(CollapsePanel, story => {
   });
 
   story('Props', () => (
-    <Matrix<typeof CollapsePanel>
-      render={props => (
-        <CollapsePanel {...props}>
-          {({isExpanded, showMoreButton}) => (
-            <Fragment>
-              <p>isExpanded = {String(isExpanded)}</p>
-              {showMoreButton}
-            </Fragment>
-          )}
-        </CollapsePanel>
-      )}
+    <Matrix
+      render={CollapsePanel}
       propMatrix={{
         buttonTitle: [undefined, 'Custom Title'],
         collapseCount: [0],
         disableBorder: [true, false],
         items: [1],
+        children: [
+          ({isExpanded, showMoreButton}) => (
+            <Fragment>
+              <p>isExpanded = {String(isExpanded)}</p>
+              {showMoreButton}
+            </Fragment>
+          ),
+        ],
       }}
       selectedProps={['buttonTitle', 'disableBorder']}
-      sizingWindowProps={{display: 'block', style: {width: '350px'}}}
+      sizingWindowProps={{display: 'block'}}
     />
   ));
 });
