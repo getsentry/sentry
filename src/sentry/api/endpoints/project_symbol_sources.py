@@ -17,6 +17,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
+    REDACTED_SOURCE_SCHEMA,
+    REDACTED_SOURCES_SCHEMA,
     InvalidSourcesError,
     backfill_source,
     parse_sources,
@@ -47,7 +49,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         ],
         responses={
             # TODO
-            200: None,
+            200: REDACTED_SOURCES_SCHEMA,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -78,7 +80,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             ProjectParams.source_id("The id of the source to delete.", True),
         ],
         responses={
-            # TODO
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -116,8 +117,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            # TODO
-            201: None,
+            201: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
@@ -159,8 +159,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         ],
         request=None,
         responses={
-            # TODO
-            200: None,
+            200: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

@@ -124,6 +124,95 @@ SOURCES_SCHEMA = {
     },
 }
 
+# Schemas for sources with redacted secrets
+HIDDEN_SECRET_SCHEMA = {
+    "type": "object",
+    "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
+}
+
+REDACTED_APP_STORE_CONNECT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["appStoreConnect"]},
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
+        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
+        "appconnectPrivateKey": HIDDEN_SECRET_SCHEMA,
+        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
+        "appId": {"type": "string", "minLength": 1},
+        "bundleId": {"type": "string", "minLength": 1},
+    },
+    "required": [
+        "type",
+        "id",
+        "name",
+        "appconnectIssuer",
+        "appconnectKey",
+        "appconnectPrivateKey",
+        "appName",
+        "appId",
+        "bundleId",
+    ],
+    "additionalProperties": False,
+}
+
+REDACTED_HTTP_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["http"]},
+        url={"type": "string"},
+        username={"type": "string"},
+        password=HIDDEN_SECRET_SCHEMA,
+        **COMMON_SOURCE_PROPERTIES,
+    ),
+    "required": ["type", "id", "url", "layout"],
+    "additionalProperties": False,
+}
+
+REDACTED_S3_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["s3"]},
+        bucket={"type": "string"},
+        region={"type": "string"},
+        access_key={"type": "string"},
+        secret_key=HIDDEN_SECRET_SCHEMA,
+        prefix={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
+    ),
+    "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
+    "additionalProperties": False,
+}
+
+REDACTED_GCS_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["gcs"]},
+        bucket={"type": "string"},
+        client_email={"type": "string"},
+        private_key=HIDDEN_SECRET_SCHEMA,
+        prefix={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
+    ),
+    "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
+    "additionalProperties": False,
+}
+
+REDACTED_SOURCE_SCHEMA = {
+    "oneOf": [
+        REDACTED_HTTP_SOURCE_SCHEMA,
+        REDACTED_S3_SOURCE_SCHEMA,
+        REDACTED_GCS_SOURCE_SCHEMA,
+        REDACTED_APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+REDACTED_SOURCES_SCHEMA = {
+    "type": "array",
+    "items": REDACTED_SOURCE_SCHEMA,
+}
+
 LAST_UPLOAD_TTL = 24 * 3600
 
 
