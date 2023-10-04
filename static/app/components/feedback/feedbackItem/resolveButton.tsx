@@ -8,16 +8,16 @@ interface Props {
 }
 
 export default function ResolveButton({feedbackItem}: Props) {
-  if (feedbackItem.status === 'unresolved') {
+  if (feedbackItem.status !== 'resolved') {
     return (
-      <Button priority="primary" size="xs" icon={<IconArchive />}>
+      <Button disabled priority="primary" size="xs" icon={<IconArchive size="xs" />}>
         {t('Resolve')}
       </Button>
     );
   }
 
   return (
-    <Button size="xs" icon={<IconArchive />}>
+    <Button disabled priority="primary" size="xs" icon={<IconArchive size="xs" />}>
       {t('Unresolve')}
     </Button>
   );
