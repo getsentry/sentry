@@ -3,6 +3,7 @@ from typing import List, Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -78,8 +79,31 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
+class CustomRulePermission(BasePermission):
+    scope_map = {
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+    }
+
+
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
+    permission_classes = (CustomRulePermission,)
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
