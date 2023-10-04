@@ -97,6 +97,22 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             "project:write",
             "project:admin",
         ],
+        "PUT": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "DELETE": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
