@@ -1,10 +1,8 @@
 # Setting coverage targets per flag
 coverage:
   status:
-    project:
-      default: false
+    project: "off"
     patch:
-      default: false
       frontend:
         # codecov will not fail status checks for master
         only_pulls: true
@@ -76,6 +74,15 @@ comment:
   require_changes: true
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
+
+flag_management:
+  individual_flags:
+    - name: smart-tests
+      carryforward: true
+      carryforward_mode: "labels"
+      statuses:
+        - type: "patch"
+          enabled: false
 
 cli:
   # This would be used when uploading the ats results

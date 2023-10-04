@@ -35,19 +35,22 @@ jobs:
               token: ${{ github.token }}
               filters: .github/file-filters.yml
     coverage-ats:
-        # Temporary test
-        if: needs.files-changed.outputs.backend == 'true'
+        #if: needs.files-changed.outputs.backend == 'true'
         needs: files-changed
-        timeout-minutes: 40
         runs-on: ubuntu-latest
+        # Map a step output to a job output
+        outputs:
+          ATS_TESTS_TO_RUN: ${{ steps.label_analysis.outputs.ATS_TESTS_TO_RUN }}
+          ATS_TESTS_TO_SKIP: ${{ steps.label_analysis.outputs.ATS_TESTS_TO_SKIP }}
         steps:
         - uses: actions/checkout@v3
           with:
-            fetch-depth: 0
+            fetch-depth: 2
         - name: Set up Python 3.10.10
           uses: actions/setup-python@v4
           with:
             python-version: "3.10.10"
+        # We need the setup to collect the list of tests properly
         - name: Setup sentry env
           uses: ./.github/actions/setup-sentry
           id: setup
@@ -60,7 +63,7 @@ jobs:
             pg-version: 14
         - name: Download Codecov CLI
           run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir pytest codecov-cli
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli
         # Creates the commit and report objects in codecov
         - name: Codecov startup
           run: |
@@ -80,13 +83,35 @@ jobs:
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-        # Run label analysis IN DRY MODE (no tests will actually run)
+        # Run label analysis in dry mode to get the list of tests to run
+        # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
         - name: Label Analysis
+          id: label_analysis
           continue-on-error: true
           run: |
-            BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
+            BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
             echo $BASE_COMMIT
-            codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}
+            output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT})
+            if [ $? -eq 0 ]
+            then
+              ATS_TESTS_TO_RUN=$(echo $output | grep -e ATS_TESTS_TO_RUN= | tr -d "ATS_TESTS_TO_RUN=")
+              ATS_TESTS_TO_SKIP=$(echo $output | grep -e ATS_TESTS_TO_SKIP= | tr -d "ATS_TESTS_TO_SKIP=")
+
+              echo "ATS_TESTS_TO_RUN=$ATS_TESTS_TO_RUN" >> "$GITHUB_OUTPUT"
+              echo "ATS_TESTS_TO_SKIP=$ATS_TESTS_TO_SKIP" >> "$GITHUB_OUTPUT"
+
+              test_to_run_count=$(echo $ATS_TESTS_TO_RUN | awk '{print gsub("[ \t]",""); exit}')
+              test_to_skip_count=$(echo $ATS_TESTS_TO_SKIP | awk '{print gsub("[ \t]",""); exit}')
+              echo "Selected $test_to_run_count / $total_tests_count tests to run" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "ATS failed. Can't get list of tests to run. Fallback to all tests"
+              echo "ATS failed. Can't get list of tests to run. Fallback to all tests" >> $GITHUB_STEP_SUMMARY
+              echo "ATS_TESTS_TO_RUN=--cov-context=test" >> "$GITHUB_OUTPUT"
+              echo "ATS_TESTS_TO_SKIP=" >> "$GITHUB_OUTPUT"
+            fi
+
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+    # The actual running of tests would come here, after the labels are available
+    # Something like pytest <options> $ATS_TESTS_TO_RUN
