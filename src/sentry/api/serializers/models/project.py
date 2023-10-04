@@ -216,6 +216,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -315,7 +316,7 @@ class ProjectSerializer(Serializer):
 
                 if use_notifications_v2:
                     subscriptions = notifications_service.get_subscriptions_for_projects(
-                        user=user.id,
+                        user_id=user.id,
                         project_ids=project_ids,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
                     )

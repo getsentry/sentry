@@ -300,6 +300,7 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-spans")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -329,10 +330,10 @@ def devserver(
     if kafka_consumers:
         with get_docker_client() as docker:
             containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+        if "sentry_kafka" not in containers:
             raise click.ClickException(
                 f"""
-Devserver is configured to start some kafka consumers, but Kafka + Zookeeper
+Devserver is configured to start some kafka consumers, but Kafka
 don't seem to be running.
 
 The following consumers were intended to be started: {kafka_consumers}
@@ -345,7 +346,7 @@ or:
 
     SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 
-and run `sentry devservices up kafka zookeeper`.
+and run `sentry devservices up kafka`.
 
 Alternatively, run without --workers.
 """

@@ -1,5 +1,6 @@
 import {Location} from 'history';
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -41,7 +42,7 @@ window.ResizeObserver =
 
 describe('ProfileSummaryPage', () => {
   it('renders legacy page', async () => {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [],
       projects: [TestStubs.Project()],
     });
@@ -97,7 +98,7 @@ describe('ProfileSummaryPage', () => {
   });
 
   it('renders new page', async () => {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [],
       projects: [TestStubs.Project()],
     });
@@ -146,7 +147,7 @@ describe('ProfileSummaryPage', () => {
         }
       />,
       {
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: ['profiling-summary-redesign'],
         }),
         context: TestStubs.routerContext(),

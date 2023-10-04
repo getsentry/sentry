@@ -17,7 +17,6 @@ from sentry.incidents.models import (
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -83,10 +82,12 @@ class AlertRuleSerializer(Serializer):
         for rule_activity in rule_activities:
             rpc_user = user_by_user_id.get(rule_activity.user_id)
             if rpc_user:
-                user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
+                created_by = dict(
+                    id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
+                )
             else:
-                user = None
-            result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = user
+                created_by = None
+            result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = created_by
 
         owners_by_type = defaultdict(list)
         for item in item_list:
@@ -103,11 +104,11 @@ class AlertRuleSerializer(Serializer):
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
-                type = actor_type_to_string(alert_rule.owner.type)
-                if alert_rule.owner_id in resolved_actors[type]:
+                owner_type = actor_type_to_string(alert_rule.owner.type)
+                if alert_rule.owner_id in resolved_actors[owner_type]:
                     result[alert_rule][
                         "owner"
-                    ] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
+                    ] = f"{owner_type}:{resolved_actors[owner_type][alert_rule.owner_id]}"
 
         if "original_alert_rule" in self.expand:
             snapshot_activities = AlertRuleActivity.objects.filter(
@@ -127,15 +128,7 @@ class AlertRuleSerializer(Serializer):
                 .annotate(incident_id=Max("id"))
                 .values("incident_id")
             ):
-                user_from_id = None
-                if user:
-                    # sometimes it's a User instance and sometimes a dict - should standardize
-                    if isinstance(user, (User, RpcUser)):
-                        user_by_user_id.get(user.id)
-                    else:
-                        user_by_user_id.get(user.get("id"))
-
-                incident_map[incident.alert_rule_id] = serialize(incident, user=user_from_id)
+                incident_map[incident.alert_rule_id] = serialize(incident, user=user)
             for alert_rule in alert_rules.values():
                 result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
@@ -227,7 +220,7 @@ class CombinedRuleSerializer(Serializer):
         alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
         incident_map = {}
         if "latestIncident" in self.expand:
-            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):
+            for incident in Incident.objects.filter(alert_rule_id__in=[x.id for x in alert_rules]):
                 incident_map[incident.id] = serialize(incident, user=user)
 
         serialized_alert_rules = serialize(alert_rules, user=user)
@@ -241,7 +234,13 @@ class CombinedRuleSerializer(Serializer):
             if isinstance(item, AlertRule):
                 alert_rule = serialized_alert_rules.pop(0)
                 if "latestIncident" in self.expand:
-                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)
+                    incident = (
+                        Incident.objects.filter(alert_rule_id=item.id)
+                        .order_by("-date_detected")
+                        .first()
+                    )
+                    if incident:
+                        alert_rule["latestIncident"] = incident_map.get(incident.id)
                 results[item] = alert_rule
             elif isinstance(item, Rule):
                 results[item] = rules.pop(0)

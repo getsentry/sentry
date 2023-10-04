@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -27,7 +28,7 @@ let mockedGroup = TestStubs.Group({
 });
 
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <IssueContext dataRow={dataRow} organization={organization} />
