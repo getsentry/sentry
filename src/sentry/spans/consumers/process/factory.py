@@ -168,7 +168,7 @@ def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
     # This for backward compatibility while we transition.
     try:
         return msgpack.unpackb(payload)
-    except msgpack.exceptions.ExtraData:
+    except ValueError:
         return json.loads(payload, use_rapid_json=True)
 
 
