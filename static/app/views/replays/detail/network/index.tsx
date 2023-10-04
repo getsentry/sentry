@@ -254,6 +254,7 @@ function NetworkList() {
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                 onClick={handleClick}
+                tableHeaderHeight={HEADER_HEIGHT}
               />
             </OverflowHidden>
           ) : (

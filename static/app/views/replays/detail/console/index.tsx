@@ -120,6 +120,7 @@ function Console() {
         <JumpButtons
           jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
           onClick={() => {}}
+          tableHeaderHeight={0}
         />
       </TabItemContainer>
     </FluidHeight>

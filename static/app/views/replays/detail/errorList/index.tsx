@@ -135,14 +135,15 @@ function ErrorList() {
                 />
               )}
             </AutoSizer>
+            <JumpButtons
+              jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+              onClick={() => {}}
+              tableHeaderHeight={HEADER_HEIGHT}
+            />
           </OverflowHidden>
         ) : (
           <Placeholder height="100%" />
         )}
-        <JumpButtons
-          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
-          onClick={() => {}}
-        />
       </ErrorTable>
     </FluidHeight>
   );
@@ -152,12 +153,12 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
 `;
 
 const ErrorTable = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  display: grid;
 
   .beforeHoverTime + .afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.purple200};
