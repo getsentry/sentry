@@ -113,7 +113,7 @@ function AccordionWidget({
             <div>{t('No results found')}</div>
             <EmptySubtitle>
               {tct(
-                "Once your users start clicking around, you'll see the top selectors were [type] clicked here.",
+                "Once your users start clicking around, you'll see the top selectors that were [type] clicked here.",
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
