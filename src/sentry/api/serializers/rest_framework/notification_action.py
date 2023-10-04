@@ -268,7 +268,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
 
         try:
-            validate_channel_id(
+            timed_out = validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
                 integration_id=self.integration.id,
@@ -276,6 +276,11 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
         except Exception as e:
             raise serializers.ValidationError({"target_identifier": str(e)})
+
+        if timed_out:
+            raise serializers.ValidationError(
+                {"target_identifier": "We encountered an error while searching for the channel id."}
+            )
 
         data["target_identifier"] = channel_id
         return data

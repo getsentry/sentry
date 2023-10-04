@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.client import DiscordClient
@@ -8,15 +10,20 @@ from sentry.shared_integrations.exceptions.base import ApiError
 
 from . import logger
 
+# Same default timeout as Slack
+DISCORD_DEFAULT_TIMEOUT = 10
+
 
 def validate_channel_id(
     channel_id: str, guild_id: str, integration_id: int | None, guild_name: str | None
-) -> None:
+) -> bool:
     """
     Make sure that for this integration, the channel exists, belongs to this
     integration, and our bot has access to it.
+    :return: boolean (whether we hit our self-imposed time limit)
     """
     client = DiscordClient(integration_id=integration_id)
+    time_to_quit = time.time() + DISCORD_DEFAULT_TIMEOUT
     try:
         result = client.get_channel(channel_id)
     except ApiError as e:
@@ -82,3 +89,7 @@ def validate_channel_id(
             },
         )
         raise ValidationError(f"Discord channel not in {guild_name}")
+
+    if time.time() > time_to_quit:
+        return True
+    return False

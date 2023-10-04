@@ -45,7 +45,7 @@ class DiscordNotifyServiceForm(forms.Form):
 
         if channel_id and isinstance(channel_id, str):
             try:
-                validate_channel_id(
+                timed_out = validate_channel_id(
                     channel_id=channel_id,
                     guild_id=integration.external_id,
                     integration_id=integration.id,
@@ -59,6 +59,11 @@ class DiscordNotifyServiceForm(forms.Form):
             except IntegrationError as e:
                 raise forms.ValidationError(
                     self._format_discord_error_message("; ".join(str(e))),
+                    code="invalid",
+                )
+            if timed_out:
+                raise forms.ValidationError(
+                    self._format_discord_error_message("Channel is not available."),
                     code="invalid",
                 )
         return cleaned_data

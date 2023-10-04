@@ -1336,7 +1336,7 @@ def get_alert_rule_trigger_action_discord_channel_id(
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:
-        validate_channel_id(
+        timed_out = validate_channel_id(
             channel_id=name,
             guild_id=integration.external_id,
             integration_id=integration.id,
@@ -1349,6 +1349,10 @@ def get_alert_rule_trigger_action_discord_channel_id(
         )
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
+    if timed_out:
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
+        )
 
     return name
 
