@@ -81,7 +81,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
-  const [selectedListIndex, setSelectListIndex] = useState(0);
+  const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
     sort: `-${clickType}`,
