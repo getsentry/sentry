@@ -6,8 +6,6 @@ from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from django.conf import settings
 from usageaccountant import UsageAccumulator, UsageUnit
 
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-
 logger = logging.getLogger("usageaccountant")
 
 
@@ -17,6 +15,11 @@ accumulator: UsageAccumulator | None = None
 def _accumulator(create: bool = False) -> UsageAccumulator | None:
     global accumulator
     if accumulator is None and create:
+        from sentry.utils.kafka_config import (
+            get_kafka_producer_cluster_options,
+            get_topic_definition,
+        )
+
         producer = KafkaProducer(
             build_kafka_configuration(
                 get_kafka_producer_cluster_options(
