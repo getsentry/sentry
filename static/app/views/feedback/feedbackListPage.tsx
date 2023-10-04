@@ -41,9 +41,7 @@ export default function FeedbackListPage({}: Props) {
               <Layout.Title>
                 {t('Bug Reports')}
                 <PageHeadingQuestionTooltip
-                  title={t(
-                    'Feedback and bug reports submitted by users on your page.'
-                  )}
+                  title={t('Feedback and bug reports submitted by users on your page.')}
                   docsUrl="https://docs.sentry.io/product/user-feedback/"
                 />
               </Layout.Title>

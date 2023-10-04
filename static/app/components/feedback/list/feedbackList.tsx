@@ -66,7 +66,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <HeaderPanelItem>{' '}</HeaderPanelItem>
+      <HeaderPanelItem> </HeaderPanelItem>
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
