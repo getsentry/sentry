@@ -433,6 +433,33 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   />
                 </NestedForm>
               </PanelItem>
+              <PanelItem noPadding>
+                <NestedForm
+                  apiMethod="PUT"
+                  apiEndpoint={projectEndpoint}
+                  initialData={{
+                    'filters:chunk-load-error':
+                      project.options?.['filters:chunk-load-error'],
+                  }}
+                  saveOnBlur
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
+                >
+                  <FieldFromConfig
+                    getData={getOptionsData}
+                    field={{
+                      type: 'boolean',
+                      name: 'filters:chunk-load-error',
+                      label: t('Filter out ChunkLoadError(s)'),
+                      help: t(
+                        'It can happen that in full automatic deploy environments like Next.js & Vercel the frontend gets out of sync with the backend which results in a ChunkLoadError. The application refreshes and everything should work as expected.'
+                      ),
+                      disabled: !hasAccess,
+                    }}
+                  />
+                </NestedForm>
+              </PanelItem>
             </PanelBody>
           </Panel>
 
