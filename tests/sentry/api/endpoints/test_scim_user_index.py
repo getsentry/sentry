@@ -455,11 +455,11 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert len(response.data["Resources"]) == 10
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=7&count=10")
+        response = self.client.get(f"{url}?startIndex=10&count=10")
         assert response.data["totalResults"] == 16
-        assert response.data["itemsPerPage"] == 10
-        assert response.data["startIndex"] == 7
-        assert len(response.data["Resources"]) == 10
+        assert response.data["itemsPerPage"] == 7
+        assert response.data["startIndex"] == 10
+        assert len(response.data["Resources"]) == 7
 
 
 @region_silo_test(stable=True)
