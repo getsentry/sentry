@@ -979,7 +979,7 @@ register(
 register(
     "sentry-metrics.indexer.record-throughput-cogs-rollout",
     default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Global and per-organization limits on the writes to the string indexer's DB.
