@@ -28,22 +28,29 @@ type QueryBuilderProps = {
   displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
   metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricWidgetProps>) => void;
+  projects: number[];
+  powerUserMode?: boolean;
 };
 
-export function QueryBuilder({metricsQuery, displayType, onChange}: QueryBuilderProps) {
-  const {selection} = usePageFilters();
-  const meta = useMetricsMeta(selection.projects);
+export function QueryBuilder({
+  metricsQuery,
+  projects,
+  displayType,
+  powerUserMode,
+  onChange,
+}: QueryBuilderProps) {
+  const meta = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
-  const [mriMode, setMriMode] = useState(false); // power user mode that shows raw MRI instead of metrics names
+  const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
   useEffect(() => {
-    if (mriModeKeyPressed) {
+    if (mriModeKeyPressed && !powerUserMode) {
       setMriMode(!mriMode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mriModeKeyPressed]);
+  }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, selection.projects);
+  const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
   if (!meta) {
     return null;
@@ -234,9 +241,7 @@ const WideSearchBar = styled(SearchBar)`
 `;
 
 const WrapPageFilterBar = styled(PageFilterBar)`
+  max-width: max-content;
   height: auto;
   flex-wrap: wrap;
-  &:first-child {
-    flex-wrap: after;
-  }
 `;

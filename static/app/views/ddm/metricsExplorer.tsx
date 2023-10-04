@@ -1,6 +1,38 @@
-import {Fragment} from 'react';
+import {useState} from 'react';
 
-// TODO(ddm): remove this after we have a dedicated metrics explorer for _admin
+import {MetricDisplayType} from 'sentry/utils/metrics';
+import {MetricWidget, MetricWidgetProps} from 'sentry/views/ddm/metricWidget';
+
+// TODO(ddm): move this to admin
 export default function MetricsExplorer() {
-  return <Fragment />;
+  const [widget, setWidget] = useState<MetricWidgetProps>({
+    mri: '',
+    op: undefined,
+    query: '',
+    groupBy: [],
+    displayType: MetricDisplayType.LINE,
+    position: 0,
+    powerUserMode: true,
+    showSummaryTable: true,
+    onChange: () => {},
+  });
+
+  return (
+    <MetricWidget
+      widget={{
+        ...widget,
+        onChange: data => {
+          setWidget(curr => ({...curr, ...data}));
+        },
+      }}
+      datetime={{
+        start: null,
+        end: null,
+        period: '7d',
+        utc: false,
+      }}
+      projects={[]}
+      environments={[]}
+    />
+  );
 }

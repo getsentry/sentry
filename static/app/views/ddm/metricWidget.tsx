@@ -52,8 +52,10 @@ const emptyWidget = {
 
 export type MetricWidgetDisplayConfig = {
   displayType: MetricDisplayType;
+  onChange: (data: Partial<MetricWidgetProps>) => void;
   position: number;
   focusedSeries?: string;
+  powerUserMode?: boolean;
   showSummaryTable?: boolean;
 };
 
@@ -77,6 +79,7 @@ function useMetricWidgets() {
         focusedSeries: widget.focusedSeries,
         showSummaryTable: widget.showSummaryTable ?? true, // temporary default
         position: widget.position ?? i,
+        powerUserMode: widget.powerUserMode,
       };
     }
   );
@@ -104,52 +107,44 @@ function useMetricWidgets() {
   };
 }
 
-function useMetricWidget(position: number) {
-  const {widgets, onChange} = useMetricWidgets();
+// function useMetricWidget(position: number) {
+//   const {widgets, onChange} = useMetricWidgets();
 
-  return {
-    widget: widgets[position],
-    onChange: (data: Partial<MetricWidgetProps>) => onChange(position, data),
-  };
-}
+//   return {
+//     widget: widgets[position],
+//     onChange: (data: Partial<MetricWidgetProps>) => onChange(position, data),
+//   };
+// }
 
 function MetricDashboard() {
+  const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
 
-  const {widgets, onChange, addWidget} = useMetricWidgets();
+  const Wrapper =
+    widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
 
   return (
-    <StyledMetricDashboard>
+    <Wrapper>
       {widgets.map(widget => (
-        <MetricWidgetPanel key={widget.position}>
-          <PanelBody>
-            <QueryBuilder
-              metricsQuery={{
-                mri: widget.mri,
-                query: widget.query,
-                op: widget.op,
-                groupBy: widget.groupBy,
-              }}
-              displayType={widget.displayType}
-              onChange={(data: Partial<MetricWidgetProps>) =>
-                onChange(widget.position, data)
-              }
-            />
-            <MetricWidgetBody
-              datetime={selection.datetime}
-              projects={selection.projects}
-              environments={selection.environments}
-              {...widget}
-            />
-          </PanelBody>
-        </MetricWidgetPanel>
+        <MetricWidget
+          key={widget.position}
+          widget={{
+            ...widget,
+            onChange: data => {
+              onChange(widget.position, data);
+            },
+          }}
+          datetime={selection.datetime}
+          projects={selection.projects}
+          environments={selection.environments}
+        />
       ))}
       <AddWidgetPanel onClick={addWidget}>
         <Button priority="primary" icon={<IconAdd isCircled />}>
           Add widget
         </Button>
       </AddWidgetPanel>
-    </StyledMetricDashboard>
+    </Wrapper>
   );
 }
 
@@ -161,6 +156,43 @@ type Group = {
 };
 
 type DisplayProps = MetricWidgetProps & MetricsDataProps;
+
+export function MetricWidget({
+  widget,
+  datetime,
+  projects,
+  environments,
+}: {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
+  projects: PageFilters['projects'];
+  widget: MetricWidgetProps;
+}) {
+  return (
+    <MetricWidgetPanel key={widget.position}>
+      <PanelBody>
+        <QueryBuilder
+          metricsQuery={{
+            mri: widget.mri,
+            query: widget.query,
+            op: widget.op,
+            groupBy: widget.groupBy,
+          }}
+          projects={projects}
+          displayType={widget.displayType}
+          onChange={widget.onChange}
+          powerUserMode={widget.powerUserMode}
+        />
+        <MetricWidgetBody
+          datetime={datetime}
+          projects={projects}
+          environments={environments}
+          {...widget}
+        />
+      </PanelBody>
+    </MetricWidgetPanel>
+  );
+}
 
 function MetricWidgetBody(props?: DisplayProps) {
   if (!props?.mri) {
@@ -178,12 +210,12 @@ function MetricWidgetBody(props?: DisplayProps) {
   return <MetricWidgetBodyInner {...props} />;
 }
 
-function MetricWidgetBodyInner({position, ...metricsDataProps}: DisplayProps) {
-  const {
-    widget: {displayType, focusedSeries},
-    onChange,
-  } = useMetricWidget(position);
-
+function MetricWidgetBodyInner({
+  onChange,
+  displayType,
+  focusedSeries,
+  ...metricsDataProps
+}: DisplayProps) {
   const {data, isLoading, isError, error} = useMetricsData(metricsDataProps);
 
   const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
@@ -453,7 +485,7 @@ function MetricChart({
   );
 }
 
-const minWidgetWidth = 450;
+const minWidgetWidth = 400;
 
 const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
@@ -472,12 +504,18 @@ const StyledMetricDashboard = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(${minWidgetWidth}px, 1fr));
   gap: ${space(2)};
-  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+  @media (max-width: ${props => props.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(2, minmax(${minWidgetWidth}px, 1fr));
   }
-  @media (max-width: ${props => props.theme.breakpoints.large}) {
-    grid-template-columns: minmax(${minWidgetWidth}px, 1fr);
+  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+    grid-template-columns: repeat(1, minmax(${minWidgetWidth}px, 1fr));
   }
+`;
+
+const StyledSingleWidgetWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
 
 const AddWidgetPanel = styled(MetricWidgetPanel)`
