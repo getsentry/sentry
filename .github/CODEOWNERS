@@ -368,7 +368,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/organization.py            @getsentry/data
 /src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
-/src/sentry/models/project.py                 @getsentry/data
+/src/sentry/models/project.py                 @getsentry/data @getsentry/telemetry-experience
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
 /src/sentry/models/sentryapp.py               @getsentry/data @getsentry/issues
@@ -457,6 +457,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
+/static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
+/static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
+/static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
+/src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
