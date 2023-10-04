@@ -9,6 +9,13 @@ export type Row = {
   'transaction.op': string;
 };
 
-export type RowWithScore = Row & {score: number};
+export type RowWithScore = Row & {
+  clsScore: number;
+  fcpScore: number;
+  fidScore: number;
+  lcpScore: number;
+  score: number;
+  ttfbScore: number;
+};
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';

@@ -138,6 +138,9 @@ export const vitalDescription: Partial<Record<WebVital, string>> = {
   [WebVital.LCP]: t(
     'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page. At the moment, there is support for LCP in the following browsers:'
   ),
+  [WebVital.TTFB]: t(
+    'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric. At the moment, there is support for TTFB in the following browsers:'
+  ),
 };
 
 export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
