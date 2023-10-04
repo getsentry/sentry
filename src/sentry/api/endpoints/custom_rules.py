@@ -80,6 +80,24 @@ class CustomRulesInputSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
+    scope_map = {
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+    }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
