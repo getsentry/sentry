@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import time
@@ -275,11 +277,13 @@ def create_click_event(
 
     attributes = node.get("attributes", {})
 
+    classes = _parse_classes(attributes.get("class", ""))
+
     return {
         "node_id": node["id"],
         "tag": node["tagName"][:32],
         "id": attributes.get("id", "")[:64],
-        "class": attributes.get("class", "").split(" ")[:10],
+        "class": classes,
         "text": node["textContent"][:1024],
         "role": attributes.get("role", "")[:32],
         "alt": attributes.get("alt", "")[:64],
@@ -293,3 +297,11 @@ def create_click_event(
             "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
         ),
     }
+
+
+def _parse_classes(classes: str) -> list[str]:
+    class_ = classes.strip()  # Strip leading and trailing spaces.
+    if class_ == "":
+        return []
+    else:
+        return class_.split(" ")[:10]
