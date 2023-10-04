@@ -1,12 +1,24 @@
-from typing import Any, Dict
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.projectownership import ProjectOwnership
 
 
+# JSON object representing this serializer in API response
+class ProjectOwnershipResponse(TypedDict):
+    raw: str
+    fallthrough: bool
+    dateCreated: int
+    lastUpdated: int
+    isActive: bool
+    autoAssignment: str
+    codeownersAutoSync: bool
+    schema: dict
+
+
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user, should_return_schema=False) -> Dict[str, Any]:
+    def serialize(self, obj, attrs, user, should_return_schema=False):
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment
