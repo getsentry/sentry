@@ -35,7 +35,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba import functions
+from sentry.snuba import functions, metrics_performance
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -152,17 +152,36 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    for project_id, transaction in transactions:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("regressed_project_id", project_id)
-            scope.set_tag("regressed_transaction", transaction)
-            scope.set_context(
-                "statistical_detectors",
-                {
-                    "timestamp": start.isoformat(),
-                },
-            )
-            sentry_sdk.capture_message("Potential Transaction Regression")
+    serializer = SnubaTSResultSerializer(None, None, None)
+
+    trend_function = "p95(transaction.duration)"
+
+    for chunk in chunked(query_transactions_timeseries(transactions, start, trend_function), 10):
+        data = {}
+        for project_id, transaction_name, timeseries in chunk:
+            serialized = serializer.serialize(timeseries, get_function_alias(trend_function))
+            data[f"{project_id},{transaction_name}"] = {
+                "data": serialized["data"],
+                "data_start": serialized["start"],
+                "data_end": serialized["end"],
+                # only look at the last 24 hours as the request data
+                "request_start": serialized["end"] - 24 * 60 * 60,
+                "request_end": serialized["end"],
+            }
+
+        request = {
+            "data": data,
+            "sort": "-trend_percentage()",
+            "trendFunction": trend_function,
+            # Disable the fall back to use the midpoint as the breakpoint
+            # which was originally intended to detect a gradual regression
+            # for the trends use case. That does not apply here.
+            "allow_midpoint": "0",
+        }
+
+        breakpoints = detect_breakpoints(request)["data"]
+
+        yield from breakpoints
 
 
 def _detect_transaction_trends(
@@ -239,6 +258,31 @@ def _detect_transaction_trends(
         amount=improved_count,
         sample_rate=1.0,
     )
+
+
+def query_transactions_timeseries(
+    transactions: List[Tuple[int, int | str]],
+    start: datetime,
+    agg_function: str,
+) -> Generator[Tuple[int, int, Any], None, None]:
+    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    interval = 3600  # 1 hour
+
+    for project_id, transaction_name in transactions:
+        params: Dict[str, Any] = {
+            "start": end - timedelta(days=14),
+            "end": end,
+            "project_id": [project_id],
+            "project_objects": [Project.objects.get(id=project_id)],
+        }
+        results = metrics_performance.timeseries_query(
+            selected_columns=[agg_function],
+            query=f"transaction:#{transaction_name}",
+            params=params,
+            rollup=interval,
+            referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
+        )
+        yield project_id, transaction_name, results
 
 
 @instrumented_task(
