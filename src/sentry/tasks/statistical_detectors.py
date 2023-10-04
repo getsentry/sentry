@@ -48,6 +48,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -61,7 +62,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 FUNCTIONS_PER_PROJECT = 100
 FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 1_000
+TRANSACTIONS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -177,16 +178,14 @@ def detect_transaction_change_points(
             sentry_sdk.capture_message("Potential Transaction Regression")
 
     breakpoint_count = 0
-    breakpoints = _detect_transaction_change_points(transactions, start)
 
-    chunk_size = 100
-
-    for breakpoint_chunk in chunked(breakpoints, chunk_size):
-        breakpoint_count += len(breakpoint_chunk)
+    for breakpoints in chunked(_detect_transaction_change_points(transactions, start), 10):
+        breakpoint_count += len(breakpoints)
+        send_regressions_to_plaform(breakpoints, True)
 
     metrics.incr(
         "statistical_detectors.breakpoint.transactions",
-        amount=breakpoint_count,
+        amount=len(breakpoints),
         sample_rate=1.0,
     )
 
@@ -315,11 +314,13 @@ def query_transactions_timeseries(
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     interval = 3600  # 1 hour
 
+    # TODO: batch cross-project (and cross-org) timeseries queries
+    # (currently only txns in the same project are batched)
     grouped_transactions = defaultdict(list)
     for project_id, transaction_name in transactions:
         grouped_transactions[project_id].append(transaction_name)
 
-    for project_id, transaction_names in transactions:
+    for project_id, transaction_names in grouped_transactions.items():
         params: Dict[str, Any] = {
             "start": end - timedelta(days=14),
             "end": end,
@@ -345,10 +346,11 @@ def query_transactions_timeseries(
                 rollup=interval,
                 referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
                 groupby=Column("transaction"),
+                zerofill_results=False,
             )
 
             results = {}
-            for index, datapoint in enumerate(raw_results.data or []):
+            for index, datapoint in enumerate(raw_results.data.get("data") or []):
                 transaction_name = datapoint["transaction"]
                 if transaction_name not in results:
                     results[transaction_name] = {
@@ -699,7 +701,6 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
-
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings

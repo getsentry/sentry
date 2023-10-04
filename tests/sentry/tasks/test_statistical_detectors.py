@@ -347,51 +347,6 @@ def test_detect_function_change_points(
     assert mock_emit_function_regression_issue.called
 
 
-@mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
-@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
-@django_db_all
-@pytest.mark.sentry_metrics
-def test_detect_transaction_change_points(
-    mock_raw_snql_query, mock_detect_breakpoints, timestamp, project
-):
-    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-
-    transaction_name = "/12345"
-
-    mock_raw_snql_query.return_value = {
-        "data": [
-            {
-                "time": (start_of_hour - timedelta(days=day, hours=hour)).isoformat(),
-                "project.id": project.id,
-                "transaction_name": transaction_name,
-                "p95": 2 if day < 1 and hour < 8 else 1,
-            }
-            for day in reversed(range(14))
-            for hour in reversed(range(24))
-        ]
-    }
-
-    mock_detect_breakpoints.return_value = {
-        "data": [
-            {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(project.id),
-                "transaction": transaction_name,
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
-    }
-
-    detect_transaction_change_points([(project.id, transaction_name)], timestamp)
-
-
 @region_silo_test(stable=True)
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
@@ -540,3 +495,79 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             # one sample at 9.5, but it should be close
             assert trend_payload.value > 9
             assert trend_payload.timestamp == self.hour_ago
+
+
+@region_silo_test(stable=True)
+@pytest.mark.sentry_metrics
+class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.num_projects = 2
+        self.num_transactions = 4
+
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        self.hour_ago_seconds = int(self.hour_ago.timestamp())
+        self.org = self.create_organization(owner=self.user)
+        self.projects = [
+            self.create_project(organization=self.org) for _ in range(self.num_projects)
+        ]
+
+        def store_metric(project_id, transaction, minutes_ago, value):
+            self.store_metric(
+                self.org.id,
+                project_id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {"transaction": transaction},
+                int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+        for project in self.projects:
+            for i in range(self.num_transactions):
+                store_metric(project.id, f"transaction_{i}", 20, 9.5)
+                store_metric(project.id, f"transaction_{i}", 40, 9.5)
+                store_metric(project.id, f"transaction_{i}", 60, 9.5)
+                store_metric(project.id, f"transaction_{i}", 80, 1.0)
+                store_metric(project.id, f"transaction_{i}", 100, 1.0)
+                store_metric(project.id, f"transaction_{i}", 120, 1.0)
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
+    @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
+    def test_transaction_change_point_detection(
+        self, mock_detect_breakpoints, mock_send_regressions_to_platform
+    ) -> None:
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.projects[0].id),
+                    "transaction": "transaction_1",
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
+        with override_options({"statistical_detectors.enable": True}):
+            detect_transaction_change_points(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                    (self.projects[0].id, "transaction_2"),
+                    (self.projects[1].id, "transaction_1"),
+                ],
+                self.now,
+            )
+        assert mock_send_regressions_to_platform.called
