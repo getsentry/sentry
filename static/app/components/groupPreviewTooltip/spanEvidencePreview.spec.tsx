@@ -16,7 +16,7 @@ describe('SpanEvidencePreview', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/group-id/',
+      url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
@@ -99,7 +99,7 @@ describe('SpanEvidencePreview', () => {
       .getEvent();
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/recommended/`,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 
