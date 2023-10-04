@@ -602,23 +602,21 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            slug_change_requested = "slug" in request.data and request.data["slug"]
+
+            # Attempt slug change first as it's a more complex, control-silo driven workflow.
+            if slug_change_requested:
+                slug = request.data["slug"]
+                try:
+                    organization_provisioning_service.change_organization_slug(
+                        organization_id=organization.id, slug=slug
+                    )
+                except OrganizationSlugCollisionException:
+                    return self.respond(
+                        {"slug": ["An organization with this slug already exists."]},
+                        status=status.HTTP_409_CONFLICT,
+                    )
             with transaction.atomic(router.db_for_write(Organization)):
-                slug_change_requested = "slug" in request.data and request.data["slug"]
-
-                # Start with the slug change first, as this may fail independent of
-                # the remaining organization changes.
-                if slug_change_requested:
-                    slug = request.data["slug"]
-                    try:
-                        organization_provisioning_service.change_organization_slug(
-                            organization_id=organization.id, slug=slug
-                        )
-                    except OrganizationSlugCollisionException:
-                        return self.respond(
-                            {"slug": ["An organization with this slug already exists."]},
-                            status=status.HTTP_409_CONFLICT,
-                        )
-
                 organization, changed_data = serializer.save()
 
             if was_pending_deletion:
