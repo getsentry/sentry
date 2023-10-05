@@ -433,7 +433,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         metric alert rule type. All other parameters can be customized depending on how you want the alert
         rule to work. Scroll down to Body Parameters for more information.
 
-        ### [Number of Errors](/product/alerts/alert-types/#errors)
+        ### [Number of Errors](/product/alerts/alert-types/#number-of-errors)
         - `eventTypes`: Any of `error` or `default`.
         ```json
         {
@@ -444,7 +444,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Users Experiencing Errors](/product/alerts/alert-types/#errors)
+        ### [Users Experiencing Errors](/product/alerts/alert-types/#users-experiencing-errors)
         Alert when the number of users affected by errors in your project crosses a threshold.
         - `eventTypes`: Any of `error` or `default`.
         ```json
@@ -455,7 +455,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Crash Free Session Rate](/product/alerts/alert-types/#sessions-crash-rate-alerts)
+        ### [Crash Free Session Rate](/product/alerts/alert-types/#crash-free-session-rate)
         ```json
         {
             "queryType": 2,
@@ -464,7 +464,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Crash Free User Rate](/product/alerts/alert-types/#sessions-crash-rate-alerts)
+        ### [Crash Free User Rate](/product/alerts/alert-types/#crash-free-user-rate)
         ```json
         {
             "queryType": 2,
@@ -473,7 +473,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Throughput](/product/alerts/alert-types/#performance)
+        ### [Throughput](/product/alerts/alert-types/#throughput)
         ```json
         {
             "queryType": 1,
@@ -482,7 +482,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Transaction Duration](/product/alerts/alert-types/#performance)
+        ### [Transaction Duration](/product/alerts/alert-types/#transaction-duration)
         -  `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         -  `aggregate`: Valid values are `avg(transaction.duration)`, `p50(transaction.duration)`, `p75(transaction.duration)`, `p95(transaction.duration)`, `p99(transaction.duration)`, `p100(transaction.duration)`, and `percentile(transaction.duration,x)`, where `x` is your custom percentile.
         ```json
@@ -493,7 +493,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Apdex](/product/alerts/alert-types/#performance)
+        ### [Apdex](/product/alerts/alert-types/#apdex)
         - `aggregate`: `apdex(x)` where `x` is the value of the Apdex score.
         ```json
         {
@@ -503,7 +503,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Failure Rate](/product/alerts/alert-types/#performance)
+        ### [Failure Rate](/product/alerts/alert-types/#failure-rate)
         ```json
         {
             "queryType": 1,
@@ -512,7 +512,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Largest Contentful Paint](/product/alerts/alert-types/#performance)
+        ### [Largest Contentful Paint](/product/alerts/alert-types/#largest-contentful-display)
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
         ```json
@@ -523,7 +523,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [First Input Delay](/product/alerts/alert-types/#performance)
+        ### [First Input Delay](/product/alerts/alert-types/#first-input-delay)
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.fid)`, `p50(measurements.fid)`, `p75(measurements.fid)`, `p95(measurements.fid)`, `p99(measurements.fid)`, `p100(measurements.fid)`, and `percentile(measurements.fid,x)`, where `x` is your custom percentile.
         ```json
@@ -534,7 +534,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Cumulative Layout Shift](/product/alerts/alert-types/#performance)
+        ### [Cumulative Layout Shift](/product/alerts/alert-types/#cumulative-layout-shift)
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.cls)`, `p50(measurements.cls)`, `p75(measurements.cls)`, `p95(measurements.cls)`, `p99(measurements.cls)`, `p100(measurements.cls)`, and `percentile(measurements.cls,x)`, where `x` is your custom percentile.
         ```json
@@ -545,7 +545,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
 
-        ### [Custom Metrics](/product/alerts/alert-types/#performance)
+        ### [Custom Metric](/product/alerts/alert-types/#custom-metric)
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are:
             - `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
