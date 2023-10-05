@@ -134,20 +134,24 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         request = None
 
     base_line = get_client_config(request)
+
     # Removing the region list as it varies based on silo mode.
     # See Region.to_url()
     base_line.pop("regions")
+    base_line["links"].pop("regionUrl")
     cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.REGION):
         result = get_client_config(request)
         result.pop("regions")
+        result["links"].pop("regionUrl")
         assert result == base_line
         cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         result = get_client_config(request)
         result.pop("regions")
+        result["links"].pop("regionUrl")
         assert result == base_line
         cache.clear()
 
@@ -207,3 +211,21 @@ def test_client_config_with_single_tenant_membership():
     assert len(result["regions"]) == 3
     regions = result["regions"]
     assert {r["name"] for r in regions} == {"eu", "us", "acme"}
+
+
+@django_db_all
+@override_regions(regions=region_data)
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_client_config_links_regionurl():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+        result = get_client_config(request)
+        assert result["links"]
+        assert result["links"]["regionUrl"] == "http://us.testserver"
+
+    with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=None):
+        result = get_client_config(request)
+        assert result["links"]
+        assert result["links"]["regionUrl"] == "http://us.testserver"
