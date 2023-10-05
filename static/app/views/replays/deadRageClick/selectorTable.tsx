@@ -163,12 +163,24 @@ export default function SelectorTable({
     [queryPrefix]
   );
 
+  const selectorEmptyMessage = (
+    <MessageContainer>
+      <Title>{t('No dead or rage clicks found')}</Title>
+      <Subtitle>
+        {t(
+          "Once your users start clicking around, you'll see the top selectors that were dead or rage clicked here."
+        )}
+      </Subtitle>
+    </MessageContainer>
+  );
+
   return (
     <GridEditable
       error={isError}
       isLoading={isLoading}
       data={data ?? []}
       columnOrder={columns}
+      emptyMessage={selectorEmptyMessage}
       columnSortBy={[]}
       stickyHeader
       grid={{
@@ -240,6 +252,21 @@ const StyledTextOverflow = styled(TextOverflow)`
 
 const StyledTooltip = styled(Tooltip)`
   display: inherit;
+`;
+
+const Subtitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const Title = styled('div')`
+  font-size: 24px;
+`;
+
+const MessageContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  gap: ${space(1)};
+  justify-items: center;
 `;
 
 const WidgetProjectContainer = styled('div')`
