@@ -302,6 +302,13 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-page-loads"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Screen Load')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/starfish/pageload/`}
+          id="starfish-mobile-screen-loads"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );

@@ -5,9 +5,11 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+import {
+  useReleases,
+  useReleaseSelection,
+} from 'sentry/views/starfish/queries/useReleases';
 
 const ALL_RELEASES = {
   value: '',
@@ -17,13 +19,13 @@ const ALL_RELEASES = {
 type Props = {
   selectorKey: string;
   selectorName: string;
+  selectorValue?: string;
 };
 
-export function ReleaseSelector({selectorName, selectorKey}: Props) {
+export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
   const {data, isLoading} = useReleases();
   const location = useLocation();
-  let value =
-    decodeScalar(location.query[selectorKey]) ?? data?.[0]?.version ?? undefined;
+  let value = selectorValue;
 
   if (!isLoading && !defined(value)) {
     value = ALL_RELEASES.value;
@@ -33,7 +35,7 @@ export function ReleaseSelector({selectorName, selectorKey}: Props) {
       triggerProps={{
         prefix: selectorName,
       }}
-      value={value}
+      value={selectorValue}
       options={[
         ...(data ?? [ALL_RELEASES]).map(release => ({
           value: release.version,
@@ -54,12 +56,18 @@ export function ReleaseSelector({selectorName, selectorKey}: Props) {
 }
 
 export function ReleaseComparisonSelector() {
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
   return (
     <PageFilterBar condensed>
-      <ReleaseSelector selectorKey="primaryRelease" selectorName={t('Primary Release')} />
+      <ReleaseSelector
+        selectorKey="primaryRelease"
+        selectorName={t('Primary Release')}
+        selectorValue={primaryRelease}
+      />
       <ReleaseSelector
         selectorKey="secondaryRelease"
         selectorName={t('Secondary Release')}
+        selectorValue={secondaryRelease}
       />
     </PageFilterBar>
   );
