@@ -51,7 +51,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.display_name || t('Unknown User')}
+              {replayRecord.user.display_name || t('Anonymous')}
             </Layout.Title>
           }
           user={{
