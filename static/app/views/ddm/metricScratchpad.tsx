@@ -100,11 +100,10 @@ export function useScratchpads() {
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
   const router = useRouter();
-  const queryStr = router.location.query ?? '';
-
+  const query = router.location.query ?? {};
   // select the default scratchpad when the component mounts
   useEffect(() => {
-    if (scratchpads.default && !scratchpads.selected) {
+    if (scratchpads.default && !scratchpads.selected && !query.widgets) {
       scratchpads.select(scratchpads.default);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -113,27 +112,37 @@ export function ScratchpadSelector() {
   // saves all changes to the selected scratchpad to local storage
   useEffect(() => {
     if (scratchpads.selected) {
-      scratchpads.update(scratchpads.selected, queryStr);
+      scratchpads.update(scratchpads.selected, query);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryStr]);
+  }, [query]);
 
   // changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
     if (scratchpads.selected) {
-      const query = scratchpads.all[scratchpads.selected].query;
-      updateQuery(router, query);
+      const selectedQuery = scratchpads.all[scratchpads.selected].query;
+      updateQuery(router, selectedQuery);
     } else if (scratchpads.selected === null) {
       clearQuery(router);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scratchpads.selected]);
 
+  const isDefaultSelected = scratchpads.default === scratchpads.selected;
+
   return (
     <ScratchpadGroup>
+      <Button
+        size="sm"
+        disabled={!scratchpads.selected}
+        onClick={() => scratchpads.setDefault(scratchpads.selected ?? null)}
+        icon={<IconBookmark isSolid={isDefaultSelected} />}
+      >
+        {isDefaultSelected ? t('Remove default') : t('Set as default')}
+      </Button>
       <SaveAsDropdown
         onSave={name => {
-          scratchpads.add(name, queryStr);
+          scratchpads.add(name, query);
         }}
         mode={scratchpads.selected ? 'fork' : 'save'}
       />
@@ -144,14 +153,6 @@ export function ScratchpadSelector() {
           trailingItems: (
             <Fragment>
               <StyledDropdownIcon>
-                <IconBookmark
-                  isSolid={scratchpads.default === s.id}
-                  onClick={() => {
-                    scratchpads.setDefault(s.id);
-                  }}
-                />
-              </StyledDropdownIcon>
-              <StyledDropdownIcon hover="danger">
                 <IconDelete
                   onClick={() => {
                     openConfirmModal({
@@ -248,12 +249,12 @@ const SaveAsInput = styled(InputControl)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledDropdownIcon = styled('span')<{hover?: string}>`
+const StyledDropdownIcon = styled('span')`
   padding-top: ${space(0.5)};
   opacity: 0.6;
 
   :hover {
     opacity: 0.9;
-    color: ${p => (p.hover === 'danger' ? p.theme.red300 : p.theme.purple300)};
+    color: ${p => p.theme.red300};
   }
 `;
