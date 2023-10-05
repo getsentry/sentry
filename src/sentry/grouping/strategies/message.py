@@ -93,6 +93,10 @@ _parameterization_regex = re.compile(
         -\d+\.\d+\b |
         \b\d+\.\d+\b
     ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    ) |
     (?P<quoted_str>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all quoted strings
