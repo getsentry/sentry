@@ -93,6 +93,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
   /**
    * Inject a set of buttons into the top of the grid table.
@@ -101,9 +102,10 @@ type GridEditableProps<DataRow, ColumnKey> = {
    */
   headerButtons?: () => React.ReactNode;
   height?: string | number;
-  isLoading?: boolean;
 
+  isLoading?: boolean;
   scrollable?: boolean;
+
   stickyHeader?: boolean;
 
   /**
@@ -412,12 +414,15 @@ class GridEditable<
   }
 
   renderEmptyData() {
+    const {emptyMessage} = this.props;
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <EmptyStateWarning>
-            <p>{t('No results found for your query')}</p>
-          </EmptyStateWarning>
+          {emptyMessage ?? (
+            <EmptyStateWarning>
+              <p>{t('No results found for your query')}</p>
+            </EmptyStateWarning>
+          )}
         </GridBodyCellStatus>
       </GridRow>
     );
