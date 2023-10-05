@@ -182,7 +182,11 @@ function AccordionItemHeader({
   );
   return (
     <StyledAccordionHeader>
-      <SelectorLink value={selector} selectorQuery={selectorQuery} />
+      <SelectorLink
+        value={selector}
+        selectorQuery={selectorQuery}
+        projectId={id.toString()}
+      />
       <RightAlignedCell>
         {clickCount}
         <ProjectInfo id={id} isWidget />

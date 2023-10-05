@@ -75,7 +75,11 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
           count_dead_clicks: d.count_dead_clicks,
           count_rage_clicks: d.count_rage_clicks,
         }),
-    dom_element: constructSelector(d.element),
+    dom_element: {
+      fullSelector: constructSelector(d.element).fullSelector,
+      selector: constructSelector(d.element).selector,
+      projectId: d.project_id,
+    },
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
@@ -170,6 +174,7 @@ export default function SelectorTable({
               selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(
                 value.fullSelector
               )}"`}
+              projectId={value.projectId.toString()}
             />
           );
         case 'element':
@@ -218,7 +223,9 @@ export default function SelectorTable({
 export function SelectorLink({
   value,
   selectorQuery,
+  projectId,
 }: {
+  projectId: string;
   selectorQuery: string;
   value: string;
 }) {
@@ -233,6 +240,7 @@ export function SelectorLink({
             ...location.query,
             query: selectorQuery,
             cursor: undefined,
+            project: projectId,
           },
         }}
       >
