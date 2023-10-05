@@ -19,6 +19,7 @@ from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
@@ -142,6 +143,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 sample_rate=1.0,
             )
 
+            # schedule update for affected project configs
+            _schedule_invalidate_project_configs(organization, projects)
+
             return _rule_to_response(rule)
         except InvalidSearchQuery as e:
             return Response({"query": [str(e)]}, status=400)
@@ -254,3 +258,22 @@ def _clean_project_list(project_ids: List[int]) -> List[int]:
         # special case for all projects convention ( sends a project id of -1)
         return []
     return project_ids
+
+
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+    """
+    Schedule a task to update the project configs for the given projects
+    """
+    if not project_ids:
+        # an organisation rule, update all projects from the org
+        schedule_invalidate_project_config(
+            trigger="dynamic_sampling:custom_rule_upsert",
+            organization_id=organization.id,
+        )
+    else:
+        # update the given projects
+        for project_id in project_ids:
+            schedule_invalidate_project_config(
+                trigger="dynamic_sampling:custom_rule_upsert",
+                project_id=project_id,
+            )
