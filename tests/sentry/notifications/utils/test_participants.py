@@ -1056,3 +1056,495 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(recipients) == 2
         assert recipients[0].id == self.user.id
         assert recipients[1].id == self.user2.id
+
+
+class GetSendToMemberTest(_ParticipantsTest):
+    def get_send_to_member(
+        self, project: Optional[Project] = None, user_id: Optional[int] = None
+    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        return get_send_to(
+            project=project or self.project,
+            target_type=ActionTargetType.MEMBER,
+            target_identifier=user_id or self.user.id,
+        )
+
+    def test_invalid_user(self):
+        assert self.get_send_to_member(self.project, 900001) == {}
+
+    def test_send_to_user(self):
+        self.assert_recipients_are(
+            self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user_id=self.user.id,
+                project=self.project,
+            )
+
+        self.assert_recipients_are(self.get_send_to_member(), slack=[self.user.id])
+
+    def test_other_org_user(self):
+        org_2 = self.create_organization()
+        user_2 = self.create_user()
+        team_2 = self.create_team(org_2, members=[user_2])
+        team_3 = self.create_team(org_2, members=[user_2])
+        project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
+
+        self.assert_recipients_are(
+            self.get_send_to_member(project_2, user_2.id), email=[user_2.id], slack=[user_2.id]
+        )
+        assert self.get_send_to_member(self.project, user_2.id) == {}
+
+    def test_no_project_access(self):
+        org_2 = self.create_organization()
+        user_2 = self.create_user()
+        team_2 = self.create_team(org_2, members=[user_2])
+        user_3 = self.create_user()
+        self.create_team(org_2, members=[user_3])
+        project_2 = self.create_project(organization=org_2, teams=[team_2])
+
+        self.assert_recipients_are(
+            self.get_send_to_member(project_2, user_2.id), email=[user_2.id], slack=[user_2.id]
+        )
+        assert self.get_send_to_member(self.project, user_3.id) == {}
+
+
+@region_silo_test(stable=True)
+class GetSendToTeamTest(_ParticipantsTest):
+    def setUp(self):
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # disable slack
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user_id=self.user.id,
+            )
+
+    def get_send_to_team(
+        self, project: Optional[Project] = None, team_id: Optional[int] = None
+    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        return get_send_to(
+            project=project or self.project,
+            target_type=ActionTargetType.TEAM,
+            target_identifier=team_id or self.team.id,
+        )
+
+    def test_invalid_team(self):
+        assert self.get_send_to_team(self.project, 900001) == {}
+
+    def test_send_to_team(self):
+        self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user_id=self.user.id,
+                project=self.project,
+            )
+
+        assert self.get_send_to_team() == {}
+
+    def test_send_to_team_direct(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
+            )
+        assert self.get_send_to_team() == {
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
+        }
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
+            )
+        self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
+
+    def test_other_project_team(self):
+        user_2 = self.create_user()
+        team_2 = self.create_team(self.organization, members=[user_2])
+        project_2 = self.create_project(organization=self.organization, teams=[team_2])
+
+        self.assert_recipients_are(
+            self.get_send_to_team(project_2, team_2.id), email=[user_2.id], slack=[user_2.id]
+        )
+        assert self.get_send_to_team(self.project, team_2.id) == {}
+
+    def test_other_org_team(self):
+        org_2 = self.create_organization()
+        user_2 = self.create_user()
+        team_2 = self.create_team(org_2, members=[user_2])
+        project_2 = self.create_project(organization=org_2, teams=[team_2])
+
+        self.assert_recipients_are(
+            self.get_send_to_team(project_2, team_2.id), email=[user_2.id], slack=[user_2.id]
+        )
+        assert self.get_send_to_team(self.project, team_2.id) == {}
+
+
+class GetSendToOwnersTestV2(GetSendToOwnersTest):
+    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        return get_send_to(
+            self.project,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+        )
+
+    def store_event_owners(self, filename: str) -> Event:
+        return super().store_event(data=make_event_data(filename), project_id=self.project.id)
+
+    @with_feature("organizations:notifications-double-write")
+    def setUp(self):
+        super().setUp()
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_empty(self):
+        super().test_empty()
+
+    @with_feature("organizations:notifications-double-write")
+    @with_feature("organizations:notification-settings-v2")
+    def test_single_user(self):
+        super().test_single_user()
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_single_user_no_teams(self):
+        super().test_single_user_no_teams()
+
+    @with_feature("organizations:notifications-double-write")
+    @with_feature("organizations:notification-settings-v2")
+    def test_team_owners(self):
+        super().test_team_owners()
+
+    @with_feature("organizations:notifications-double-write")
+    @with_feature("organizations:notification-settings-v2")
+    def test_disable_alerts_multiple_scopes(self):
+        super().test_disable_alerts_multiple_scopes()
+
+    def test_fallthrough(self):
+        event = self.store_event_owners("no_rule.cpp")
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id, self.user2.id, self.user_suspect_committer.id],
+            slack=[self.user.id, self.user2.id, self.user_suspect_committer.id],
+        )
+
+    def test_without_fallthrough(self):
+        ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
+        event = self.store_event_owners("no_rule.cpp")
+
+        assert self.get_send_to_owners(event) == {}
+
+    def test_send_to_current_assignee_team(self):
+        """
+        Test the current issue assignee is notified
+        """
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+        team = self.create_team(organization=self.organization, members=[self.user])
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            team_id=team.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id],
+            slack=[self.user.id],
+        )
+
+    def test_send_to_current_assignee_user(self):
+        """
+        Test the current issue assignee is notified
+        """
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user_id=self.user.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id],
+            slack=[self.user.id],
+        )
+
+    def test_send_to_current_assignee_and_owners(self):
+        """
+        We currently send to both the current assignee and issue owners.
+        In the future we might consider only sending to the assignee.
+        """
+        member = self.create_user(email="member@example.com", is_active=True)
+        event = self.store_event_owners("team.py")
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user_id=member.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id, self.user2.id, member.id],
+            slack=[self.user.id, self.user2.id, member.id],
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    def test_send_to_suspect_committers(self):
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is not on.
+        """
+        # TODO: Delete this test once Commit Context has GA'd
+        release = self.create_release(project=self.project, version="v12")
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=self.project.id,
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "suspectcommitter@example.com",
+                    "author_name": "Suspect Committer",
+                    "message": "fix: Fix bug",
+                    "patch_set": [
+                        {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
+                    ],
+                },
+            ]
+        )
+        assert event.group is not None
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=release.id
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user_suspect_committer.id, self.user.id],
+            slack=[self.user_suspect_committer.id, self.user.id],
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is on.
+        """
+        self.commit = self.create_sample_commit(self.user_suspect_committer)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user_suspect_committer.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user_suspect_committer.id, self.user.id],
+            slack=[self.user_suspect_committer.id, self.user.id],
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer is added as suggested assignee, where no user owns the file and
+        where the "organizations:commit-context" flag is on.
+        """
+        organization = self.create_organization(name="New Organization")
+        project_suspect_committer = self.create_project(
+            name="Suspect Committer Team Project",
+            organization=organization,
+            teams=[self.team_suspect_committer],
+        )
+        team_suspect_committer = self.create_team(
+            organization=organization, members=[self.user_suspect_committer]
+        )
+        project_suspect_committer.add_team(team_suspect_committer)
+        commit = self.create_sample_commit(self.user_suspect_committer)
+        event = self.store_event(
+            data={
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handledError",
+                            "abs_path": "Application.lol",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "Application.lol",
+                        },
+                    ]
+                },
+            },
+            project_id=project_suspect_committer.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user_suspect_committer.id,
+            project=project_suspect_committer,
+            organization=organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        self.assert_recipients_are(
+            get_send_to(
+                project_suspect_committer,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                target_identifier=None,
+                event=event,
+            ),
+            email=[self.user_suspect_committer.id],
+            slack=[self.user_suspect_committer.id],
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer/owner is added as suggested assignee once where the suspect
+        committer is also the owner and where the "organizations:commit-context" flag is on.
+        """
+        commit = self.create_sample_commit(self.user)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
+        """
+        Test determine_eligible_recipients throws an exception when get_suspect_committers throws
+        an exception and returns the file owner, where "organizations:commit-context" flag is on.
+        """
+        invalid_commit_id = 10000
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user3.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": invalid_commit_id},
+        )
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
+        )
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_not_project_member_commit_context_feature_flag(self):
+        """
+        Test suspect committer is not added as suggested assignee where the suspect committer
+         is not part of the project and where the "organizations:commit-context" flag is on.
+        """
+        user_suspect_committer_no_team = self.create_user(
+            email="suspectcommitternoteam@example.com", is_active=True
+        )
+        commit = self.create_sample_commit(user_suspect_committer_no_team)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=user_suspect_committer_no_team.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
+        )
+
+
+class GetSendToFallthroughTestV2(GetSendToFallthroughTest):
+    @with_feature("organizations:notification-settings-v2")
+    def test_fallthrough_admin_or_recent_over_20(self):
+        super().test_fallthrough_recipients_active_member_ordering()
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_fallthrough_recipients_active_member_ordering(self):
+        super().test_fallthrough_recipients_active_member_ordering()

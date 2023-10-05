@@ -44,20 +44,25 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
-        # TODO(snigdha): Do we want to support querying without recipients?
         self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
 
-        query = self._get_query()
-        type_filter = Q(type=self.type.value) if self.type else Q()
-        provider_filter = Q(provider=self.provider.value) if self.provider else Q()
-        self._setting_options = list(NotificationSettingOption.objects.filter(query & type_filter))
-        self._setting_providers = list(
-            NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
-        )
+        if recipients:
+            query = self._get_query()
+            type_filter = Q(type=self.type.value) if self.type else Q()
+            provider_filter = Q(provider=self.provider.value) if self.provider else Q()
+            self._setting_options = list(
+                NotificationSettingOption.objects.filter(query & type_filter)
+            )
+            self._setting_providers = list(
+                NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
+            )
+        else:
+            self._setting_options = []
+            self._setting_providers = []
 
     @property
     def get_all_setting_options(self) -> Iterable[NotificationSettingOption]:
