@@ -20,7 +20,6 @@ from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mapping import is_mri
 from sentry.snuba.metrics_layer.query import run_query
-from sentry.utils.dates import parse_stats_period
 
 GRANULARITIES = [
     10,  # 10 seconds
@@ -29,9 +28,15 @@ GRANULARITIES = [
     60 * 60 * 24,  # 24 hours
 ]
 
+# These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
+# is only bridging code to validate and evolve the metrics layer.
 FIELD_REGEX = re.compile(r"(\w+)\(([^\s]+)\)(?:\s*)")
 QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s*)")
 GROUP_BY_REGEX = re.compile(r"(\w+)(?:\s*)")
+
+
+class InvalidMetricsQuery(Exception):
+    pass
 
 
 @dataclass
@@ -65,34 +70,49 @@ def _parse_fields(field: str) -> Sequence[Field]:
     for aggregate, metric_name in matches:
         fields.append(Field(aggregate=aggregate, metric_name=metric_name))
 
+    if not fields:
+        raise InvalidMetricsQuery("Error while parsing the field.")
+
     return fields
 
 
-def _parse_query(query: str) -> Sequence[Filter]:
+def _parse_query(query: Optional[str]) -> Optional[Sequence[Filter]]:
     """
     This function supports parsing in the form:
     key:value (_ key:value)?
     in which the only supported operator is AND.
     """
+    if query is None:
+        return None
+
     filters = []
 
     matches = QUERY_REGEX.findall(query)
     for key, value in matches:
         filters.append(Filter(key=key, value=value))
 
+    if not query:
+        raise InvalidMetricsQuery("Error while parsing the query.")
+
     return filters
 
 
-def _parse_group_by(group_by: str) -> Sequence[GroupBy]:
+def _parse_group_by(group_by: Optional[str]) -> Optional[Sequence[GroupBy]]:
     """
     This function supports parsing in the form:
     value (_ value)?
     """
+    if group_by is None:
+        return None
+
     group_bys = []
 
     matches = GROUP_BY_REGEX.findall(group_by)
     for key in matches:
         group_bys.append(GroupBy(key=key))
+
+    if not group_by:
+        raise InvalidMetricsQuery("Error while parsing the group by.")
 
     return group_bys
 
@@ -115,7 +135,10 @@ def _build_snql_query(
     )
 
 
-def _filters_to_snql(filters: Sequence[Filter]) -> Optional[ConditionGroup]:
+def _filters_to_snql(filters: Optional[Sequence[Filter]]) -> Optional[ConditionGroup]:
+    if filters is None:
+        return None
+
     condition_group = []
 
     for _filter in filters:
@@ -126,8 +149,11 @@ def _filters_to_snql(filters: Sequence[Filter]) -> Optional[ConditionGroup]:
 
 
 def _group_bys_to_snql(
-    group_bys: Sequence[GroupBy],
+    group_bys: Optional[Sequence[GroupBy]],
 ) -> Optional[List[Union[Column, AliasedExpression]]]:
+    if group_bys is None:
+        return None
+
     columns = []
 
     for group_by in group_bys:
@@ -144,19 +170,9 @@ def _get_granularity(interval: int) -> int:
             best_granularity = granularity
 
     if best_granularity is None:
-        raise Exception("The interval specified is lower than the minimum granularity")
+        raise InvalidMetricsQuery("The interval specified is lower than the minimum granularity")
 
     return best_granularity
-
-
-def _get_date_range(interval: str, start: str, end: str) -> Tuple[datetime, datetime, int, int]:
-    interval = parse_stats_period(interval)
-    interval = int(3600 if interval is None else interval.total_seconds())
-
-    start = parse_datetime_string(start)
-    end = parse_datetime_string(end)
-
-    return start, end, interval, _get_granularity(interval)
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[str]:
@@ -178,12 +194,12 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
 
 def _zerofill_series(
     start_seconds: int, num_intervals: int, interval: int, series: Sequence[Tuple[str, Any]]
-) -> Sequence[Any]:
+) -> Sequence[Optional[Union[int, float]]]:
     """
     Computes a zerofilled series in which given a number of intervals, the start and the interval length,
     a list of zeros and the merged series values will be returned.
     """
-    zerofilled_series = [0.0] * num_intervals
+    zerofilled_series = [None] * num_intervals
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         zerofill_index = int((time_seconds - start_seconds) / interval)
@@ -199,9 +215,6 @@ def _translate_query_results(
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
-    if len(query_results) == 0:
-        return {}
-
     intervals = None
     start = None
     end = None
@@ -220,10 +233,10 @@ def _translate_query_results(
         data = snuba_result["data"]
         for value in data:
             grouped_values = []
-            for group_by in group_bys:
+            for group_by in group_bys or ():
                 grouped_values.append((group_by.key, value.get(group_by.key)))
 
-            # The group key must be ordered, in order to be consistent across execution.
+            # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
             serieses = groups.setdefault(group_key, {})
             series = serieses.setdefault(metric_name, [])
@@ -239,36 +252,37 @@ def _translate_query_results(
                 )
                 for series_metric_name, series in group_serieses.items()
             },
-            "totals": {},
+            "totals": {
+                # TODO: support totals, either at the query level or at the db level.
+            },
         }
 
         final_groups.append(inner_group)
 
     return {
         "intervals": intervals,
-        "groups": final_groups,
-        "start": start.isoformat(),
-        "end": end.isoformat(),
+        "groups": final_groups if len(final_groups) > 0 else None,
+        "start": start.isoformat() if start is not None else None,
+        "end": end.isoformat() if end is not None else None,
     }
 
 
 def run_metrics_query(
     field: str,
-    query: str,
-    group_by: str,
-    interval: str,
-    start: str,
-    end: str,
+    query: Optional[str],
+    group_by: Optional[str],
+    interval: int,
+    start: datetime,
+    end: datetime,
     use_case_id: UseCaseID,
     organization: Organization,
     projects: Sequence[Project],
 ):
     # Build the basic query that contains the metadata.
-    start, end, interval, granularity = _get_date_range(interval, start, end)
     base_query = MetricsQuery(
         start=start,
         end=end,
-        rollup=Rollup(interval=interval, granularity=granularity),
+        rollup=Rollup(interval=interval, granularity=_get_granularity(interval)),
         scope=MetricsScope(
             org_ids=[organization.id],
             project_ids=[project.id for project in projects],

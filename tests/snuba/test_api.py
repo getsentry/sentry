@@ -44,15 +44,20 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.TRANSACTIONS,
             )
 
+        # Simple query with one aggregation.
+        field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
-            field=f"sum({TransactionMRI.DURATION.value}) max({TransactionMRI.DURATION.value})",
-            query="",
-            group_by="transaction",
-            start=(self.now() - timedelta(minutes=30)).isoformat(),
-            end=(self.now() + timedelta(hours=1, minutes=30)).isoformat(),
-            interval="1h",
+            field=field,
+            query=None,
+            group_by=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
             use_case_id=UseCaseID.TRANSACTIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
-        assert results == []
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [None, 9.0, 8.0, None]}

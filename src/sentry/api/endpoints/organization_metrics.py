@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import InvalidParams
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -24,6 +24,7 @@ from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricPars
 from sentry.snuba.metrics_layer.api import run_metrics_query
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.dates import parse_stats_period
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -159,13 +160,20 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     def _new_get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
+        # We first parse the interval and date, since this is dependent on the query params.
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
+        interval = int(3600 if interval is None else interval.total_seconds())
+        start, end = get_date_range_from_params(request.GET)
+
+        # We then run the query and inject directly the field, query and groupBy, since they will be parsed
+        # internally.
         result = run_metrics_query(
             field=request.GET.get("field"),
             query=request.GET.get("query"),
             group_by=request.GET.get("groupBy"),
-            interval=request.GET.get("interval"),
-            start=request.GET.get("start"),
-            end=request.GET.get("end"),
+            interval=interval,
+            start=start,
+            end=end,
             use_case_id=get_use_case_id(request),
             organization=organization,
             projects=projects,
