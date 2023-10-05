@@ -1,5 +1,6 @@
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import ModalStore from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -111,5 +112,17 @@ describe('GuideStore', function () {
     GuideStore.fetchSucceeded(data);
     expect(GuideStore.state.guides.length).toBe(1);
     expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
+  });
+
+  it('hides when a modal is open', function () {
+    expect(GuideStore.getState().forceHide).toBe(false);
+
+    ModalStore.openModal(() => {}, {});
+
+    expect(GuideStore.getState().forceHide).toBe(true);
+
+    ModalStore.closeModal();
+
+    expect(GuideStore.getState().forceHide).toBe(false);
   });
 });
