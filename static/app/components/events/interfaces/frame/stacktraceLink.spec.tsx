@@ -288,4 +288,32 @@ describe('StacktraceLink', function () {
     });
     expect(await screen.findByTestId('codecov-link')).toBeInTheDocument();
   });
+
+  it('renders the link using a valid sourceLink for a .NET project', async function () {
+    const dotnetFrame = {
+      sourceLink: 'https://github.com/username/path/to/file.py',
+      lineNo: '100',
+    } as unknown as Frame;
+    const dotnetEvent = TestStubs.Event({
+      projectID: project.id,
+      release: TestStubs.Release({lastCommit: Commit()}),
+      platform: 'csharp',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+      },
+    });
+    render(<StacktraceLink frame={dotnetFrame} event={dotnetEvent} line="foo()" />, {
+      context: TestStubs.routerContext(),
+    });
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://github.com/username/path/to/file.py#L100'
+    );
+    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+  });
 });
