@@ -701,6 +701,23 @@ def check_kafka(containers: dict[str, Any]) -> None:
     )
 
 
+def check_symbolicator(containers: dict[str, Any]) -> None:
+    options = containers["symbolicator"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "curl",
+            f"http://{port[0]}:{port[1]}/healthcheck",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -714,4 +731,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "clickhouse": ServiceHealthcheck(check=check_clickhouse),
     "kafka": ServiceHealthcheck(check=check_kafka),
     "vroom": ServiceHealthcheck(check=check_vroom),
+    "symbolicator": ServiceHealthcheck(check=check_symbolicator),
 }
