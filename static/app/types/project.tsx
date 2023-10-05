@@ -75,6 +75,7 @@ export type ProjectKey = {
     cdn: string;
     csp: string;
     minidump: string;
+    nel: string;
     public: string;
     secret: string;
     security: string;

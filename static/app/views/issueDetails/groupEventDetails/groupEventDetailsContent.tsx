@@ -141,6 +141,7 @@ function DefaultGroupEventDetailsContent({
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.NEL} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />

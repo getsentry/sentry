@@ -173,6 +173,12 @@ export function getTitle(
         subtitle: metadata.origin ?? '',
         treeLabel: undefined,
       };
+    case EventOrGroupType.NEL:
+      return {
+        title: customTitle ?? metadata.directive ?? '',
+        subtitle: metadata.uri ?? '',
+        treeLabel: undefined,
+      };
     case EventOrGroupType.DEFAULT:
       return {
         title: customTitle ?? metadata.title ?? '',
