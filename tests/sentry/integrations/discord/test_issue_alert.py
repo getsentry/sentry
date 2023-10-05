@@ -13,6 +13,7 @@ from sentry.integrations.message_builder import build_attachment_title, build_fo
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
@@ -230,7 +231,10 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        return_value=None,
+    )
     def test_get_form_instance(self, mock_validate_channel_id):
         form = self.rule.get_form_instance()
         form.full_clean()
@@ -238,6 +242,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert int(form.cleaned_data["server"]) == self.discord_integration.id
         assert form.cleaned_data["channel_id"] == self.channel_id
         assert form.cleaned_data["tags"] == self.tags
+        assert mock_validate_channel_id.call_count == 1
 
     @responses.activate
     def test_label(self):
@@ -330,6 +335,24 @@ class DiscordNotifyServiceFormTest(TestCase):
             data={
                 "server": self.discord_integration.id,
                 "channel_id": self.channel_id,
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert not form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
+
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        side_effect=ApiTimeoutError("Discord channel lookup timed out"),
+    )
+    def test_channel_id_lookup_timeout(self, mock_validate_channel_id):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": self.channel_id,
+                "tags": "environment",
             },
             integrations=self.integrations,
         )
