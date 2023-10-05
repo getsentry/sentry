@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List
+from typing import FrozenSet, List, Optional, Tuple
 
 from django.db import models
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
@@ -49,3 +51,17 @@ class UserPermission(ControlOutboxProducingModel):
                 object_identifier=self.user_id,
             )
         ]
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Ensure that we never attempt to duplicate `UserPermission` entries, even when the
+        # `merge_users` flag is enabled, as they must always be globally unique per user.
+        (up, created) = self.__class__.objects.get_or_create(
+            user_id=self.user_id, permission=self.permission
+        )
+        if up:
+            self.pk = up.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
