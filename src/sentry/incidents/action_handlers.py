@@ -278,7 +278,7 @@ class DiscordActionHandler(DefaultActionHandler):
         )
 
         success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
+            self.action, self.incident, metric_value, new_status
         )
         if success:
             self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)

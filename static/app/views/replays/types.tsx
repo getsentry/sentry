@@ -172,6 +172,7 @@ export type DeadRageSelectorItem = {
   aria_label: string;
   dom_element: string;
   element: string;
+  project_id: number;
   count_dead_clicks?: number;
   count_rage_clicks?: number;
 };

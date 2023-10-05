@@ -5,8 +5,6 @@ export function SourceMapsDebugIDBundlesArtifacts(
 ): DebugIdBundleArtifact {
   return {
     bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
-    release: null,
-    dist: null,
     associations: [
       {
         release: 'v2.0',

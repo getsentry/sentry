@@ -8,6 +8,8 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
 
@@ -588,7 +590,7 @@ def run_with_retries(
     for retry in range(1, retries + 1):
         try:
             cmd()
-        except (subprocess.CalledProcessError):
+        except (subprocess.CalledProcessError, urllib.error.HTTPError):
             if retry == retries:
                 raise
             else:
@@ -651,6 +653,15 @@ def check_redis(containers: dict[str, Any]) -> None:
     )
 
 
+def check_vroom(containers: dict[str, Any]) -> None:
+    options = containers["vroom"]
+    (port,) = options["ports"].values()
+
+    # Vroom is a slim debian based image and does not have curl, wget or
+    # python3. Check health with a simple request on the host machine.
+    urllib.request.urlopen(f"http://{port[0]}:{port[1]}/health", timeout=1)
+
+
 def check_clickhouse(containers: dict[str, Any]) -> None:
     options = containers["clickhouse"]
     port = options["ports"]["8123/tcp"]
@@ -670,6 +681,43 @@ def check_clickhouse(containers: dict[str, Any]) -> None:
     )
 
 
+def check_kafka(containers: dict[str, Any]) -> None:
+    options = containers["kafka"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "kafka-topics",
+            "--bootstrap-server",
+            # Port is a tuple of (127.0.0.1, <port number>)
+            f"{port[0]}:{port[1]}",
+            "--list",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_symbolicator(containers: dict[str, Any]) -> None:
+    options = containers["symbolicator"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "curl",
+            f"http://{port[0]}:{port[1]}/healthcheck",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -681,4 +729,7 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
     "clickhouse": ServiceHealthcheck(check=check_clickhouse),
+    "kafka": ServiceHealthcheck(check=check_kafka),
+    "vroom": ServiceHealthcheck(check=check_vroom),
+    "symbolicator": ServiceHealthcheck(check=check_symbolicator),
 }

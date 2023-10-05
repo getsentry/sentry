@@ -34,7 +34,6 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models.actor import Actor
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -68,6 +67,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
@@ -136,7 +136,8 @@ def clear_database(*, reset_pks: bool = False):
         return
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    Actor.objects.update(team=None)
+    with unguarded_write(using=router.db_for_write(Team)):
+        Team.objects.update(actor=None)
 
     reversed = reversed_dependencies()
     for model in reversed:
