@@ -90,7 +90,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
                     self.project.organization.slug,
                     field=f"sum({TransactionMRI.DURATION.value})",
                     useCase="transactions",
-                    useNewMetricsLayer=flag_value,
+                    useNewMetricsLayer="true" if flag_value else "false",
                     statsPeriod="1h",
                     interval="1h",
                 )
