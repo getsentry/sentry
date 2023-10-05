@@ -686,7 +686,7 @@ def profiles_consumer(**options):
 @click.option(
     "--max-poll-interval-ms",
     type=int,
-    default=45000,
+    default=30000,
 )
 @click.option(
     "--group-instance-id",

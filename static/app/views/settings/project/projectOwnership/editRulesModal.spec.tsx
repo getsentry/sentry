@@ -1,4 +1,5 @@
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +9,7 @@ import {IssueOwnership} from 'sentry/types';
 import {EditOwnershipRules} from './editRulesModal';
 
 describe('Project Ownership Input', () => {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project();
   const user = TestStubs.User();
 

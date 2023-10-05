@@ -1,10 +1,11 @@
 import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
+import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabListProps, TabPanels, Tabs, TabsProps} from 'sentry/components/tabs';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(Tabs, story => {
@@ -17,9 +18,9 @@ export default storyBook(Tabs, story => {
   story('Default', () => (
     <Fragment>
       <p>
-        You should be using all of <var>{'<Tabs>'}</var>, <var>{'<TabList>'}</var>,{' '}
-        <var>{'<TabList.Item>'}</var>, <var>{'<TabPanels>'}</var> and
-        <var>{'<TabPanels.Item>'}</var> components.
+        You should be using all of <JSXNode name="Tabs" />, <JSXNode name="TabList" />,{' '}
+        <JSXNode name="TabList.Item" />, <JSXNode name="TabPanels" /> and
+        <JSXNode name="TabPanels.Item" /> components.
       </p>
       <p>
         This will give you all kinds of accessibility and state tracking out of the box.
@@ -67,7 +68,7 @@ export default storyBook(Tabs, story => {
   story('Default Value', () => (
     <Fragment>
       <p>
-        Set <var>{'<Tabs defaultValue="...">'}</var>
+        Set <JSXNode name="Tabs" props={{defaultValue: String}} />
       </p>
       <SizingWindow>
         <Tabs defaultValue="two">
@@ -93,11 +94,11 @@ export default storyBook(Tabs, story => {
         <p>
           If you want to control the state of the tabs from outside, you can call{' '}
           <var>{'useState()'}</var> and set{' '}
-          <var>{'<Tabs value={selected} onChange={selected => ...}>'}</var> manually.
+          <JSXNode name="Tabs" props={{value: String, onChange: Function}} /> manually.
         </p>
         <p>
           This is useful if you want to detect button clicks and do something different.{' '}
-          The <var>{'<Tabs>'}</var> context wrapper is not required in this case.
+          The <JSXNode name="Tabs" /> context wrapper is not required in this case.
         </p>
         <p>selected={selected}</p>
         <SizingWindow>
@@ -119,8 +120,8 @@ export default storyBook(Tabs, story => {
   });
 
   story('Rendering', () => (
-    <Matrix
-      component={props => (
+    <Matrix<TabsProps<string> & TabListProps>
+      render={props => (
         <Tabs orientation={props.orientation}>
           <TabList hideBorder={props.hideBorder}>
             {TABS.map(tab => (
@@ -146,7 +147,7 @@ export default storyBook(Tabs, story => {
     <SideBySide>
       <div>
         <p>
-          Use <var>&lt;Tabs disabled&gt;</var> to disable everything.
+          Use <JSXNode name="Tabs" props={{disabled: true}} /> to disable everything.
         </p>
         <SizingWindow>
           <Tabs disabled>
@@ -165,8 +166,8 @@ export default storyBook(Tabs, story => {
       </div>
       <div>
         <p>
-          Use <var>{'<TabList disabledKeys={[...]}>'}</var> to disable individual{' '}
-          <var>{'<TabList.Item>'}</var> children.
+          Use <JSXNode name="TabList" props={{disabledKeys: Array}} /> to disable
+          individual <JSXNode name="TabList.Item" /> children.
         </p>
         <SizingWindow>
           <Tabs>

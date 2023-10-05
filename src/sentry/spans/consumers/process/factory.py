@@ -33,11 +33,9 @@ TAG_MAPPING = {
     "span.status": "status",
     "span.status_code": "status_code",
     "span.system": "system",
-    "transaction": "transaction",
-    "transaction.method": "transaction.method",
-    "transaction.op": "transaction.op",
 }
-SPAN_SCHEMA_VERSION = 1
+SPAN_SCHEMA_V1 = 1
+SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
 DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
@@ -54,20 +52,15 @@ def get_organization(project_id: int) -> Tuple[Organization, int]:
     return organization.id, retention_days
 
 
-def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    organization_id, retention_days = get_organization(
-        relay_span["project_id"],
-    )
-    span_data: Mapping[str, Any] = relay_span.get("data", {})
-
+def _process_relay_span_v0(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization_id
+    snuba_span["organization_id"] = relay_span["organization_id"]
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
-    snuba_span["retention_days"] = retention_days
+    snuba_span["retention_days"] = relay_span["retention_days"]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
@@ -87,11 +80,14 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         0,
     )
 
-    sentry_tags: MutableMapping[str, Any] = {}
-
-    if span_data:
+    sentry_tags: dict[str, Any] = relay_span.get("sentry_tags", {}) or {}
+    if sentry_tags:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            tag_value = span_data.get(relay_tag)
+            if relay_tag not in sentry_tags:
+                if snuba_tag == "group":
+                    metrics.incr("spans.missing_group")
+                continue
+            tag_value = sentry_tags.pop(relay_tag)
             if snuba_tag == "group":
                 if tag_value is None:
                     metrics.incr("spans.missing_group")
@@ -100,9 +96,17 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
                         # Test if the value is valid hexadecimal.
                         _ = int(tag_value, 16)
                         # If valid, set the raw value to the tag.
-                        sentry_tags["group"] = tag_value
+                        sentry_tags[snuba_tag] = tag_value
                     except ValueError:
                         metrics.incr("spans.invalid_group")
+            elif snuba_tag == "status_code":
+                try:
+                    # Test if the value is a valid integer.
+                    _ = int(tag_value)
+                    # If valid, set the raw value to the tag.
+                    sentry_tags[snuba_tag] = tag_value
+                except ValueError:
+                    metrics.incr("spans.invalid_status_code")
             elif tag_value is not None:
                 sentry_tags[snuba_tag] = tag_value
 
@@ -112,17 +116,20 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     if "status" not in sentry_tags and (status := relay_span.get("status", "")) is not None:
         sentry_tags["status"] = status
 
-    if "status_code" in sentry_tags:
-        sentry_tags["status_code"] = sentry_tags["status_code"]
+    snuba_span["sentry_tags"] = sentry_tags
 
-    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
+    _process_group_raw(snuba_span, sentry_tags.get("transaction", ""))
 
+    return snuba_span
+
+
+def _process_group_raw(snuba_span: MutableMapping[str, Any], transaction: str) -> None:
     grouping_config = load_span_grouping_config()
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
-            {"transaction": span_data.get("transaction", "")},
+            {"transaction": transaction},
         )
     else:
         # Build a span with only necessary values filled.
@@ -148,8 +155,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = "0"
         metrics.incr("spans.invalid_group_raw")
 
-    return snuba_span
-
 
 def _format_event_id(payload: Mapping[str, Any]) -> str:
     event_id = payload.get("event_id")
@@ -158,12 +163,36 @@ def _format_event_id(payload: Mapping[str, Any]) -> str:
     return ""
 
 
+def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+    # We're migrating the payload from being encoded in msgpack to JSON.
+    # This for backward compatibility while we transition.
+    try:
+        return msgpack.unpackb(payload)
+    except ValueError:
+        return json.loads(payload, use_rapid_json=True)
+
+
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
-    payload = msgpack.unpackb(message.payload.value)
+    payload = _deserialize_payload(message.payload.value)
     relay_span = payload["span"]
     relay_span["project_id"] = payload["project_id"]
     relay_span["event_id"] = _format_event_id(payload)
-    snuba_span = _build_snuba_span(relay_span)
+
+    organization_id = payload.get("organization_id")
+    retention_days = payload.get("retention_days")
+
+    if not organization_id or not retention_days:
+        organization_id, retention_days = get_organization(
+            relay_span["project_id"],
+        )
+
+    relay_span["organization_id"] = organization_id
+    relay_span["retention_days"] = retention_days
+
+    if "sentry_tags" not in relay_span and "data" in relay_span:
+        relay_span["sentry_tags"] = relay_span.pop("data")
+
+    snuba_span = _process_relay_span_v0(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 

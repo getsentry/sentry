@@ -32,11 +32,6 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
-    # At writing, the Google Bigtable Emulator relies on deprecated behavior
-    # internally, this can be removed once a version containing this fix is
-    # released: https://github.com/googleapis/python-bigtable/pull/246
-    "ignore:The `channel` argument is deprecated; use `transport` instead.:PendingDeprecationWarning:google.cloud.bigtable*",
-
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
     # with django.utils.timezone.
@@ -314,7 +309,6 @@ module = [
     "sentry.api.issue_search",
     "sentry.api.paginator",
     "sentry.api.permissions",
-    "sentry.api.serializers.models.alert_rule",
     "sentry.api.serializers.models.auth_provider",
     "sentry.api.serializers.models.authenticator",
     "sentry.api.serializers.models.dashboard",
@@ -606,7 +600,6 @@ module = [
     "sentry.sdk_updates",
     "sentry.search.events.builder.discover",
     "sentry.search.events.builder.metrics",
-    "sentry.search.events.builder.spans_metrics",
     "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
     "sentry.search.events.datasets.function_aliases",
@@ -809,7 +802,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_metrics",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.serializers.test_project",
-    "tests.sentry.api.serializers.test_team",
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
@@ -828,25 +820,9 @@ module = [
     "tests.sentry.lang.javascript.test_processor",
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.models.test_project",
-    "tests.sentry.release_health.release_monitor",
-    "tests.sentry.replays.test_project_replay_recording_segment_details",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
     "tests.sentry.replays.unit.test_dead_click_issue",
-    "tests.sentry.search.events.builder.test_metrics",
-    "tests.sentry.search.events.test_fields",
-    "tests.sentry.sentry_apps.test_sentry_app_creator",
-    "tests.sentry.sentry_metrics.consumers.test_slicing_router",
-    "tests.sentry.sentry_metrics.limiters.test_writes_limiter",
-    "tests.sentry.sentry_metrics.test_base_indexer",
-    "tests.sentry.sentry_metrics.test_batch",
-    "tests.sentry.snuba.metrics.test_snql",
-    "tests.sentry.snuba.test_tasks",
-    "tests.sentry.tagstore.test_types",
     "tests.sentry.tasks.test_post_process",
-    "tests.sentry.web.test_client_config",
-    "tests.snuba.rules.conditions.test_event_frequency",
-    "tests.snuba.sessions.test_sessions",
-    "tests.snuba.tagstore.test_tagstore_backend",
 ]
 disable_error_code = [
     "arg-type",

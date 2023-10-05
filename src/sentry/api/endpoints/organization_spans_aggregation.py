@@ -146,9 +146,7 @@ class BaseAggregateSpans:
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": f"<<unparametrized>> {description}"
-                if span_tree["group"] == NULL_GROUP
-                else description,
+                "description": description if span_tree["group"] == NULL_GROUP else description,
                 "start_timestamp": start_timestamp,
                 "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
@@ -266,11 +264,9 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "exclusive_time": span["exclusive_time"],
                         "children": [],
                     }
-                    # Fallback to if sentry/suspect spans scrubbed group (group_raw here) if group doesn't exist.
-                    # Note this is a different implementation from what we do for indexed spans. Because if starfish
-                    # isn't enabled for the org, we won't have the starfish scrubbed description at all.
+                    # Fallback to op if group doesn't exist for now
                     spans_dict["key"] = (
-                        spans_dict["group_raw"]
+                        spans_dict["op"]
                         if spans_dict["group"] == NULL_GROUP
                         else spans_dict["group"]
                     )

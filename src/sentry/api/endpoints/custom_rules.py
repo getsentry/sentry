@@ -3,6 +3,7 @@ from typing import List, Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -78,8 +79,31 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
+class CustomRulePermission(BasePermission):
+    scope_map = {
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+    }
+
+
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
+    permission_classes = (CustomRulePermission,)
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
@@ -172,10 +196,12 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
-        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization.id)
+        rule = CustomDynamicSamplingRule.get_rule_for_org(
+            condition, organization.id, requested_projects_ids
+        )
 
         if rule is None:
-            return Response(status=204)  # no rule found, nothing to reutrn
+            return Response(status=204)  # no rule found, nothing to return
 
         # we have a rule, check to see if the projects match
 

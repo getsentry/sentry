@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import {CommitRow} from '../commitRow';
 import {QuickContextCommitRow} from '../discover/quickContextCommitRow';
 
 describe('EventCause', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
   const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
