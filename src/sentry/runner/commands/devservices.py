@@ -718,7 +718,7 @@ def check_symbolicator(containers: dict[str, Any]) -> None:
     )
 
 
-def python_call_url_prog(url: str) -> None:
+def python_call_url_prog(url: str) -> str:
     return f"""
 import urllib.request
 try:
