@@ -1,3 +1,5 @@
+from typing import Optional
+
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
@@ -13,12 +15,12 @@ class ProjectOwnershipResponse(TypedDict):
     isActive: bool
     autoAssignment: str
     codeownersAutoSync: bool
-    schema: dict
+    schema: Optional[dict]
 
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user, should_return_schema=False):
+    def serialize(self, obj, attrs, user, should_return_schema=False) -> ProjectOwnershipResponse:
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment
