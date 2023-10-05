@@ -1,17 +1,21 @@
 from datetime import datetime, timedelta, timezone
+from typing import List
 from unittest import mock
 
 import pytest
 from django.db.models import F
 
 from sentry.models import Project
+from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_change_points,
     detect_function_trends,
+    detect_transaction_change_points,
     detect_transaction_trends,
+    emit_function_regression_issue,
     query_functions,
     query_transactions,
     run_detection,
@@ -258,7 +262,7 @@ def test_detect_transaction_trends(
     with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_transaction_trends([organization.id], [project.id], ts)
-    assert detect_transaction_change_points.delay.called
+    assert detect_transaction_change_points.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
@@ -289,14 +293,19 @@ def test_detect_function_trends(
     with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_change_points.delay.called
+    assert detect_function_change_points.apply_async.called
 
 
+@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
 @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
 @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @django_db_all
 def test_detect_function_change_points(
-    mock_raw_snql_query, mock_detect_breakpoints, timestamp, project
+    mock_raw_snql_query,
+    mock_detect_breakpoints,
+    mock_emit_function_regression_issue,
+    timestamp,
+    project,
 ):
     start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
@@ -333,7 +342,9 @@ def test_detect_function_change_points(
         ]
     }
 
-    detect_function_change_points([(project.id, fingerprint)], timestamp)
+    with override_options({"statistical_detectors.enable": True}):
+        detect_function_change_points([(project.id, fingerprint)], timestamp)
+    assert mock_emit_function_regression_issue.called
 
 
 @region_silo_test(stable=True)
@@ -349,9 +360,6 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
         ]
-
-    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
-    def test_functions_query(self):
 
         for project in self.projects:
             self.store_functions(
@@ -386,6 +394,8 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 timestamp=self.hour_ago,
             )
 
+    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
+    def test_functions_query(self):
         results = query_functions(self.projects, self.now)
         assert results == [
             DetectorPayload(
@@ -397,6 +407,33 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             )
             for project in self.projects
         ]
+
+    @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
+    def test_emit_function_regression_issue(self, mock_get_from_profiling_service):
+        mock_value = mock.MagicMock()
+        mock_value.status = 200
+        mock_value.data = b'{"occurrences":5}'
+        mock_get_from_profiling_service.return_value = mock_value
+
+        breakpoints: List[BreakpointData] = [
+            {
+                "project": str(project.id),
+                "transaction": str(
+                    self.function_fingerprint({"package": "foo", "function": "foo"})
+                ),
+                "aggregate_range_1": 100_000_000,
+                "aggregate_range_2": 200_000_000,
+                "unweighted_t_value": 1.23,
+                "unweighted_p_value": 1.23,
+                "trend_percentage": 1.23,
+                "absolute_percentage_change": 1.23,
+                "trend_difference": 1.23,
+                "breakpoint": (self.hour_ago - timedelta(hours=12)).timestamp(),
+            }
+            for project in self.projects
+        ]
+        emitted = emit_function_regression_issue(breakpoints, self.now)
+        assert emitted == 5
 
 
 @region_silo_test(stable=True)
@@ -458,3 +495,79 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             # one sample at 9.5, but it should be close
             assert trend_payload.value > 9
             assert trend_payload.timestamp == self.hour_ago
+
+
+@region_silo_test(stable=True)
+@pytest.mark.sentry_metrics
+class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.num_projects = 2
+        self.num_transactions = 4
+
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        self.hour_ago_seconds = int(self.hour_ago.timestamp())
+        self.org = self.create_organization(owner=self.user)
+        self.projects = [
+            self.create_project(organization=self.org) for _ in range(self.num_projects)
+        ]
+
+        def store_metric(project_id, transaction, minutes_ago, value):
+            self.store_metric(
+                self.org.id,
+                project_id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {"transaction": transaction},
+                int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+        for project in self.projects:
+            for i in range(self.num_transactions):
+                store_metric(project.id, f"transaction_{i}", 20, 9.5)
+                store_metric(project.id, f"transaction_{i}", 40, 9.5)
+                store_metric(project.id, f"transaction_{i}", 60, 9.5)
+                store_metric(project.id, f"transaction_{i}", 80, 1.0)
+                store_metric(project.id, f"transaction_{i}", 100, 1.0)
+                store_metric(project.id, f"transaction_{i}", 120, 1.0)
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
+    @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
+    def test_transaction_change_point_detection(
+        self, mock_detect_breakpoints, mock_send_regressions_to_platform
+    ) -> None:
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.projects[0].id),
+                    "transaction": "transaction_1",
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
+        with override_options({"statistical_detectors.enable": True}):
+            detect_transaction_change_points(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                    (self.projects[0].id, "transaction_2"),
+                    (self.projects[1].id, "transaction_1"),
+                ],
+                self.now,
+            )
+        assert mock_send_regressions_to_platform.called

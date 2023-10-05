@@ -92,59 +92,66 @@ Retrieve a collection of feedback items.
 
 - Response 200
 
-  ```json
-  {
-    "data": [
-      {
-        "browser": {
-          "name": "Chome",
-          "version": "103.0.38"
-        },
-        "contact_email": "colton.allen@sentry.io",
-        "device": {
-          "brand": "Apple",
-          "family": "iPhone",
-          "model": "11",
-          "name": "iPhone 11"
-        },
-        "dist": "abc123",
-        "environment": "production",
-        "feedback_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
-        "locale": {
-          "lang": "en",
-          "timezone": "UTC+1"
-        },
-        "message": "I really like this feedback feature!",
-        "os": {
-          "name": "iOS",
-          "version": "16.2"
-        },
-        "platform": "javascript",
-        "project_id": "11276",
-        "release": "version@1.3",
-        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
-        "sdk": {
-          "name": "sentry.javascript.react",
-          "version": "6.18.1"
-        },
-        "status": "unresolved",
-        "tags": {
-          "hello": "is",
-          "it": ["me", "you're", "looking", "for"]
-        },
-        "timestamp": "2023-08-31T14:10:34.954048",
-        "url": "https://docs.sentry.io/platforms/javascript/",
-        "user": {
-          "display_name": "John Doe",
-          "email": "john.doe@example.com",
-          "id": "30246326",
-          "ip": "213.164.1.114",
-          "username": "John Doe"
+  - Headers
+
+    ```
+    X-Hits: 42
+    ```
+
+  - Body
+    ```json
+    {
+      "data": [
+        {
+          "browser": {
+            "name": "Chome",
+            "version": "103.0.38"
+          },
+          "contact_email": "colton.allen@sentry.io",
+          "device": {
+            "brand": "Apple",
+            "family": "iPhone",
+            "model": "11",
+            "name": "iPhone 11"
+          },
+          "dist": "abc123",
+          "environment": "production",
+          "feedback_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+          "locale": {
+            "lang": "en",
+            "timezone": "UTC+1"
+          },
+          "message": "I really like this feedback feature!",
+          "os": {
+            "name": "iOS",
+            "version": "16.2"
+          },
+          "platform": "javascript",
+          "project_id": "11276",
+          "release": "version@1.3",
+          "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+          "sdk": {
+            "name": "sentry.javascript.react",
+            "version": "6.18.1"
+          },
+          "status": "unresolved",
+          "tags": {
+            "hello": "is",
+            "it": ["me", "you're", "looking", "for"]
+          },
+          "timestamp": "2023-08-31T14:10:34.954048",
+          "url": "https://docs.sentry.io/platforms/javascript/",
+          "user": {
+            "display_name": "John Doe",
+            "email": "john.doe@example.com",
+            "id": "30246326",
+            "ip": "213.164.1.114",
+            "username": "John Doe"
+          }
         }
-      }
-    ]
-  }
-  ```
+      ]
+    }
+    ```
 
 ## Feedback [/projects/<organization_slug>/<project_slug>/feedback/<feedback_id>/]
 
@@ -255,8 +262,9 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | environment                | optional[string] | -                                     |
 | event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
-| feedback.contact_email     | string           | -                                     |
+| feedback.contact_email     | optional[string] | -                                     |
 | feedback.message           | string           | -                                     |
+| feedback.name              | optional[string] | -                                     |
 | feedback.replay_id         | optional[string] | -                                     |
 | feedback.url               | string           | -                                     |
 | platform                   | string           | -                                     |
@@ -303,7 +311,7 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
     "tags": {
       "key": "value"
     },
-    "timestamp": 146990235.23,
+    "timestamp": "2023-08-31T14:10:34.954048",
     "user": {
       "email": "username@example.com",
       "id": "123",

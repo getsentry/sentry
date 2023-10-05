@@ -5,7 +5,6 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -34,7 +33,7 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
 ];
 
 interface Props {
-  onSelect: (platform: PlatformKey) => void;
+  onSelect: (platform: SupportedPlatform | null) => void;
 }
 
 export function PlatformPickerPanel({onSelect}: Props) {

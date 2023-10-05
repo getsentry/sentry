@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -11,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
 import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -54,9 +57,12 @@ function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <NoDataDueToOldSDKMessage Wrapper={AlertBanner} />
+
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
+              <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
             </PageFilterBar>
           </PaddedContainer>
@@ -71,7 +77,7 @@ function DatabaseLandingPage() {
 
             <DomainSelector
               moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN_ARRAY] || ''}
+              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
             />
           </FilterOptionsContainer>
 
@@ -85,6 +91,10 @@ function DatabaseLandingPage() {
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
+
+function AlertBanner(props) {
+  return <Alert {...props} type="info" showIcon />;
+}
 
 const FilterOptionsContainer = styled('div')`
   display: grid;

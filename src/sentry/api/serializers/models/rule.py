@@ -221,13 +221,18 @@ class RuleSerializer(Serializer):
         if rule_snooze.exists():
             d["snooze"] = True
             snooze = rule_snooze[0]
+            created_by = None
             if user.id == snooze.owner_id:
                 created_by = "You"
             else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
-            d["snoozeCreatedBy"] = created_by
-            d["snoozeForEveryone"] = snooze.user_id is None
+                creator = user_service.get_user(snooze.owner_id)
+                if creator:
+                    creator_name = creator.get_display_name()
+                    created_by = creator_name
+
+            if created_by is not None:
+                d["snoozeCreatedBy"] = created_by
+                d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
 

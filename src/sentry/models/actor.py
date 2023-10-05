@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Optional, Sequence, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union, overload
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
+from django.forms import model_to_dict
 from rest_framework import serializers
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
@@ -25,7 +26,7 @@ ACTOR_TYPES = {"team": 0, "user": 1}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
-    # type will be 0 or 1 and we want to get Team or User
+    # `type` will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
     if type == ACTOR_TYPES["team"]:
@@ -95,7 +96,7 @@ def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
 
 
 def actor_type_to_string(type: int) -> str | None:
-    # type will be 0 or 1 and we want to get "team" or "user"
+    # `type` will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
         if v == type:
             return k
@@ -144,26 +145,27 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        if self.team is None:
+            return super().write_relocation_import(scope, flags)
 
         # `Actor` and `Team` have a direct circular dependency between them for the time being due
         # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
         # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
         # always fail, because one half of the cycle will always be missing.
         #
-        # Because `Actor` ends up first in the dependency sorting (see:
+        # Because `Team` ends up first in the dependency sorting (see:
         # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
-        # out the `team_id` field of the `Actor` when we import it, and then make sure to circle
-        # back and update the relevant `Actor` after we create the `Team` models later on (see the
-        # `write_relocation_import` method override on that class for details).
-        self.team_id = None
+        # out the `actor_id` field of the `Team` when we import it, then rely on that model's
+        # `post_save()` hook to fill in the `Actor` model.
+        (actor, created) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
+        if actor:
+            self.pk = actor.pk
+            self.save()
 
-        return old_pk
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
 
 
 def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:

@@ -42,6 +42,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
@@ -88,15 +89,21 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
-  const emptyComponent = canHaveIntegrationEmptyState
-    ? () => (
-        <WidgetAddInstrumentationWarning
-          type={
-            props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS ? 'db' : 'http'
-          }
-        />
-      )
-    : WidgetEmptyStateWarning;
+
+  let emptyComponent;
+  if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
+    emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
+  } else {
+    emptyComponent = canHaveIntegrationEmptyState
+      ? () => (
+          <WidgetAddInstrumentationWarning
+            type={
+              props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS ? 'db' : 'http'
+            }
+          />
+        )
+      : WidgetEmptyStateWarning;
+  }
 
   const field = props.fields[0];
 
@@ -164,7 +171,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'span.description');
           mutableSearch.addFilterValue('span.module', 'db');
-          mutableSearch.addFilterValue('transaction.op', 'http.server');
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
@@ -285,10 +291,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             // Update search query
             eventView.additionalConditions.removeFilter('event.type');
             eventView.additionalConditions.removeFilter('transaction');
-            eventView.additionalConditions.addFilterValue(
-              'transaction.op',
-              'http.server'
-            );
             eventView.additionalConditions.addFilterValue(
               SpanMetricsField.SPAN_GROUP,
               provided.widgetData.list.data[selectedListIndex][

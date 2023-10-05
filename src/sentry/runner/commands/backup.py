@@ -132,18 +132,18 @@ def import_users(src, filter_usernames, merge_users, silent):
 @import_.command(name="organizations")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--merge_users",
-    default=False,
-    is_flag=True,
-    help=MERGE_USERS_HELP,
-)
-@click.option(
     "--filter_org_slugs",
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
     "If this option is not set, all encountered organizations are imported. "
     "Users not members of at least one organization in this set will not be imported.",
+)
+@click.option(
+    "--merge_users",
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration

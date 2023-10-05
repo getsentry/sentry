@@ -1,3 +1,6 @@
+import {GitHubIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +30,7 @@ describe('Project Ownership', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?features=codeowners`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegrationConfig()],
+      body: [GitHubIntegrationConfig()],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
@@ -64,7 +67,7 @@ describe('Project Ownership', () => {
           organization={organization}
           project={project}
         />,
-        {organization: TestStubs.Organization({access: ['project:read']})}
+        {organization: Organization({access: ['project:read']})}
       );
 
       expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
@@ -76,7 +79,7 @@ describe('Project Ownership', () => {
 
   describe('with codeowners', () => {
     it('codeowners button opens modal', async () => {
-      const org = TestStubs.Organization({
+      const org = Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });

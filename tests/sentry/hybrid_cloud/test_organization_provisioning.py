@@ -5,17 +5,18 @@ from sentry.models import (
     Organization,
     OrganizationMapping,
     OrganizationMember,
+    OrganizationSlugReservation,
     OutboxCategory,
     RegionOutbox,
     User,
     outbox_context,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization_provisioning import (
+from sentry.services.hybrid_cloud.organization_provisioning import organization_provisioning_service
+from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
     PostProvisionOptions,
-    organization_provisioning_service,
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -47,6 +48,11 @@ def assert_params_match_org(
         assert org_mapping.slug == db_org.slug
         assert org_mapping.name == db_org.name
         assert org_mapping.status == db_org.status
+
+        org_slug_reservation = OrganizationSlugReservation.objects.get(
+            organization_id=org.id, slug=db_org.slug
+        )
+        assert org_slug_reservation.user_id == -1
 
 
 def is_org_member(user_id: int, org_id: int):

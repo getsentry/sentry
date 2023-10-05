@@ -17,8 +17,8 @@ const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  transactionMethod?: string;
 };
 
 export type SpanSample = Pick<
@@ -41,19 +41,30 @@ export const useSpanSamples = (options: Options) => {
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
     `transaction:"${transactionName}"`,
-    `transaction.method:${transactionMethod}`,
   ]);
+
+  if (transactionMethod) {
+    query.addFilterValue('transaction.method', transactionMethod);
+  }
+
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`],
+    filters,
+    [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
+  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady

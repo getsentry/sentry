@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
@@ -6,9 +8,12 @@ from rest_framework import serializers
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
 
-# drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
-# a typed list using this workaround
-def build_typed_list(type: OpenApiTypes):
+def build_typed_list(type: Any):
+    """
+    drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
+    a typed list using this workaround. build_basic_type will dynamically check the type
+    and pass a warning if it can't recognize it, failing any build command in the process as well.
+    """
     return build_array_type(build_basic_type(type))
 
 
@@ -62,14 +67,6 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
-    PROJECT = OpenApiParameter(
-        name="project",
-        location="query",
-        required=False,
-        many=True,
-        type=int,
-        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
-    )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
         location="query",
@@ -89,41 +86,40 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             description=description,
         )
 
-    @staticmethod
-    def name(description: str, required: bool = False) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="name",
-            location="query",
-            required=required,
-            type=str,
-            description=description,
-        )
 
-    @staticmethod
-    def slug(description: str, required: bool = False) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="slug",
-            location="query",
-            required=required,
-            type=str,
-            description=description,
-        )
+class OrganizationParams:
+    PROJECT_SLUG = OpenApiParameter(
+        name="project_slug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT = OpenApiParameter(
+        name="project",
+        location="query",
+        required=False,
+        many=True,
+        type=int,
+        description="""The IDs of projects to filter by. `-1` means all available projects.
+For example the following are valid parameters:
+- `/?project=1234&project=56789`
+- `/?project=-1`
+""",
+    )
 
 
 class SCIMParams:
-    MEMBER_ID = OpenApiParameter(
-        name="member_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The id of the member you'd like to query.",
-    )
     TEAM_ID = OpenApiParameter(
         name="team_id",
         location="path",
         required=True,
         type=int,
-        description="The id of the team you'd like to query / update.",
+        description="The ID of the team you'd like to query / update.",
     )
 
 
@@ -133,7 +129,7 @@ class IssueAlertParams:
         location="path",
         required=True,
         type=int,
-        description="The id of the rule you'd like to query.",
+        description="The ID of the rule you'd like to query.",
     )
 
 
@@ -212,7 +208,7 @@ class MonitorParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the check-in.",
+        description="The ID of the check-in.",
     )
 
 
@@ -222,7 +218,7 @@ class EventParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the event.",
+        description="The ID of the event.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -239,16 +235,6 @@ class EventParams:
         required=True,
         type=int,
         description="Index of the exception that should be used for source map resolution.",
-    )
-
-
-class OrganizationParams:
-    MEMBER_ID = OpenApiParameter(
-        name="member_id",
-        location="path",
-        required=True,
-        type=str,
-        description="The member ID.",
     )
 
 
@@ -292,16 +278,6 @@ keys if not specified.
             description=description,
         )
 
-    @staticmethod
-    def platform(description: str) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="platform",
-            location="query",
-            required=False,
-            type=str,
-            description=description,
-        )
-
 
 class TeamParams:
     DETAILED = OpenApiParameter(
@@ -321,5 +297,64 @@ class ReplayParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="""The id of the replay you'd like to retrieve.""",
+        description="""The ID of the replay you'd like to retrieve.""",
+    )
+
+
+class NotificationParams:
+    TRIGGER_TYPE = OpenApiParameter(
+        name="triggerType",
+        location="query",
+        required=False,
+        type=str,
+        description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
+    )
+    ACTION_ID = OpenApiParameter(
+        name="action_id",
+        location="path",
+        required=True,
+        type=int,
+        description="ID of the notification action to retrieve",
+    )
+
+
+class IntegrationParams:
+    PROVIDER_KEY = OpenApiParameter(
+        name="providerKey",
+        location="query",
+        required=False,
+        type=str,
+        description="""Specific integration provider to filter by such as `slack`. See our [Integrations Documentation](/product/integrations/) for an updated list of providers.""",
+    )
+    FEATURES = OpenApiParameter(
+        name="features",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""Integration features to filter by. See our [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
+- alert-rule
+- chat-unfurl
+- codeowners
+- commits
+- data-forwarding
+- deployment
+- enterprise-alert-rule
+- enterprise-incident-management
+- incident-management
+- issue-basic
+- issue-sync
+- mobile
+- serverless
+- session-replay
+- stacktrace-link
+- ticket-rules
+    """,
+    )
+    INCLUDE_CONFIG = OpenApiParameter(
+        name="includeConfig",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
     )

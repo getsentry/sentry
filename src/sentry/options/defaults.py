@@ -748,13 +748,6 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# For platform belongs to store.save-event-highcpu-platforms option, we want to reroute
-# events to highcpu dedicated queue. During rollout, I would like to have an option to control
-# the percentage of traffic to route to highcpu dedicated queue, so I can route
-# small amount of traffic to new highcpu worker pool, and observe the worker throughput
-# to adjust autoscaling. Once we verify the deployment, we can remove the usage for this
-# option.
-register("store.save-event-highcpu-percentage", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1604,75 +1597,5 @@ register(
 register(
     "delightful_metrics.enable_common_tags",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_team.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_organization.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_authidentity.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_authprovider.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_organizationmember_teams.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_apikey.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.auth_user.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_organizationslugreservation.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_userrole.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_userrole_users.replication_version",
-    type=Int,
-    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

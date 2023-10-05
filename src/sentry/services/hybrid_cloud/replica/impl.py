@@ -1,6 +1,7 @@
 from typing import Any, Iterator, List, Mapping, Optional, Type, Union
 
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -16,6 +17,7 @@ from sentry.models import (
     Organization,
     OrganizationMemberTeam,
     OrganizationMemberTeamReplica,
+    OrganizationSlugReservationReplica,
     OutboxCategory,
     Team,
     User,
@@ -170,6 +172,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             key=api_key.key,
             status=api_key.status,
             allowed_origins="\n".join(api_key.allowed_origins),
+            scope_list=api_key.scope_list,
         )
 
         handle_replication(ApiKey, destination)
@@ -177,24 +180,38 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_org_slug_reservation(
         self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
     ) -> None:
-        pass
-        # TODO(Gabe): Enable this when the replica model is online
-        # with enforce_constraints(
-        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        # ):
-        #     OrganizationSlugReservationReplica.objects.filter(slug=slug_reservation.slug).delete()
-        #     OrganizationSlugReservationReplica.objects.create(**slug_reservation.dict())
+        with enforce_constraints(
+            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        ):
+            # Delete any slug reservation that can possibly conflict, it's likely stale
+            OrganizationSlugReservationReplica.objects.filter(
+                Q(organization_slug_reservation_id=slug_reservation.id)
+                | Q(
+                    organization_id=slug_reservation.organization_id,
+                    reservation_type=slug_reservation.reservation_type,
+                )
+                | Q(slug=slug_reservation.slug)
+            ).delete()
 
-    def delete_replicated_org_slug_reservation(self, *, slug: str, organization_id: int) -> None:
-        pass
-        # TODO(Gabe): Enable this when the replica model is online
-        # with enforce_constraints(
-        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        # ):
-        #     org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
-        #         slug=slug, organization_id=organization_id
-        #     )
-        #     org_slug_qs.delete()
+            OrganizationSlugReservationReplica.objects.create(
+                slug=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
+                user_id=slug_reservation.user_id,
+                region_name=slug_reservation.region_name,
+                reservation_type=slug_reservation.reservation_type,
+                organization_slug_reservation_id=slug_reservation.id,
+            )
+
+    def delete_replicated_org_slug_reservation(
+        self, *, organization_slug_reservation_id: int, region_name: str
+    ) -> None:
+        with enforce_constraints(
+            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        ):
+            org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
+                organization_slug_reservation_id=organization_slug_reservation_id
+            )
+            org_slug_qs.delete()
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):

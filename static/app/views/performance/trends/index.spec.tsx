@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -30,13 +31,6 @@ import {
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
-
-jest.mock(
-  'sentry/utils/getDynamicComponent',
-  () =>
-    ({fixed}) =>
-      fixed
-);
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment');
@@ -136,7 +130,7 @@ function initializeTrendsData(
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: _projects,
   });

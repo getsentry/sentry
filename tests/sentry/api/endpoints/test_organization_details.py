@@ -28,11 +28,10 @@ from sentry.models import (
     Organization,
     OrganizationAvatar,
     OrganizationOption,
+    OrganizationSlugReservation,
     OrganizationStatus,
-    OutboxFlushError,
     RegionScheduledDeletion,
     User,
-    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
@@ -828,7 +827,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_name_with_mapping(self):
+    def test_update_name_with_mapping_and_slug_reservation(self):
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
@@ -841,10 +840,17 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_slug(self):
+        with outbox_runner():
+            pass
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             organization_mapping = OrganizationMapping.objects.get(
-                organization_id=self.organization.id
+                organization_id=self.organization.id,
             )
+            org_slug_res = OrganizationSlugReservation.objects.get(
+                organization_id=self.organization.id, slug=self.organization.slug
+            )
+
         assert organization_mapping.slug == self.organization.slug
 
         desired_slug = "new-santry"
@@ -854,48 +860,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
-
-    def test_update_slug_with_temporary_rename_collision(self):
-        desired_slug = "taken"
-        previous_slug = self.organization.slug
-        org_with_colliding_slug = self.create_organization(
-            slug=desired_slug, name="collision-imminent"
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_org_mapping = OrganizationMapping.objects.get(
-                organization_id=org_with_colliding_slug.id
-            )
-        assert colliding_org_mapping.slug == desired_slug
-
-        # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
-        org_with_colliding_slug.slug = "unique-slug"
-        with outbox_context(flush=False):
-            org_with_colliding_slug.save()
-
-        self.get_success_response(self.organization.slug, slug=desired_slug)
-        self.organization.refresh_from_db()
-        assert self.organization.slug == desired_slug
-
-        # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        with pytest.raises(OutboxFlushError):
-            self.organization.outbox_for_update().drain_shard()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            organization_mapping = OrganizationMapping.objects.get(
-                organization_id=self.organization.id
-            )
-        assert organization_mapping.slug == previous_slug
-
-        # Flush the colliding org slug change
-        org_with_colliding_slug.outbox_for_update().drain_shard()
-        colliding_org_mapping.refresh_from_db()
-        assert colliding_org_mapping.slug == "unique-slug"
-
-        # Flush the desired slug change and assert the correct slug was resolved
-        self.organization.outbox_for_update().drain_shard()
-        organization_mapping.refresh_from_db()
-        assert organization_mapping.slug == desired_slug
+        org_slug_res.refresh_from_db()
+        assert org_slug_res.slug == desired_slug
 
     def test_org_mapping_already_taken(self):
         self.create_organization(slug="taken")

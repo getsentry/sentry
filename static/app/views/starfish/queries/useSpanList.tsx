@@ -10,23 +10,15 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {
-  SPAN_SELF_TIME,
-  SPAN_DESCRIPTION,
-  SPAN_GROUP,
-  SPAN_OP,
-  SPAN_DOMAIN,
-  SPAN_DOMAIN_ARRAY,
-  PROJECT_ID,
-} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, SPAN_DOMAIN, PROJECT_ID} =
+  SpanMetricsField;
 
 export type SpanMetrics = {
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'project.id': number;
   'span.description': string;
-  'span.domain': string;
-  'span.domain_array': Array<string>;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
@@ -75,16 +67,15 @@ function getEventView(
   spanCategory?: string,
   sorts?: Sort[]
 ) {
-  const query = [
-    ...buildEventViewQuery({
-      moduleName,
-      location,
-      transaction,
-      method,
-      spanCategory,
-    }),
-    'transaction.op:http.server',
-  ].join(' ');
+  const query = buildEventViewQuery({
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory,
+  })
+    .filter(Boolean)
+    .join(' ');
 
   const fields = [
     PROJECT_ID,
@@ -92,7 +83,6 @@ function getEventView(
     SPAN_GROUP,
     SPAN_DESCRIPTION,
     SPAN_DOMAIN,
-    SPAN_DOMAIN_ARRAY,
     'spm()',
     `sum(${SPAN_SELF_TIME})`,
     `avg(${SPAN_SELF_TIME})`,

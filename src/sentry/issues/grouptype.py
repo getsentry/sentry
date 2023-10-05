@@ -22,6 +22,7 @@ class GroupCategory(Enum):
     PROFILE = 3  # deprecated, merging with PERFORMANCE
     CRON = 4
     REPLAY = 5
+    FEEDBACK = 6
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -323,7 +324,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
 class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1017
     slug = "performance_duration_regression"
-    description = "Exp Duration Regression"
+    description = "Exp Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
@@ -332,7 +333,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
 class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1018
     slug = "performance_p95_duration_regression"
-    description = "Duration Regression"
+    description = "Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
@@ -404,14 +405,15 @@ class ProfileFrameDropType(GroupType):
     slug = "profile_frame_drop"
     description = "Frame Drop"
     category = GroupCategory.PERFORMANCE.value
-    noise_config = NoiseConfig(ignore_limit=25)
+    noise_config = NoiseConfig(ignore_limit=2000)
+    released = True
 
 
 @dataclass(frozen=True)
 class ProfileFunctionRegressionExperimentalType(GroupType):
     type_id = 2010
     slug = "profile_function_regression_exp"
-    description = "Frame Regression"
+    description = "Function Duration Regression"
     category = GroupCategory.PERFORMANCE.value
 
 
@@ -448,6 +450,14 @@ class ReplayDeadClickType(GroupType):
     slug = "replay_click_dead"
     description = "Dead Click Detected"
     category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class FeedbackGroup(GroupType):
+    type_id = 6001
+    slug = "feedback"
+    description = "Feedback"
+    category = GroupCategory.FEEDBACK.value
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
