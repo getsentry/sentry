@@ -830,21 +830,3 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
-
-
-# Add this in after we successfully deploy, the job.
-# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-# def schedule_backfill_outboxes(app_config, using, **kwargs):
-#     from sentry.tasks.backfill_outboxes import (
-#         schedule_backfill_outbox_jobs,
-#         schedule_backfill_outbox_jobs_control,
-#     )
-#     from sentry.utils.env import in_test_environment
-#
-#     if in_test_environment():
-#         return
-#
-#     if SiloMode.get_current_mode() != SiloMode.REGION:
-#         schedule_backfill_outbox_jobs_control.delay()
-#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
-#         schedule_backfill_outbox_jobs.delay()

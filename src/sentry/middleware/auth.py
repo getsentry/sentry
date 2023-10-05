@@ -7,7 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -105,11 +104,11 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
                     request.user, request.auth = result
                 else:
                     # default to anonymous user and use IP ratelimit
-                    request.user = SimpleLazyObject(lambda: get_user(request))
+                    request.user = get_user(request)
                 return
 
         # default to anonymous user and use IP ratelimit
-        request.user = SimpleLazyObject(lambda: get_user(request))
+        request.user = get_user(request)
 
     def process_exception(
         self, request: HttpRequest, exception: Exception
