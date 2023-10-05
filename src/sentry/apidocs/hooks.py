@@ -194,7 +194,21 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     return filtered
 
 
+def dereference_schema(schema: dict, schema_components: dict) -> dict:
+    """
+    Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
+    """
+    if len(schema) == 1 and "$ref" in schema:
+        # The reference always takes the form of #/components/schemas/{schema_name}
+        schema_name = schema["$ref"].split("/")[-1]
+        schema = schema_components[schema_name]
+    return schema
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    # Fetch schema component references
+    schema_components = result["components"]["schemas"]
+
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
             _check_tag(path, method_info)
@@ -221,6 +235,9 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                         schema = content["multipart/form-data"]["schema"]
                     else:
                         schema = content["application/json"]["schema"]
+
+                    # Dereference schema if needed
+                    schema = dereference_schema(schema, schema_components)
 
                     # Required params are stored in a list and not in the param itself
                     required = set(schema.get("required", []))
