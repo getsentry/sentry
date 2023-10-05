@@ -281,10 +281,7 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
     we can return the GitHub equivalent with the line number, and use it as a
     stacktrace link. Otherwise, return the link as is.
     """
-    try:
-        source_link = getattr(frame, "source_link", None) or frame.get("source_link")
-    except KeyError:
-        return None
+    source_link = getattr(frame, "source_link", None)
 
     try:
         URLValidator()(source_link)
@@ -303,8 +300,8 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
             source_link = "https://www.github.com/" + path_parts[0] + "/" + path_parts[1] + "/blob"
             for remaining_part in path_parts[2:]:
                 source_link += "/" + remaining_part
-            if frame.get("lineno"):
-                source_link += "#L" + frame.get("lineno")
+            if getattr(frame, "lineno", None):
+                source_link += "#L" + str(frame.lineno)
     return source_link
 
 
