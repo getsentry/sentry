@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DeadRageSelectorItem, Element} from 'sentry/views/replays/types';
+import {DeadRageSelectorItem, ReplayClickElement} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
@@ -36,7 +36,7 @@ function trimAttribute(elementAttribute, fullAlltribute) {
   return elementAttribute === '' ? '' : fullAlltribute;
 }
 
-export function constructSelector(element: Element) {
+export function constructSelector(element: ReplayClickElement) {
   const fullAlt = '[alt="' + element.alt + '"]';
   const alt = trimAttribute(element.alt, fullAlt);
 
@@ -177,7 +177,6 @@ export default function SelectorTable({
               projectId={value.projectId.toString()}
             />
           );
-        case 'element':
         case 'aria_label':
           return <TextOverflow>{value}</TextOverflow>;
         case 'project_id':
