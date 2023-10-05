@@ -16,7 +16,6 @@ def validate_channel_id(
     """
     Make sure that for this integration, the channel exists, belongs to this
     integration, and our bot has access to it.
-    :return: boolean (whether we hit our self-imposed time limit)
     """
     client = DiscordClient(integration_id=integration_id)
     try:
