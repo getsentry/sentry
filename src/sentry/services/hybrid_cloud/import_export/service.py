@@ -6,14 +6,20 @@
 from abc import abstractmethod
 from typing import List, Optional, Set, cast
 
+from sentry.backup.helpers import ImportFlags
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportResult,
     RpcExportScope,
     RpcFilter,
+    RpcImportFlags,
+    RpcImportResult,
+    RpcImportScope,
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
+
+DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
 
 
 class ImportExportService(RpcService):
@@ -25,6 +31,23 @@ class ImportExportService(RpcService):
         from sentry.services.hybrid_cloud.import_export.impl import UniversalImportExportService
 
         return UniversalImportExportService()
+
+    @rpc_method
+    @abstractmethod
+    def import_by_model(
+        self,
+        *,
+        model_name: str = "",
+        scope: Optional[RpcImportScope] = None,
+        flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
+        filter_by: List[RpcFilter],
+        pk_map: RpcPrimaryKeyMap,
+        json_data: str = "",
+    ) -> RpcImportResult:
+        """
+        Import models of a certain kind from JSON source.
+        """
+        pass
 
     @rpc_method
     @abstractmethod

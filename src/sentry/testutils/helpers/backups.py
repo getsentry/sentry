@@ -13,8 +13,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
-from django.conf import settings
-from django.core.management import call_command
 from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
@@ -194,14 +192,37 @@ def reversed_dependencies():
     return sorted
 
 
+def is_control_model(model):
+    meta = model._meta
+    return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
+
+
+def clear_model(model, *, use_sql: bool, reset_pks: bool):
+    using = router.db_for_write(model)
+    with unguarded_write(using=using):
+        connection = connections[using]
+
+        # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+        # when using `model.objects.all().delete()`, so we have to call out to Postgres
+        # manually.
+        if use_sql:
+            with connection.cursor() as cursor:
+                table = model._meta.db_table
+                cursor.execute(f"DELETE FROM {table:s};")
+        else:
+            model.objects.all().delete()
+
+        if reset_pks:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+
+
+@assume_test_silo_mode(SiloMode.REGION)
 def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
-
-    if reset_pks:
-        for db in settings.DATABASES.keys():
-            call_command("flush", database=db, verbosity=0, interactive=False)
-        return
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
     with unguarded_write(using=router.db_for_write(Team)):
@@ -209,19 +230,19 @@ def clear_database(*, reset_pks: bool = False):
 
     reversed = reversed_dependencies()
     for model in reversed:
-        with unguarded_write(using=router.db_for_write(model)):
-            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-            # when using `model.objects.all().delete()`, so we have to call out to Postgres
-            # manually.
-            connection = connections[router.db_for_write(model)]
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
+        if is_control_model(model):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                clear_model(model, use_sql=True, reset_pks=False)
+        else:
+            clear_model(model, use_sql=True, reset_pks=False)
 
     # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
     for model in set(apps.get_models()) - set(reversed):
-        with unguarded_write(using=router.db_for_write(model)):
-            model.objects.all().delete()
+        if is_control_model(model):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                clear_model(model, use_sql=False, reset_pks=reset_pks)
+        else:
+            clear_model(model, use_sql=False, reset_pks=reset_pks)
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
