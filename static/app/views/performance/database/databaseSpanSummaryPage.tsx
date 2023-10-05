@@ -6,6 +6,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -149,6 +150,7 @@ function SpanSummaryPage({params}: Props) {
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
+                <EnvironmentPageFilter />
                 <DatePageFilter alignDropdown="left" />
               </PageFilterBar>
             </PaddedContainer>
