@@ -388,11 +388,7 @@ export function AggregateFlamegraphTreeTable({
            */}
           <div ref={hoveredGhostRowRef} />
           <div ref={clickedGhostRowRef} />
-          <div
-            ref={setScrollContainerRef}
-            style={scrollContainerStyles}
-            onContextMenu={contextMenu.handleContextMenu}
-          >
+          <div ref={setScrollContainerRef} style={scrollContainerStyles}>
             <div style={containerStyles}>
               {renderedItems}
               {/*

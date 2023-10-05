@@ -386,7 +386,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         ) : (
                           <AggregateFlamegraphTreeTable
                             recursion={null}
-                            expanded
+                            expanded={false}
                             frameFilter={frameFilter}
                             canvasScheduler={scheduler}
                             canvasPoolManager={canvasPoolManager}
@@ -461,7 +461,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   return (
     <AggregateFlamegraphToolbarContainer>
-      <SegmentedControl
+      <AggregateFlamegraphViewSegmentedControl
         aria-label={t('View')}
         size="xs"
         value={props.visualization}
@@ -469,7 +469,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       >
         <SegmentedControl.Item key="flamegraph">{t('Flamegraph')}</SegmentedControl.Item>
         <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
-      </SegmentedControl>
+      </AggregateFlamegraphViewSegmentedControl>
       <AggregateFlamegraphSearch
         spans={spans}
         canvasPoolManager={props.canvasPoolManager}
@@ -487,6 +487,12 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
     </AggregateFlamegraphToolbarContainer>
   );
 }
+
+const AggregateFlamegraphViewSegmentedControl = styled(
+  SegmentedControl<'call tree' | 'flamegraph'>
+)`
+  min-width: 140px;
+`;
 
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
