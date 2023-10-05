@@ -150,12 +150,6 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing: PlatformKey[] = [
-  'python-tracing',
-  'node-tracing',
-  'react-native-tracing',
-];
-
 export const performance: PlatformKey[] = [
   'bun',
   'javascript',

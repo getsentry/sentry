@@ -367,7 +367,7 @@ export function loadDocs({
 }: {
   api: Client;
   orgSlug: string;
-  platform: PlatformKey;
+  platform: PlatformKey | 'python-tracing' | 'node-tracing' | 'react-native-tracing';
   projectSlug: string;
 }) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
