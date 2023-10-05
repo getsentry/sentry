@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Notifications"])
+@extend_schema(tags=["Alerts"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

@@ -94,7 +94,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
     publish_status = {
