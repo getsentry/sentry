@@ -1,3 +1,4 @@
+from collections import namedtuple
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -30,7 +31,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
 )
-from sentry.ratelimits.sliding_windows import Quota
+from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
@@ -210,6 +211,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             )
 
     def test_rate_limited(self) -> None:
+        MockGranted = namedtuple("mock_granted", ["granted"])
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence()
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -218,10 +220,19 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(fingerprint=["another-fingerprint"])
         with mock.patch("sentry.issues.ingest.metrics") as metrics, mock.patch(
-            "sentry.issues.ingest.ISSUE_QUOTA", Quota(3600, 60, 1)
-        ):
+            "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
+            return_value=[MockGranted(granted=False)],
+        ) as check_and_use_quotas:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+            assert check_and_use_quotas.call_count == 1
+            assert check_and_use_quotas.call_args[0][0] == [
+                RequestedQuota(
+                    f"issue-platform-issues:{self.project.id}:{occurrence.type.slug}",
+                    1,
+                    [occurrence.type.creation_quota],
+                )
+            ]
 
     def test_noise_reduction(self) -> None:
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
