@@ -34,7 +34,6 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models.actor import Actor
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -68,6 +67,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
@@ -136,7 +136,8 @@ def clear_database(*, reset_pks: bool = False):
         return
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    Actor.objects.update(team=None)
+    with unguarded_write(using=router.db_for_write(Team)):
+        Team.objects.update(actor=None)
 
     reversed = reversed_dependencies()
     for model in reversed:
@@ -156,8 +157,10 @@ def clear_database(*, reset_pks: bool = False):
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
-    """Test helper that validates that dat imported from an export of the current state of the test
-    database correctly matches the actual outputted export data."""
+    """
+    Test helper that validates that data imported from an export of the current state of the test
+    database correctly matches the actual outputted export data.
+    """
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_expect = Path(tmpdir).joinpath(f"{method_name}.expect.json")
@@ -296,6 +299,7 @@ class BackupTestCase(TransactionTestCase):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        self.create_notification_action(organization=org, projects=[project])
 
         # OrgAuthToken
         OrgAuthToken.objects.create(
@@ -468,7 +472,7 @@ class BackupTestCase(TransactionTestCase):
 
         return app
 
-    def create_exhaustive_global_configs(self):
+    def create_exhaustive_global_configs(self, owner: User):
         # *Options
         Option.objects.create(key="foo", value="a")
         ControlOption.objects.create(key="bar", value="b")
@@ -478,6 +482,10 @@ class BackupTestCase(TransactionTestCase):
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
         RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
+
+        # Global Api*
+        ApiAuthorization.objects.create(user=owner)
+        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
@@ -490,7 +498,7 @@ class BackupTestCase(TransactionTestCase):
         invitee = self.create_exhaustive_user("invitee")
         org = self.create_exhaustive_organization("test-org", owner, invitee)
         self.create_exhaustive_sentry_app("test app", owner, org)
-        self.create_exhaustive_global_configs()
+        self.create_exhaustive_global_configs(owner)
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
         return import_export_then_validate(out_name, reset_pks=reset_pks)

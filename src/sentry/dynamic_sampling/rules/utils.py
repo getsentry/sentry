@@ -71,12 +71,16 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
 
 
+# (RaduW) Maybe we can split in two types, one for reservoir and one for sampleRate and factor
+# Wanted to do this but couldn't think of three good names for the types (SamplingValue, ReservoirSamplingValue and ?
+# some type name for the old SamplingValue type)
 class SamplingValue(TypedDict):
     type: SamplingValueType
-    value: float
+    value: NotRequired[float]
+    limit: NotRequired[int]
 
 
 class TimeRange(TypedDict):
@@ -116,7 +120,6 @@ class Rule(TypedDict):
 class DecayingFn(TypedDict):
     type: str
     decayedValue: NotRequired[Optional[str]]
-    limit: NotRequired[int]
 
 
 class DecayingRule(Rule):

@@ -70,26 +70,18 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
   );
 }
 
-function GroupEventDetailsContent({
+function DefaultGroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) {
+}: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const location = useLocation();
   const projectSlug = project.slug;
-  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const mechanism = event?.tags?.find(({key}) => key === 'mechanism')?.value;
+  const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+  const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
-
-  if (!event) {
-    return (
-      <NotFoundMessage>
-        <h3>{t('Latest event not available')}</h3>
-      </NotFoundMessage>
-    );
-  }
 
   const eventEntryProps = {group, event, project};
 
@@ -98,32 +90,6 @@ function GroupEventDetailsContent({
     organization,
     projectSlug,
   });
-
-  if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
-    return (
-      <Feature
-        features={['performance-duration-regression-visible']}
-        organization={organization}
-        renderDisabled
-      >
-        <Fragment>
-          <RegressionMessage event={event} />
-          <ErrorBoundary mini>
-            <EventBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventSpanOpBreakdown event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <AggregateSpanDiff event={event} projectId={project.id} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventComparison event={event} group={group} project={project} />
-          </ErrorBoundary>
-        </Fragment>
-      </Feature>
-    );
-  }
 
   return (
     <Fragment>
@@ -215,6 +181,97 @@ function GroupEventDetailsContent({
       )}
     </Fragment>
   );
+}
+
+function PerformanceDurationRegressionIssueDetailsContent({
+  group,
+  event,
+  project,
+}: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
+
+  return (
+    <Feature
+      features={['performance-duration-regression-visible']}
+      organization={organization}
+      renderDisabled
+    >
+      <Fragment>
+        <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventBreakpointChart event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventSpanOpBreakdown event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <AggregateSpanDiff event={event} projectId={project.id} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventComparison event={event} group={group} project={project} />
+        </ErrorBoundary>
+      </Fragment>
+    </Feature>
+  );
+}
+
+function ProfilingDurationRegressionIssueDetailsContent({
+  group,
+  event,
+}: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
+
+  return (
+    <Feature
+      features={['profile-function-regression-exp-visible']}
+      organization={organization}
+      renderDisabled
+    >
+      <Fragment>
+        <RegressionMessage event={event} group={group} />
+      </Fragment>
+    </Feature>
+  );
+}
+
+function GroupEventDetailsContent({
+  group,
+  event,
+  project,
+}: GroupEventDetailsContentProps) {
+  if (!event) {
+    return (
+      <NotFoundMessage>
+        <h3>{t('Latest event not available')}</h3>
+      </NotFoundMessage>
+    );
+  }
+
+  switch (group.issueType) {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION: {
+      return (
+        <PerformanceDurationRegressionIssueDetailsContent
+          group={group}
+          event={event}
+          project={project}
+        />
+      );
+    }
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL: {
+      return (
+        <ProfilingDurationRegressionIssueDetailsContent
+          group={group}
+          event={event}
+          project={project}
+        />
+      );
+    }
+    default: {
+      return (
+        <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
+      );
+    }
+  }
 }
 
 const NotFoundMessage = styled('div')`

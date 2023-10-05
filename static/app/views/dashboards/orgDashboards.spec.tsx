@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +10,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 

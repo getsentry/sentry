@@ -141,8 +141,8 @@ export function platformToPerformanceType(
   if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
     return ProjectPerformanceType.ANY;
   }
-  const [platformType] = projectPerformanceTypes;
-  return platformType;
+  const [PlatformKey] = projectPerformanceTypes;
+  return PlatformKey;
 }
 
 /**

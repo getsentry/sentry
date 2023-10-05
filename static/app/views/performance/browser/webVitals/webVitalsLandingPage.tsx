@@ -8,7 +8,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTables} from 'sentry/views/performance/browser/webVitals/pagePerformanceTables';
@@ -21,13 +20,12 @@ import {ModulePageProviders} from 'sentry/views/performance/database/modulePageP
 
 export default function WebVitalsLandingPage() {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: null,
   });
 
-  const {data: projectData} = useProjectWebVitalsQuery({pageFilters});
+  const {data: projectData} = useProjectWebVitalsQuery();
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,

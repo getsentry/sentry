@@ -8,6 +8,8 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
 
@@ -570,23 +572,30 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
         healthcheck.check(containers)
 
     try:
-        run_with_retries(hc)
+        run_with_retries(
+            hc,
+            healthcheck.retries,
+            healthcheck.timeout,
+            f"Health check for '{service_name}' failed",
+        )
         click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
         click.secho(f"  > '{service_name}' is not healthy", fg="red")
         raise
 
 
-def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int = 5) -> None:
+def run_with_retries(
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message="Command failed"
+) -> None:
     for retry in range(1, retries + 1):
         try:
             cmd()
-        except (subprocess.CalledProcessError):
+        except (subprocess.CalledProcessError, urllib.error.HTTPError):
             if retry == retries:
                 raise
             else:
                 click.secho(
-                    f"  > Health check failed, retrying in {timeout}s (attempt {retry+1} of {retries})...",
+                    f"  > {message}, retrying in {timeout}s (attempt {retry+1} of {retries})...",
                     fg="yellow",
                 )
                 time.sleep(timeout)
@@ -644,12 +653,65 @@ def check_redis(containers: dict[str, Any]) -> None:
     )
 
 
+def check_vroom(containers: dict[str, Any]) -> None:
+    options = containers["vroom"]
+    (port,) = options["ports"].values()
+
+    # Vroom is a slim debian based image and does not have curl, wget or
+    # python3. Check health with a simple request on the host machine.
+    urllib.request.urlopen(f"http://{port[0]}:{port[1]}/health", timeout=1)
+
+
+def check_clickhouse(containers: dict[str, Any]) -> None:
+    options = containers["clickhouse"]
+    port = options["ports"]["8123/tcp"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            # Using wget instead of curl as that is what is available
+            # in the clickhouse image
+            "wget",
+            f"http://{port[0]}:{port[1]}/ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_kafka(containers: dict[str, Any]) -> None:
+    options = containers["kafka"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "kafka-topics",
+            "--bootstrap-server",
+            # Port is a tuple of (127.0.0.1, <port number>)
+            f"{port[0]}:{port[1]}",
+            "--list",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
+    retries: int = 3
+    timeout: int = 5
 
 
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
+    "clickhouse": ServiceHealthcheck(check=check_clickhouse),
+    "kafka": ServiceHealthcheck(check=check_kafka),
+    "vroom": ServiceHealthcheck(check=check_vroom),
 }

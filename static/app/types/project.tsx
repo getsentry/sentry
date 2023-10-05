@@ -218,6 +218,7 @@ export type PlatformKey =
   // legacy platforms – not included in the create project flow
   | 'cocoa-objc'
   | 'cocoa-swift'
+  | 'cocoa'
   | 'csharp'
   | 'dart-flutter'
   | 'java-android'
@@ -232,6 +233,7 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-crashpad'
   | 'native-minidump'
+  | 'objc'
   | 'perl'
   | 'php-monolog'
   | 'php-symfony'
