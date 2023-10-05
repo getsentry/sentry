@@ -6,7 +6,7 @@ import {GettingStartedWithDart, steps} from './dart';
 
 describe('GettingStartedWithDart', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithDart dsn="test-dsn" />);
+    render(<GettingStartedWithDart dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

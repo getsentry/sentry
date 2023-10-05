@@ -6,11 +6,12 @@ import {GettingStartedWithNode, steps} from './node';
 
 describe('GettingStartedWithNode', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNode dsn="test-dsn" />);
+    render(<GettingStartedWithNode dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
-      installSnippet: 'test-install-snippet',
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       sourceMapStep: {

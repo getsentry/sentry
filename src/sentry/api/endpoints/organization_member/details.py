@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import List
 
 from django.db import router, transaction
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -16,9 +17,6 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
-from sentry.api.serializers.models.organization_member.expand.teams import (
-    OrganizationMemberWithTeamsSerializer,
-)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -27,7 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     InviteStatus,
@@ -50,6 +48,47 @@ ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
+
+_team_roles_description = """
+Configures the team role of the member. The two roles are:
+- `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
+- `admin` - Has full management access to their team's membership and projects.
+```json
+{
+    "teamRoles": [
+        {
+            "teamSlug": "ancient-gabelers",
+            "role": "admin"
+        },
+        {
+            "teamSlug": "powerful-abolitionist",
+            "role": "contributor"
+        }
+    ]
+}
+```
+"""
+
+# Required to explictly define roles w/ descriptions because OrganizationMemberSerializer
+# has the wrong descriptions, includes deprecated admin, and excludes billing
+_role_choices = [
+    ("billing", "Can manage payment and compliance details."),
+    (
+        "member",
+        "Can view and act on events, as well as view most other data within the organization.",
+    ),
+    (
+        "manager",
+        """Has full management access to all teams and projects. Can also manage
+        the organization's membership.""",
+    ),
+    (
+        "owner",
+        """Has unrestricted access to the organization, its data, and its
+        settings. Can add, modify, and delete projects and members, as well as
+        make billing and plan changes.""",
+    ),
+]
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -96,7 +135,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -129,11 +168,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
-            OrganizationParams.ORG_ROLE,
-            OrganizationParams.TEAM_ROLES,
+            GlobalParams.member_id("The ID of the member to update."),
         ],
-        request=OrganizationMemberWithTeamsSerializer,
+        request=inline_serializer(
+            "UpdateOrgMemberRoles",
+            fields={
+                "orgRole": serializers.ChoiceField(
+                    help_text="The organization role of the member. The options are:",
+                    choices=_role_choices,
+                    required=False,
+                ),
+                "teamRoles": serializers.ListField(
+                    help_text=_team_roles_description,
+                    required=False,
+                    allow_null=True,
+                    default=[],
+                    child=serializers.JSONField(),
+                ),
+            },
+        ),
         responses={
             200: OrganizationMemberWithRolesSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -306,7 +359,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -365,12 +418,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         proj_list = list(
             Project.objects.filter(organization=organization).values_list("id", flat=True)
         )
-        uos = [
-            uo
-            for uo in user_option_service.get_many(
+
+        if member.user_id is None:
+            uos = ()
+        else:
+            uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
             )
-        ]
 
         with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the

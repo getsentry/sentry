@@ -1,4 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -1275,7 +1276,7 @@ describe('Modals -> WidgetViewerModal', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
-        body: TestStubs.MetricsTotalCountByReleaseIn24h(),
+        body: MetricsTotalCountByReleaseIn24h(),
         headers: {
           link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +

@@ -13,6 +13,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
 import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboards/types';
 
@@ -33,6 +34,7 @@ interface Props {
   dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
 }
 
 export function VisualizationStep({
@@ -42,6 +44,7 @@ export function VisualizationStep({
   error,
   onChange,
   widget,
+  onDataFetched,
   noDashboardsMEPProvider,
   dashboardFilters,
   location,
@@ -83,7 +86,7 @@ export function VisualizationStep({
   }));
 
   return (
-    <BuildStep
+    <StyledBuildStep
       title={t('Choose your visualization')}
       description={t(
         'This is a preview of how your widget will appear in the dashboard.'
@@ -122,11 +125,23 @@ export function VisualizationStep({
           showStoredAlert
           noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
+          onDataFetched={onDataFetched}
         />
       </VisualizationWrapper>
-    </BuildStep>
+    </StyledBuildStep>
   );
 }
+
+const StyledBuildStep = styled(BuildStep)`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: ${p => p.theme.background};
+
+  &::before {
+    margin-top: 1px;
+  }
+`;
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};

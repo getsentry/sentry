@@ -15,7 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PlatformType, Project} from 'sentry/types';
+import {PlatformKey, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -55,7 +55,7 @@ type Props = {
   hasMinified: boolean;
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;

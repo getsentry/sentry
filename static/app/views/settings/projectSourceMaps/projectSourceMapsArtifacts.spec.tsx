@@ -1,3 +1,7 @@
+import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
+import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
+import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -19,8 +23,8 @@ function renderReleaseBundlesMockRequests({
     body: empty
       ? []
       : [
-          TestStubs.SourceMapArchive(),
-          TestStubs.SourceMapArchive({
+          SourceMapArchive(),
+          SourceMapArchive({
             id: 2,
             name: 'abc',
             fileCount: 3,
@@ -31,7 +35,7 @@ function renderReleaseBundlesMockRequests({
 
   const sourceMapsFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/releases/bea7335dfaebc0ca6e65a057/files/`,
-    body: empty ? [] : [TestStubs.SourceMapArtifact()],
+    body: empty ? [] : [SourceMapArtifact()],
   });
 
   return {sourceMaps, sourceMapsFiles};
@@ -48,7 +52,7 @@ function renderDebugIdBundlesMockRequests({
 }) {
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
-    body: empty ? {} : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
+    body: empty ? {} : SourceMapsDebugIDBundlesArtifacts(),
   });
 
   return {artifactBundlesFiles};
@@ -255,10 +259,9 @@ describe('ProjectSourceMapsArtifacts', function () {
         await screen.findByText('There are no artifacts in this bundle.')
       ).toBeInTheDocument();
 
-      // TODO(Pri): Uncomment once fully transitioned to associations.
-      // expect(
-      //   screen.getByText('No releases associated with this bundle')
-      // ).toBeInTheDocument();
+      expect(
+        screen.getByText('No releases associated with this bundle')
+      ).toBeInTheDocument();
     });
   });
 });

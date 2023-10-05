@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
@@ -132,7 +131,6 @@ function OldProjectPageFilter({
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
   const customProjectDropdown: ProjectSelectorProps['customDropdownButton'] = ({
-    actions,
     selectedProjects,
     isOpen,
   }) => {
@@ -162,24 +160,18 @@ function OldProjectPageFilter({
     );
 
     return (
-      <GuideAnchor
-        target="new_page_filter_button"
-        position="bottom"
-        onStepComplete={actions.open}
+      <PageFilterDropdownButton
+        isOpen={isOpen}
+        highlighted={desyncedFilters.has('projects')}
+        data-test-id="page-filter-project-selector"
+        disabled={disabled}
+        icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
       >
-        <PageFilterDropdownButton
-          isOpen={isOpen}
-          highlighted={desyncedFilters.has('projects')}
-          data-test-id="page-filter-project-selector"
-          disabled={disabled}
-          icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
-        >
-          <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > projectsToShow.length && (
-            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-          )}
-        </PageFilterDropdownButton>
-      </GuideAnchor>
+        <TitleContainer>{title}</TitleContainer>
+        {selectedProjects.length > projectsToShow.length && (
+          <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+        )}
+      </PageFilterDropdownButton>
     );
   };
 

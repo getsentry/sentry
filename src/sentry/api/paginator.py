@@ -19,6 +19,23 @@ MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
 
 
+def count_hits(queryset, max_hits):
+    if not max_hits:
+        return 0
+    hits_query = queryset.values()[:max_hits].query
+    # clear out any select fields (include select_related) and pull just the id
+    hits_query.clear_select_clause()
+    hits_query.add_fields(["id"])
+    hits_query.clear_ordering(force_empty=True)
+    try:
+        h_sql, h_params = hits_query.sql_with_params()
+    except EmptyResultSet:
+        return 0
+    cursor = connections[queryset.using_replica().db].cursor()
+    cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
+    return cursor.fetchone()[0]
+
+
 class BadPaginationError(Exception):
     pass
 
@@ -179,20 +196,7 @@ class BasePaginator:
         return cursor
 
     def count_hits(self, max_hits):
-        if not max_hits:
-            return 0
-        hits_query = self.queryset.values()[:max_hits].query
-        # clear out any select fields (include select_related) and pull just the id
-        hits_query.clear_select_clause()
-        hits_query.add_fields(["id"])
-        hits_query.clear_ordering(force_empty=True)
-        try:
-            h_sql, h_params = hits_query.sql_with_params()
-        except EmptyResultSet:
-            return 0
-        cursor = connections[self.queryset.using_replica().db].cursor()
-        cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
-        return cursor.fetchone()[0]
+        return count_hits(self.queryset, max_hits)
 
 
 class Paginator(BasePaginator):
@@ -274,7 +278,15 @@ class OffsetPaginator(PaginatorLike):
         if self.on_results:
             results = self.on_results(results)
 
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+        if count_hits:
+            hits = self.count_hits(max_hits=MAX_HITS_LIMIT)
+        else:
+            hits = None
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor, hits=hits)
+
+    def count_hits(self, max_hits):
+        return count_hits(self.queryset, max_hits)
 
 
 class MergingOffsetPaginator(OffsetPaginator):

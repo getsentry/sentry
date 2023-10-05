@@ -59,12 +59,7 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import (
-    NotificationSettingEnum,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -221,6 +216,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -319,12 +315,7 @@ class ProjectSerializer(Serializer):
                 )
 
                 if use_notifications_v2:
-                    controller = NotificationController(
-                        recipients=[user],
-                        project_ids=project_ids,
-                        type=NotificationSettingEnum.ISSUE_ALERTS,
-                    )
-                    subscriptions = controller.get_subscriptions_status_for_projects(
+                    subscriptions = notifications_service.get_subscriptions_for_projects(
                         user_id=user.id,
                         project_ids=project_ids,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
@@ -389,7 +380,7 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    (_, has_enabled_subscriptions, _) = subscriptions[project.id]
                     is_subscribed = has_enabled_subscriptions
                 else:
                     value = get_most_specific_notification_setting_value(

@@ -6,11 +6,14 @@ import {GettingStartedWithAzurefunctions, steps} from './azurefunctions';
 
 describe('GettingStartedWithAzurefunctions', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAzurefunctions dsn="test-dsn" />);
+    render(
+      <GettingStartedWithAzurefunctions dsn="test-dsn" projectSlug="test-project" />
+    );
 
     // Steps
     for (const step of steps({
-      installSnippet: 'test-install-snippet',
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       sourceMapStep: {

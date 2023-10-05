@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Literal, Type
 
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.imports import import_in_global_scope, import_in_organization_scope
 from sentry.backup.scopes import ExportScope
 from sentry.testutils.helpers.backups import (
@@ -13,46 +12,32 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
+from tests.sentry.backup import mark, targets
 
-EXHAUSTIVELY_TESTED_MODELS = set()
-
-
-def mark(*marking: Type | Literal["__all__"]):
-    """A function that runs at module load time and marks all models that appear in
-    `test_at_head_...()` below.
-
-    Use the sentinel string "__all__" to indicate that all models are expected."""
-
-    all: Literal["__all__"] = "__all__"
-    for model in marking:
-        if model == all:
-            all_models = get_exportable_sentry_models()
-            EXHAUSTIVELY_TESTED_MODELS.update({c.__name__ for c in all_models})
-            return list(all_models)
-
-        EXHAUSTIVELY_TESTED_MODELS.add(model.__name__)
-    return marking
+EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
+UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
-@run_backup_tests_only_on_single_db
 class ExhaustiveTests(BackupTestCase):
-    """Ensure that a database with all exportable models filled out still works."""
+    """
+    Ensure that a database with all exportable models filled out still works.
+    """
 
-    @targets(mark("__all__"))
+    @targets(mark(EXHAUSTIVELY_TESTED, "__all__"))
     def test_exhaustive_clean_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
         return self.import_export_then_validate(self._testMethodName, reset_pks=True)
 
-    @targets(mark("__all__"))
+    @targets(mark(EXHAUSTIVELY_TESTED, "__all__"))
     def test_exhaustive_dirty_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
         return self.import_export_then_validate(self._testMethodName, reset_pks=False)
 
 
-@run_backup_tests_only_on_single_db
 class UniquenessTests(BackupTestCase):
-    """Ensure that required uniqueness (ie, model fields marked `unique=True`) is honored."""
+    """
+    Ensure that required uniqueness (ie, model fields marked `unique=True`) is honored.
+    """
 
     def export_to_tmp_file_and_clear_database(self, tmp_dir, reset_pks) -> Path:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.expect.json")
@@ -60,7 +45,7 @@ class UniquenessTests(BackupTestCase):
         clear_database(reset_pks=reset_pks)
         return tmp_path
 
-    @targets(mark("__all__"))
+    @targets(mark(UNIQUENESS_TESTED, "__all__"))
     def test_uniqueness_clean_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -74,13 +59,15 @@ class UniquenessTests(BackupTestCase):
             with open(tmp_expect) as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope instead.
+                #
+                # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)
 
                 return actual
 
-    @targets(mark("__all__"))
+    @targets(mark(UNIQUENESS_TESTED, "__all__"))
     def test_uniqueness_dirty_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -94,6 +81,8 @@ class UniquenessTests(BackupTestCase):
             with open(tmp_expect) as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope instead.
+                #
+                # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)

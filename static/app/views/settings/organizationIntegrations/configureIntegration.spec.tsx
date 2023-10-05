@@ -1,3 +1,7 @@
+import {OpsgenieIntegration} from 'sentry-fixture/opsgenieIntegration';
+import {OpsgenieIntegrationProvider} from 'sentry-fixture/opsgenieIntegrationProvider';
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -8,7 +12,7 @@ import {
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
 describe('OpsgenieMigrationButton', function () {
-  const org = TestStubs.Organization({
+  const org = Organization({
     access: ['org:integrations', 'org:write'],
   });
   const integrationId = '1';
@@ -17,13 +21,13 @@ describe('OpsgenieMigrationButton', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
-        providers: [TestStubs.OpsgenieIntegrationProvider()],
+        providers: [OpsgenieIntegrationProvider()],
       },
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
-      body: TestStubs.OpsgenieIntegration(),
+      body: OpsgenieIntegration(),
     });
 
     MockApiClient.addMockResponse({

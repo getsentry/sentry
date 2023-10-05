@@ -1,3 +1,6 @@
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,10 +18,10 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('TeamMembers', function () {
   let createMock;
 
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const team = TestStubs.Team();
   const managerTeam = TestStubs.Team({orgRole: 'manager'});
-  const members = TestStubs.Members();
+  const members = Members();
   const member = TestStubs.Member({
     id: '9',
     email: 'sentry9@test.com',
@@ -66,7 +69,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with open membership', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: true});
+    const org = Organization({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -85,7 +88,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add multiple members with one click on dropdown', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: true});
+    const org = Organization({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -105,7 +108,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with team:admin permission', async function () {
-    const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
+    const org = Organization({access: ['team:admin'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -124,7 +127,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with org:write permission', async function () {
-    const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
+    const org = Organization({access: ['org:write'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -143,7 +146,7 @@ describe('TeamMembers', function () {
   });
 
   it('can request access to add member to team without permission', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: false});
+    const org = Organization({access: [], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -163,7 +166,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
+      organization: Organization({
         access: ['team:admin'],
         openMembership: false,
       }),
@@ -188,7 +191,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
+      organization: Organization({
         access: ['team:admin'],
         openMembership: true,
       }),
@@ -213,7 +216,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: [], openMembership: true}),
+      organization: Organization({access: [], openMembership: true}),
     });
     render(
       <TeamMembers
@@ -235,7 +238,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: [], openMembership: false}),
+      organization: Organization({access: [], openMembership: false}),
     });
     render(
       <TeamMembers
@@ -292,7 +295,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const organizationMember = TestStubs.Organization({access: []});
+    const organizationMember = Organization({access: []});
 
     render(
       <TeamMembers
@@ -358,7 +361,7 @@ describe('TeamMembers', function () {
       body: [...members, manager],
     });
 
-    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    const orgWithTeamRoles = Organization({features: ['team-roles']});
 
     await render(
       <TeamMembers
@@ -381,7 +384,7 @@ describe('TeamMembers', function () {
       method: 'GET',
       body: [],
     });
-    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    const orgWithTeamRoles = Organization({features: ['team-roles']});
     render(
       <TeamMembers
         {...routerProps}

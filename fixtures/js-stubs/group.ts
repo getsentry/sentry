@@ -1,3 +1,5 @@
+import {Project as MockProject} from 'sentry-fixture/project';
+
 import {
   EventOrGroupType,
   type Group as GroupType,
@@ -6,8 +8,6 @@ import {
   IssueCategory,
   IssueType,
 } from 'sentry/types';
-
-import {Project as MockProject} from './project';
 
 export function Group(params: Partial<GroupType> = {}): GroupType {
   const unresolvedGroup: GroupUnresolved = {

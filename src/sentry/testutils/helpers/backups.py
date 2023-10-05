@@ -7,14 +7,16 @@ from pathlib import Path
 from uuid import uuid4
 
 from django.apps import apps
+from django.conf import settings
 from django.core.management import call_command
-from django.db import connections, router, transaction
+from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import sorted_dependencies
 from sentry.backup.exports import (
+    export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
     export_in_user_scope,
@@ -65,6 +67,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
@@ -101,6 +104,8 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         # case that ever changes.
         if scope == ExportScope.Global:
             export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+        elif scope == ExportScope.Config:
+            export_in_config_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
             export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
@@ -125,30 +130,37 @@ def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
 
-    with unguarded_write(using="default"):
-        if reset_pks:
-            call_command("flush", verbosity=0, interactive=False)
-            return
+    if reset_pks:
+        for db in settings.DATABASES.keys():
+            call_command("flush", database=db, verbosity=0, interactive=False)
+        return
 
-        with transaction.atomic(using="default"):
-            reversed = reversed_dependencies()
-            for model in reversed:
-                # For some reason, the tables for `SentryApp*` models don't get deleted properly
-                # here when using `model.objects.all().delete()`, so we have to call out to Postgres
-                # manually.
-                connection = connections[router.db_for_write(SentryApp)]
-                with connection.cursor() as cursor:
-                    table = model._meta.db_table
-                    cursor.execute(f"DELETE FROM {table:s};")
+    # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
+    with unguarded_write(using=router.db_for_write(Team)):
+        Team.objects.update(actor=None)
 
-            # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-            for model in set(apps.get_models()) - set(reversed):
-                model.objects.all().delete()
+    reversed = reversed_dependencies()
+    for model in reversed:
+        with unguarded_write(using=router.db_for_write(model)):
+            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+            # when using `model.objects.all().delete()`, so we have to call out to Postgres
+            # manually.
+            connection = connections[router.db_for_write(model)]
+            with connection.cursor() as cursor:
+                table = model._meta.db_table
+                cursor.execute(f"DELETE FROM {table:s};")
+
+    # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+    for model in set(apps.get_models()) - set(reversed):
+        with unguarded_write(using=router.db_for_write(model)):
+            model.objects.all().delete()
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
-    """Test helper that validates that dat imported from an export of the current state of the test
-    database correctly matches the actual outputted export data."""
+    """
+    Test helper that validates that data imported from an export of the current state of the test
+    database correctly matches the actual outputted export data.
+    """
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_expect = Path(tmpdir).joinpath(f"{method_name}.expect.json")
@@ -160,8 +172,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
-        # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
+        with open(tmp_expect) as tmp_file:
             import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
@@ -203,9 +214,7 @@ def import_export_from_fixture_then_validate(
     fixture_file_path = get_fixture_path("backup", fixture_file_name)
     with open(fixture_file_path) as backup_file:
         expect = json.load(backup_file)
-
-    # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-    with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
+    with open(fixture_file_path) as fixture_file:
         import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 
     res = validate(
@@ -243,7 +252,7 @@ class BackupTestCase(TransactionTestCase):
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
-            role = UserRole.objects.create(name="test-admin-role")
+            (role, _) = UserRole.objects.get_or_create(name="test-admin-role")
             UserRoleUser.objects.create(user=user, role=role)
 
         return user
@@ -290,6 +299,7 @@ class BackupTestCase(TransactionTestCase):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        self.create_notification_action(organization=org, projects=[project])
 
         # OrgAuthToken
         OrgAuthToken.objects.create(
@@ -462,7 +472,7 @@ class BackupTestCase(TransactionTestCase):
 
         return app
 
-    def create_exhaustive_global_configs(self):
+    def create_exhaustive_global_configs(self, owner: User):
         # *Options
         Option.objects.create(key="foo", value="a")
         ControlOption.objects.create(key="bar", value="b")
@@ -472,6 +482,10 @@ class BackupTestCase(TransactionTestCase):
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
         RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
+
+        # Global Api*
+        ApiAuthorization.objects.create(user=owner)
+        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
@@ -484,7 +498,7 @@ class BackupTestCase(TransactionTestCase):
         invitee = self.create_exhaustive_user("invitee")
         org = self.create_exhaustive_organization("test-org", owner, invitee)
         self.create_exhaustive_sentry_app("test app", owner, org)
-        self.create_exhaustive_global_configs()
+        self.create_exhaustive_global_configs(owner)
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
         return import_export_then_validate(out_name, reset_pks=reset_pks)

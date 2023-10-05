@@ -607,7 +607,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -1034,7 +1034,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

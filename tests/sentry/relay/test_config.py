@@ -179,6 +179,7 @@ def test_project_config_uses_filter_features(
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:chunk-load-error", "0")
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
@@ -203,6 +204,23 @@ def test_project_config_uses_filter_features(
         assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
     else:
         assert cfg_client_ips is None
+
+
+@django_db_all
+@region_silo_test(stable=True)
+def test_project_config_with_chunk_load_error_filter(default_project):
+    # The react-hydration-errors option is set as string in the defaults but then its changed as a boolean in the
+    # options endpoint, which is something that should be changed.
+    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:chunk-load-error", "1")
+
+    project_cfg = get_project_config(default_project, full_config=True)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+    assert len(cfg_error_messages) == 1
 
 
 @django_db_all
@@ -422,7 +440,6 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
     with Feature(
         {
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
-            "organizations:projconfig-exclude-measurements": True,
         }
     ):
         project_cfg = get_project_config(default_project, full_config=True)

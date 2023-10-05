@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import connections, models, router, transaction
 from django.db.models import Q
@@ -10,9 +10,14 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.utils import json
 
+if TYPE_CHECKING:
+    from sentry.models import Project
+
+
 # max number of custom rules that can be created per organization
 MAX_CUSTOM_RULES = 2000
 CUSTOM_RULE_START = 3000
+CUSTOM_RULE_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class TooManyRules(ValueError):
@@ -23,13 +28,15 @@ class TooManyRules(ValueError):
     pass
 
 
-def get_condition_hash(condition: Any) -> str:
+def get_rule_hash(condition: Any, project_ids: Sequence[int]) -> str:
     """
     Returns the hash of the rule based on the condition and projects
     """
     condition_string = to_order_independent_string(condition)
+    project_string = to_order_independent_string(list(project_ids))
+    rule_string = f"{condition_string}-{project_string}"
     # make it a bit shorter
-    return hashlib.sha1(condition_string.encode("utf-8")).hexdigest()
+    return hashlib.sha1(rule_string.encode("utf-8")).hexdigest()
 
 
 def to_order_independent_string(val: Any) -> str:
@@ -44,8 +51,9 @@ def to_order_independent_string(val: Any) -> str:
         for key in sorted(val.keys()):
             ret_val += f"{key}:{to_order_independent_string(val[key])}-"
     elif isinstance(val, (list, tuple)):
-        for item in sorted(val):
-            ret_val += f"{to_order_independent_string(item)}-"
+        vals = sorted([to_order_independent_string(item) for item in val])
+        for item in vals:
+            ret_val += f"{item}-"
     else:
         ret_val = str(val)
     return ret_val
@@ -123,7 +131,9 @@ class CustomDynamicSamplingRule(Model):
 
     @staticmethod
     def get_rule_for_org(
-        condition: Any, organization_id: int
+        condition: Any,
+        organization_id: int,
+        project_ids: Sequence[int],
     ) -> Optional["CustomDynamicSamplingRule"]:
         """
         Returns an active rule for the given condition and organization if it exists otherwise None
@@ -131,10 +141,10 @@ class CustomDynamicSamplingRule(Model):
         Note: There should not be more than one active rule for a given condition and organization
         This function doesn't verify this condition, it just returns the first one.
         """
-        condition_hash = get_condition_hash(condition)
+        rule_hash = get_rule_hash(condition, project_ids)
         rules = CustomDynamicSamplingRule.objects.filter(
             organization_id=organization_id,
-            condition_hash=condition_hash,
+            condition_hash=rule_hash,
             is_active=True,
             end_date__gt=timezone.now(),
         )[:1]
@@ -156,7 +166,9 @@ class CustomDynamicSamplingRule(Model):
 
         with transaction.atomic(router.db_for_write(CustomDynamicSamplingRule)):
             # check if rule already exists for this organization
-            existing_rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization_id)
+            existing_rule = CustomDynamicSamplingRule.get_rule_for_org(
+                condition, organization_id, project_ids
+            )
 
             if existing_rule is not None:
                 # we already have an active rule for this condition and this organization
@@ -165,25 +177,12 @@ class CustomDynamicSamplingRule(Model):
                 existing_rule.num_samples = max(num_samples, existing_rule.num_samples)
                 existing_rule.sample_rate = max(sample_rate, existing_rule.sample_rate)
 
-                if not existing_rule.is_org_level:
-                    # for project rules we need to add the projects,org rules already include everything
-                    if len(project_ids) == 0:
-                        # the new rule is an org rule promote current rule to org rule and remove all
-                        # relations to individual projects
-                        existing_rule.is_org_level = True
-                        existing_rule.projects.clear()
-                    else:
-                        # add the new projects to the rule, if not already there
-                        for project_id in project_ids:
-                            project = Project.objects.get_from_cache(id=project_id)
-                            existing_rule.projects.add(project)
-
                 # for org rules we don't need to do anything with the projects
                 existing_rule.save()
                 return existing_rule
             else:
                 # create a new rule
-                condition_hash = get_condition_hash(condition)
+                rule_hash = get_rule_hash(condition, project_ids)
                 is_org_level = len(project_ids) == 0
                 condition_str = json.dumps(condition)
                 rule = CustomDynamicSamplingRule.objects.create(
@@ -193,7 +192,7 @@ class CustomDynamicSamplingRule(Model):
                     start_date=start,
                     end_date=end,
                     num_samples=num_samples,
-                    condition_hash=condition_hash,
+                    condition_hash=rule_hash,
                     is_active=True,
                     is_org_level=is_org_level,
                 )
@@ -250,3 +249,30 @@ class CustomDynamicSamplingRule(Model):
             end_date__lt=timezone.now()
             - timedelta(minutes=1),
         ).update(is_active=False)
+
+    @staticmethod
+    def get_project_rules(
+        project: "Project",
+    ) -> Sequence["CustomDynamicSamplingRule"]:
+        """
+        Returns all active project rules
+        """
+        now = timezone.now()
+        # org rules ( apply to all projects in the org)
+        org_rules = CustomDynamicSamplingRule.objects.filter(
+            is_active=True,
+            is_org_level=True,
+            organization=project.organization,
+            end_date__gt=now,
+            start_date__lt=now,
+        )
+
+        # project rules
+        project_rules = CustomDynamicSamplingRule.objects.filter(
+            is_active=True,
+            projects__in=[project],
+            end_date__gt=now,
+            start_date__lt=now,
+        )
+
+        return project_rules.union(org_rules)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from collections import defaultdict
 from itertools import chain
 from typing import TYPE_CHECKING, Collection, Iterable, Mapping
@@ -55,11 +54,12 @@ SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
 # - Please keep this list organized alphabetically.
-GETTING_STARTD_DOCS_PLATFORMS = [
+GETTING_STARTED_DOCS_PLATFORMS = [
     "android",
     "apple",
     "apple-ios",
     "apple-macos",
+    "bun",
     "capacitor",
     "cordova",
     "dart",
@@ -379,30 +379,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         member_ids = self.member_set.values_list("user_id", flat=True)
         return user_service.get_many(filter=dict(user_ids=list(member_ids)))
 
-    def has_access(self, user, access=None):
-        from sentry.models import AuthIdentity, OrganizationMember
-
-        warnings.warn("Project.has_access is deprecated.", DeprecationWarning)
-
-        queryset = self.member_set.filter(user_id=user.id)
-
-        if access is not None:
-            queryset = queryset.filter(type__lte=access)
-
-        try:
-            member = queryset.get()
-        except OrganizationMember.DoesNotExist:
-            return False
-
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider__organization=self.organization_id, user=member.user_id
-            )
-        except AuthIdentity.DoesNotExist:
-            return True
-
-        return auth_identity.is_valid(member)
-
     def get_audit_log_data(self):
         return {
             "id": self.id,
@@ -624,7 +600,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        return not value or value == "other" or value in GETTING_STARTD_DOCS_PLATFORMS
+        return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:

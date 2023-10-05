@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
@@ -6,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 function renderDropdown(props: any = {}) {
   const user = TestStubs.User();
   const config = TestStubs.Config();
-  const organization = TestStubs.Organization({orgRole: 'member'});
+  const organization = Organization({orgRole: 'member'});
   const routerContext = TestStubs.routerContext([
     {
       organization,

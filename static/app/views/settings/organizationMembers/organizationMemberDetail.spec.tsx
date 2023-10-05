@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Authenticators} from 'sentry-fixture/authenticators';
+import {Organization} from 'sentry-fixture/organization';
+import {OrgRoleList} from 'sentry-fixture/roleList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -61,13 +64,13 @@ describe('OrganizationMemberDetail', function () {
   };
 
   const member = TestStubs.Member({
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
   });
   const pendingMember = TestStubs.Member({
     id: 2,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -75,7 +78,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const expiredMember = TestStubs.Member({
     id: 3,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -84,7 +87,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const idpTeamMember = TestStubs.Member({
     id: 4,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [idpTeam.slug],
     teamRoles: [
@@ -96,7 +99,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerTeamMember = TestStubs.Member({
     id: 5,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [otherManagerTeam.slug],
     teamRoles: [
@@ -108,7 +111,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerMember = TestStubs.Member({
     id: 6,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     role: 'manager',
   });
 
@@ -118,7 +121,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -232,7 +235,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot leave org role team if missing org:admin', function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: [],
@@ -254,7 +257,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot join org role team if missing org:admin', async function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: ['org:write'],
@@ -339,7 +342,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -385,7 +388,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -445,7 +448,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -508,7 +511,7 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Reset member 2FA', function () {
     const fields = {
-      roles: TestStubs.OrgRoleList(),
+      roles: OrgRoleList(),
       dateCreated: new Date(),
       ...teamAssignment,
     };
@@ -531,9 +534,9 @@ describe('OrganizationMemberDetail', function () {
       user: TestStubs.User({
         has2fa: true,
         authenticators: [
-          TestStubs.Authenticators().Totp(),
-          TestStubs.Authenticators().Sms(),
-          TestStubs.Authenticators().U2f(),
+          Authenticators().Totp(),
+          Authenticators().Sms(),
+          Authenticators().U2f(),
         ],
         canReset2fa: true,
       }),
@@ -544,12 +547,12 @@ describe('OrganizationMemberDetail', function () {
       id: '7',
       user: TestStubs.User({
         has2fa: true,
-        authenticators: [TestStubs.Authenticators().Totp()],
+        authenticators: [Authenticators().Totp()],
         canReset2fa: false,
       }),
     });
 
-    const organization = TestStubs.Organization({teams});
+    const organization = Organization({teams});
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -726,7 +729,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();

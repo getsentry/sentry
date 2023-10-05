@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +14,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import MetricsExplorer from 'sentry/views/ddm/metricsExplorer';
+import {ScratchpadSelector} from 'sentry/views/ddm/metricScratchpad';
+import MetricScratchpad from 'sentry/views/ddm/metricWidget';
 
 function DDM() {
   const organization = useOrganization();
@@ -44,10 +46,12 @@ function DDM() {
               <PaddedContainer>
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
+                <ScratchpadSelector />
               </PaddedContainer>
-              <MetricsExplorer />
+              <MetricScratchpad />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>
@@ -58,6 +62,12 @@ function DDM() {
 
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
+  display: grid;
+  grid-template: 1fr / 1fr max-content;
+  gap: ${space(1)};
+  @media (max-width: ${props => props.theme.breakpoints.small}) {
+    grid-template: 1fr 1fr / 1fr;
+  }
 `;
 
 export default DDM;

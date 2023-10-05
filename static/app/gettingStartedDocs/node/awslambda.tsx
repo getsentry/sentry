@@ -16,12 +16,14 @@ import {
 interface StepsParams {
   importContent: string;
   initContent: string;
-  installSnippet: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
   sourceMapStep: StepProps;
 }
 
 export const steps = ({
-  installSnippet,
+  installSnippetYarn,
+  installSnippetNpm,
   importContent,
   initContent,
   sourceMapStep,
@@ -31,8 +33,20 @@ export const steps = ({
     description: t('Add the Sentry Serverless SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: installSnippet,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -88,13 +102,10 @@ export function GettingStartedWithAwsLambda({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const installSnippet = getInstallSnippet({
-    productSelection,
-    basePackage: '@sentry/serverless',
-  });
   const imports = getDefaulServerlessImports({productSelection});
   const integrations = getProductIntegrations({productSelection});
 
@@ -112,7 +123,16 @@ export function GettingStartedWithAwsLambda({
   return (
     <Layout
       steps={steps({
-        installSnippet,
+        installSnippetNpm: getInstallSnippet({
+          basePackage: '@sentry/serverless',
+          productSelection,
+          packageManager: 'npm',
+        }),
+        installSnippetYarn: getInstallSnippet({
+          basePackage: '@sentry/serverless',
+          productSelection,
+          packageManager: 'yarn',
+        }),
         importContent: imports.join('\n'),
         initContent,
         sourceMapStep: getUploadSourceMapsStep({
@@ -126,6 +146,7 @@ export function GettingStartedWithAwsLambda({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

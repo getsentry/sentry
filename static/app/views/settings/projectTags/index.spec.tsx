@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -17,7 +20,7 @@ describe('ProjectTags', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
@@ -43,7 +46,7 @@ describe('ProjectTags', function () {
 
   it('disables delete button for users without access', function () {
     render(<ProjectTags {...routerProps} organization={org} project={project} />, {
-      organization: TestStubs.Organization({access: []}),
+      organization: Organization({access: []}),
     });
 
     screen

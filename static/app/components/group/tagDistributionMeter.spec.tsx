@@ -1,10 +1,13 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Tags} from 'sentry-fixture/tags';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function () {
-  const organization = TestStubs.Organization();
-  const tags = TestStubs.Tags();
+  const organization = Organization();
+  const tags = Tags();
 
   it('should return "no recent data" if no total values present', function () {
     render(
