@@ -118,7 +118,7 @@ class GroupType:
     # decide if this is released.
     released: bool = False
 
-    creation_quota: Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
+    creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
