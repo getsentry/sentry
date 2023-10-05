@@ -1129,7 +1129,7 @@ register(
 )
 register(
     "sentry-metrics.10s-granularity",
-    default=True,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
