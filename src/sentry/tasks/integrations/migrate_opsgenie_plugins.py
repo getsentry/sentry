@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60 * 5,
     max_retries=5,
 )
-@retry(exclude=[Integration.DoesNotExist, OrganizationIntegration.DoesNotExist])
+@retry(exclude=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist))
 def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 

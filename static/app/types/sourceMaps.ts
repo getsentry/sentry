@@ -8,18 +8,12 @@ export type DebugIdBundle = {
   bundleId: string;
   date: string;
   dateModified: string;
-  // TODO(Pri): Remove this type once fully transitioned to associations.
-  dist: string | null;
   fileCount: number;
-  // TODO(Pri): Remove this type once fully transitioned to associations.
-  release: string | null;
 };
 
 export type DebugIdBundleArtifact = {
   associations: DebugIdBundleAssociation[];
   bundleId: string;
-  // TODO(Pri): Remove this type once fully transitioned to associations.
-  dist: string | null;
   files: {
     debugId: string;
     filePath: string;
@@ -28,6 +22,4 @@ export type DebugIdBundleArtifact = {
     id: string;
     sourcemap: string | null;
   }[];
-  // TODO(Pri): Remove this type once fully transitioned to associations.
-  release: string | null;
 };
