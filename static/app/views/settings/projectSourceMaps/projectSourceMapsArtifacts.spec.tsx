@@ -259,10 +259,9 @@ describe('ProjectSourceMapsArtifacts', function () {
         await screen.findByText('There are no artifacts in this bundle.')
       ).toBeInTheDocument();
 
-      // TODO(Pri): Uncomment once fully transitioned to associations.
-      // expect(
-      //   screen.getByText('No releases associated with this bundle')
-      // ).toBeInTheDocument();
+      expect(
+        screen.getByText('No releases associated with this bundle')
+      ).toBeInTheDocument();
     });
   });
 });

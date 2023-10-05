@@ -39,7 +39,7 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = None
+    error = NotImplementedError()
     handler_context_arg = None
     scope_arg = None
 
