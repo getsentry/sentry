@@ -1221,6 +1221,8 @@ export enum ReplayClickFieldKey {
   CLICK_LABEL = 'click.label',
   CLICK_ROLE = 'click.role',
   CLICK_SELECTOR = 'click.selector',
+  DEAD_SELECTOR = 'dead.selector',
+  RAGE_SELECTOR = 'rage.selector',
   CLICK_TAG = 'click.tag',
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
@@ -1342,6 +1344,8 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_LABEL,
   ReplayClickFieldKey.CLICK_ROLE,
   ReplayClickFieldKey.CLICK_SELECTOR,
+  ReplayClickFieldKey.DEAD_SELECTOR,
+  ReplayClickFieldKey.RAGE_SELECTOR,
   ReplayClickFieldKey.CLICK_TAG,
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
@@ -1376,6 +1380,20 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     valueType: FieldValueType.STRING,
   },
   [ReplayClickFieldKey.CLICK_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.DEAD_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.RAGE_SELECTOR]: {
     desc: t(
       'query using CSS selector-like syntax, supports class, id, and attribute selectors'
     ),

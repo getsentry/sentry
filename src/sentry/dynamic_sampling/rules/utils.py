@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
 from django.conf import settings
+from typing_extensions import NotRequired
 
 from sentry.models import CUSTOM_RULE_START
 from sentry.utils import json, redis
@@ -70,12 +71,16 @@ RESERVED_IDS = {
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
 
 
+# (RaduW) Maybe we can split in two types, one for reservoir and one for sampleRate and factor
+# Wanted to do this but couldn't think of three good names for the types (SamplingValue, ReservoirSamplingValue and ?
+# some type name for the old SamplingValue type)
 class SamplingValue(TypedDict):
     type: SamplingValueType
-    value: float
+    value: NotRequired[float]
+    limit: NotRequired[int]
 
 
 class TimeRange(TypedDict):
@@ -108,18 +113,18 @@ class Condition(TypedDict):
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition
+    condition: Union[Condition, GlobCondition, EqCondition]
     id: int
 
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: Optional[str]
+    decayedValue: NotRequired[Optional[str]]
 
 
 class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFn
+    decayingFn: NotRequired[DecayingFn]  # const decaying doesn't require a decayingFn
 
 
 # Type defining the all the possible rules types that can exist.

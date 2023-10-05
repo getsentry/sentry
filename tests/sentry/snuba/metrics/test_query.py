@@ -391,7 +391,7 @@ def test_validate_many_order_by_fields_are_in_select():
     # This example should pass because both session crash free rate
     # and sum(session) both go to the entity counters
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.SESSION.value)
+    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.RAW_SESSION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])

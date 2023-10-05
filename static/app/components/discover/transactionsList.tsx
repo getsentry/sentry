@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -262,7 +263,7 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader(): React.ReactNode {
+  renderHeader({numSamples}: {numSamples: number | null | undefined}): React.ReactNode {
     const {
       organization,
       selected,
@@ -272,6 +273,7 @@ class _TransactionsList extends Component<Props> {
       handleOpenInDiscoverClick,
       showTransactions,
       breakdown,
+      eventView,
     } = this.props;
 
     return (
@@ -282,6 +284,14 @@ class _TransactionsList extends Component<Props> {
             value={selected.value}
             options={options}
             onChange={opt => handleDropdownChange(opt.value)}
+          />
+        </div>
+        <div>
+          <InvestigationRuleCreation
+            buttonProps={{size: 'xs'}}
+            eventView={eventView}
+            organization={organization}
+            numSamples={numSamples}
           />
         </div>
         {!this.isTrend() &&
@@ -299,7 +309,7 @@ class _TransactionsList extends Component<Props> {
                 size="xs"
                 data-test-id="transaction-events-open"
               >
-                {t('View All Events')}
+                {t('View Sampled Events')}
               </Button>
             </GuideAnchor>
           ) : (
@@ -338,7 +348,7 @@ class _TransactionsList extends Component<Props> {
     const cursor = decodeScalar(location.query?.[cursorName]);
     const tableCommonProps: Omit<
       TableRenderProps,
-      'isLoading' | 'pageLinks' | 'tableData'
+      'isLoading' | 'pageLinks' | 'tableData' | 'header'
     > = {
       handleCellAction,
       referrer,
@@ -349,7 +359,6 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       useAggregateAlias: false,
-      header: this.renderHeader(),
       target: 'transactions_table',
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
@@ -357,7 +366,13 @@ class _TransactionsList extends Component<Props> {
 
     if (forceLoading) {
       return (
-        <TableRender {...tableCommonProps} isLoading pageLinks={null} tableData={null} />
+        <TableRender
+          {...tableCommonProps}
+          isLoading
+          pageLinks={null}
+          tableData={null}
+          header={this.renderHeader({numSamples: null})}
+        />
       );
     }
 
@@ -376,6 +391,7 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
+            header={this.renderHeader({numSamples: tableData?.data?.length ?? null})}
           />
         )}
       </DiscoverQuery>
@@ -414,7 +430,7 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader()}
+            header={this.renderHeader({numSamples: null})}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},
@@ -445,7 +461,7 @@ class _TransactionsList extends Component<Props> {
 
 const Header = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   margin-bottom: ${space(1)};
   align-items: center;
 `;

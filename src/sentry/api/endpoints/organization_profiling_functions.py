@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, List
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -14,9 +14,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -68,12 +69,12 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request):
         return features.has(
             "organizations:profiling-global-suspect-functions", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -154,7 +155,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             return results
 
-        def get_trends_data(stats_data):
+        def get_trends_data(stats_data) -> List[BreakpointData]:
             if not stats_data:
                 return []
 

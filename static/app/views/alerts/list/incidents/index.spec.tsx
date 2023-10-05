@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Incident} from 'sentry-fixture/incident';
+import {IncidentStats} from 'sentry-fixture/incidentStats';
+import {MetricRule} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -38,13 +41,13 @@ describe('IncidentsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        Incident({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
         }),
-        TestStubs.Incident({
+        Incident({
           id: '342',
           identifier: '2',
           title: 'Second incident',
@@ -55,7 +58,7 @@ describe('IncidentsList', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/2/stats/',
-      body: TestStubs.IncidentStats({
+      body: IncidentStats({
         totalEvents: 1000,
         uniqueUsers: 32,
         eventStats: {
@@ -238,12 +241,12 @@ describe('IncidentsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        Incident({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
+          alertRule: MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });

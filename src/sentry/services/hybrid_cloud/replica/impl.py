@@ -1,12 +1,15 @@
 from typing import Any, Iterator, List, Mapping, Optional, Type, Union
 
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models import (
+    ApiKey,
     AuthIdentity,
     AuthIdentityReplica,
     AuthProvider,
@@ -14,13 +17,15 @@ from sentry.models import (
     Organization,
     OrganizationMemberTeam,
     OrganizationMemberTeamReplica,
+    OrganizationSlugReservationReplica,
     OutboxCategory,
     Team,
     User,
 )
 from sentry.models.teamreplica import TeamReplica
-from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
+from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -153,6 +158,60 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         )
 
         handle_replication(AuthIdentity, destination)
+
+    def upsert_replicated_api_key(self, *, api_key: RpcApiKey, region_name: str) -> None:
+        try:
+            organization = Organization.objects.get(id=api_key.organization_id)
+        except Organization.DoesNotExist:
+            return
+
+        destination = ApiKeyReplica(
+            apikey_id=api_key.id,
+            organization_id=organization.id,
+            label=api_key.label,
+            key=api_key.key,
+            status=api_key.status,
+            allowed_origins="\n".join(api_key.allowed_origins),
+            scope_list=api_key.scope_list,
+        )
+
+        handle_replication(ApiKey, destination)
+
+    def upsert_replicated_org_slug_reservation(
+        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+    ) -> None:
+        with enforce_constraints(
+            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        ):
+            # Delete any slug reservation that can possibly conflict, it's likely stale
+            OrganizationSlugReservationReplica.objects.filter(
+                Q(organization_slug_reservation_id=slug_reservation.id)
+                | Q(
+                    organization_id=slug_reservation.organization_id,
+                    reservation_type=slug_reservation.reservation_type,
+                )
+                | Q(slug=slug_reservation.slug)
+            ).delete()
+
+            OrganizationSlugReservationReplica.objects.create(
+                slug=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
+                user_id=slug_reservation.user_id,
+                region_name=slug_reservation.region_name,
+                reservation_type=slug_reservation.reservation_type,
+                organization_slug_reservation_id=slug_reservation.id,
+            )
+
+    def delete_replicated_org_slug_reservation(
+        self, *, organization_slug_reservation_id: int, region_name: str
+    ) -> None:
+        with enforce_constraints(
+            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        ):
+            org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
+                organization_slug_reservation_id=organization_slug_reservation_id
+            )
+            org_slug_qs.delete()
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):

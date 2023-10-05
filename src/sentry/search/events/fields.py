@@ -2171,5 +2171,5 @@ class MetricsFunction(SnQLFunction):
 
 class FunctionDetails(NamedTuple):
     field: str
-    instance: SnQLFunction
+    instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]
