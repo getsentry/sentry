@@ -35,7 +35,7 @@ class SDKCrashDetector(ABC):
 
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
-        if sdk_name and sdk_name not in self.config.sdk_names:
+        if sdk_name is None or sdk_name not in self.config.sdk_names:
             return False
 
         sdk_version = get_path(event_data, "sdk", "version")
