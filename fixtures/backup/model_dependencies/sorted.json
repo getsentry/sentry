@@ -197,6 +197,8 @@
   "sentry.releasethreshold",
   "feedback.feedback",
   "hybridcloud.apikeyreplica",
+  "hybridcloud.apitokenreplica",
+  "hybridcloud.orgauthtokenreplica",
   "sentry.monitorcheckin",
   "sentry.alertruleexcludedprojects",
   "sentry.incident",

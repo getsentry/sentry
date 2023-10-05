@@ -12,8 +12,8 @@ from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
-from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
 from sentry.types.region import find_all_region_names
@@ -42,7 +42,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("token",))
+    objects = ControlOutboxProducingManager["ApiToken"](cache_fields=("token",))
 
     class Meta:
         app_label = "sentry"

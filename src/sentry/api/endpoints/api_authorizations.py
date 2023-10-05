@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
+from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken, outbox_context
 
 
 @control_silo_endpoint
@@ -45,10 +45,11 @@ class ApiAuthorizationsEndpoint(Endpoint):
         except ApiAuthorization.DoesNotExist:
             return Response(status=404)
 
-        with transaction.atomic(using=router.db_for_write(ApiToken)):
-            ApiToken.objects.filter(
+        with outbox_context(transaction.atomic(using=router.db_for_write(ApiToken)), flush=False):
+            for token in ApiToken.objects.filter(
                 user_id=request.user.id, application=auth.application_id
-            ).delete()
+            ):
+                token.delete()
 
             auth.delete()
 

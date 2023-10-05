@@ -18,7 +18,7 @@ from sentry.models.orgauthtoken import MAX_NAME_LENGTH
 
 @region_silo_only_model
 class OrgAuthTokenReplica(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", null=False, on_delete=models.CASCADE)
     orgauthtoken_id = HybridCloudForeignKey("sentry.OrgAuthToken", null=False, on_delete="cascade")
