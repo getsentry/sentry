@@ -73,7 +73,7 @@ def validate_channel_id(
             extra={
                 "channel_id": channel_id,
                 "guild_name": guild_name,
-                "reason": "channel ID missing or malformed",
+                "reason": "channel lookup timed out",
             },
         )
         raise ApiTimeoutError("Discord channel lookup timed out")
