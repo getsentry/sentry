@@ -23,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -184,17 +183,12 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
-            {tabDebugIdBundlesActive &&
-              // TODO(Pri): Move the loading to the component once fully transitioned to associations.
-              !debugIdBundlesArtifactsLoading &&
-              (debugIdBundlesArtifactsData?.associations ? (
-                <Associations associations={debugIdBundlesArtifactsData?.associations} />
-              ) : (
-                <DebugIdBundlesTags
-                  dist={debugIdBundlesArtifactsData?.dist}
-                  release={debugIdBundlesArtifactsData?.release}
-                />
-              ))}
+            {tabDebugIdBundlesActive && (
+              <Associations
+                associations={debugIdBundlesArtifactsData?.associations}
+                loading={debugIdBundlesArtifactsLoading}
+              />
+            )}
           </VersionAndDetails>
         }
       />

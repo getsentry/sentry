@@ -2341,8 +2341,8 @@ class TestMigrations(TransactionTestCase):
     def setUp(self):
         super().setUp()
 
-        self.migrate_from = [(self.app, self.migrate_from)]
-        self.migrate_to = [(self.app, self.migrate_to)]
+        migrate_from = [(self.app, self.migrate_from)]
+        migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
 
@@ -2356,19 +2356,19 @@ class TestMigrations(TransactionTestCase):
                 "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
             )
         self.current_migration = [max(matching_migrations)]
-        old_apps = executor.loader.project_state(self.migrate_from).apps
+        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(self.migrate_from)
+        executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
+        executor.migrate(migrate_to)
 
-        self.apps = executor.loader.project_state(self.migrate_to).apps
+        self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
         super().tearDown()
@@ -2708,13 +2708,23 @@ class MonitorTestCase(APITestCase):
         )
 
     def _create_alert_rule(self, monitor):
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="all",
-            filter_match="any",
-            conditions=[],
+            action_match="any",
+            filter_match="all",
+            conditions=conditions,
             actions=[],
             frequency=5,
             environment=self.environment.id,
