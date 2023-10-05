@@ -168,9 +168,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         # We then run the query and inject directly the field, query and groupBy, since they will be parsed
         # internally.
         result = run_metrics_query(
-            field=request.GET.getlist("field", []),
+            fields=request.GET.getlist("field", []),
             query=request.GET.get("query"),
-            group_by=request.GET.getlist("groupBy"),
+            group_bys=request.GET.getlist("groupBy"),
             interval=interval,
             start=start,
             end=end,

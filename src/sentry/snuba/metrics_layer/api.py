@@ -31,7 +31,7 @@ GRANULARITIES = [
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
 FIELD_REGEX = re.compile(r"^(\w+)\(([^\s]+)\)$")
-QUERY_REGEX = re.compile(r"^(\w+):([^\s]+)$")
+QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s*)")
 
 
 class InvalidMetricsQuery(Exception):
@@ -132,13 +132,12 @@ def _filters_to_snql(filters: Optional[Sequence[Filter]]) -> Optional[ConditionG
     if filters is None:
         return None
 
-    condition_group = []
-
+    conditions = []
     for _filter in filters:
         condition = Condition(lhs=Column(name=_filter.key), op=Op.EQ, rhs=_filter.value)
-        condition_group.append(condition)
+        conditions.append(condition)
 
-    return condition_group
+    return conditions
 
 
 def _group_bys_to_snql(

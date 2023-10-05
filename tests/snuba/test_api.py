@@ -83,3 +83,21 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["series"] == {field: [None, 3.0, 3.0, None]}
         assert groups[2]["by"] == {"platform": "android", "transaction": "/hello"}
         assert groups[2]["series"] == {field: [None, 1.0, 2.0, None]}
+
+        # Query with one aggregation, one group by and two filters.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:ios transaction:/hello",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            use_case_id=UseCaseID.TRANSACTIONS,
+            organization=self.project.organization,
+            projects=[self.project],
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"platform": "ios"}
+        assert groups[0]["series"] == {field: [None, 3.0, 3.0, None]}
