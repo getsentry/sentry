@@ -164,7 +164,6 @@ export function ScratchpadSelector() {
                     openConfirmModal({
                       onConfirm: () => scratchpads.remove(s.id),
                       message: t('Are you sure you want to delete this scratchpad?'),
-
                       confirmText: t('Delete'),
                     });
                   }}
