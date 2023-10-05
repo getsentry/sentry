@@ -177,6 +177,7 @@ export default function SelectorTable({
               projectId={value.projectId.toString()}
             />
           );
+        case 'element':
         case 'aria_label':
           return <TextOverflow>{value}</TextOverflow>;
         case 'project_id':
