@@ -4,7 +4,7 @@ import resource
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Iterable, Sequence, Type
+from typing import Any, Callable, Iterable
 
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 import celery
@@ -143,9 +143,9 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
 
 def retry(
     func: Callable[..., Any] | None = None,
-    on: Sequence[Type[Exception]] = (Exception,),
-    exclude: Sequence[Type[Exception]] = (),
-    ignore: Sequence[Type[Exception]] = (),
+    on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+    exclude: type[Exception] | tuple[type[Exception], ...] = (),
+    ignore: type[Exception] | tuple[type[Exception], ...] = (),
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))

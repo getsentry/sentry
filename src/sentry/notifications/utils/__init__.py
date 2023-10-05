@@ -284,7 +284,7 @@ def has_integrations(organization: Organization, project: Project) -> bool:
     return bool(project_plugins or organization_integrations)
 
 
-def is_alert_rule_integration(provider: type[IntegrationProvider]) -> bool:
+def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
     return any(
         feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
         for feature in provider.features

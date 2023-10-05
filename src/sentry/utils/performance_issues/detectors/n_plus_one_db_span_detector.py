@@ -266,7 +266,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
 
     __slots__ = (
         "stored_problems",
