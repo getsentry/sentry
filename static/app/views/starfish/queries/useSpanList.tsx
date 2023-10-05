@@ -67,16 +67,15 @@ function getEventView(
   spanCategory?: string,
   sorts?: Sort[]
 ) {
-  const query = [
-    ...buildEventViewQuery({
-      moduleName,
-      location,
-      transaction,
-      method,
-      spanCategory,
-    }),
-    'transaction.op:http.server',
-  ].join(' ');
+  const query = buildEventViewQuery({
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory,
+  })
+    .filter(Boolean)
+    .join(' ');
 
   const fields = [
     PROJECT_ID,

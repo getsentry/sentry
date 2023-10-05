@@ -1,5 +1,4 @@
 import logging
-import random
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
@@ -98,12 +97,10 @@ def submit_save_event(
     if cache_key:
         data = None
 
-    highcpu_ratio = options.get("store.save-event-highcpu-percentage") or 0
-
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
         task = save_event_attachments
-    elif task_kind.is_highcpu and random.random() < highcpu_ratio:
+    elif task_kind.is_highcpu:
         task = save_event_highcpu
     else:
         task = save_event
