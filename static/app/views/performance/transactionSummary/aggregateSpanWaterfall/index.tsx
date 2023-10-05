@@ -42,7 +42,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
         getDocumentTitle={() => t(`Aggregate Waterfall: %s`, transaction)}
         childComponent={() => {
           return (
-            <Layout.Main>
+            <Layout.Main fullWidth>
               {defined(transaction) && <AggregateSpans transaction={transaction} />}
             </Layout.Main>
           );
