@@ -32,19 +32,38 @@ export function getAriaLabel(str: string) {
   return pre.substring(0, pre.lastIndexOf('"]'));
 }
 
-function constructSelector(element: Element) {
-  const alt = '[alt="' + element.alt + '"]';
-  const aria_label = '[aria="' + element.aria_label + '"]';
-  const classes = element.class.join('.');
-  const id = '[id="' + element.id + '"]';
-  const role = '[role="' + element.role + '"]';
-  const tag = element.tag;
-  const testid = '[data-test-id="' + element.testid + '"]';
-  const title = '[title="' + element.title + '"]';
+function removeEmpty(elementVal, fullVal) {
+  return elementVal === '' ? '' : fullVal;
+}
 
-  const selector =
-    tag + '#' + id + '.' + classes + role + aria_label + testid + alt + title;
-  return selector;
+function constructSelector(element: Element) {
+  const fullAlt = '[alt="' + element.alt + '"]';
+  const alt = removeEmpty(element.alt, fullAlt);
+
+  const fullAriaLabel = '[aria="' + element.aria_label + '"]';
+  const ariaLabel = removeEmpty(element.aria_label, fullAriaLabel);
+
+  const classWithPeriod = element.class.join('.');
+  const classNoPeriod = classWithPeriod.replace('.', '');
+  const classes = removeEmpty(classNoPeriod, '.' + classWithPeriod);
+
+  const id = removeEmpty(element.id, '#' + element.id);
+
+  const fullRole = '[role="' + element.role + '"]';
+  const role = removeEmpty(element.role, fullRole);
+
+  const tag = element.tag;
+
+  const fullTestId = '[data-test-id="' + element.testid + '"]';
+  const testId = removeEmpty(element.testid, fullTestId);
+
+  const fullTitle = '[title="' + element.title + '"]';
+  const title = removeEmpty(element.title, fullTitle);
+
+  const fullSelector =
+    tag + id + classes + fullRole + fullAriaLabel + fullTestId + fullAlt + fullTitle;
+  const selector = tag + id + classes + role + ariaLabel + testId + alt + title;
+  return {fullSelector, selector};
 }
 
 export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
@@ -55,7 +74,6 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
           count_dead_clicks: d.count_dead_clicks,
           count_rage_clicks: d.count_rage_clicks,
         }),
-    // dom_element: d.dom_element,
     dom_element: constructSelector(d.element),
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
@@ -147,8 +165,10 @@ export default function SelectorTable({
         case 'dom_element':
           return (
             <SelectorLink
-              value={value}
-              selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(value)}"`}
+              value={value.selector}
+              selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(
+                value.fullSelector
+              )}"`}
             />
           );
         case 'element':

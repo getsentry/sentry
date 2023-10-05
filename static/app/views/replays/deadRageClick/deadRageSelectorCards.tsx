@@ -127,13 +127,13 @@ function AccordionWidget({
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
               const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
-                d.dom_element
+                d.dom_element.fullSelector
               )}"`;
               return {
                 header: () => (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
-                    selector={d.dom_element}
+                    selector={d.dom_element.selector}
                     clickColor={clickColor}
                     selectorQuery={selectorQuery}
                     id={d.project_id}
