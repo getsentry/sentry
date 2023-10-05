@@ -1,5 +1,6 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import DateTime from 'sentry/components/dateTime';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -18,25 +19,48 @@ import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFuncti
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface EventComparisonListProps {
+interface EventFunctionComparisonListProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-export function EventComparisonList({event, project}: EventComparisonListProps) {
+export function EventFunctionComparisonList({
+  event,
+  project,
+}: EventFunctionComparisonListProps) {
   const evidenceData = event.occurrence?.evidenceData;
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
   const frameName = evidenceData?.function;
   const framePackage = evidenceData?.package || evidenceData?.module;
 
-  if (
-    !defined(fingerprint) ||
-    !defined(breakpoint) ||
-    !defined(frameName) ||
-    !defined(framePackage)
-  ) {
+  const isValid =
+    defined(fingerprint) &&
+    defined(breakpoint) &&
+    defined(frameName) &&
+    defined(framePackage);
+
+  useEffect(() => {
+    if (isValid) {
+      return;
+    }
+
+    Sentry.withScope(scope => {
+      scope.setContext('evidence data fields', {
+        fingerprint,
+        breakpoint,
+        frameName,
+        framePackage,
+      });
+
+      Sentry.captureException(
+        new Error('Missing required evidence data on function regression issue.')
+      );
+    });
+  }, [isValid, fingerprint, breakpoint, frameName, framePackage]);
+
+  if (!isValid) {
     return null;
   }
 
