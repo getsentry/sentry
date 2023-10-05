@@ -33,7 +33,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SortBy {
   ASC_ADDED = 'date_added',
@@ -445,13 +444,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  // TODO(Pri): Move the loading to the component once fully transitioned to associations.
-                  !debugIdBundlesLoading &&
-                  (data.associations ? (
-                    <Associations associations={data.associations} />
-                  ) : (
-                    <DebugIdBundlesTags dist={data.dist} release={data.release} />
-                  ))
+                  <Associations
+                    associations={data.associations}
+                    loading={debugIdBundlesLoading}
+                  />
                 }
               />
             ))
