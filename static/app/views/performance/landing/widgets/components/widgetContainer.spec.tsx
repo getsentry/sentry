@@ -882,8 +882,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query:
-            'has:span.description span.module:db transaction.op:http.server transaction.op:pageload',
+          query: 'has:span.description span.module:db transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
