@@ -123,6 +123,8 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         for key, value in event.interfaces.items():
             if key == "request":
                 headers = value.headers
+                if headers is None:
+                    headers = dict()
                 if not isinstance(headers, dict):
                     headers = dict(headers or ())
 
