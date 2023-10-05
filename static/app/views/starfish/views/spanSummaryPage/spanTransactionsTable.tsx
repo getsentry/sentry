@@ -71,13 +71,14 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
-    span[SpanMetricsField.SPAN_GROUP],
     {
-      transactions: endpoint ? [endpoint] : undefined,
-      sorts: [sort],
+      'span.group': span[SpanMetricsField.SPAN_GROUP],
+      transaction: endpoint,
+      'transaction.method': endpointMethod,
     },
-    undefined,
-    cursor
+    [sort],
+    cursor,
+    Boolean(span[SpanMetricsField.SPAN_GROUP])
   );
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
