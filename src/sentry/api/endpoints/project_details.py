@@ -133,7 +133,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
 - `$shortID`
 - `$projectID`
 - `$orgID`
-- `${tag:key}`, such as `${tag:environment}` or `${tag:release}`.""",
+- `${tag:key}` - For example, `${tag:environment}` or `${tag:release}`.""",
         max_length=200,
         required=False,
     )
