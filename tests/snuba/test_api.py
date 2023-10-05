@@ -44,12 +44,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.TRANSACTIONS,
             )
 
-        # Simple query with one aggregation.
+        # Query with just one aggregation.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
-            field=field,
+            fields=[field],
             query=None,
-            group_by=None,
+            group_bys=None,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
@@ -61,3 +61,25 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 1
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [None, 9.0, 8.0, None]}
+
+        # Query with one aggregation and two group by.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=["transaction", "platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            use_case_id=UseCaseID.TRANSACTIONS,
+            organization=self.project.organization,
+            projects=[self.project],
+        )
+        groups = results["groups"]
+        assert len(groups) == 3
+        assert groups[0]["by"] == {"platform": "windows", "transaction": "/world"}
+        assert groups[0]["series"] == {field: [None, 5.0, 3.0, None]}
+        assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
+        assert groups[1]["series"] == {field: [None, 3.0, 3.0, None]}
+        assert groups[2]["by"] == {"platform": "android", "transaction": "/hello"}
+        assert groups[2]["series"] == {field: [None, 1.0, 2.0, None]}
