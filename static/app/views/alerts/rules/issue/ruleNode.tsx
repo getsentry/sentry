@@ -403,7 +403,7 @@ function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
                   config={node.formFields as SchemaFormConfig}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
