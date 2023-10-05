@@ -11,6 +11,8 @@ import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholde
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ShareButton from 'sentry/components/replays/shareButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -60,7 +62,18 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
             id: replayRecord.user.id || '',
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={<div>{undefined}</div>}
+          displayEmail={
+            <div>
+              {replayRecord ? (
+                <TimeContainer>
+                  <IconCalendar color="gray300" size="xs" />
+                  <TimeSince date={replayRecord.started_at} unitStyle="regular" />
+                </TimeContainer>
+              ) : (
+                <HeaderPlaceholder width="80px" height="16px" />
+              )}
+            </div>
+          }
         />
       ) : (
         <HeaderPlaceholder width="100%" height="58px" />
@@ -97,6 +110,12 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
+`;
+
+const TimeContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 export default Page;

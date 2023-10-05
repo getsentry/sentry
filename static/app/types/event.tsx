@@ -823,6 +823,9 @@ export interface AggregateEventTransaction
     | 'tags'
     | 'title'
   > {
+  count: number;
+  frequency: number;
+  total: number;
   type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
