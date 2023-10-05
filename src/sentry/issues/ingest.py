@@ -134,8 +134,8 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
         # could populate this instead?
         # Or potentially, could add a method to GroupType called get_metadata
-        event_metadata["contact_email"] = occurrence.evidence_data["contact_email"]
-        event_metadata["message"] = occurrence.evidence_data["message"]
+        event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")
+        event_metadata["message"] = occurrence.evidence_data.get("message")
 
     return {
         "type": event_type.key,
