@@ -585,7 +585,7 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
 
 
 def run_with_retries(
-    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message="Command failed"
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message: str = "Command failed"
 ) -> None:
     for retry in range(1, retries + 1):
         try:
@@ -752,6 +752,7 @@ def check_chartcuterie(containers: dict[str, Any]) -> None:
         capture_output=True,
         text=True,
     )
+
 
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
