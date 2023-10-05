@@ -22,6 +22,7 @@ class GroupCategory(Enum):
     PROFILE = 3  # deprecated, merging with PERFORMANCE
     CRON = 4
     REPLAY = 5
+    FEEDBACK = 6
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -449,6 +450,14 @@ class ReplayDeadClickType(GroupType):
     slug = "replay_click_dead"
     description = "Dead Click Detected"
     category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class FeedbackGroup(GroupType):
+    type_id = 6001
+    slug = "feedback"
+    description = "Feedback"
+    category = GroupCategory.FEEDBACK.value
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
