@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
@@ -18,6 +18,7 @@ from snuba_sdk.conditions import Condition, ConditionGroup, Op
 from sentry.models import Organization, Project
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import is_mri
 from sentry.snuba.metrics_layer.query import run_query
 
@@ -167,7 +168,7 @@ def _get_granularity(interval: int) -> int:
     return best_granularity
 
 
-def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[str]:
+def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
     """
     Builds a list of all the intervals that are queried by the metrics layer.
     """
@@ -175,10 +176,10 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     end_seconds = end.timestamp()
 
     current_time = start_seconds
-    intervals = [datetime.fromtimestamp(current_time).isoformat()]
-    while current_time + interval <= end_seconds:
+    intervals = [datetime.fromtimestamp(current_time, timezone.utc)]
+    while current_time + interval < end_seconds:
         next_time = current_time + interval
-        intervals.append(datetime.fromtimestamp(next_time).isoformat())
+        intervals.append(datetime.fromtimestamp(next_time, timezone.utc))
         current_time = next_time
 
     return intervals
@@ -186,7 +187,7 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
 
 def _zerofill_series(
     start_seconds: int, num_intervals: int, interval: int, series: Sequence[Tuple[str, Any]]
-) -> Sequence[Optional[Union[int, float]]]:
+) -> Union[int, float, Sequence[Optional[Union[int, float]]]]:
     """
     Computes a zerofilled series in which given a number of intervals, the start and the interval length,
     a list of zeros and the merged series values will be returned.
@@ -253,8 +254,10 @@ def _translate_query_results(
     return {
         "intervals": intervals,
         "groups": final_groups if len(final_groups) > 0 else None,
-        "start": start.isoformat() if start is not None else None,
-        "end": end.isoformat() if end is not None else None,
+        "meta": [],
+        "query": "",
+        "start": start,
+        "end": end,
     }
 
 
@@ -295,7 +298,9 @@ def run_metrics_query(
     for field in fields:
         base_query.query = _build_snql_query(field, snql_filters, snql_group_bys)
         request = Request(
-            dataset="generic_metrics",
+            dataset=(
+                Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
+            ).value,
             app_id="default",
             query=base_query,
             tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},

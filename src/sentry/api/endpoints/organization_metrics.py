@@ -167,7 +167,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         # We then run the query and inject directly the field, query and groupBy, since they will be parsed
         # internally.
-        result = run_metrics_query(
+        results = run_metrics_query(
             fields=request.GET.getlist("field", []),
             query=request.GET.get("query"),
             group_bys=request.GET.getlist("groupBy"),
@@ -179,7 +179,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             projects=projects,
         )
 
-        return result
+        return Response(status=200, data=results)
 
     def _old_get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
