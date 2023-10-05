@@ -12,8 +12,8 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.models.outbox import OutboxCategory, outbox_context, process_control_outbox
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo import SiloMode
 from sentry.types.region import get_local_region
@@ -28,19 +28,7 @@ class OrganizationProvisioningException(Exception):
 
 
 class OrganizationProvisioningService:
-    def provision_organization_in_region(
-        self, provisioning_options: OrganizationProvisioningOptions, region_name: Optional[str]
-    ):
-        """
-        Creates a new Organization in the destination region. If called from a
-        region silo without a region_name, the local region name will be used.
-
-        :param provisioning_payload: A provisioning payload containing all the necessary
-        data to fully provision an organization within the region.
-
-        :param region_name: The region to provision the organization in
-        :return: RpcOrganization of the newly created org
-        """
+    def _validate_or_default_region(self, region_name: Optional[str]):
         silo_mode = SiloMode.get_current_mode()
         if region_name is None and silo_mode == SiloMode.CONTROL:
             raise OrganizationProvisioningException(
@@ -48,7 +36,27 @@ class OrganizationProvisioningService:
             )
 
         if region_name is None:
-            region_name = get_local_region()
+            region_name = get_local_region().name
+
+        return region_name
+
+    def provision_organization_in_region(
+        self,
+        provisioning_options: OrganizationProvisioningOptions,
+        region_name: Optional[str] = None,
+    ):
+        """
+        Creates a new Organization in the destination region. If called from a
+        region silo without a region_name, the local region name will be used.
+
+        :param provisioning_options: A provisioning payload containing all the necessary
+        data to fully provision an organization within the region.
+
+        :param region_name: The region to provision the organization in
+        :return: RpcOrganization of the newly created org
+        """
+
+        destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
@@ -57,7 +65,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                region_name=region_name, org_provision_args=provisioning_options
+                region_name=destination_region_name, org_provision_args=provisioning_options
             )
         )
 
@@ -75,16 +83,21 @@ class OrganizationProvisioningService:
     ) -> RpcOrganization:
         raise NotImplementedError()
 
-    def change_organization_slug(self, organization_id: int, slug: str) -> RpcOrganization:
+    def change_organization_slug(
+        self, organization_id: int, slug: str, region_name: Optional[str] = None
+    ) -> RpcOrganization:
         """
         Updates an organization with the given slug if available.
 
          This is currently database backed, but will be switched to be
          RPC based in the near future.
-        :param organization_id:
-        :param slug:
+        :param organization_id: the ID of the organization whose slug to change
+        :param slug: The desired slug for the organization
+        :param region_name: The region where the organization is located
         :return:
         """
+
+        destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
@@ -93,7 +106,10 @@ class OrganizationProvisioningService:
 
         rpc_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.update_organization_slug(
-                organization_id=organization_id, desired_slug=slug, require_exact=True
+                organization_id=organization_id,
+                desired_slug=slug,
+                require_exact=True,
+                region_name=destination_region_name,
             )
         )
 

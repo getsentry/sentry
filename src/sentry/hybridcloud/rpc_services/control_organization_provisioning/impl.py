@@ -200,7 +200,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 organization_id=organization_id,
                 user_id=-1,
                 region_name=region_name,
-                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
 
         primary_slug_alias = self._get_slug_reservation_for_organization(
