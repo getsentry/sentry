@@ -118,7 +118,7 @@ export function useScratchpads() {
     add,
     update,
     remove,
-    toggleSelect: toggleSelected,
+    toggleSelected,
     setDefault,
   };
 }
@@ -178,7 +178,7 @@ export function ScratchpadSelector() {
         value={scratchpads.selected ?? `None`}
         closeOnSelect={false}
         onChange={option => {
-          scratchpads.toggleSelect(option.value);
+          scratchpads.toggleSelected(option.value);
         }}
         triggerProps={{prefix: t('Scratchpad')}}
         emptyMessage="No scratchpads yet."
