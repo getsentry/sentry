@@ -3,17 +3,21 @@ import clamp from 'lodash/clamp';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
 
 interface Props {
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
   op?: string;
   percentage?: number;
   total?: number;
 }
 
-export function TimeSpentCell({percentage, total, op}: Props) {
+export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
   const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
   const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
   const tooltip = tct(
@@ -25,10 +29,10 @@ export function TimeSpentCell({percentage, total, op}: Props) {
   );
 
   return (
-    <TextAlignRight>
+    <NumberContainer {...containerProps}>
       <Tooltip isHoverable title={tooltip} showUnderline>
         {defined(total) ? formattedTotal : '--'}
       </Tooltip>
-    </TextAlignRight>
+    </NumberContainer>
   );
 }
