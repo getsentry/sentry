@@ -36,7 +36,7 @@ function trimAttribute(elementAttribute, fullAlltribute) {
   return elementAttribute === '' ? '' : fullAlltribute;
 }
 
-function constructSelector(element: Element) {
+export function constructSelector(element: Element) {
   const fullAlt = '[alt="' + element.alt + '"]';
   const alt = trimAttribute(element.alt, fullAlt);
 

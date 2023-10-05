@@ -304,7 +304,7 @@ const EmptySubtitle = styled('div')`
 
 const LoadingContainer = styled(ContentContainer)`
   gap: ${space(0.25)};
-  padding: 10px ${space(0.5)} ${space(0.5)} ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
