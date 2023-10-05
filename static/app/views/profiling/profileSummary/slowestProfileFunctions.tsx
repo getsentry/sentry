@@ -1,9 +1,10 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import Count from 'sentry/components/count';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -28,8 +29,6 @@ const functionsFields = [
 ] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
-
-const countFormatter = Intl.NumberFormat();
 interface SlowestProfileFunctionsProps {
   transaction: string;
 }
@@ -83,6 +82,17 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     cursor: functionsCursor,
   });
 
+  useEffect(() => {
+    if (
+      functionsQuery.isLoading ||
+      functionsQuery.isError ||
+      functionsQuery.data?.data?.length > 0
+    ) {
+      return;
+    }
+    Sentry.captureMessage('No regressed functions detected for flamegraph');
+  }, [functionsQuery.data, functionsQuery.isLoading, functionsQuery.isError]);
+
   const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
   const functions = functionsQuery.data?.data ?? [];
 
@@ -112,7 +122,9 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
         ) : !functions.length ? (
-          Sentry.captureMessage('No regressed functions detected for flamegraph')
+          <SlowestFunctionsQueryState>
+            {t('Yikes, you have no slow functions? This should not happen.')}
+          </SlowestFunctionsQueryState>
         ) : (
           functions.map((fn, i) => (
             <SlowestFunctionRow key={i}>
@@ -129,7 +141,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
                   <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
                 </div>
                 <div>
-                  {countFormatter.format(fn['count()'] as number)},{' '}
+                  <Count value={fn['count()'] as number} />
                   <PerformanceDuration nanoseconds={fn['p75()'] as number} abbreviation />
                 </div>
               </SlowestFunctionMetricsRow>

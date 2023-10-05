@@ -6,7 +6,9 @@ import type {Location} from 'history';
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import Count from 'sentry/components/count';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import DateTime from 'sentry/components/dateTime';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -563,11 +565,6 @@ const PROFILE_DIGEST_FIELDS = [
 ] satisfies ProfilingFieldType[];
 
 const percentiles = ['p75()', 'p95()', 'p99()'] as const;
-const countFormatter = new Intl.NumberFormat();
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'long',
-});
 
 function ProfileDigest() {
   const location = useLocation();
@@ -591,11 +588,13 @@ function ProfileDigest() {
       <div>
         <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading
-            ? ''
-            : profiles.isError
-            ? ''
-            : dateFormatter.format(new Date(data?.['last_seen()'] as string))}
+          {profiles.isLoading ? (
+            ''
+          ) : profiles.isError ? (
+            ''
+          ) : (
+            <DateTime date={new Date(data?.['last_seen()'] as string)} />
+          )}
         </div>
       </div>
 
@@ -618,11 +617,13 @@ function ProfileDigest() {
       <div>
         <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading
-            ? ''
-            : profiles.isError
-            ? ''
-            : countFormatter.format((data?.['count()'] as number) ?? 0)}
+          {profiles.isLoading ? (
+            ''
+          ) : profiles.isError ? (
+            ''
+          ) : (
+            <Count value={data?.['count()'] as number} />
+          )}
         </div>
       </div>
     </ProfileDigestHeader>
