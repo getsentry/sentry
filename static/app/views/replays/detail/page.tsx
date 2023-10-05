@@ -119,7 +119,7 @@ const TimeContainer = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default Page;
