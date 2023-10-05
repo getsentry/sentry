@@ -11,7 +11,18 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Tuple,
+    TypeVar,
+    cast,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -78,7 +89,7 @@ def env(
             rv = default
 
     if type is None:
-        type = type_from_value(default)
+        type = cast(TypeParser, type_from_value(default))
 
     return type(rv)
 
