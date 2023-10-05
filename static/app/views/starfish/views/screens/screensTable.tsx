@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
@@ -22,14 +24,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 export function ScreensTable() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const routingContext = useRoutingContext();
   const {query} = location;
   const {
     primaryRelease,
@@ -52,13 +57,13 @@ export function ScreensTable() {
     name: '',
     fields: [
       'transaction',
+      SpanMetricsField.PROJECT_ID,
       'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
       `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
       'avg(measurements.time_to_full_display)',
       `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
       'count()',
     ],
-    topEvents: '6',
     query: queryStringPrimary,
     dataset: DiscoverDatasets.METRICS,
     version: 2,
@@ -68,7 +73,7 @@ export function ScreensTable() {
   newQuery.orderby = orderby;
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isLoading, pageLinks} = useScreensList({
+  const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
   });
@@ -88,6 +93,25 @@ export function ScreensTable() {
   function renderBodyCell(column, row): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
+    }
+
+    const field = String(column.key);
+
+    if (field === 'transaction') {
+      return (
+        <Link
+          to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
+            ...location.query,
+            project: row['project.id'],
+            transaction: row.transaction,
+            primaryRelease,
+            secondaryRelease,
+          })}`}
+          style={{display: `block`, width: `100%`}}
+        >
+          {row.transaction}
+        </Link>
+      );
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
@@ -145,9 +169,14 @@ export function ScreensTable() {
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={eventViewColumns.map((col: TableColumn<React.ReactText>) => {
-          return {...col, name: columnNameMap[col.key]};
-        })}
+        columnOrder={eventViewColumns
+          .filter(
+            (col: TableColumn<React.ReactText>) =>
+              col.name !== SpanMetricsField.PROJECT_ID
+          )
+          .map((col: TableColumn<React.ReactText>) => {
+            return {...col, name: columnNameMap[col.key]};
+          })}
         columnSortBy={[
           {
             key: 'count()',
@@ -165,7 +194,7 @@ export function ScreensTable() {
   );
 }
 
-export function useScreensList({
+export function useTableQuery({
   eventView,
   enabled,
   referrer,
