@@ -445,28 +445,20 @@ function MetricChart({
                     theme: theme as Theme,
                   })
                 : undefined;
+
+              const props = {
+                series: [...seriesToShow, ...releaseSeries],
+                legend,
+                ...chartProps,
+                ...zoomRenderProps,
+              };
+
               return displayType === MetricDisplayType.LINE ? (
-                <LineChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <LineChart {...props} />
               ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <AreaChart {...props} />
               ) : (
-                <BarChart
-                  stacked
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <BarChart stacked {...props} />
               );
             }}
           </ReleaseSeries>

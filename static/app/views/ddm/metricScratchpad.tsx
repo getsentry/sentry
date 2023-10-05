@@ -135,7 +135,13 @@ export function ScratchpadSelector() {
       <Button
         size="sm"
         disabled={!scratchpads.selected}
-        onClick={() => scratchpads.setDefault(scratchpads.selected ?? null)}
+        onClick={() => {
+          if (isDefaultSelected) {
+            scratchpads.setDefault(null);
+          } else {
+            scratchpads.setDefault(scratchpads.selected ?? null);
+          }
+        }}
         icon={<IconBookmark isSolid={isDefaultSelected} />}
       >
         {isDefaultSelected ? t('Remove default') : t('Set as default')}
