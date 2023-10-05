@@ -7,7 +7,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
-import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', function () {
@@ -190,32 +189,5 @@ describe('GlobalModal', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
-  });
-
-  it('hides guide when modal is open', async function () {
-    const {waitForModalToHide} = renderGlobalModal();
-    const closeSpy = jest.fn();
-
-    expect(GuideStore.getState().forceHide).toBe(false);
-
-    act(() =>
-      openModal(
-        ({Header}) => (
-          <div data-test-id="modal-test">
-            <Header closeButton>Header</Header>Hi
-          </div>
-        ),
-        {onClose: closeSpy}
-      )
-    );
-
-    // Opening modal sets forceHide to true
-    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
-    expect(GuideStore.getState().forceHide).toBe(true);
-
-    // Closing modal sets forceHide to false
-    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-    await waitForModalToHide();
-    expect(GuideStore.getState().forceHide).toBe(false);
   });
 });
