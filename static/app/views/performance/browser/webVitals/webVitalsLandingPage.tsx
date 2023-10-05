@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
-import {PagePerformanceTables} from 'sentry/views/performance/browser/webVitals/pagePerformanceTables';
+import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -71,7 +71,7 @@ export default function WebVitalsLandingPage() {
             projectScore={projectScore}
             onClick={webVital => setState({...state, webVital})}
           />
-          <PagePerformanceTables />
+          <PagePerformanceTable />
         </Layout.Main>
       </Layout.Body>
       <WebVitalsDetailPanel

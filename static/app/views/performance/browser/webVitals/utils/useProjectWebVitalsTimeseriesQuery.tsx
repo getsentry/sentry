@@ -24,8 +24,7 @@ export const useProjectWebVitalsTimeseriesQuery = () => {
         'p75(measurements.fid)',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload (transaction:/performance* or transaction:/discover* or transaction:/dashboards*)',
+      query: 'transaction.op:pageload',
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
