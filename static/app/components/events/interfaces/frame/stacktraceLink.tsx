@@ -307,6 +307,29 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     event.platform === 'csharp' &&
     frame.sourceLink?.startsWith('https://www.github.com/');
   const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
+
+  // for .NET projects, if there is no match found but there is a GitHub source link, use that
+  if (hasGithubSourceLink && (match.error || match.integrations.length > 0)) {
+    return (
+      <StacktraceLinkWrapper>
+        <OpenInLink onClick={onOpenLink} href={frame.sourceLink!} openInNewTab>
+          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+          {t('Open this line in GitHub')}
+        </OpenInLink>
+        {shouldShowCodecovFeatures(organization, match) ? (
+          <CodecovLink
+            coverageUrl={`${frame.sourceLink}`}
+            status={match.codecov?.status}
+            organization={organization}
+            event={event}
+          />
+        ) : shouldShowCodecovPrompt(organization, match) ? (
+          <HookCodecovStacktraceLink organization={organization} />
+        ) : null}
+      </StacktraceLinkWrapper>
+    );
+  }
+
   // No match found - Has integration but no code mappings
   if (!hideErrors && (match.error || match.integrations.length > 0)) {
     const filename = frame.filename;
@@ -353,28 +376,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         >
           {t('Tell us where your source code is')}
         </FixMappingButton>
-      </StacktraceLinkWrapper>
-    );
-  }
-
-  // for .NET projects, if there is no match found but there is a GitHub source link, use that
-  if (hasGithubSourceLink && (match.error || match.integrations.length > 0)) {
-    return (
-      <StacktraceLinkWrapper>
-        <OpenInLink onClick={onOpenLink} href={frame.sourceLink!} openInNewTab>
-          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {t('Open this line in GitHub')}
-        </OpenInLink>
-        {shouldShowCodecovFeatures(organization, match) ? (
-          <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
-            status={match.codecov?.status}
-            organization={organization}
-            event={event}
-          />
-        ) : shouldShowCodecovPrompt(organization, match) ? (
-          <HookCodecovStacktraceLink organization={organization} />
-        ) : null}
       </StacktraceLinkWrapper>
     );
   }
