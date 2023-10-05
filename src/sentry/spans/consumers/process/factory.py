@@ -9,7 +9,7 @@ import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import FILTERED_PAYLOAD, Commit, Message, Partition, Topic
+from arroyo.types import FILTERED_PAYLOAD, Commit, FilteredPayload, Message, Partition, Topic
 from django.conf import settings
 from sentry_kafka_schemas import ValidationError, get_codec
 from sentry_kafka_schemas.codecs import Codec
@@ -132,16 +132,16 @@ def _capture_exception(err: Exception) -> None:
         sentry_sdk.capture_exception(err)
 
 
-def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
+def process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
     try:
         return _process_message(message)
     except ValidationError as err:
         _capture_exception(err)
-        return message.replace(FILTERED_PAYLOAD)
+        return FILTERED_PAYLOAD
     except Exception as err:
         metrics.incr("spans.consumer.message_processing_error")
         _capture_exception(err)
-        return message.replace(FILTERED_PAYLOAD)
+        return FILTERED_PAYLOAD
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
