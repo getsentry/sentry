@@ -7,10 +7,9 @@ from typing import Any, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
+from arroyo.types import FILTERED_PAYLOAD, Commit, Message, Partition, Topic
 from django.conf import settings
 from sentry_kafka_schemas import ValidationError, get_codec
 from sentry_kafka_schemas.codecs import Codec
@@ -128,26 +127,21 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
 
+def _capture_exception(err: Exception) -> None:
+    if random.random() < 0.05:
+        sentry_sdk.capture_exception(err)
+
+
 def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     try:
         return _process_message(message)
-    except ValidationError as e:
-        if random.random() < 0.05:
-            sentry_sdk.capture_exception(e)
-        assert isinstance(message.value, BrokerValue)
-        raise InvalidMessage(
-            message.value.partition,
-            message.value.offset,
-        )
-    except Exception as e:
+    except ValidationError as err:
+        _capture_exception(err)
+        return message.replace(FILTERED_PAYLOAD)
+    except Exception as err:
         metrics.incr("spans.consumer.message_processing_error")
-        if random.random() < 0.05:
-            sentry_sdk.capture_exception(e)
-        assert isinstance(message.value, BrokerValue)
-        raise InvalidMessage(
-            message.value.partition,
-            message.value.offset,
-        )
+        _capture_exception(err)
+        return message.replace(FILTERED_PAYLOAD)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
