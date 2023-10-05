@@ -17,14 +17,14 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 beforeEach(() => {
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
-    url: '/issues/123/',
+    url: '/organizations/org-slug/issues/123/',
   });
 });
 
 describe('StackTracePreview', () => {
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/123/events/recommended/`,
+      url: `/organizations/org-slug/issues/123/events/recommended/`,
       statusCode: 400,
     });
 
@@ -37,7 +37,7 @@ describe('StackTracePreview', () => {
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/123/events/recommended/`,
+      url: `/organizations/org-slug/issues/123/events/recommended/`,
       body: makeEvent({id: '456', entries: []}),
     });
 
@@ -105,7 +105,7 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/issues/123/events/recommended/`,
+      url: `/organizations/org-slug/issues/123/events/recommended/`,
       body: makeEvent(errorEvent),
     });
 
