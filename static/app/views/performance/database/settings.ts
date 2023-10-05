@@ -11,4 +11,5 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.ruby': '5.11.0',
   'sentry.dotnet': '3.39.0',
   'sentry.symfony': '4.11.0',
+  'sentry.android': '6.30.0',
 };
