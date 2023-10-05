@@ -11,8 +11,6 @@ import logging
 from typing import Any, Mapping
 
 from django.dispatch import receiver
-from pydantic import ValidationError
-from sentry_sdk import capture_exception
 
 from sentry.models import (
     ApiApplication,
@@ -23,11 +21,6 @@ from sentry.models import (
 )
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.services.organization.provisioning import (
-    OrganizationProvisioningOptions,
-    handle_organization_provisioning_outbox_payload,
-    handle_possible_organization_slug_swap,
-)
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -123,29 +116,3 @@ def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kw
     other_member.flags.sso__invalid = True
     other_member.flags.sso__linked = False
     organization_service.update_membership_flags(organization_member=other_member)
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
-def process_provision_organization_outbox(
-    object_identifier: int, region_name: str, payload: Any, **kwds: Any
-):
-    try:
-        provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
-    except ValidationError as e:
-        # The provisioning payload is likely malformed and cannot be processed.
-        capture_exception(e)
-        return
-
-    handle_organization_provisioning_outbox_payload(
-        organization_id=object_identifier,
-        region_name=region_name,
-        provisioning_payload=provision_payload,
-    )
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)
-def update_organization_slug_reservation(object_identifier: int, region_name: str, **kwds: Any):
-    handle_possible_organization_slug_swap(
-        region_name=region_name,
-        org_slug_reservation_id=object_identifier,
-    )
