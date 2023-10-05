@@ -30,7 +30,7 @@ function SampleInfo(props: Props) {
       'spm()',
       `sum(${SPAN_SELF_TIME})`,
       `avg(${SPAN_SELF_TIME})`,
-      'time_spent_percentage(local)',
+      'time_spent_percentage()',
     ],
     'api.starfish.span-summary-panel-metrics'
   );
