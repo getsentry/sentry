@@ -266,7 +266,7 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
         help_text="The name for the rule, which has a maximimum length of 64 characters.",
     )
     aggregate = serializers.CharField(
-        help_text="A string representing the aggregate used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."
+        help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."
     )
     timeWindow = serializers.ChoiceField(
         choices=(
@@ -325,8 +325,8 @@ triggers: [
 ```
 Metric alert rule trigger actions follow the following structure:
 - `type`: The type of trigger action. Valid values are `email`, `slack`, `msteams`, `pagerduty`, `sentry_app`, `sentry_notification`, and `opsgenie`.
-- `targetType`: The type of target the notification will be sent to. Valid values are `specific`, `user`, `team`, and `sentry_app`.
-- `targetIdentifier`: The ID of the target. This is required as an integer for PagerDuty and Sentry apps, and as a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
+- `targetType`: The type of target the notification will be sent to. Valid values are `specific` (`targetIdentifier` is a direct reference used by the service, like an email address or a Slack channel ID), `user` (`targetIdentifier` is a Sentry user ID), `team` (`targetIdentifier` is a Sentry team ID), and `sentry_app` (`targetIdentifier` is a SentryApp ID).
+- `targetIdentifier`: The ID of the target. This must be an integer for PagerDuty and Sentry apps, and a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
@@ -343,21 +343,21 @@ Metric alert rule trigger actions follow the following structure:
     )
     queryType = serializers.ChoiceField(
         required=False,
-        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
+        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
         help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="List of event types that this alert will be related to. Valid values are `default`, `error` and `transaction`.",
+        help_text="List of event types that this alert will be related to. Valid values are `default` (events captured using [Capture Message](/product/sentry-basics/integrate-backend/capturing-errors/#capture-message)), `error` and `transaction`.",
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
-        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](#crash-free-session-rate) or [Crash Free User Rate](#crash-free-user-rate).',
+        help_text='An optional int representing the time delta to use as the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](#crash-free-session-rate) or [Crash Free User Rate](#crash-free-user-rate).',
     )
     resolveThreshold = serializers.FloatField(
         required=False,
-        help_text="Optional value that the subscription needs to reach to resolve the alert. Set automatically if no value is provided. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
+        help_text="Optional value that the metric needs to reach to resolve the alert. Set automatically based on the lowest severity trigger's `alertThreshold` if no value is provided. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
@@ -395,12 +395,12 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         """
         Return a list of active metric alert rules bound to an organization.
 
-        A metric alert rule is a configuration that defines the conditions for triggering an alert
-        based on specific metrics. It specifies the metric type, function, time interval, and threshold
+        A metric alert rule is a configuration that defines the conditions for triggering an alert.
+        It specifies the metric type, function, time interval, and threshold
         values that determine when an alert should be triggered. Metric alert rules are used to monitor
-        and notify you when certain metrics, such as error count, latency, or failure rate, cross a
+        and notify you when certain metrics, like error count, latency, or failure rate, cross a
         predefined threshold. These rules help you proactively identify and address issues in your
-        application or system.
+        project.
         """
         return self.fetch_metric_alert(request, organization)
 
@@ -420,18 +420,19 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         """
         Create a new metric alert rule for the given organization.
 
-        A metric alert rule is a configuration that defines the conditions for triggering an alert
-        based on specific metrics. It specifies the metric type, function, time interval, and threshold
+        A metric alert rule is a configuration that defines the conditions for triggering an alert.
+        It specifies the metric type, function, time interval, and threshold
         values that determine when an alert should be triggered. Metric alert rules are used to monitor
-        and notify you when certain metrics, such as error count, latency, or failure rate, cross a
+        and notify you when certain metrics, like error count, latency, or failure rate, cross a
         predefined threshold. These rules help you proactively identify and address issues in your
-        application or system.
+        project.
 
         ## Metric Alert Rule Types
-        Listed below are the types of metric alert rules you can create with Sentry, and the values they
-        require. See [Alert Types](/product/alerts/alert-types/#metric-alerts) for more details on each
-        metric alert rule type. All other parameters can be customized depending on how you want the alert
-        rule to work. Scroll down to Body Parameters for more information.
+        Below are the types of metric alert rules you can create and the parameter values required
+        to set them up. All other parameters can be customized based on how you want the alert
+        rule to work. Scroll down to Body Parameters for more information. Visit the
+        [Alert Types](/product/alerts/alert-types/#metric-alerts) docs for more details on each
+        metric alert rule type.
 
         ### [Number of Errors](/product/alerts/alert-types/#number-of-errors)
         - `eventTypes`: Any of `error` or `default`.
@@ -445,7 +446,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### [Users Experiencing Errors](/product/alerts/alert-types/#users-experiencing-errors)
-        Alert when the number of users affected by errors in your project crosses a threshold.
         - `eventTypes`: Any of `error` or `default`.
         ```json
         {
