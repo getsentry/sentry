@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 import pytest
@@ -63,7 +63,10 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
         # check that there's no other remaining message in the topic
         assert broker_storage.consume(Partition(my_topic, 0), 1) is None
 
+        payload_timestamp = int((datetime.now() - timedelta(days=2)).timestamp())
+
         # produce a counter metric onto the second offset
+        # also send a timestamp
         generic_metrics_backend.counter(
             self.use_case_id,
             self.org_id,
@@ -72,6 +75,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             self.counter_value,
             self.tags,
             self.unit,
+            timestamp=payload_timestamp,
         )
 
         counter_metric = {
@@ -79,7 +83,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             "project_id": self.project_id,
             "name": self.get_mri(self.metric_name, "c", self.use_case_id, self.unit),
             "value": self.counter_value,
-            "timestamp": int(datetime.now().timestamp()),
+            "timestamp": payload_timestamp,
             "tags": self.tags,
             "retention_days": self.retention_days,
             "type": "c",
