@@ -17,8 +17,8 @@ const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  transactionMethod?: string;
 };
 
 export type SpanSample = Pick<

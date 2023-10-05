@@ -14,8 +14,8 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  transactionMethod?: string;
 };
 
 function SampleInfo(props: Props) {

@@ -22,13 +22,13 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   spanDescription?: string;
+  transactionMethod?: string;
 };
 
 function DurationChart({

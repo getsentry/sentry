@@ -23,11 +23,11 @@ const SpanSamplesTableContainer = styled('div')`
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  transactionMethod?: string;
 };
 
 function SampleTable({

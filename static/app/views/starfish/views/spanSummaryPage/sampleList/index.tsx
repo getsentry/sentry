@@ -23,8 +23,8 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  transactionMethod?: string;
 };
 
 export function SampleList({groupId, transactionName, transactionMethod}: Props) {
