@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, TypedDict
 from urllib.parse import ParseResult, urljoin, urlparse
 
 from django.conf import settings

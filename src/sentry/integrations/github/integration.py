@@ -22,7 +22,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin, CommitInfo, SourceLineInfo
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
@@ -239,6 +239,31 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
+
+    def get_commit_context_all_frames(self, files: Sequence[SourceLineInfo]) -> CommitInfo | None:
+        try:
+            blame_range = self.get_blame_for_files(files)
+
+            if blame_range is None:
+                return None
+        except ApiError as e:
+            raise e
+
+        try:
+            commit: Mapping[str, Any] = max(
+                (
+                    blame
+                    for blame in blame_range
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
+                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
+                default={},
+            )
+            if not commit:
+                return None
+        except (ValueError, IndexError):
+            return None
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]

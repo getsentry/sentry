@@ -1016,6 +1016,8 @@ def process_commits(job: PostProcessJob) -> None:
                     if cache.get(cache_key):
                         metrics.incr("sentry.tasks.process_commit_context.debounce")
                         return
+                    print("==================================================================")
+                    print("========================post_process==============================")
                     process_commit_context.delay(
                         event_id=event.event_id,
                         event_platform=event.platform,

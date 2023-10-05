@@ -32,7 +32,7 @@ class SdkFrameMunger:
     supported_sdks: Set[str] = field(default_factory=set)
 
 
-def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+def java_frame_munger(key, frame) -> bool:
     if frame.get("filename") is None or frame.get("module") is None:
         return False
     if "/" not in str(frame.get("filename")) and frame.get("module"):
