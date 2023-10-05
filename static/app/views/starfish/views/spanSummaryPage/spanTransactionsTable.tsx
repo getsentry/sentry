@@ -98,13 +98,16 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       const pathname = `${routingContext.baseURL}/${
         extractRoute(location) ?? 'spans'
       }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
-      const query = {
+      const query: {[key: string]: string | undefined} = {
         ...location.query,
         endpoint,
         endpointMethod,
         transaction: row.transaction,
-        transactionMethod: row.transactionMethod,
       };
+
+      if (row.transactionMethod) {
+        query.transactionMethod = row.transactionMethod;
+      }
 
       return (
         <Link
@@ -174,7 +177,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
               query: omit(location.query, 'endpoint'),
             }}
           >
-            {t('View More Endpoints')}
+            {t('View More')}
           </Button>
         )}
         <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -191,7 +194,7 @@ const getColumnOrder = (
 ): TableColumnHeader[] => [
   {
     key: 'transaction',
-    name: 'Found In Endpoints',
+    name: t('Found In'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
