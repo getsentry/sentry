@@ -40,10 +40,10 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
+MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.0"
 
 NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
-    "sentry.javascript.react-native",
     "sentry.javascript.wasm",
     "sentry.javascript.cordova",
     "sentry.javascript.nextjs",
@@ -590,12 +590,20 @@ def get_sdk_debug_id_support(event_data):
 
     if sdk_name not in official_sdks or sdk_name is None:
         return "unofficial-sdk"
-    elif sdk_name in NO_DEBUG_ID_SDKS:
+
+    if sdk_name in NO_DEBUG_ID_SDKS:
         return "not-supported"
 
     sdk_version = get_path(event_data, "sdk", "version")
     if sdk_version is None:
         return "unofficial-sdk"
+
+    if sdk_name == "sentry.javascript.react-native":
+        return (
+            "full"
+            if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade"
+        )
 
     return (
         "full"
