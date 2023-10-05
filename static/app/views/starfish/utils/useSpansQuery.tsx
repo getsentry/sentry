@@ -1,3 +1,4 @@
+import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -27,6 +28,7 @@ export function useSpansQuery<T = any[]>({
   limit,
   enabled,
   referrer = 'use-spans-query',
+  omitCursor,
   cursor,
 }: {
   cursor?: string;
@@ -34,6 +36,7 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: T;
   limit?: number;
+  omitCursor?: boolean;
   referrer?: string;
 }) {
   const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
@@ -49,6 +52,7 @@ export function useSpansQuery<T = any[]>({
       eventView: newEventView,
       initialData,
       limit,
+      omitCursor,
       // We always want to wait until the pageFilters are ready to prevent clobbering requests
       enabled: (enabled || enabled === undefined) && pageFiltersReady,
       referrer,
@@ -68,12 +72,14 @@ function useWrappedDiscoverTimeseriesQuery<T>({
   enabled,
   initialData,
   referrer,
+  omitCursor,
   cursor,
 }: {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
+  omitCursor?: boolean;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -88,7 +94,7 @@ function useWrappedDiscoverTimeseriesQuery<T>({
   >({
     route: 'events-stats',
     eventView,
-    location,
+    location: omitCursor ? omit(location, 'query.cursor') : location,
     orgSlug: organization.slug,
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
@@ -130,6 +136,7 @@ export function useWrappedDiscoverQuery<T>({
   enabled,
   referrer,
   limit,
+  omitCursor,
   cursor,
 }: {
   eventView: EventView;
@@ -137,6 +144,7 @@ export function useWrappedDiscoverQuery<T>({
   enabled?: boolean;
   initialData?: T;
   limit?: number;
+  omitCursor?: boolean;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -145,7 +153,7 @@ export function useWrappedDiscoverQuery<T>({
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
-    location,
+    location: omitCursor ? omit(location, 'query.cursor') : location,
     referrer,
     cursor,
     limit,
