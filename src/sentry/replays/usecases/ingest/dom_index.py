@@ -277,6 +277,8 @@ def create_click_event(
 
     attributes = node.get("attributes", {})
 
+    # The class attribute can have extra white-space contained within. We need to filter them out
+    # before truncating the list.
     classes = _parse_classes(attributes.get("class", ""))
 
     return {
@@ -300,8 +302,4 @@ def create_click_event(
 
 
 def _parse_classes(classes: str) -> list[str]:
-    class_ = classes.strip()  # Strip leading and trailing spaces.
-    if class_ == "":
-        return []
-    else:
-        return class_.split(" ")[:10]
+    return list(filter(lambda n: n != "", classes.split(" ")))[:10]
