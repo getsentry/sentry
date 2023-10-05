@@ -214,7 +214,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         )
 
     def get(self, request: Request, organization) -> Response:
-        if features.has(
+        use_new_metrics_layer = request.GET.get("useNewMetricsLayer", "false") == "true"
+        if use_new_metrics_layer and features.has(
             "organizations:metrics-api-new-metrics-layer", organization, actor=request.user
         ):
             return self._new_get(request, organization)

@@ -19,6 +19,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -50,6 +51,31 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
+    @with_feature("organizations:metrics-api-new-metrics-layer")
+    @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
+    def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
+        run_metrics_query.return_value = {}
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="false",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_not_called()
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_called_once()
+
     def test_query_with_transactions_metric(self):
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
@@ -64,6 +90,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
                     self.project.organization.slug,
                     field=f"sum({TransactionMRI.DURATION.value})",
                     useCase="transactions",
+                    useNewMetricsLayer=flag_value,
                     statsPeriod="1h",
                     interval="1h",
                 )
