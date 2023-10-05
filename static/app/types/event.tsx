@@ -182,7 +182,6 @@ export type Frame = {
   package: string | null;
   platform: PlatformKey | null;
   rawFunction: string | null;
-  sourceLink: string | null;
   symbol: string | null;
   symbolAddr: string | null;
   trust: any | null;
@@ -196,6 +195,7 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
