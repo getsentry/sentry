@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -81,7 +83,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -93,7 +95,7 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
-_COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "equals": "eq",
     "notEquals": "eq",
     "less": "lt",
@@ -121,6 +123,8 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
+    "epm": "on_demand_epm",
+    "eps": "on_demand_eps",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -137,6 +141,8 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "failure_count": "c",
     "failure_rate": "c",
     "apdex": "c",
+    "epm": "c",
+    "eps": "c",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -621,10 +627,12 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
 
 
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
+    "on_demand_epm": None,
+    "on_demand_eps": None,
 }
 
 
@@ -700,7 +708,12 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op in ["on_demand_failure_count", "on_demand_failure_rate"]:
+        if self.op in [
+            "on_demand_epm",
+            "on_demand_eps",
+            "on_demand_failure_count",
+            "on_demand_failure_rate",
+        ]:
             return self.op
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._argument}"
@@ -889,7 +902,7 @@ def _map_field_name(search_key: str) -> str:
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
-        return f"event.{search_key}"
+        return f"event.{search_key}.value"
 
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.
@@ -1033,9 +1046,11 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
-            # Special case: `x != ""` is the result of a `has:x` query, which
-            # needs to be translated as `not(x == null)`.
-            if token.operator == "!=" and value == "":
+            # Special case for the `has` and `!has` operators which are parsed as follows:
+            # - `has:x` -> `x != ""`
+            # - `!has:x` -> `x = ""`
+            # They both need to be translated to `x not eq null` and `x eq null`.
+            if token.operator in ("!=", "=") and value == "":
                 value = None
 
             if isinstance(value, str):

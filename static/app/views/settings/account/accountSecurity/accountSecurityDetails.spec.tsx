@@ -1,3 +1,7 @@
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+import {Organizations} from 'sentry-fixture/organizations';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -21,22 +25,22 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: TestStubs.Authenticators().Totp(),
+        body: Authenticators().Totp(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 
@@ -106,7 +110,7 @@ describe('AccountSecurityDetails', function () {
     it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
 
       const deleteMock = MockApiClient.addMockResponse({
@@ -146,12 +150,12 @@ describe('AccountSecurityDetails', function () {
     it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
 
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: [TestStubs.Authenticators().Totp()],
+        body: [Authenticators().Totp()],
       });
 
       const params = {
@@ -183,22 +187,22 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        body: Authenticators().Recovery(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 

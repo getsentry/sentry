@@ -1,3 +1,5 @@
+import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -51,7 +53,7 @@ describe('OrganizationAuditLog', function () {
             dateCreated: '2016-11-21T04:02:45.929313Z',
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNames(),
       },
     });
 
@@ -119,7 +121,7 @@ describe('OrganizationAuditLog', function () {
             },
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNames(),
       },
     });
 

@@ -1,7 +1,6 @@
 // Mirrors src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
-
-import {t} from 'sentry/locale';
+import {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
   FRONTEND,
@@ -12,37 +11,7 @@ export enum PlatformCategory {
   OTHER,
 }
 
-export const popularPlatformCategories = [
-  'javascript',
-  'javascript-react',
-  'javascript-nextjs',
-  'python-django',
-  'python',
-  'python-flask',
-  'python-fastapi',
-  'ruby-rails',
-  'node-express',
-  'php-laravel',
-  'java',
-  'java-spring-boot',
-  'dotnet',
-  'dotnet-aspnetcore',
-  'csharp',
-  'go',
-  'php',
-  'ruby',
-  'node',
-  'react-native',
-  'javascript-angular',
-  'javascript-vue',
-  'android',
-  'apple-ios',
-  'flutter',
-  'dart-flutter',
-  'unity',
-] as const;
-
-export const frontend = [
+export const frontend: PlatformKey[] = [
   'dart',
   'javascript',
   'javascript-react',
@@ -57,9 +26,9 @@ export const frontend = [
   'javascript-svelte',
   'javascript-sveltekit',
   'unity',
-] as const;
+];
 
-export const mobile = [
+export const mobile: PlatformKey[] = [
   'android',
   'apple-ios',
   'cordova',
@@ -78,9 +47,10 @@ export const mobile = [
   'java-android',
   'cocoa-objc',
   'cocoa-swift',
-] as const;
+];
 
-export const backend = [
+export const backend: PlatformKey[] = [
+  'bun',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -130,9 +100,9 @@ export const backend = [
   'ruby-rack',
   'rust',
   'kotlin',
-] as const;
+];
 
-export const serverless = [
+export const serverless: PlatformKey[] = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
@@ -142,9 +112,9 @@ export const serverless = [
   'node-gcpfunctions',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',
-] as const;
+];
 
-export const desktop = [
+export const desktop: PlatformKey[] = [
   'apple-macos',
   'dotnet',
   'dotnet-winforms',
@@ -163,22 +133,7 @@ export const desktop = [
   'flutter',
   'kotlin',
   'unreal',
-] as const;
-
-const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
-  {id: 'browser', name: t('Browser'), platforms: frontend},
-  {id: 'server', name: t('Server'), platforms: backend},
-  {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'desktop', name: t('Desktop'), platforms: desktop},
-  {id: 'serverless', name: t('Serverless'), platforms: serverless},
-] as const;
-
-export const deprecatedPlatforms = new Set([
-  'node-serverlesscloud',
-  'python-pylons',
-  'python-pymongo',
-]);
+];
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -187,13 +142,14 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing = [
+export const tracing: PlatformKey[] = [
   'python-tracing',
   'node-tracing',
   'react-native-tracing',
-] as const;
+];
 
-export const performance = [
+export const performance: PlatformKey[] = [
+  'bun',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -304,6 +260,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'bun',
   'native',
   'node',
   'node-express',
@@ -375,29 +332,3 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
   'javascript',
 ];
-
-/**
- * Additional aliases used for filtering in the platform picker
- */
-export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
-  native: ['cpp', 'c++'],
-};
-
-export type PlatformKey =
-  | (typeof popularPlatformCategories)[number]
-  | (typeof frontend)[number]
-  | (typeof mobile)[number]
-  | (typeof backend)[number]
-  | (typeof desktop)[number]
-  | (typeof tracing)[number]
-  | (typeof serverless)[number]
-  | 'other';
-
-export default categoryList;
-
-export type Platform = {
-  key: PlatformKey;
-  id?: string;
-  link?: string | null;
-  name?: string;
-};

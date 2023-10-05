@@ -198,11 +198,14 @@ def _normalize_nonhandled_frame(frame, data):
     return frame
 
 
-def _normalize_frame(frame: Any) -> dict:
-    frame = dict(frame)
+FRAME_FIELDS = ("abs_path", "lineno", "colno", "function")
 
-    # Symbolicator will *output* `data`, but never use it from the input
-    frame.pop("data", None)
+
+def _normalize_frame(raw_frame: Any) -> dict:
+    frame = {}
+    for key in FRAME_FIELDS:
+        if (value := raw_frame.get(key)) is not None:
+            frame[key] = value
 
     return frame
 
@@ -245,6 +248,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
+    scraping_attempts = response.get("scraping_attempts", [])
+    if len(scraping_attempts) > 0:
+        data["scraping_attempts"] = scraping_attempts
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 

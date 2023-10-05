@@ -28,6 +28,32 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+class MockOrganizationRoles:
+    TEST_ORG_ROLES = [
+        {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
+        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
+    ]
+
+    TEST_TEAM_ROLES = [
+        {"id": "alice", "name": "Alice"},
+        {"id": "bob", "name": "Bob"},
+        {"id": "carol", "name": "Carol"},
+    ]
+
+    def __init__(self):
+        from sentry.roles.manager import RoleManager
+
+        self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+        self.organization_roles = self.default_manager.organization_roles
+
+    def get_all(self):
+        return self.organization_roles.get_all()
+
+    def get(self, x):
+        return self.organization_roles.get(x)
+
+
 @region_silo_test(stable=True)
 class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
@@ -195,7 +221,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert qs.exists()
 
         with outbox_runner():
-            member.save_outbox_for_update()
+            member.outbox_for_update().save()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
@@ -504,6 +530,34 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             roles.get("admin"),
             roles.get("manager"),
         ]
+
+    def test_get_allowed_org_roles_to_invite_subset_logic(self):
+        mock_org_roles = MockOrganizationRoles()
+        with patch("sentry.roles.organization_roles.get", mock_org_roles.get), patch(
+            "sentry.roles.organization_roles.get_all", mock_org_roles.get_all
+        ):
+            alice = self.create_member(
+                user=self.create_user(), organization=self.organization, role="alice"
+            )
+            assert alice.get_allowed_org_roles_to_invite() == [
+                roles.get("alice"),
+                roles.get("bob"),
+                roles.get("carol"),
+            ]
+
+            bob = self.create_member(
+                user=self.create_user(), organization=self.organization, role="bob"
+            )
+            assert bob.get_allowed_org_roles_to_invite() == [
+                roles.get("bob"),
+            ]
+
+            carol = self.create_member(
+                user=self.create_user(), organization=self.organization, role="carol"
+            )
+            assert carol.get_allowed_org_roles_to_invite() == [
+                roles.get("carol"),
+            ]
 
     def test_org_roles_by_source(self):
         manager_team = self.create_team(organization=self.organization, org_role="manager")

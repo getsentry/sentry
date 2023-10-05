@@ -723,8 +723,14 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             user_id=member_user.id, organization=self.organization
         ).exists()
 
+    def test_can_delete_pending_invite(self):
+        invite = self.create_member(
+            organization=self.organization, user=None, email="invitee@example.com", role="member"
+        )
+        self.get_success_response(self.organization.slug, invite.id)
 
-@region_silo_test
+
+@region_silo_test(stable=True)
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
         self.owner = self.create_user()

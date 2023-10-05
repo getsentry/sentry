@@ -54,11 +54,12 @@ SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
 # - Please keep this list organized alphabetically.
-GETTING_STARTD_DOCS_PLATFORMS = [
+GETTING_STARTED_DOCS_PLATFORMS = [
     "android",
     "apple",
     "apple-ios",
     "apple-macos",
+    "bun",
     "capacitor",
     "cordova",
     "dart",
@@ -599,7 +600,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        return not value or value == "other" or value in GETTING_STARTD_DOCS_PLATFORMS
+        return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:

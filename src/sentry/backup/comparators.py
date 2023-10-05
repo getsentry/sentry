@@ -13,8 +13,6 @@ from django.db import models
 from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_sentry_models
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
@@ -659,14 +657,15 @@ ComparatorMap = Dict[str, ComparatorList]
 def get_default_comparators():
     """Helper function executed at startup time which builds the static default comparators map."""
 
+    from sentry.models.actor import Actor
+    from sentry.models.organization import Organization
+
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
     # assign manually, since there is no clever way to derive them automatically.
     default_comparators: ComparatorMap = defaultdict(
         list,
         {
-            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
-            "sentry.actor": [ForeignKeyComparator({"team": Team, "user_id": User})],
             "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
@@ -700,9 +699,11 @@ def get_default_comparators():
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
+            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
+            "sentry.team": [ForeignKeyComparator({"actor": Actor, "organization": Organization})],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                DateUpdatedComparator("last_password_change"),
+                DateUpdatedComparator("last_active", "last_password_change"),
                 # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
                 # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
                 # comparison.
