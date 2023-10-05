@@ -244,8 +244,10 @@ export const boundsGenerator = (bounds: {
   };
 };
 
-export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
-  const rootSpan: RawSpanType = {
+export function generateRootSpan(
+  trace: ParsedTraceType
+): RawSpanType | AggregateSpanType {
+  const rootSpan = {
     trace_id: trace.traceID,
     span_id: trace.rootSpanID,
     parent_span_id: trace.parentSpanID,
@@ -257,6 +259,9 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     status: trace.rootSpanStatus,
     hash: trace.hash,
     exclusive_time: trace.exclusiveTime,
+    count: trace.count,
+    frequency: trace.frequency,
+    total: trace.total,
   };
 
   return rootSpan;
@@ -473,6 +478,9 @@ export function parseTrace(
   const rootSpanStatus = traceContext && traceContext.status;
   const hash = traceContext && traceContext.hash;
   const exclusiveTime = traceContext && traceContext.exclusive_time;
+  const count = traceContext && traceContext.count;
+  const frequency = traceContext && traceContext.frequency;
+  const total = traceContext && traceContext.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -488,6 +496,9 @@ export function parseTrace(
       description,
       hash,
       exclusiveTime,
+      count,
+      frequency,
+      total,
     };
   }
 
@@ -516,6 +527,9 @@ export function parseTrace(
     description,
     hash,
     exclusiveTime,
+    count,
+    frequency,
+    total,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {

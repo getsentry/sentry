@@ -84,6 +84,7 @@ export function AggregateSpans({transaction}: Props) {
       start_timestamp: start_timestamp / 1000,
       trace_id: '1', // not actually trace_id just a placeholder
       count,
+      total,
       duration,
       frequency: count / total,
       type: 'aggregate',
@@ -136,6 +137,10 @@ export function AggregateSpans({transaction}: Props) {
       ],
       startTimestamp: 0,
       type: EventOrGroupType.AGGREGATE_TRANSACTION,
+      // TODO: No need for optional chaining here, we should not return anything if the event is not loaded
+      frequency: parentSpan?.frequency ?? 0,
+      count: parentSpan?.count ?? 0,
+      total: parentSpan?.total ?? 0,
     };
   }, [parentSpan, flattenedSpans]);
   const waterfallModel = useMemo(() => new WaterfallModel(event, undefined), [event]);
