@@ -488,18 +488,18 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers(this.headers);
+    const requestHeaders = new Headers(this.headers);
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
     if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
-      headers.set('X-CSRFToken', getCsrfToken());
+      requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
       method,
       body,
-      headers,
+      headers: requestHeaders,
       credentials: this.credentials,
       signal: aborter?.signal,
     });
@@ -535,7 +535,8 @@ export class Client {
 
           const responseContentType = response.headers.get('content-type');
           const isResponseJSON = responseContentType?.includes('json');
-          const wasExpectingJson = headers.get('Content-Type') === 'application/json';
+          const wasExpectingJson =
+            requestHeaders.get('Content-Type') === 'application/json';
 
           const isStatus3XX = status >= 300 && status < 400;
           if (status !== 204 && !isStatus3XX) {
