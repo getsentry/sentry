@@ -63,5 +63,7 @@ class ArrayField(models.Field):
                 except ValueError:
                     # this handles old database values using postgresql array format
                     # see https://sentry.sentry.io/issues/4524783782/
+                    assert value[0] == "{" and value[-1] == "}", "Unexpected ArrayField format"
+                    assert "\\" not in value, "Unexpected ArrayField format"
                     value = value[1:-1].split(",")
         return [self.of.to_python(x) for x in value]
