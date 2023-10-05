@@ -542,6 +542,7 @@ const ProfileDigestContainer = styled('div')`
   flex: 1 1 100%;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 `;
 
 const ProfileDigestScrollContainer = styled('div')`
@@ -551,7 +552,8 @@ const ProfileDigestScrollContainer = styled('div')`
   right: 0;
   top: 0;
   bottom: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
