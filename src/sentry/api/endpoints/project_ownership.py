@@ -11,11 +11,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.projectownership import ProjectOwnershipResponse
+from sentry.api.serializers.models.projectownership import ProjectOwnershipSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -233,11 +232,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
         ],
         request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "ProjectOwnershipResponse", ProjectOwnershipResponse
-            )
-        },
+        responses={200: ProjectOwnershipSerializer},
         examples=ownership_examples.GET_PROJECT_OWNERSHIP,
     )
     def get(self, request: Request, project) -> Response:
@@ -265,9 +260,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         ],
         request=ProjectOwnershipRequestSerializer,
         responses={
-            202: inline_sentry_response_serializer(
-                "ProjectOwnershipResponse", ProjectOwnershipResponse
-            ),
+            202: ProjectOwnershipSerializer,
             400: RESPONSE_BAD_REQUEST,
         },
         examples=ownership_examples.UPDATE_PROJECT_OWNERSHIP,
