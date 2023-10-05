@@ -1,17 +1,19 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,23 +33,21 @@ interface SpanDiff {
   span_op: string;
 }
 
-interface DiffRowProps {
-  after: number;
-  before: number;
-  delta: number;
+interface UseFetchAdvancedAnalysisProps {
+  breakpoint: string;
   end: string;
-  group: string;
-  label: string;
-  op: string;
   projectId: string;
   start: string;
   transaction: string;
 }
 
-interface UseFetchAdvancedAnalysisProps {
-  breakpoint: string;
+interface RenderBodyCellProps {
+  column: GridColumnOrder<string>;
   end: string;
+  location: Location;
+  organization: Organization;
   projectId: string;
+  row: SpanDiff;
   start: string;
   transaction: string;
 }
@@ -81,73 +81,120 @@ function useFetchAdvancedAnalysis({
   );
 }
 
-function DiffRow({
-  delta,
-  label,
-  before,
-  after,
-  op,
-  group,
-  projectId,
-  transaction,
-  start,
-  end,
-}: DiffRowProps) {
-  const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
+function getColumns() {
+  return [
+    {key: 'span_op', name: t('Operation'), width: COL_WIDTH_UNDEFINED},
+    {key: 'span_description', name: t('Description'), width: 400},
 
-  const {background, color} =
-    delta > 0
-      ? {background: theme.red100, color: theme.red300}
-      : {background: theme.green100, color: theme.green300};
-  const Icon = delta > 0 ? IconAdd : IconSubtract;
-  return (
-    <Row backgroundColor={background}>
-      <IconWrapper color={color}>
-        <Icon />
-        <span style={{paddingLeft: '8px'}}>{t('Span')}</span>
-      </IconWrapper>
-      <Label>
-        <Tooltip title={label} showOnlyOnOverflow>
-          <TextOverflow>
-            <Link
-              to={spanDetailsRouteWithQuery({
-                orgSlug: organization.slug,
-                spanSlug: {op, group},
-                transaction,
-                projectID: projectId,
-                query: {
-                  ...location.query,
-                  statsPeriod: undefined,
-                  query: undefined,
-                  start,
-                  end,
-                },
-              })}
-            >
-              {label}
-            </Link>
-          </TextOverflow>
-        </Tooltip>
-      </Label>
-      <Tooltip
-        title={tct(`From [beforeDuration] to [afterDuration]`, {
-          beforeDuration: getDuration(before / 1000, 2, undefined, true),
-          afterDuration: getDuration(after / 1000, 2, undefined, true),
-        })}
-        showUnderline
-      >
-        {delta > 0 ? '+' : ''}
-        {delta.toFixed(2)}%
-      </Tooltip>
-    </Row>
-  );
+    // TODO: Relative Frequency should be replaced with Throughput
+    {key: 'freq_after', name: t('Relative Frequency'), width: COL_WIDTH_UNDEFINED},
+    {key: 'freq_delta', name: t('Change'), width: COL_WIDTH_UNDEFINED},
+    {key: 'duration_after', name: t('P95'), width: COL_WIDTH_UNDEFINED},
+    {key: 'duration_delta', name: t('Change'), width: COL_WIDTH_UNDEFINED},
+  ];
 }
 
-function AggregateSpanDiff({event, projectId}) {
+function renderHeadCell(column: GridColumnOrder<string>) {
+  if (
+    ['freq_after', 'freq_delta', 'duration_after', 'duration_delta'].includes(column.key)
+  ) {
+    if (column.key === 'freq_after') {
+      return (
+        <Tooltip
+          title={t(
+            'Relative Frequency is the number of times the span appeared divided by the number of transactions observed'
+          )}
+          skipWrapper
+        >
+          <NumericColumnLabel>{column.name}</NumericColumnLabel>
+        </Tooltip>
+      );
+    }
+
+    return <NumericColumnLabel>{column.name}</NumericColumnLabel>;
+  }
+  return column.name;
+}
+
+function renderBodyCell({
+  column,
+  row,
+  organization,
+  transaction,
+  projectId,
+  location,
+  start,
+  end,
+}: RenderBodyCellProps) {
+  if (column.key === 'span_description') {
+    const label = row[column.key] || t('unnamed span');
+    return (
+      <Tooltip title={label} showOnlyOnOverflow>
+        <TextOverflow>
+          <Link
+            to={spanDetailsRouteWithQuery({
+              orgSlug: organization.slug,
+              spanSlug: {op: row.span_op, group: row.span_group},
+              transaction,
+              projectID: projectId,
+              query: {
+                ...location.query,
+                statsPeriod: undefined,
+                query: undefined,
+                start,
+                end,
+              },
+            })}
+          >
+            {label}
+          </Link>
+        </TextOverflow>
+      </Tooltip>
+    );
+  }
+
+  if (['duration_delta', 'freq_delta'].includes(column.key)) {
+    if (row[column.key] === 0) {
+      return <NumericColumnLabel>-</NumericColumnLabel>;
+    }
+
+    const prefix = column.key.split('_delta')[0];
+    const unitSuffix = prefix === 'duration' ? 'ms' : '';
+    const percentDelta = (row[column.key] / row[`${prefix}_before`]) * 100;
+    const strippedLabel = Math.abs(percentDelta).toFixed(2);
+    const isPositive = percentDelta > 0;
+
+    return (
+      <Tooltip
+        title={tct('From [before] to [after]', {
+          before: `${row[`${prefix}_before`].toFixed(2)}${unitSuffix}`,
+          after: `${row[`${prefix}_after`].toFixed(2)}${unitSuffix}`,
+        })}
+      >
+        <ChangeLabel isPositive={isPositive}>{`${
+          isPositive ? '+' : '-'
+        }${strippedLabel}%`}</ChangeLabel>
+      </Tooltip>
+    );
+  }
+
+  if (typeof row[column.key] === 'number') {
+    const unitSuffix = column.key === 'duration_after' ? 'ms' : '';
+    return (
+      <NumericColumnLabel>{`${row[column.key].toFixed(
+        2
+      )}${unitSuffix}`}</NumericColumnLabel>
+    );
+  }
+
+  return row[column.key];
+}
+
+function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
+  const location = useLocation();
+  const organization = useOrganization();
   const {transaction, requestStart, requestEnd, breakpoint} =
-    event?.occurrence?.evidenceData;
+    event?.occurrence?.evidenceData ?? {};
 
   const start = new Date(requestStart * 1000).toISOString();
   const end = new Date(requestEnd * 1000).toISOString();
@@ -178,56 +225,42 @@ function AggregateSpanDiff({event, projectId}) {
       </EmptyStateWarning>
     );
   } else {
-    content = data.map(diff => (
-      <DiffRow
-        key={`${diff.span_op}:${diff.span_group}`}
-        delta={diff.duration_delta * 100}
-        before={diff.duration_before}
-        after={diff.duration_after}
-        label={
-          diff.span_description
-            ? `${diff.span_op}: ${diff.span_description}`
-            : diff.span_op
-        }
-        op={diff.span_op}
-        group={diff.span_group}
-        projectId={projectId}
-        transaction={transaction}
-        start={start}
-        end={end}
+    content = (
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        location={location}
+        columnOrder={getColumns()}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell: (column, row) =>
+            renderBodyCell({
+              column,
+              row,
+              organization,
+              transaction,
+              projectId,
+              location,
+              start,
+              end,
+            }),
+        }}
       />
-    ));
+    );
   }
 
-  return (
-    <DataSection>
-      <strong>{t('Frequent Diffs:')}</strong>
-      {content}
-    </DataSection>
-  );
+  return <DataSection>{content}</DataSection>;
 }
 
 export default AggregateSpanDiff;
 
-const Label = styled('div')`
-  flex: auto;
-  margin: 0 ${space(2)};
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ChangeLabel = styled('div')<{isPositive: boolean}>`
+  color: ${p => (p.isPositive ? p.theme.red300 : p.theme.green300)};
+  text-align: right;
 `;
 
-const IconWrapper = styled('div')<{color: string}>`
-  display: flex;
-  align-items: center;
-  color: ${p => p.color};
-`;
-
-const Row = styled('div')<{backgroundColor: string}>`
-  background: ${p => p.backgroundColor};
-  padding: ${space(2)};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const NumericColumnLabel = styled('div')`
+  text-align: right;
+  width: 100%;
 `;
