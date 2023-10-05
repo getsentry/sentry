@@ -23,6 +23,7 @@ class DSN(TypedDict):
     csp: str
     security: str
     minidump: str
+    nel: str
     unreal: str
     cdn: str
 
