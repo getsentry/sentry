@@ -32,33 +32,34 @@ export function getAriaLabel(str: string) {
   return pre.substring(0, pre.lastIndexOf('"]'));
 }
 
-function removeEmptyAttribute(elementAttribute, fullAlltribute) {
+function trimAttribute(elementAttribute, fullAlltribute) {
   return elementAttribute === '' ? '' : fullAlltribute;
 }
 
 function constructSelector(element: Element) {
   const fullAlt = '[alt="' + element.alt + '"]';
-  const alt = removeEmptyAttribute(element.alt, fullAlt);
+  const alt = trimAttribute(element.alt, fullAlt);
 
   const fullAriaLabel = '[aria="' + element.aria_label + '"]';
-  const ariaLabel = removeEmptyAttribute(element.aria_label, fullAriaLabel);
+  const ariaLabel = trimAttribute(element.aria_label, fullAriaLabel);
 
-  const classWithPeriod = element.class.join('.');
+  const trimClass = element.class.filter(e => e !== '');
+  const classWithPeriod = trimClass.join('.');
   const classNoPeriod = classWithPeriod.replace('.', '');
-  const classes = removeEmptyAttribute(classNoPeriod, '.' + classWithPeriod);
+  const classes = trimAttribute(classNoPeriod, '.' + classWithPeriod);
 
-  const id = removeEmptyAttribute(element.id, '#' + element.id);
+  const id = trimAttribute(element.id, '#' + element.id);
 
   const fullRole = '[role="' + element.role + '"]';
-  const role = removeEmptyAttribute(element.role, fullRole);
+  const role = trimAttribute(element.role, fullRole);
 
   const tag = element.tag;
 
   const fullTestId = '[data-test-id="' + element.testid + '"]';
-  const testId = removeEmptyAttribute(element.testid, fullTestId);
+  const testId = trimAttribute(element.testid, fullTestId);
 
   const fullTitle = '[title="' + element.title + '"]';
-  const title = removeEmptyAttribute(element.title, fullTitle);
+  const title = trimAttribute(element.title, fullTitle);
 
   const fullSelector =
     tag + id + classes + fullRole + fullAriaLabel + fullTestId + fullAlt + fullTitle;
