@@ -1,12 +1,12 @@
-import time
 from unittest import mock
 
 from django.core.exceptions import ValidationError
 from pytest import raises
+from requests.exceptions import Timeout
 
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import validate_channel_id
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -96,12 +96,8 @@ class ValidateChannelTest(TestCase):
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_timeout(self, mock_get_channel):
-        def slow_response_side_effect(*args, **kwargs):
-            time.sleep(11)  # Simulates an 11 second delay (1 second more than default timeout)
-            return {"guild_id": self.guild_id}
-
-        mock_get_channel.side_effect = slow_response_side_effect
-        timed_out = validate_channel_id(
-            self.channel_id, self.guild_id, self.integration_id, self.guild_name
-        )
-        assert timed_out
+        mock_get_channel.side_effect = Timeout("foo")
+        with raises(ApiTimeoutError):
+            validate_channel_id(
+                self.channel_id, self.guild_id, self.integration_id, self.guild_name
+            )

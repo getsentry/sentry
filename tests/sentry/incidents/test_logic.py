@@ -68,7 +68,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
@@ -1915,7 +1915,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @responses.activate
     @mock.patch("sentry.integrations.discord.utils.channel.validate_channel_id")
     def test_discord_timeout(self, mock_validate_channel_id):
-        mock_validate_channel_id.return_value = True
+        mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
 
         base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"

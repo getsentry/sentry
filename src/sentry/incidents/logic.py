@@ -47,6 +47,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiTimeoutError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -1336,7 +1337,7 @@ def get_alert_rule_trigger_action_discord_channel_id(
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:
-        timed_out = validate_channel_id(
+        validate_channel_id(
             channel_id=name,
             guild_id=integration.external_id,
             integration_id=integration.id,
@@ -1349,7 +1350,7 @@ def get_alert_rule_trigger_action_discord_channel_id(
         )
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
-    if timed_out:
+    except ApiTimeoutError:
         raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it." % name
         )

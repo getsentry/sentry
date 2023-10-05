@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import time
-
 from django.core.exceptions import ValidationError
+from requests.exceptions import Timeout
 
 from sentry.integrations.discord.client import DiscordClient
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 
 from . import logger
@@ -16,14 +15,13 @@ DISCORD_DEFAULT_TIMEOUT = 10
 
 def validate_channel_id(
     channel_id: str, guild_id: str, integration_id: int | None, guild_name: str | None
-) -> bool:
+) -> None:
     """
     Make sure that for this integration, the channel exists, belongs to this
     integration, and our bot has access to it.
     :return: boolean (whether we hit our self-imposed time limit)
     """
     client = DiscordClient(integration_id=integration_id)
-    time_to_quit = time.time() + DISCORD_DEFAULT_TIMEOUT
     try:
         result = client.get_channel(channel_id)
     except ApiError as e:
@@ -72,6 +70,16 @@ def validate_channel_id(
                 },
             )
             raise IntegrationError("Bad response from Discord channel lookup.")
+    except Timeout:
+        logger.info(
+            "rule.discord.channel_lookup_timed_out",
+            extra={
+                "channel_id": channel_id,
+                "guild_name": guild_name,
+                "reason": "channel ID missing or malformed",
+            },
+        )
+        raise ApiTimeoutError("Discord channel lookup timed out")
 
     if not isinstance(result, dict):
         raise IntegrationError("Bad response from Discord channel lookup.")
@@ -89,7 +97,3 @@ def validate_channel_id(
             },
         )
         raise ValidationError(f"Discord channel not in {guild_name}")
-
-    if time.time() > time_to_quit:
-        return True
-    return False
