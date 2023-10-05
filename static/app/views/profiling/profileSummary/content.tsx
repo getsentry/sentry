@@ -116,6 +116,11 @@ const ALL_FIELDS = [
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+  'last_seen()',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];

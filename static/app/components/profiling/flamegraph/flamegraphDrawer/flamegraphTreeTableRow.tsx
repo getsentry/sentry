@@ -22,7 +22,6 @@ interface FlamegraphTreeTableRowProps {
   frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
   onClick: React.MouseEventHandler<HTMLDivElement>;
-  onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
     expand: boolean,
@@ -33,6 +32,7 @@ interface FlamegraphTreeTableRowProps {
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
   tabIndex: number;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const FlamegraphTreeTableRow = forwardRef<

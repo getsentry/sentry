@@ -27,10 +27,6 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
   const {threadId} = useFlamegraphProfiles();
   const {sorting, view} = useFlamegraphPreferences();
 
-  const activeProfile = useMemo(() => {
-    return profileGroup.profiles.find(p => p.threadId === threadId);
-  }, [profileGroup, threadId]);
-
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
@@ -38,6 +34,7 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
 
     // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
+    const activeProfile = profileGroup.profiles.find(p => p.threadId === threadId);
     if (!activeProfile) {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
@@ -59,7 +56,7 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
     transaction.finish();
 
     return newFlamegraph;
-  }, [activeProfile, sorting, threadId, view]);
+  }, [sorting, threadId, view, profileGroup]);
 
   return (
     <FlamegraphContext.Provider value={flamegraph}>

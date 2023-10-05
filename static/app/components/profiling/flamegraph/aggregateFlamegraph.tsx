@@ -18,7 +18,6 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
@@ -28,11 +27,9 @@ interface AggregateFlamegraphProps {
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
-  const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
   const flamegraph = useFlamegraph();
-
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -48,9 +45,8 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     if (!flamegraphCanvasRef) {
       return null;
     }
-    const yOrigin = flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio;
-    return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, yOrigin));
-  }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme]);
+    return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, 0));
+  }, [flamegraphCanvasRef]);
 
   const flamegraphView = useMemo<CanvasView<FlamegraphModel> | null>(
     () => {
@@ -70,10 +66,6 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         },
       });
 
-      // Set to 3/4 of the view up, magic number... Would be best to comput some weighted visual score
-      // based on the number of frames and the depth of the frames, but lets see if we can make it work
-      // with this for now
-      newView.setConfigView(newView.configView.withY(newView.configView.height * 0.75));
       return newView;
     },
 
@@ -114,7 +106,6 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     const onResetZoom = () => {
       flamegraphView.resetConfigView(flamegraphCanvas);
-
       props.canvasPoolManager.draw();
     };
 
@@ -185,6 +176,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
   return (
     <FlamegraphZoomView
+      disableCallOrderSort
       canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}
       flamegraph={flamegraph}
