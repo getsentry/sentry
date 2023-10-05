@@ -1,14 +1,15 @@
 import {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {MetricsFilters, SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsField;
+const {SPAN_SELF_TIME} = SpanMetricsField;
 
 export type SpanTransactionMetrics = {
   'avg(span.self_time)': number;
@@ -22,39 +23,40 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  group: string,
-  options: {sorts?: Sort[]; transactions?: string[]},
-  referrer = 'api.starfish.span-transaction-metrics',
-  cursor?: string
+  filters: MetricsFilters,
+  sorts?: Sort[],
+  cursor?: string,
+  enabled: boolean = true,
+  referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const {transactions, sorts} = options;
-
-  const eventView = getEventView(group, location, transactions ?? [], sorts);
+  const eventView = getEventView(location, filters, sorts);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(group),
+    enabled,
     limit: 25,
     referrer,
     cursor,
   });
 };
 
-function getEventView(
-  group: string,
-  location: Location,
-  transactions: string[],
-  sorts?: Sort[]
-) {
+function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: Sort[]) {
   const search = new MutableSearch('');
-  search.addFilterValues(SPAN_GROUP, [group]);
 
-  if (transactions.length > 0) {
-    search.addFilterValues('transaction', transactions);
-  }
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!defined(value)) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      search.addFilterValues(key, value);
+    } else {
+      search.addFilterValue(key, value);
+    }
+  });
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
