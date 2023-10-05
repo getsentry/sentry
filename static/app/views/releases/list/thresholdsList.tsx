@@ -1,32 +1,17 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
-import {HeaderCell, Table, TableData} from '../components/table';
+import {Threshold, ThresholdQuery} from '../utils/types';
 
-// import {ThresholdGroupRow} from './thresholdGroupRow';
-
-type ThresholdQuery = {
-  environment?: string[] | undefined;
-  project?: number[] | undefined;
-};
-
-type Threshold = {
-  date_added: string;
-  environment: Environment;
-  id: string;
-  project: Project;
-  threshold_type: string;
-  trigger_type: string;
-  value: number;
-  window_in_seconds: number;
-};
+import {ThresholdGroupRow} from './thresholdGroupRow';
 
 type Props = {
   organization: Organization;
@@ -35,12 +20,27 @@ type Props = {
 };
 
 function ThresholdsList({organization, selectedEnvs, selectedProjects}: Props) {
-  // TODO: fetch threshold groupings
   const api = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [_featureEnabledFlag, setFeatureEnabledFlag] = useState<boolean>(true);
   const [thresholds, setThresholds] = useState<Threshold[]>([]);
   const [errors, setErrors] = useState<string | null>();
+
+  const thresholdGroups: {[key: string]: {[key: string]: Threshold[]}} = useMemo(() => {
+    const byProj = {};
+    thresholds.forEach(threshold => {
+      const projId = threshold.project.id;
+      if (!byProj[projId]) {
+        byProj[projId] = {};
+      }
+      const env = threshold.environment.name;
+      if (!byProj[projId][env]) {
+        byProj[projId][env] = [];
+      }
+      byProj[projId][env].push(threshold);
+    });
+    return byProj;
+  }, [thresholds]);
 
   const fetchThresholds = useCallback(async () => {
     //   re_path(
@@ -92,41 +92,28 @@ function ThresholdsList({organization, selectedEnvs, selectedProjects}: Props) {
 
   return (
     <Wrapper>
-      <Table data-test-id="allocations-table">
-        <colgroup>
-          <col id="projNameCol" style={{width: '25%'}} />
-          <col id="envCol" style={{width: '15%'}} />
-          <col id="windowCol" style={{width: '15%'}} />
-          <col id="conditionsCol" style={{width: '25%'}} />
-          {/* <col id="alertsCol" style={{width: '15%'}} /> */}
-          <col id="actionsCol" style={{width: '5%'}} />
-        </colgroup>
-        <tbody>
-          <tr>
-            <HeaderCell>{t('Project Name')}</HeaderCell>
-            <HeaderCell>{t('Environment')}</HeaderCell>
-            <HeaderCell>{t('Window')}</HeaderCell>
-            <HeaderCell>{t('Conditions')}</HeaderCell>
-            {/* TODO: <HeaderCell>{t('Alerts')}</HeaderCell> */}
-            <HeaderCell style={{textAlign: 'right'}}>{t('Actions')}</HeaderCell>
-          </tr>
-          <tr>
-            <TableData>project name</TableData>
-            <TableData>environment</TableData>
-            <TableData>window</TableData>
-            <TableData>conditions</TableData>
-            <TableData>actions</TableData>
-          </tr>
-          {thresholds &&
-            thresholds.map((threshold: Threshold) => {
-              return (
-                <tr key={threshold.id}>
-                  <TableData>{threshold.project.name}</TableData>
-                </tr>
-              );
-            })}
-        </tbody>
-      </Table>
+      <StyledPanelTable
+        isLoading={isLoading}
+        isEmpty={thresholds.length === 0 && !errors}
+        emptyMessage={t('No thresholds found.')}
+        headers={[
+          t('Project Name'),
+          t('Environment'),
+          t('Window'),
+          t('Conditions'),
+          t('Actions'),
+        ]}
+      >
+        {thresholdGroups &&
+          Object.entries(thresholdGroups).map(([projId, byEnv]) => {
+            return Object.entries(byEnv).map(([envName, thresholdGroup]) => (
+              <ThresholdGroupRow
+                key={`${projId}-${envName}`}
+                thresholds={thresholdGroup}
+              />
+            ));
+          })}
+      </StyledPanelTable>
     </Wrapper>
   );
 }
@@ -135,4 +122,16 @@ export default ThresholdsList;
 
 const Wrapper = styled('div')`
   margin: ${space(2)} 0;
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    overflow: initial;
+  }
+
+  grid-template-columns:
+    minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(250px, 4fr)
+    auto;
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

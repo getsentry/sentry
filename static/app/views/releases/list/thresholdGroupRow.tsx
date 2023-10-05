@@ -1,31 +1,68 @@
-import {TableData} from '../components/table';
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-type Threshold = {
-  environment: string;
-  project: string;
-  thresholdType: string;
-  triggerType: string;
-  window: string;
-};
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+
+import {forHumans} from '../utils';
+import {Threshold} from '../utils/types';
 
 type Props = {
-  environment: string;
-  projectName: string;
   thresholds: {[key: string]: any};
 };
 
-export function ThresholdGroupRow({environment, projectName, thresholds}: Props) {
-  // NOTE: all thresholds in group should have the same project and environment
-  return thresholds.map((idx: number, t: Threshold) => (
-    <tr key={idx}>
-      {/* TODO: grab project icon */}
-      <TableData>{!idx ? projectName : ''}</TableData>
-      <TableData>{idx === 1 ? environment : ''}</TableData>
-      <TableData>{t.window}</TableData>
-      <TableData>
-        {t.triggerType === 'over' ? '>' : '<'} {t.thresholdType}
-      </TableData>
-      <TableData />
-    </tr>
+export function ThresholdGroupRow({thresholds}: Props) {
+  const actions: MenuItemProps[] = [
+    {
+      key: 'edit',
+      label: t('Edit'),
+      to: '',
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: () => {
+        console.log('oops');
+      },
+    },
+  ];
+
+  return thresholds.map((threshold: Threshold, idx: number) => (
+    <Fragment key={idx}>
+      <FlexCenter>{idx === 0 ? threshold.project.slug : ''}</FlexCenter>
+      <FlexCenter>{idx === 0 ? threshold.environment.name || 'None' : ''}</FlexCenter>
+      <FlexCenter>{forHumans(threshold.window_in_seconds)}</FlexCenter>
+      <FlexCenter>
+        {threshold.trigger_type === 'over' ? '>' : '<'} {threshold.threshold_type}
+      </FlexCenter>
+      <ActionsColumn>
+        <DropdownMenu
+          items={actions}
+          position="bottom-end"
+          triggerProps={{
+            'aria-label': t('Actions'),
+            size: 'xs',
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+          }}
+          // disabledKeys={hasAccess && canEdit ? [] : ['delete']}
+        />
+      </ActionsColumn>
+    </Fragment>
   ));
 }
+
+const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ActionsColumn = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${space(1)};
+`;
