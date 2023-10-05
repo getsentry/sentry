@@ -5,11 +5,11 @@ import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBre
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
-  actions: undefined | unknown[];
+  frames: undefined | unknown[];
 } & ReturnType<typeof useBreadcrumbFilters>;
 
 function BreadcrumbFilters({
-  actions,
+  frames,
   getMutationsTypes,
   searchTerm,
   setSearchTerm,
@@ -34,7 +34,7 @@ function BreadcrumbFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Breadcrumb Events')}
         query={searchTerm}
-        disabled={!actions || !actions.length}
+        disabled={!frames || !frames.length}
       />
     </FiltersGrid>
   );

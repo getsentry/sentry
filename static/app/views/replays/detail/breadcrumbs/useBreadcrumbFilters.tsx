@@ -2,9 +2,8 @@ import {useCallback, useMemo} from 'react';
 import uniq from 'lodash/uniq';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
+import {BreadcrumbFrame, getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {
@@ -13,12 +12,12 @@ export type FilterFields = {
 };
 
 type Options = {
-  actions: Extraction[];
+  frames: BreadcrumbFrame[];
 };
 
 type Return = {
   getMutationsTypes: () => {label: string; value: string}[];
-  items: Extraction[];
+  items: BreadcrumbFrame[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
   setType: (type: string[]) => void;
@@ -38,13 +37,13 @@ function typeToLabel(val: string): string {
 }
 
 const FILTERS = {
-  type: (item: Extraction, type: string[]) =>
+  type: (item: BreadcrumbFrame, type: string[]) =>
     type.length === 0 || type.includes(item.type),
-  searchTerm: (item: Extraction, searchTerm: string) =>
+  searchTerm: (item: BreadcrumbFrame, searchTerm: string) =>
     JSON.stringify(item).toLowerCase().includes(searchTerm),
 };
 
-function useBreadcrumbFilters({actions}: Options): Return {
+function useBreadcrumbFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
@@ -53,19 +52,19 @@ function useBreadcrumbFilters({actions}: Options): Return {
   const items = useMemo(
     () =>
       filterItems({
-        items: actions,
+        items: frames,
         filterFns: FILTERS,
         filterVals: {type, searchTerm},
       }),
-    [actions, type, searchTerm]
+    [frames, type, searchTerm]
   );
 
   const getMutationsTypes = useCallback(
     () =>
-      uniq(actions.map(mutation => getFrameOpOrCategory(mutation)).concat(type))
+      uniq(frames.map(mutation => getFrameOpOrCategory(mutation)).concat(type))
         .sort()
         .map(value => ({value, label: typeToLabel(value)})),
-    [actions, type]
+    [frames, type]
   );
 
   const setType = useCallback((f_b_type: string[]) => setFilter({f_b_type}), [setFilter]);

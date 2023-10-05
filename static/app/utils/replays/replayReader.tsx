@@ -206,6 +206,8 @@ export default class ReplayReader {
         ) // filter only for mutation events
     );
 
+  getBreadcrumbFrames = memoize(() => this._sortedBreadcrumbFrames);
+
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
