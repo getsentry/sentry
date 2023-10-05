@@ -24,6 +24,9 @@ def make_evidence(feedback):
 
 
 def create_feedback_issue(event, project_id):
+    # Note that some of the fields below like title and subtitle
+    # are not used by the feedback UI, but are required.
+
     event["event_id"] = event.get("event_id") or uuid4().hex
     evidcence_data, evidence_display = make_evidence(event["feedback"])
     occurrence = IssueOccurrence(
