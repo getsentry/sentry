@@ -303,3 +303,10 @@ export function updateQuery(router: InjectedRouter, partialQuery: Record<string,
     },
   });
 }
+
+export function clearQuery(router: InjectedRouter) {
+  router.push({
+    ...router.location,
+    query: {},
+  });
+}

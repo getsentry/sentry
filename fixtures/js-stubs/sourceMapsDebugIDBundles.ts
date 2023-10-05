@@ -16,8 +16,6 @@ export function SourceMapsDebugIDBundles(
           dist: ['android', 'iOS'],
         },
       ],
-      release: null,
-      dist: null,
       fileCount: 39,
       dateModified: '2023-03-10T08:25:10Z',
       date: '2023-03-08T09:53:09Z',
