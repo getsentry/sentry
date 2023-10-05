@@ -276,7 +276,6 @@ export enum EntryType {
   STACKTRACE = 'stacktrace',
   TEMPLATE = 'template',
   CSP = 'csp',
-  NEL = 'nel',
   EXPECTCT = 'expectct',
   EXPECTSTAPLE = 'expectstaple',
   HPKP = 'hpkp',
@@ -380,11 +379,6 @@ type EntryCsp = {
   type: EntryType.CSP;
 };
 
-type EntryNel = {
-  data: Record<string, any>;
-  type: EntryType.NEL;
-};
-
 type EntryGeneric = {
   data: Record<string, any>;
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
@@ -406,7 +400,6 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryNel
   | EntryGeneric
   | EntryResources;
 
