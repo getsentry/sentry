@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -35,8 +36,9 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba import functions
+from sentry.snuba import functions, metrics_performance
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
@@ -46,12 +48,13 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
@@ -59,7 +62,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 FUNCTIONS_PER_PROJECT = 100
 FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 1_000
+TRANSACTIONS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -134,10 +137,20 @@ def detect_transaction_trends(
         lambda trend: trend[0] == TrendType.Regressed,
         _detect_transaction_trends(org_ids, project_ids, start),
     )
+
+    delay = 12  # hours
+    delayed_start = start + timedelta(hours=delay)
+
     for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
-        detect_transaction_change_points.delay(
-            [(payload.project_id, payload.group) for _, payload in trends],
-            start,
+        detect_transaction_change_points.apply_async(
+            args=[
+                [(payload.project_id, payload.group) for _, payload in trends],
+                delayed_start,
+            ],
+            # delay the check by delay hours because we want to make sure there
+            # will be enough data after the potential change point to be confident
+            # that a change has occurred
+            countdown=delay * 60 * 60,
         )
 
 
@@ -152,17 +165,69 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    for project_id, transaction in transactions:
+    for project_id, transaction_name in transactions:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("regressed_project_id", project_id)
-            scope.set_tag("regressed_transaction", transaction)
+            scope.set_tag("regressed_transaction", transaction_name)
+            scope.set_tag("breakpoint", "no")
+
             scope.set_context(
                 "statistical_detectors",
-                {
-                    "timestamp": start.isoformat(),
-                },
+                {"timestamp": start.isoformat()},
             )
             sentry_sdk.capture_message("Potential Transaction Regression")
+
+    breakpoint_count = 0
+
+    for breakpoints in chunked(_detect_transaction_change_points(transactions, start), 10):
+        breakpoint_count += len(breakpoints)
+        send_regressions_to_plaform(breakpoints, True)
+
+    metrics.incr(
+        "statistical_detectors.breakpoint.transactions",
+        amount=len(breakpoints),
+        sample_rate=1.0,
+    )
+
+
+def _detect_transaction_change_points(
+    transactions: List[Tuple[int, Union[int, str]]],
+    start: datetime,
+) -> Generator[BreakpointData, None, None]:
+    serializer = SnubaTSResultSerializer(None, None, None)
+
+    trend_function = "p95(transaction.duration)"
+
+    for chunk in chunked(
+        query_transactions_timeseries(transactions, start, trend_function), TRANSACTIONS_PER_BATCH
+    ):
+        data = {}
+        for project_id, transaction_name, result in chunk:
+            serialized = serializer.serialize(result, get_function_alias(trend_function))
+            data[f"{project_id},{transaction_name}"] = {
+                "data": serialized["data"],
+                "data_start": serialized["start"],
+                "data_end": serialized["end"],
+                # only look at the last 3 days of the request data
+                "request_start": serialized["end"] - 3 * 24 * 60 * 60,
+                "request_end": serialized["end"],
+            }
+
+        request = {
+            "data": data,
+            "sort": "-trend_percentage()",
+            "trendFunction": trend_function,
+            # Disable the fall back to use the midpoint as the breakpoint
+            # which was originally intended to detect a gradual regression
+            # for the trends use case. That does not apply here.
+            "allow_midpoint": "0",
+        }
+
+        try:
+            yield from detect_breakpoints(request)["data"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
 
 
 def _detect_transaction_trends(
@@ -239,6 +304,81 @@ def _detect_transaction_trends(
         amount=improved_count,
         sample_rate=1.0,
     )
+
+
+def query_transactions_timeseries(
+    transactions: List[Tuple[int, int | str]],
+    start: datetime,
+    agg_function: str,
+) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
+    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    interval = 3600  # 1 hour
+
+    # TODO: batch cross-project (and cross-org) timeseries queries
+    # (currently only txns in the same project are batched)
+    grouped_transactions = defaultdict(list)
+    for project_id, transaction_name in transactions:
+        grouped_transactions[project_id].append(transaction_name)
+
+    for project_id, transaction_names in grouped_transactions.items():
+        params: Dict[str, Any] = {
+            "start": end - timedelta(days=14),
+            "end": end,
+            "project_id": [project_id],
+            "project_objects": [Project.objects.get(id=project_id)],
+        }
+
+        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+        # 336 data points per transaction name, so we can safely get 25 transaction
+        # timeseries.
+        chunk_size = 25
+
+        for transactions_chunk in chunked(transaction_names, chunk_size):
+            escaped_transaction_names = [
+                transaction_name.replace('"', '\\"') for transaction_name in transactions_chunk
+            ]
+            query = " OR ".join([f'transaction:"{name}"' for name in escaped_transaction_names])
+
+            raw_results = metrics_performance.timeseries_query(
+                selected_columns=["project_id", "transaction", agg_function],
+                query=query,
+                params=params,
+                rollup=interval,
+                referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
+                groupby=Column("transaction"),
+                zerofill_results=False,
+            )
+
+            results = {}
+            for index, datapoint in enumerate(raw_results.data.get("data") or []):
+                transaction_name = datapoint["transaction"]
+                if transaction_name not in results:
+                    results[transaction_name] = {
+                        "order": index,
+                        "data": [datapoint],
+                    }
+                else:
+                    data = cast(List, results[transaction_name]["data"])
+                    data.append(datapoint)
+
+            for transaction_name, item in results.items():
+                formatted_result = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"],
+                            params["start"],
+                            params["end"],
+                            interval,
+                            "time",
+                        ),
+                        "project": project_id,
+                        "order": item["order"],
+                    },
+                    params["start"],
+                    params["end"],
+                    interval,
+                )
+                yield project_id, transaction_name, formatted_result
 
 
 @instrumented_task(
@@ -561,7 +701,6 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
-
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
