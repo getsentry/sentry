@@ -230,6 +230,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
+        # Verify the conditions haven't changed
+        assert monitor_rule.data["conditions"] == rule.data["conditions"]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 

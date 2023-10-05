@@ -299,6 +299,8 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
+            # TODO(davidenwang): This is kind of a hack to get around updater removing conditions if not passed
+            "conditions": alert_rule.data.get("conditions", []),
         }
 
         updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
