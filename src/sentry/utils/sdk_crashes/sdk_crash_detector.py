@@ -10,7 +10,7 @@ from sentry.utils.safe import get_path
 
 @dataclass
 class SDKCrashDetectorConfig:
-    sdk_names: [str]
+    sdk_names: Sequence[str]
 
     min_sdk_version: str
 
