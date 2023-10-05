@@ -1,7 +1,8 @@
 import {Broadcast} from 'sentry-fixture/broadcast';
+import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -10,48 +11,31 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {generateDocKeys} from './utils';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
-  const {organization, router} = initializeOrg({
+  const {organization, routerContext, router} = initializeOrg({
     router: {
-      location: {query: {}, search: ''},
-      push: jest.fn(),
+      location: {query: {}, search: '', pathname: '/test/'},
     },
-  } as any);
+  });
   const broadcast = Broadcast();
 
   const apiMocks: any = {};
 
-  const location = {...router.location, ...{pathname: '/test/'}};
-
-  const getElement = props => {
+  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => {
     return (
-      <RouteContext.Provider
-        value={{
-          location,
-          params: {},
-          router,
-          routes: [],
-        }}
-      >
-        <OnboardingContextProvider>
-          <SidebarContainer
-            organization={props.organization}
-            location={location}
-            {...props}
-          />
-        </OnboardingContextProvider>
-      </RouteContext.Provider>
+      <OnboardingContextProvider>
+        <SidebarContainer organization={props.organization} {...props} />
+      </OnboardingContextProvider>
     );
   };
 
   const renderSidebar = props =>
-    render(getElement(props), {organization: props.organization});
+    render(getElement(props), {organization: props.organization, context: routerContext});
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -75,15 +59,14 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays boost performance card', async function () {
-    const {container} = renderSidebar({
+    renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding'],
       },
     });
-    await waitFor(() => container);
 
-    const quickStart = screen.getByText('Quick Start');
+    const quickStart = await screen.findByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -100,16 +83,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('checklist feature disabled', async function () {
-    const {container} = renderSidebar({
+    renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding'],
       },
     });
-    await waitFor(() => container);
+
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = screen.getByText('Quick Start');
+    const quickStart = await screen.findByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -131,18 +114,17 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'javascript-react', firstTransactionEvent: false}),
+      Project({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
+    renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
-    await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = screen.getByText('Quick Start');
+    const quickStart = await screen.findByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -164,18 +146,17 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'javascript-angular', firstTransactionEvent: false}),
+      Project({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
+    renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
-    await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = screen.getByText('Quick Start');
+    const quickStart = await screen.findByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -197,18 +178,17 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'elixir', firstTransactionEvent: false}),
+      Project({platform: 'elixir', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
+    renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
-    await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = screen.getByText('Quick Start');
+    const quickStart = await screen.findByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -227,14 +207,14 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays checklist', async function () {
-    const project = TestStubs.Project({
+    const project = Project({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });
     ProjectsStore.loadInitialData([project]);
 
     const docApiMocks: any = {};
-    const docKeys = generateDocKeys(project.platform);
+    const docKeys = generateDocKeys(project.platform!);
 
     docKeys.forEach(docKey => {
       docApiMocks[docKey] = MockApiClient.addMockResponse({
