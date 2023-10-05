@@ -535,6 +535,7 @@ export class Client {
 
           const responseContentType = response.headers.get('content-type');
           const isResponseJSON = responseContentType?.includes('json');
+          const wasExpectingJson = headers.get('Content-Type') === 'application/json';
 
           const isStatus3XX = status >= 300 && status < 400;
           if (status !== 204 && !isStatus3XX) {
@@ -550,6 +551,11 @@ export class Client {
                 // this should be an error.
                 ok = false;
                 errorReason = 'JSON parse error';
+              } else if (wasExpectingJson && error instanceof SyntaxError) {
+                // Was expecting json but was returned something else. Possibly HTML.
+                // Ideally this would not be a 200, but we should reject the promise
+                ok = false;
+                errorReason = 'JSON parse error. Possibly returned HTML';
               }
             }
           }
