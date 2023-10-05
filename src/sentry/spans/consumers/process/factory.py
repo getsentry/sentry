@@ -11,8 +11,8 @@ from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import FILTERED_PAYLOAD, Commit, FilteredPayload, Message, Partition, Topic
 from django.conf import settings
-from sentry_kafka_schemas import ValidationError, get_codec
-from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
 
 from sentry.spans.grouping.api import load_span_grouping_config
