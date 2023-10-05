@@ -8,9 +8,8 @@ type Decoder = typeof decodeList | typeof decodeScalar | typeof decodeInteger;
 
 /**
  * Select and memoize query params from location.
- * This returns a new object only when one of your requested query params is
- * updated, so you won't get re-renders whenever the overall location object
- * changes.
+ * This returns a new object only when one of the specified query fields is
+ * updated. The object will remain stable otherwise, avoiding re-renders.
  */
 export default function useLocationQuery<
   Fields extends Record<string, Scalar | Scalar[]>,
