@@ -54,7 +54,12 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     @abstractmethod
     @rpc_method
     def update_organization_slug(
-        self, *, organization_id: int, desired_slug: str, require_exact: bool = True
+        self,
+        *,
+        region_name: str,
+        organization_id: int,
+        desired_slug: str,
+        require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
         """
         Updates an organization's slug via an outbox based confirmation flow to ensure that the control
@@ -64,8 +69,9 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         outbox to the desired region in order to ensure that a slug change in control _will eventually_
         result in a slug change on the region side.
 
-        :param organization_id:
-        :param desired_slug: The slug to update the organization with.
+        :param region_name: The region where the organization exists
+        :param organization_id: the ID of the organization whose slug to change
+        :param desired_slug: The slug to update the organization with
         :param require_exact: Determines whether the slug can be modified with a unique suffix in the
         case of a slug collision.
         :return:

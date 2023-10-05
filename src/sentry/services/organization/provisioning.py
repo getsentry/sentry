@@ -190,12 +190,24 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
         org_slug_reservation.delete()
 
         if able_to_update_slug:
-            primary_slug_reservation = OrganizationSlugReservation.objects.get(
+            primary_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
                 organization_id=org_slug_reservation.organization_id,
                 reservation_type=OrganizationSlugReservationType.PRIMARY.value,
             )
-            primary_slug_reservation.slug = org_slug_reservation.slug
-            primary_slug_reservation.save(unsafe_write=True)
+
+            if primary_slug_reservation_qs.exists():
+                primary_slug_reservation = primary_slug_reservation_qs.get()
+                primary_slug_reservation.slug = org_slug_reservation.slug
+                primary_slug_reservation.save(unsafe_write=True)
+            else:
+                # If the organization is missing a primary slug reservation, we want to write one
+                OrganizationSlugReservation(
+                    slug=org_slug_reservation.slug,
+                    organization_id=org_slug_reservation.organization_id,
+                    reservation_type=OrganizationSlugReservationType.PRIMARY,
+                    user_id=org_slug_reservation.user_id,
+                    region_name=region_name,
+                ).save(unsafe_write=True)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)

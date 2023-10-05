@@ -28,6 +28,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.types.region import get_local_region
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
@@ -35,6 +36,10 @@ class TestControlOrganizationProvisioningBase(TestCase):
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
             name="sentry", slug="sentry", user_id=self.provision_user.id, default_team=True
+        )
+
+        self.region_name = (
+            "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_region().name
         )
 
     def generate_provisioning_args(
@@ -152,6 +157,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=True,
+                region_name=self.region_name,
             )
         )
 
@@ -167,6 +173,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=False,
+                region_name=self.region_name,
             )
         )
 
@@ -193,6 +200,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=False,
+                region_name=self.region_name,
             )
         )
 
@@ -224,6 +232,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
                     require_exact=True,
+                    region_name=self.region_name,
                 )
         else:
             with pytest.raises(IntegrityError):
@@ -231,6 +240,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
                     require_exact=True,
+                    region_name=self.region_name,
                 )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -262,6 +272,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
                     require_exact=True,
+                    region_name=self.region_name,
                 )
         else:
             with pytest.raises(InvalidOrganizationProvisioningException):
@@ -269,6 +280,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
                     require_exact=True,
+                    region_name=self.region_name,
                 )
 
         slug_reservations = self.get_slug_reservations_for_organization(
@@ -279,4 +291,35 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             len(slug_reservations) == 1
         ), f"Expected only a single slug reservation, received: {slug_reservations}"
         assert slug_reservations[0].slug == original_slug
+        assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
+
+    def test_swap_for_org_without_primary_slug(self):
+        desired_primary_slug = "foobar"
+
+        new_user = self.create_user()
+        unregistered_org = self.create_organization(slug=desired_primary_slug, owner=new_user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
+            assert not OrganizationSlugReservation.objects.filter(
+                slug=desired_primary_slug
+            ).exists()
+
+        control_organization_provisioning_rpc_service.update_organization_slug(
+            organization_id=unregistered_org.id,
+            desired_slug=desired_primary_slug,
+            require_exact=True,
+            region_name=self.region_name,
+        )
+
+        slug_reservations = self.get_slug_reservations_for_organization(
+            organization_id=unregistered_org.id
+        )
+
+        assert (
+            len(slug_reservations) == 1
+        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert slug_reservations[0].slug == desired_primary_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
