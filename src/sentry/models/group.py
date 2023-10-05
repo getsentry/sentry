@@ -553,7 +553,8 @@ class Group(Model):
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
             ("project", "status", "substatus", "id"),
-            ("status", "substatus", "id"),
+            ("status", "substatus", "id"),  # TODO: Remove this
+            ("status", "substatus", "first_seen"),
         ]
         unique_together = (
             ("project", "short_id"),
