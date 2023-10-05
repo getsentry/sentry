@@ -273,11 +273,20 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column            | Type   | Description                                        |
-| ----------------- | ------ | -------------------------------------------------- |
-| dom_element       | string | -                                                  |
-| count_dead_clicks | number | The number of dead clicks for a given DOM element. |
-| count_rage_clicks | number | The number of rage clicks for a given DOM element. |
+| Column             | Type           | Description                                        |
+| ------------------ | ------         | -------------------------------------------------- |
+| count_dead_clicks  | number         | The number of dead clicks for a given DOM element. |
+| count_rage_clicks  | number         | The number of rage clicks for a given DOM element. |
+| dom_element        | string         | -                                                  |
+| element.alt        | string         | -                                                  |
+| element.aria_label | string         | -                                                  |
+| element.class      | array[string]  | -                                                  |
+| element.id         | string         | -                                                  |
+| element.role       | string         | -                                                  |
+| element.tag        | string         | -                                                  |
+| element.testid     | string         | -                                                  |
+| element.title      | string         | -                                                  |
+| project_id         | string         | -                                                  |
 
 - Response 200
 
@@ -285,9 +294,20 @@ Retrieve a collection of selectors.
   {
     "data": [
       {
-        "dom_element": "div#myid.class1.class2",
         "count_dead_clicks": 2,
-        "count_rage_clicks": 1
+        "count_rage_clicks": 1,
+        "dom_element": "div#myid.class1.class2",
+        "element": {
+          "alt": "",
+          "aria_label": "",
+          "class": ["class1", "class2"],
+          "id": "myid",
+          "role": "",
+          "tag": "div",
+          "testid": "",
+          "title": ""
+        },
+        "project_id": "1"
       }
     ]
   }
@@ -456,10 +476,10 @@ Queryable fields:
 
 Queryable fields for rage and dead clicks:
 
-| Field             | Type          | Description                                                    |
-| ----------------- | ------------- | -------------------------------------------------------------- |
-| dead.selector     | string        | A valid CSS selector.                                          |
-| rage.selector     | string        | A valid CSS selector.                                          |
+| Field         | Type   | Description           |
+| ------------- | ------ | --------------------- |
+| dead.selector | string | A valid CSS selector. |
+| rage.selector | string | A valid CSS selector. |
 
 ### Fetch Replay Clicks [GET]
 
