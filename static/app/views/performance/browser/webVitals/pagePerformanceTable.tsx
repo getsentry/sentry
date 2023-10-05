@@ -28,8 +28,8 @@ type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
 const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
-  {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Page Loads'},
+  {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
+  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
   {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
@@ -76,8 +76,8 @@ export function PagePerformanceTable() {
       ),
     }))
     .sort((a, b) => b.opportunity - a.opportunity);
-  const getDurationMillisecond = (value: number) => {
-    return getDuration(value, value < 1000 ? 0 : 2, true);
+  const getFormattedDuration = (value: number) => {
+    return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
   function renderHeadCell(col: Column) {
@@ -158,9 +158,7 @@ export function PagePerformanceTable() {
         'p75(measurements.fid)',
       ].includes(key)
     ) {
-      return (
-        <AlignRight>{getDurationMillisecond((row[key] as number) / 1000)}</AlignRight>
-      );
+      return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
     if (['p75(measurements.cls)', 'opportunity'].includes(key)) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;

@@ -19,8 +19,8 @@ type Props = {
 };
 
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
-  const getDurationMillisecond = (value: number) => {
-    return getDuration(value, value < 1000 ? 0 : 2, true);
+  const getFormattedDuration = (value: number) => {
+    return getDuration(value, value < 1 ? 0 : 2, true);
   };
   return (
     <Container>
@@ -29,7 +29,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarBody>
             <MeterHeader>{t('Largest Contentful Paint (P75)')}</MeterHeader>
             <MeterValueText>
-              {getDurationMillisecond(
+              {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
               )}
             </MeterValueText>
@@ -40,7 +40,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarBody>
             <MeterHeader>{t('First Contentful Paint (P75)')}</MeterHeader>
             <MeterValueText>
-              {getDurationMillisecond(
+              {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
               )}
             </MeterValueText>
@@ -51,7 +51,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarBody>
             <MeterHeader>{t('First Input Delay (P75)')}</MeterHeader>
             <MeterValueText>
-              {getDurationMillisecond(
+              {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
               )}
             </MeterValueText>
@@ -74,7 +74,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarBody>
             <MeterHeader>{t('Time To First Byte (P75)')}</MeterHeader>
             <MeterValueText>
-              {getDurationMillisecond(
+              {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
               )}
             </MeterValueText>
