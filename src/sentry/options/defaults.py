@@ -1127,6 +1127,11 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "sentry-metrics.10s-granularity",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "sentry-metrics.producer-schema-validation.release-health.rollout-rate",
