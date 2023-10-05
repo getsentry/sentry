@@ -136,6 +136,7 @@ def process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPa
     try:
         return _process_message(message)
     except ValidationError as err:
+        metrics.incr("spans.consumer.schema_validation.failed")
         _capture_exception(err)
         return FILTERED_PAYLOAD
     except Exception as err:
