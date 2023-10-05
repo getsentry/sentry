@@ -294,11 +294,6 @@ describe('StacktraceLink', function () {
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
-    const dotnetEvent = TestStubs.Event({
-      projectID: project.id,
-      release: TestStubs.Release({lastCommit: Commit()}),
-      platform: 'csharp',
-    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -306,9 +301,16 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    render(<StacktraceLink frame={dotnetFrame} event={dotnetEvent} line="foo()" />, {
-      context: TestStubs.routerContext(),
-    });
+    render(
+      <StacktraceLink
+        frame={dotnetFrame}
+        event={{...event, platform: 'csharp'}}
+        line="foo()"
+      />,
+      {
+        context: TestStubs.routerContext(),
+      }
+    );
     expect(await screen.findByRole('link')).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
@@ -316,12 +318,37 @@ describe('StacktraceLink', function () {
     expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
-  it('hides stacktrace link if there is no source link for .NET projects', async function () {
-    const dotnetEvent = TestStubs.Event({
-      projectID: project.id,
-      release: TestStubs.Release({lastCommit: Commit()}),
-      platform: 'csharp',
+  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
+    const dotnetFrame = {
+      sourceLink: 'https://www.github.com/source/link/url#L1',
+      lineNo: '1',
+    } as unknown as Frame;
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://www.github.com/url/from/code/mapping',
+        integrations: [integration],
+      },
     });
+    render(
+      <StacktraceLink
+        frame={dotnetFrame}
+        event={{...event, platform: 'csharp'}}
+        line="foo()"
+      />,
+      {
+        context: TestStubs.routerContext(),
+      }
+    );
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://www.github.com/url/from/code/mapping#L1'
+    );
+    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+  });
+
+  it('hides stacktrace link if there is no source link for .NET projects', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -330,7 +357,7 @@ describe('StacktraceLink', function () {
       },
     });
     const {container} = render(
-      <StacktraceLink frame={frame} event={dotnetEvent} line="" />,
+      <StacktraceLink frame={frame} event={{...event, platform: 'csharp'}} line="" />,
       {context: TestStubs.routerContext()}
     );
     await waitFor(() => {
