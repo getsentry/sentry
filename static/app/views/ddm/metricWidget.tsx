@@ -107,15 +107,6 @@ function useMetricWidgets() {
   };
 }
 
-// function useMetricWidget(position: number) {
-//   const {widgets, onChange} = useMetricWidgets();
-
-//   return {
-//     widget: widgets[position],
-//     onChange: (data: Partial<MetricWidgetProps>) => onChange(position, data),
-//   };
-// }
-
 function MetricDashboard() {
   const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
@@ -415,7 +406,7 @@ function MetricChart({
     isGroupedByDate: true,
     height: 300,
     colors: seriesToShow.map(s => s.color),
-    grid: {top: 20, bottom: 20, left: 20, right: 20},
+    grid: {top: 20, bottom: 20, left: 15, right: 25},
     tooltip: {
       valueFormatter: (value: number) => {
         return formatMetricsUsingUnitAndOp(value, unit, operation);
@@ -454,28 +445,20 @@ function MetricChart({
                     theme: theme as Theme,
                   })
                 : undefined;
+
+              const props = {
+                series: [...seriesToShow, ...releaseSeries],
+                legend,
+                ...chartProps,
+                ...zoomRenderProps,
+              };
+
               return displayType === MetricDisplayType.LINE ? (
-                <LineChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <LineChart {...props} />
               ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <AreaChart {...props} />
               ) : (
-                <BarChart
-                  stacked
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <BarChart stacked {...props} />
               );
             }}
           </ReleaseSeries>

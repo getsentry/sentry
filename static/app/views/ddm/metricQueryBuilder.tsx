@@ -96,7 +96,7 @@ export function QueryBuilder({
             }}
           />
           <CompactSelect
-            triggerProps={{prefix: t('Operation'), size: 'sm'}}
+            triggerProps={{prefix: t('Op'), size: 'sm'}}
             options={
               meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
