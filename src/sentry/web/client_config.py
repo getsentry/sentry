@@ -221,11 +221,14 @@ class _ClientConfig:
             generate_organization_url(self.last_org_slug) if self.last_org_slug else None
         )
         region_url = None
-        if self.last_org and SiloMode.get_current_mode() == SiloMode.CONTROL:
-            organization_mapping = OrganizationMapping.objects.get(organization_id=self.last_org.id)
-            region_url = generate_region_url(organization_mapping.region_name)
-        else:
-            region_url = generate_region_url()
+        if self.last_org:
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                organization_mapping = OrganizationMapping.objects.get(
+                    organization_id=self.last_org.id
+                )
+                region_url = generate_region_url(organization_mapping.region_name)
+            else:
+                region_url = generate_region_url()
 
         yield "organizationUrl", organization_url
         yield "regionUrl", region_url
