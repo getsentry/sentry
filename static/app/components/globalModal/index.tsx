@@ -8,6 +8,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {ROOT_ELEMENT} from 'sentry/constants';
+import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -98,6 +99,18 @@ type Props = {
   onClose?: () => void;
 };
 
+// Guides will show above modals, but are not interactable because
+// of the focus trap, so we force them to be hidden while a modal is open.
+function useHideGuideOnModalOpen(visible: boolean) {
+  useEffect(() => {
+    if (visible) {
+      GuideStore.setForceHide(true);
+    } else {
+      GuideStore.setForceHide(false);
+    }
+  }, [visible]);
+}
+
 function GlobalModal({onClose}: Props) {
   const {renderer, options} = useLegacyStore(ModalStore);
 
@@ -174,6 +187,8 @@ function GlobalModal({onClose}: Props) {
 
   // Close the modal when the browser history changes
   useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
+
+  useHideGuideOnModalOpen(visible);
 
   const renderedChild = renderer?.({
     CloseButton: makeCloseButton(closeModal),
