@@ -9,9 +9,6 @@ from sentry.shared_integrations.exceptions.base import ApiError
 
 from . import logger
 
-# Same default timeout as Slack
-DISCORD_DEFAULT_TIMEOUT = 10
-
 
 def validate_channel_id(
     channel_id: str, guild_id: str, integration_id: int | None, guild_name: str | None
