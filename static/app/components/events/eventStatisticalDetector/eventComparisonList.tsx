@@ -261,7 +261,11 @@ function EventList({
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr 1fr;
+  }
 `;
 
 const ListContainer = styled('div')`
