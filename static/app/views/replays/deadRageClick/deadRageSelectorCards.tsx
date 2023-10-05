@@ -303,8 +303,6 @@ const EmptySubtitle = styled('div')`
 `;
 
 const LoadingContainer = styled(ContentContainer)`
-  /*display: flex;
-  flex-direction: column;*/
   gap: ${space(0.25)};
   padding: 10px ${space(0.5)} ${space(0.5)} ${space(0.5)};
 `;
