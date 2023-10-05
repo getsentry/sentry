@@ -11,9 +11,12 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
   useVirtualizedTree,
@@ -102,9 +105,11 @@ export function AggregateFlamegraphTreeTable({
   frameFilter,
 }: AggregateFlamegraphTreeTableProps) {
   const dispatch = useDispatchFlamegraphState();
+  const {colorCoding} = useFlamegraphPreferences();
   const profiles = useFlamegraphProfiles();
   const profileGroup = useProfileGroup();
   const flamegraph = useFlamegraph();
+  const theme = useFlamegraphTheme();
   const referenceNode = flamegraph.root;
 
   const rootNodes = useMemo(() => {
@@ -125,6 +130,25 @@ export function AggregateFlamegraphTreeTable({
 
     return invertCallTree(maybeFilteredRoots);
   }, [frameFilter, rootNodes]);
+
+  const {colorMap} = useMemo(() => {
+    return theme.COLORS.STACK_TO_COLOR(
+      flamegraph.frames,
+      theme.COLORS.COLOR_MAPS[colorCoding],
+      theme.COLORS.COLOR_BUCKET,
+      theme
+    );
+  }, [theme, flamegraph.frames, colorCoding]);
+
+  const getFrameColor = useCallback(
+    (frame: FlamegraphFrame) => {
+      return formatColorForFrame(
+        frame,
+        colorMap.get(frame.key) ?? theme.COLORS.FRAME_GRAYSCALE_COLOR
+      );
+    },
+    [theme, colorMap]
+  );
 
   useEffect(() => {
     if (defined(profiles.threadId)) {
@@ -207,7 +231,7 @@ export function AggregateFlamegraphTreeTable({
           node={r.item}
           style={r.styles}
           referenceNode={referenceNode}
-          frameColor="red"
+          frameColor={getFrameColor(r.item.node)}
           formatDuration={flamegraph.formatter}
           tabIndex={selectedNodeIndex === r.key ? 0 : 1}
           onClick={handleRowClick}
@@ -221,7 +245,7 @@ export function AggregateFlamegraphTreeTable({
         />
       );
     },
-    [contextMenu, referenceNode, flamegraph.formatter]
+    [contextMenu, referenceNode, flamegraph.formatter, getFrameColor]
   );
 
   // This is slighlty unfortunate and ugly, but because our two columns are sticky
@@ -364,11 +388,7 @@ export function AggregateFlamegraphTreeTable({
            */}
           <div ref={hoveredGhostRowRef} />
           <div ref={clickedGhostRowRef} />
-          <div
-            ref={setScrollContainerRef}
-            style={scrollContainerStyles}
-            onContextMenu={contextMenu.handleContextMenu}
-          >
+          <div ref={setScrollContainerRef} style={scrollContainerStyles}>
             <div style={containerStyles}>
               {renderedItems}
               {/*
