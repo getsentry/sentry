@@ -69,7 +69,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Union[int, float],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """
@@ -106,7 +106,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[int],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """
@@ -143,7 +143,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[Union[int, float]],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """

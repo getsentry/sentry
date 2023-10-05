@@ -16,7 +16,7 @@ class GenericMetricsBackend(Service):
         value: Union[int, float],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """
@@ -36,7 +36,7 @@ class GenericMetricsBackend(Service):
         value: Sequence[int],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """
@@ -55,7 +55,7 @@ class GenericMetricsBackend(Service):
         value: Sequence[Union[int, float]],
         tags: Dict[str, str],
         unit: Optional[str],
-        timestamp: Optional[int],
+        timestamp: Optional[int] = None,
     ) -> None:
 
         """
