@@ -181,7 +181,7 @@ _type_mapping: dict[type[object], Type] = {
 }
 
 
-def type_from_value(value: typing.Any) -> typing.Callable[[typing.Any], typing.Any]:
+def type_from_value(value: typing.Any) -> Type:
     """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]
 

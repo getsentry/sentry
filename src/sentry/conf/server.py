@@ -20,9 +20,7 @@ from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import type_from_value
-
-T = TypeVar("T")
+from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -32,20 +30,24 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
+T = TypeVar("T")
+TypeParser = TypeVar("TypeParser", bound=Type)
+
+
 @overload
 def env(key: str) -> str:
     ...
 
 
 @overload
-def env(key: str, default: T, type: Callable[[Any], T] | None = None) -> T:
+def env(key: str, default: T, type: Optional[TypeParser] = None) -> T:
     ...
 
 
 def env(
     key: str,
     default: str | T = "",
-    type: Optional[Callable[[Any], T]] = None,
+    type: Optional[TypeParser] = None,
 ) -> T:
     """
     Extract an environment variable for use in configuration
