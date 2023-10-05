@@ -368,7 +368,7 @@ Metric alert rule trigger actions follow the following structure:
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
     publish_status = {
