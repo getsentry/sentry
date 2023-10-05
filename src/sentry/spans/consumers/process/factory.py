@@ -13,7 +13,7 @@ from arroyo.types import FILTERED_PAYLOAD, Commit, Message, Partition, Topic
 from django.conf import settings
 from sentry_kafka_schemas import ValidationError, get_codec
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanKafkaMessage
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
 
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
@@ -23,7 +23,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 SPAN_SCHEMA_V1 = 1
 SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
-SPAN_SCHEMA: Codec[SpanKafkaMessage] = get_codec("ingest-spans")
+SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
 
 
 def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
