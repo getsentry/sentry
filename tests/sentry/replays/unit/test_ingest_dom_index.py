@@ -6,6 +6,7 @@ from unittest import mock
 
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
+    _parse_classes,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
@@ -613,3 +614,11 @@ def test_get_testid():
 
     # Defaults to empty string.
     assert _get_testid({}) == ""
+
+
+def test_parse_classes():
+    assert _parse_classes("") == []
+    assert _parse_classes("   ") == []
+    assert _parse_classes("  a b ") == ["a", "b"]
+    assert _parse_classes("a  ") == ["a"]
+    assert _parse_classes("  a") == ["a"]
