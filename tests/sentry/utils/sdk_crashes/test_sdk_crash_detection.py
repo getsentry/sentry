@@ -77,6 +77,37 @@ class PerformanceEventTestMixin(
         assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@pytest.mark.parametrize(
+    ["sdk_name", "detected"],
+    [
+        ("sentry.cocoa", True),
+        ("sentry.coco", False),
+        ("sentry.cocoa.react-native", True),
+        ("sentry.cocoa.capacitor", True),
+        ("sentry.cocoa.react-native", True),
+        ("sentry.cocoa.dotnet", True),
+        ("sentry.cocoa.flutter", True),
+        ("sentry.cocoa.kmp", True),
+        ("sentry.cocoa.unity", True),
+        ("sentry.cocoa.unreal", True),
+    ],
+)
+def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected):
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "name", value=sdk_name)
+    event = store_event(data=event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
@@ -87,12 +118,6 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
     def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(function="Senry"), False, mock_sdk_crash_reporter)
-
-    def test_wrong_sdk_not_detected(self, mock_sdk_crash_reporter):
-        event = get_crash_event()
-        set_path(event, "sdk", "name", value="sentry.coco")
-
-        self.execute_test(event, False, mock_sdk_crash_reporter)
 
     def test_beta_sdk_version_detected(self, mock_sdk_crash_reporter):
         event = get_crash_event()

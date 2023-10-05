@@ -8,7 +8,17 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
     def __init__(self):
 
         config = SDKCrashDetectorConfig(
-            sdk_name="sentry.cocoa",
+            # Explicitly use an allow list to avoid detecting SDK crashes for SDK names we don't know.
+            sdk_names=[
+                "sentry.cocoa",
+                "sentry.cocoa.capacitor",
+                "sentry.cocoa.react-native",
+                "sentry.cocoa.dotnet",
+                "sentry.cocoa.flutter",
+                "sentry.cocoa.kmp",
+                "sentry.cocoa.unity",
+                "sentry.cocoa.unreal",
+            ],
             # Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
             # released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.

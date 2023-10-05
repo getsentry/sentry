@@ -10,7 +10,7 @@ from sentry.utils.safe import get_path
 
 @dataclass
 class SDKCrashDetectorConfig:
-    sdk_name: str
+    sdk_names: Sequence[str]
 
     min_sdk_version: str
 
@@ -35,7 +35,7 @@ class SDKCrashDetector(ABC):
 
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
-        if sdk_name and sdk_name != self.config.sdk_name:
+        if sdk_name is None or sdk_name not in self.config.sdk_names:
             return False
 
         sdk_version = get_path(event_data, "sdk", "version")
