@@ -357,7 +357,7 @@ Metric alert rule trigger actions follow the following structure:
     )
     resolveThreshold = serializers.FloatField(
         required=False,
-        help_text="Optional value that the metric needs to reach to resolve the alert. Set automatically based on the lowest severity trigger's `alertThreshold` if no value is provided. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
+        help_text="Optional value that the metric needs to reach to resolve the alert. If no value is provided, this is set automatically based on the lowest severity trigger's `alertThreshold`. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
