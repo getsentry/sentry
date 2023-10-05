@@ -213,7 +213,8 @@ export function SourceMapsDebuggerModal({
                 <HasDebugIdChecklistItem
                   shouldValidate={
                     sourceResolutionResults.sdkDebugIdSupport === 'full' ||
-                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk'
+                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
+                    sourceResolutionResults.eventHasDebugIds
                   }
                   sourceResolutionResults={sourceResolutionResults}
                 />
