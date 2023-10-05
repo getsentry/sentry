@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.functions import (
     get_source_link_for_frame,
     replace_enclosed_string,
@@ -237,4 +238,4 @@ def test_trim_function_name_cocoa():
     ],
 )
 def test_get_source_link_for_frame(input, output):
-    assert get_source_link_for_frame(input) == output
+    assert get_source_link_for_frame(Frame.to_python(input)) == output
