@@ -430,7 +430,7 @@ class EmailAuthBackend(ModelBackend):
             or options.get("hybrid_cloud.authentication.use_rpc_user") >= 5
         ):
             user = user_service.get_user(user_id=user_id)
-            if user and user.is_active:
+            if user:
                 return user
             return None
         return super().get_user(user_id)

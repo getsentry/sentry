@@ -98,11 +98,16 @@ class AuthenticatedToken(RpcModel):
         else:
             raise KeyError(f"Token {token} is a not a registered AuthenticatedToken type!")
 
+        entity_id: Optional[int] = None
+        # System tokens have a string id but don't really represent a true entity
+        if kind != "system":
+            entity_id = getattr(token, "entity_id", getattr(token, "id", None))
+
         return cls(
             allowed_origins=token.get_allowed_origins(),
             scopes=token.get_scopes(),
             audit_log_data=token.get_audit_log_data(),
-            entity_id=getattr(token, "entity_id", getattr(token, "id", None)),
+            entity_id=entity_id,
             kind=kind,
             user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
