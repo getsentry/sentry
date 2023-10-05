@@ -193,7 +193,7 @@ const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   font-weight: 600;
-  padding: ${space(1)};
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`
