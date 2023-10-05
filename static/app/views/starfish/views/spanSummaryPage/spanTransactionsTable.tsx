@@ -126,11 +126,14 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row, {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-    });
+    const rendered = renderer(
+      {...row, 'span.op': span['span.op']},
+      {
+        location,
+        organization,
+        unit: meta.units?.[column.key],
+      }
+    );
 
     return rendered;
   };
