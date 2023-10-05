@@ -202,7 +202,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         title={tabDebugIdBundlesActive ? params.bundleId : t('Release Bundle')}
         action={
           tabDebugIdBundlesActive && (
-            <DebugIdBundleDeleteButton onDelete={handleDeleteDebugIdBundle} />
+            <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
           )
         }
         subtitle={

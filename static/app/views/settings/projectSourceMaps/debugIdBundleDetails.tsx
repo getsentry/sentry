@@ -47,7 +47,7 @@ export function DebugIdBundleDetails({
         value:
           associations.length > 0 ? (
             <ReleasesWrapper className="val-string-multiline">
-              {visibleAssociations.slice(0, 3).map(association => (
+              {visibleAssociations.map(association => (
                 <Fragment key={association.release}>
                   <Link
                     to={`/organizations/${organization.slug}/releases/${association.release}/`}

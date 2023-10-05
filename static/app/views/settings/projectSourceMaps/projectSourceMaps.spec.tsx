@@ -246,6 +246,7 @@ describe('ProjectSourceMaps', function () {
       expect(await screen.findByText('Artifacts')).toBeInTheDocument();
       expect(await screen.findByText('39')).toBeInTheDocument();
       // Release information
+      expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
       expect(
         await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
       ).toBeInTheDocument();

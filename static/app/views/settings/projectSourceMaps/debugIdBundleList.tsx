@@ -38,7 +38,7 @@ export function DebugIdBundleList({
   return (
     <List>
       {debugIdBundles.map(debugIdBundle => (
-        <Panel key={debugIdBundle.bundleId}>
+        <Item key={debugIdBundle.bundleId}>
           <ItemHeader>
             <ItemTitle
               to={`/settings/${organization.slug}/projects/${
@@ -56,7 +56,7 @@ export function DebugIdBundleList({
           <ItemContent>
             <DebugIdBundleDetails debugIdBundle={debugIdBundle} />
           </ItemContent>
-        </Panel>
+        </Item>
       ))}
     </List>
   );
@@ -66,6 +66,10 @@ const List = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(2)};
+`;
+
+const Item = styled(Panel)`
+  margin: 0;
 `;
 
 const ItemHeader = styled('div')`
