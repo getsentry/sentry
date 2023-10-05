@@ -719,17 +719,15 @@ def check_symbolicator(containers: dict[str, Any]) -> None:
 
 
 def python_call_url_prog(url: str) -> None:
-    return (
-        f"""\
+    return f"""
 import urllib.request
 try:
-    req = urllib.request.urlopen('{url}', timeout=1)
+    req = urllib.request.urlopen({url!r}, timeout=1)
 except Exception as e:
     raise SystemExit(f'service is not ready: {{e}}')
 else:
     print('service is ready!')
 """
-    )
 
 
 def check_chartcuterie(containers: dict[str, Any]) -> None:
