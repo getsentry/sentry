@@ -66,13 +66,7 @@ function TagPanel() {
     return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
 
-  // need to change items from Record<string, string[]>[] type to Record<string, string[]> type for search to work
-  const item: Record<string, string[]> = {};
-  Object.entries(items.values).forEach(([key, val]) => {
-    item[key] = val;
-  });
-
-  const tags = Object.entries(replayRecord.tags);
+  const tags = Object.entries(items);
 
   return (
     <FluidHeight>

@@ -21,7 +21,6 @@ const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
-const MIN_SIDEBAR_HEIGHT = 120;
 
 const DIVIDER_SIZE = 16;
 
@@ -120,9 +119,10 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
                       content: video,
                       default: (height - DIVIDER_SIZE) * 0.65,
                       min: MIN_CONTENT_HEIGHT,
-                      max: height - DIVIDER_SIZE - MIN_SIDEBAR_HEIGHT,
+                      max: height - DIVIDER_SIZE,
                     }}
-                    bottom={sidebarArea}
+                    // bottom={sidebarArea}
+                    bottom={null}
                   />
                 ),
                 default: (width - DIVIDER_SIZE) * 0.5,

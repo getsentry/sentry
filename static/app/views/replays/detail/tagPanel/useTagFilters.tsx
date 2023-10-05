@@ -14,7 +14,7 @@ type Options = {
 };
 
 type Return = {
-  items: ReplayRecord['tags'][];
+  items: ReplayRecord['tags'];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
 };
@@ -31,7 +31,7 @@ function useTagFilters({tagFrame}: Options): Return {
 
   const searchTerm = decodeScalar(query.f_t_search, '').toLowerCase();
 
-  const items = useMemo(
+  const filteredItems = useMemo(
     () =>
       filterItems<Record<string, string[]>, string>({
         items: Object.entries(tagFrame).map(([key, val]) =>
@@ -47,6 +47,13 @@ function useTagFilters({tagFrame}: Options): Return {
     (f_t_search: string) => setFilter({f_t_search: f_t_search || undefined}),
     [setFilter]
   );
+
+  const items = {};
+  Object.values(filteredItems).forEach(item => {
+    for (const key in item) {
+      items[key] = item[key];
+    }
+  });
 
   return {
     items,
