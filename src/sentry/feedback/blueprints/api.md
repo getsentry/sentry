@@ -262,8 +262,8 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | environment                     | optional[string] | -                                     |
 | event_id                        | optional[string] | Omitted IDs are internally generated. |
 | contexts                        | optional[object] | -                                     |
-| replay                          | optional[object] | -                                     |
-| replay.replay_id                | optional[string] | -                                     |
+| contexts.replay                 | optional[object] | -                                     |
+| contexts.replay.replay_id       | optional[string] | -                                     |
 | contexts.feedback               | object           | -                                     |
 | contexts.feedback.contact_email | string           | -                                     |
 | contexts.feedback.message       | string           | -                                     |
