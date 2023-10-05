@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
@@ -19,7 +19,6 @@ import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  StatusContainer,
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
@@ -102,12 +101,13 @@ function AccordionWidget({
         </ClickColor>
         {header}
       </StyledHeaderContainer>
-      {isLoading && (
-        <StatusContainer>
-          <LoadingIndicator />
-        </StatusContainer>
-      )}
-      {isError || (!isLoading && filteredData.length === 0) ? (
+      {isLoading ? (
+        <LoadingContainer>
+          <StyledPlaceholder />
+          <StyledPlaceholder />
+          <StyledPlaceholder />
+        </LoadingContainer>
+      ) : isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
           <EmptyStateWarning>
             <div>{t('No results found')}</div>
@@ -127,13 +127,13 @@ function AccordionWidget({
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
               const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
-                d.dom_element
+                d.dom_element.fullSelector
               )}"`;
               return {
                 header: () => (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
-                    selector={d.dom_element}
+                    selector={d.dom_element.selector}
                     clickColor={clickColor}
                     selectorQuery={selectorQuery}
                     id={d.project_id}
@@ -182,7 +182,11 @@ function AccordionItemHeader({
   );
   return (
     <StyledAccordionHeader>
-      <SelectorLink value={selector} selectorQuery={selectorQuery} />
+      <SelectorLink
+        value={selector}
+        selectorQuery={selectorQuery}
+        projectId={id.toString()}
+      />
       <RightAlignedCell>
         {clickCount}
         <ProjectInfo id={id} isWidget />
@@ -296,6 +300,15 @@ const EmptySubtitle = styled('div')`
   line-height: 1.8em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
+`;
+
+const LoadingContainer = styled(ContentContainer)`
+  gap: ${space(0.25)};
+  padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  height: 34px;
 `;
 
 export default DeadRageSelectorCards;

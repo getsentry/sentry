@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
+import {DeadRageSelectorItem, ReplayClickElement} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
@@ -32,6 +32,41 @@ export function getAriaLabel(str: string) {
   return pre.substring(0, pre.lastIndexOf('"]'));
 }
 
+function trimAttribute(elementAttribute, fullAlltribute) {
+  return elementAttribute === '' ? '' : fullAlltribute;
+}
+
+export function constructSelector(element: ReplayClickElement) {
+  const fullAlt = '[alt="' + element.alt + '"]';
+  const alt = trimAttribute(element.alt, fullAlt);
+
+  const fullAriaLabel = '[aria="' + element.aria_label + '"]';
+  const ariaLabel = trimAttribute(element.aria_label, fullAriaLabel);
+
+  const trimClass = element.class.filter(e => e !== '');
+  const classWithPeriod = trimClass.join('.');
+  const classNoPeriod = classWithPeriod.replace('.', '');
+  const classes = trimAttribute(classNoPeriod, '.' + classWithPeriod);
+
+  const id = trimAttribute(element.id, '#' + element.id);
+
+  const fullRole = '[role="' + element.role + '"]';
+  const role = trimAttribute(element.role, fullRole);
+
+  const tag = element.tag;
+
+  const fullTestId = '[data-test-id="' + element.testid + '"]';
+  const testId = trimAttribute(element.testid, fullTestId);
+
+  const fullTitle = '[title="' + element.title + '"]';
+  const title = trimAttribute(element.title, fullTitle);
+
+  const fullSelector =
+    tag + id + classes + fullRole + fullAriaLabel + fullTestId + fullAlt + fullTitle;
+  const selector = tag + id + classes + role + ariaLabel + testId + alt + title;
+  return {fullSelector, selector};
+}
+
 export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
   return data.map(d => ({
     ...(clickType
@@ -40,7 +75,11 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
           count_dead_clicks: d.count_dead_clicks,
           count_rage_clicks: d.count_rage_clicks,
         }),
-    dom_element: d.dom_element,
+    dom_element: {
+      fullSelector: constructSelector(d.element).fullSelector,
+      selector: constructSelector(d.element).selector,
+      projectId: d.project_id,
+    },
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
@@ -131,8 +170,11 @@ export default function SelectorTable({
         case 'dom_element':
           return (
             <SelectorLink
-              value={value}
-              selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(value)}"`}
+              value={value.selector}
+              selectorQuery={`${queryPrefix}.selector:"${transformSelectorQuery(
+                value.fullSelector
+              )}"`}
+              projectId={value.projectId.toString()}
             />
           );
         case 'element':
@@ -181,7 +223,9 @@ export default function SelectorTable({
 export function SelectorLink({
   value,
   selectorQuery,
+  projectId,
 }: {
+  projectId: string;
   selectorQuery: string;
   value: string;
 }) {
@@ -196,6 +240,7 @@ export function SelectorLink({
             ...location.query,
             query: selectorQuery,
             cursor: undefined,
+            project: projectId,
           },
         }}
       >
