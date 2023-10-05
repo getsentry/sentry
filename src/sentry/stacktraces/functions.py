@@ -282,7 +282,7 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
     stacktrace link. Otherwise, return the link as is.
     """
     try:
-        source_link = frame.get("source_link")
+        source_link = getattr(frame, "source_link", None) or frame.get("source_link")
     except KeyError:
         return None
 
