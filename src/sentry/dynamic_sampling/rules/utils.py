@@ -169,7 +169,12 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
     sampling = rule["samplingValue"]
-    return sampling["type"], float(sampling["value"])
+    if sampling["type"] == "reservoir":
+        return sampling["type"], float(sampling["limit"])
+    elif sampling["type"] in ("sampleRate", "factor"):
+        return sampling["type"], float(sampling["value"])
+    else:
+        return None
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
