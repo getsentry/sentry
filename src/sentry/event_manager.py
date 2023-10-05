@@ -1478,9 +1478,6 @@ def _get_event_user_impl(
 
 
 def get_event_type(data: Mapping[str, Any]) -> EventType:
-    # FIXME: shortcut to skip relay modifications (for now)
-    if data.get("nel"):
-        return eventtypes.get("nel")()
     return eventtypes.get(data.get("type", "default"))()
 
 
