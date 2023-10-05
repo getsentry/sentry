@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
@@ -43,7 +45,7 @@ describe('OrganizationMemberRow', function () {
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     status: '',
     requireLink: false,
     memberCanLeave: false,

@@ -34,25 +34,39 @@ class InviteMissingMembersTestCase(TestCase):
         self.nonmember_commit_author1 = self.create_commit_author(
             project=self.project, email="c@example.com"
         )
-        self.nonmember_commit_author1.external_id = "c"
+        self.nonmember_commit_author1.external_id = "github:c"
         self.nonmember_commit_author1.save()
 
         self.nonmember_commit_author2 = self.create_commit_author(
             project=self.project, email="d@example.com"
         )
-        self.nonmember_commit_author2.external_id = "d"
+        self.nonmember_commit_author2.external_id = "github:d"
         self.nonmember_commit_author2.save()
+
+        nonmember_commit_author_invalid_char = self.create_commit_author(
+            project=self.project, email="hi+1@example.com"
+        )
+        nonmember_commit_author_invalid_char.external_id = "github:hi+1"
+        nonmember_commit_author_invalid_char.save()
+
+        nonmember_commit_author_invalid_domain = self.create_commit_author(
+            project=self.project, email="gmail@gmail.com"
+        )
+        nonmember_commit_author_invalid_domain.external_id = "github:gmail"
+        nonmember_commit_author_invalid_domain.save()
 
         self.repo = self.create_repo(project=self.project, provider="integrations:github")
         self.create_commit(repo=self.repo, author=self.member_commit_author)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
+        self.create_commit(repo=self.repo, author=nonmember_commit_author_invalid_char)
+        self.create_commit(repo=self.repo, author=nonmember_commit_author_invalid_domain)
 
         not_shared_domain_author = self.create_commit_author(
             project=self.project, email="a@exampletwo.com"
         )
-        not_shared_domain_author.external_id = "not"
+        not_shared_domain_author.external_id = "github:not"
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
 
@@ -74,6 +88,31 @@ class InviteMissingMembersTestCase(TestCase):
         send_nudge_email(org_id=self.organization.id)
 
         assert mock_send_notification.called
+
+    @with_feature("organizations:integrations-gh-invite")
+    @patch(
+        "sentry.notifications.notifications.missing_members_nudge.MissingMembersNudgeNotification.__init__",
+        return_value=None,
+    )
+    def test_excludes_filtered_emails(
+        self, mock_init_notification, mock_send_email, mock_send_notification
+    ):
+        integration = self.create_integration(
+            organization=self.organization, provider="github", name="Github", external_id="github:1"
+        )
+        self.repo.integration_id = integration.id
+        self.repo.save()
+
+        send_nudge_email(org_id=self.organization.id)
+
+        commit_authors = [
+            {"email": "c@example.com", "external_id": "c", "commit_count": 2},
+            {"email": "d@example.com", "external_id": "d", "commit_count": 1},
+        ]
+
+        mock_init_notification.assert_called_once_with(
+            organization=self.organization, commit_authors=commit_authors, provider="github"
+        )
 
     def test_no_github_repos(self, mock_send_email, mock_send_notification):
         self.repo.delete()

@@ -10,7 +10,6 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {formatTime} from 'sentry/components/replays/utils';
-import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -290,7 +289,6 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-  showUrl,
   referrer_table,
   isWidget,
 }: Props & {
@@ -298,7 +296,6 @@ export function ReplayCell({
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
-  showUrl: boolean;
   isWidget?: boolean;
 }) {
   const {projects} = useProjects();
@@ -372,7 +369,6 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
@@ -392,14 +388,14 @@ export function ReplayCell({
 
   return (
     <Item isWidget={isWidget}>
-      <UserBadgeFullWidth
+      <UserBadge
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user.display_name || t('Unknown User')
+            replay.user.display_name || t('Anonymous User')
           ) : (
             <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
+              {replay.user.display_name || t('Anonymous User')}
             </MainLink>
           )
         }
@@ -413,11 +409,6 @@ export function ReplayCell({
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-// Need to be full width for StringWalker to take up full width and truncate properly
-const UserBadgeFullWidth = styled(UserBadge)`
-  width: 100%;
 `;
 
 const Cols = styled('div')`

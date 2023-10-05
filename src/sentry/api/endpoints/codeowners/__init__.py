@@ -21,14 +21,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
+    date_updated = serializers.CharField(required=False)
 
     class Meta:
         model = ProjectCodeOwners
-        fields = ["raw", "code_mapping_id", "organization_integration_id"]
+        fields = ["raw", "code_mapping_id", "organization_integration_id", "date_updated"]
 
     def get_max_length(self) -> int:
-        # typecast needed for typing, though these will always be ints
-        return int(MAX_RAW_LENGTH)
+        return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -276,7 +278,7 @@ describe('OrganizationAuthTokensIndex', function () {
     });
 
     it('does not allow to revoke without permission', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['org:read'],
       });
 
