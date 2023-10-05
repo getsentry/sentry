@@ -1,8 +1,9 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
+import * as echarts from 'echarts/core';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
@@ -23,6 +24,7 @@ import {IconAdd, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
+import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
@@ -41,6 +43,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {QueryBuilder} from 'sentry/views/ddm/metricQueryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+
+import {getFormatter} from '../../components/charts/components/tooltip';
+
+const DDM_CHART_GROUP = 'ddm_chart_group';
 
 const emptyWidget = {
   mri: '',
@@ -113,6 +119,8 @@ function MetricDashboard() {
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
+
+  echarts.connect(DDM_CHART_GROUP);
 
   return (
     <Wrapper>
@@ -398,21 +406,50 @@ function MetricChart({
   projects,
   environments,
 }: ChartProps) {
-  const unit = series[0]?.unit;
+  const chartRef = useRef<ReactEchartsRef>(null);
 
+  useEffect(() => {
+    const echartsInstance = chartRef?.current?.getEchartsInstance();
+    if (echartsInstance && !echartsInstance.group) {
+      echartsInstance.group = DDM_CHART_GROUP;
+    }
+  }, []);
+
+  const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
 
+  const formatters = {
+    valueFormatter: (value: number) => {
+      return formatMetricsUsingUnitAndOp(value, unit, operation);
+    },
+    nameFormatter: mri => getNameFromMRI(mri),
+  };
+
   const chartProps = {
+    forwardedRef: chartRef,
     isGroupedByDate: true,
     height: 300,
     colors: seriesToShow.map(s => s.color),
     grid: {top: 20, bottom: 20, left: 15, right: 25},
     tooltip: {
-      valueFormatter: (value: number) => {
-        return formatMetricsUsingUnitAndOp(value, unit, operation);
+      formatter: (params, asyncTicket) => {
+        const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+          element => {
+            return element.classList.contains('echarts-for-react');
+          }
+        );
+
+        if (hoveredEchartElement === chartRef?.current?.ele) {
+          return getFormatter(formatters)(params, asyncTicket);
+        }
+        return '';
       },
-      nameFormatter: mri => getNameFromMRI(mri),
+      axisPointer: {
+        label: {show: true},
+      },
+      ...formatters,
     },
+
     yAxis: {
       axisLabel: {
         formatter: (value: number) => {
