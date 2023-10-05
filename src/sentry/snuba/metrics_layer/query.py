@@ -60,8 +60,8 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
     results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
     # TODO: find a way to communicate outside the new adjusted interval.
-    results["start"] = metrics_query.start
-    results["end"] = metrics_query.end
+    results["start"] = metrics_query.start  # type:ignore
+    results["end"] = metrics_query.end  # type:ignore
 
     return results
 
