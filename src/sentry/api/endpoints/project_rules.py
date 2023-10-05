@@ -441,7 +441,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {

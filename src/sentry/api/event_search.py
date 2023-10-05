@@ -522,7 +522,7 @@ class SearchVisitor(NodeVisitor):
             self.builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=self.params,
-                config=QueryBuilderConfig(functions_acl=FUNCTIONS.keys()),
+                config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
         else:
             self.builder = builder

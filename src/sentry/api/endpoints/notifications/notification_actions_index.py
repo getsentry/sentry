@@ -48,7 +48,7 @@ class NotificationActionsPermission(OrganizationPermission):
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Notifications"])
+@extend_schema(tags=["Alerts"])
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

@@ -91,7 +91,6 @@ class EventFrequencyForm(forms.Form):
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
-    label: str
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
