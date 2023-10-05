@@ -10,12 +10,14 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BrowserStarfishFields} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 
 type Row = {
   'avg(span.self_time)': number;
@@ -26,6 +28,7 @@ type Row = {
   'span.description': string;
   'span.group': string;
   'span.op': 'resource.script' | 'resource.img';
+  'spm()': number;
 };
 
 type Column = GridColumnHeader<keyof Row>;
@@ -40,8 +43,13 @@ function ResourceTable({sort}: Props) {
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Resource type'},
+    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Type'},
     {key: 'avg(span.self_time)', width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {
+      key: 'spm()',
+      width: COL_WIDTH_UNDEFINED,
+      name: 'Throughput',
+    },
     {
       key: 'http.response_content_length',
       width: COL_WIDTH_UNDEFINED,
@@ -84,6 +92,9 @@ function ResourceTable({sort}: Props) {
           {row[key]}
         </Link>
       );
+    }
+    if (key === 'spm()') {
+      return <ThroughputCell rate={row[key]} unit={RateUnits.PER_SECOND} />;
     }
     if (key === 'http.response_content_length') {
       return <FileSize bytes={row[key]} />;

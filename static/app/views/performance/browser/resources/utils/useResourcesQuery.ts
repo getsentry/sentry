@@ -19,7 +19,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   // TODO - we should be using metrics data here
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
-      fields: ['span.description', 'span.op', 'count()', 'avg(span.self_time)'],
+      fields: ['span.description', 'span.op', 'count()', 'avg(span.self_time)', 'spm()'],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
       orderby: '-count',
@@ -40,6 +40,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     'span.description': row['span.description'].toString(),
     'avg(span.self_time)': row['avg(span.self_time)'] as number,
     'count()': row['count()'] as number,
+    'spm()': row['spm()'] as number,
   }));
 
   return {...result, data: data || []};
