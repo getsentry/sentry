@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -34,13 +34,38 @@ export function useScratchpads() {
     default: null,
     scratchpads: {},
   });
-  const [selected, setSelected] = useState<string | null | undefined>(); // scratchpad id
+  const [selected, setSelected] = useState<string | null | undefined>(state.default); // scratchpad id
+  const router = useRouter();
+  const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
 
-  const select = useCallback(
+  // changes the query when a scratchpad is selected, clears it when none is selected
+  useEffect(() => {
+    if (selected) {
+      const selectedQuery = state.scratchpads[selected].query;
+      updateQuery(router, selectedQuery);
+    } else if (selected === null) {
+      clearQuery(router);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  // saves all changes to the selected scratchpad to local storage
+  useEffect(() => {
+    if (selected) {
+      update(selected, routerQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerQuery]);
+
+  const toggleSelected = useCallback(
     (id: string | null) => {
-      setSelected(id);
+      if (id === selected) {
+        setSelected(null);
+      } else {
+        setSelected(id);
+      }
     },
-    [setSelected]
+    [setSelected, selected]
   );
 
   const setDefault = useCallback(
@@ -51,13 +76,13 @@ export function useScratchpads() {
   );
 
   const add = useCallback(
-    (name: string, query: Scratchpad['query']) => {
+    (name: string) => {
       const id = uuid4();
-      const newScratchpads = {...state.scratchpads, [id]: {name, id, query}};
+      const newScratchpads = {...state.scratchpads, [id]: {name, id, query: routerQuery}};
       setState({...state, scratchpads: newScratchpads});
-      select(id);
+      toggleSelected(id);
     },
-    [state, setState, select]
+    [state, setState, toggleSelected, routerQuery]
   );
 
   const update = useCallback(
@@ -79,10 +104,10 @@ export function useScratchpads() {
         setState({...state, scratchpads: newScratchpads});
       }
       if (selected === id) {
-        select(null);
+        toggleSelected(null);
       }
     },
-    [state, setState, select, selected]
+    [state, setState, toggleSelected, selected]
   );
 
   return {
@@ -92,41 +117,37 @@ export function useScratchpads() {
     add,
     update,
     remove,
-    select,
+    toggleSelect: toggleSelected,
     setDefault,
   };
 }
 
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
-  const router = useRouter();
-  const query = router.location.query ?? {};
-  // select the default scratchpad when the component mounts
-  useEffect(() => {
-    if (scratchpads.default && !scratchpads.selected && !query.widgets) {
-      scratchpads.select(scratchpads.default);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  // saves all changes to the selected scratchpad to local storage
-  useEffect(() => {
-    if (scratchpads.selected) {
-      scratchpads.update(scratchpads.selected, query);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
-
-  // changes the query when a scratchpad is selected, clears it when none is selected
-  useEffect(() => {
-    if (scratchpads.selected) {
-      const selectedQuery = scratchpads.all[scratchpads.selected].query;
-      updateQuery(router, selectedQuery);
-    } else if (scratchpads.selected === null) {
-      clearQuery(router);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scratchpads.selected]);
+  const scratchpadOptions = useMemo(
+    () =>
+      Object.values(scratchpads.all).map((s: any) => ({
+        value: s.id,
+        label: s.name,
+        trailingItems: (
+          <Fragment>
+            <StyledDropdownIcon>
+              <IconDelete
+                onClick={() => {
+                  openConfirmModal({
+                    onConfirm: () => scratchpads.remove(s.id),
+                    message: t('Are you sure you want to delete this scratchpad?'),
+                    confirmText: t('Delete'),
+                  });
+                }}
+              />
+            </StyledDropdownIcon>
+          </Fragment>
+        ),
+      })),
+    [scratchpads]
+  );
 
   const isDefaultSelected = scratchpads.default === scratchpads.selected;
 
@@ -148,38 +169,16 @@ export function ScratchpadSelector() {
       </Button>
       <SaveAsDropdown
         onSave={name => {
-          scratchpads.add(name, query);
+          scratchpads.add(name);
         }}
         mode={scratchpads.selected ? 'fork' : 'save'}
       />
       <CompactSelect
-        options={Object.values(scratchpads.all).map((s: any) => ({
-          value: s.id,
-          label: s.name,
-          trailingItems: (
-            <Fragment>
-              <StyledDropdownIcon>
-                <IconDelete
-                  onClick={() => {
-                    openConfirmModal({
-                      onConfirm: () => scratchpads.remove(s.id),
-                      message: t('Are you sure you want to delete this scratchpad?'),
-                      confirmText: t('Delete'),
-                    });
-                  }}
-                />
-              </StyledDropdownIcon>
-            </Fragment>
-          ),
-        }))}
+        options={scratchpadOptions}
         value={scratchpads.selected ?? ''}
         closeOnSelect={false}
         onChange={option => {
-          if (option.value === scratchpads.selected) {
-            scratchpads.select(null);
-          } else {
-            scratchpads.select(option.value);
-          }
+          scratchpads.toggleSelect(option.value);
         }}
         triggerProps={{prefix: t('Scratchpad'), size: 'sm'}}
         emptyMessage="No scratchpads yet."
