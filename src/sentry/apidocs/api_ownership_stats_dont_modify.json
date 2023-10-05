@@ -95,6 +95,8 @@
         "public": [
             "MonitorIngestCheckInDetailsEndpoint::PUT",
             "MonitorIngestCheckInIndexEndpoint::POST",
+            "OrganizationAlertRuleIndexEndpoint::GET",
+            "OrganizationAlertRuleIndexEndpoint::POST",
             "OrganizationMemberDetailsEndpoint::DELETE",
             "OrganizationMemberDetailsEndpoint::GET",
             "OrganizationMemberDetailsEndpoint::PUT",
@@ -238,8 +240,6 @@
             "OrganizationAlertRuleDetailsEndpoint::DELETE",
             "OrganizationAlertRuleDetailsEndpoint::GET",
             "OrganizationAlertRuleDetailsEndpoint::PUT",
-            "OrganizationAlertRuleIndexEndpoint::GET",
-            "OrganizationAlertRuleIndexEndpoint::POST",
             "OrganizationApiKeyDetailsEndpoint::DELETE",
             "OrganizationApiKeyDetailsEndpoint::GET",
             "OrganizationApiKeyDetailsEndpoint::PUT",
