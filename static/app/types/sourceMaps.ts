@@ -14,6 +14,9 @@ export type DebugIdBundle = {
 export type DebugIdBundleArtifact = {
   associations: DebugIdBundleAssociation[];
   bundleId: string;
+  date: string;
+  dateModified: string;
+  fileCount: number;
   files: {
     debugId: string;
     filePath: string;
