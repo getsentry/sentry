@@ -15,6 +15,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
@@ -300,6 +301,11 @@ def __translated_payload(
         indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=k): v
         for k, v in payload["tags"].items()
     }
+
+    agg_option = get_aggregation_option(payload["name"])
+    if agg_option:
+        payload["aggregation_option"] = agg_option
+
     payload["metric_id"] = indexer.resolve(
         use_case_id=use_case_id, org_id=org_id, string=payload["name"]
     )
