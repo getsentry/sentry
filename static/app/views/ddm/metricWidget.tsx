@@ -15,6 +15,7 @@ import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -473,17 +474,25 @@ function MetricChart({
             preserveQueryParams
           >
             {({releaseSeries}) => {
-              const legend = releaseSeries[0]?.markLine?.data?.length
+              const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
+
+              const selected =
+                releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
+                  ? {[t('Releases')]: false}
+                  : {};
+
+              const legend = releaseSeriesData?.length
                 ? Legend({
                     itemGap: 20,
                     top: 0,
                     right: 20,
                     data: releaseSeries.map(s => s.seriesName),
                     theme: theme as Theme,
+                    selected,
                   })
                 : undefined;
 
-              const props = {
+              const allProps = {
                 series: [...seriesToShow, ...releaseSeries],
                 legend,
                 ...chartProps,
@@ -491,11 +500,11 @@ function MetricChart({
               };
 
               return displayType === MetricDisplayType.LINE ? (
-                <LineChart {...props} />
+                <LineChart {...allProps} />
               ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart {...props} />
+                <AreaChart {...allProps} />
               ) : (
-                <BarChart stacked {...props} />
+                <BarChart stacked {...allProps} />
               );
             }}
           </ReleaseSeries>

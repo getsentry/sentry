@@ -1,18 +1,23 @@
-import {LineSeriesOption} from 'echarts';
-
-import {Event} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Event, EventsStatsData} from 'sentry/types';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import {
+  DiscoverQueryProps,
+  useGenericDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TrendsChart} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
 import {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendFunctionField,
 } from 'sentry/views/performance/trends/types';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils';
 
 import {DataSection} from '../styles';
+
+import Chart from './lineChart';
 
 function camelToUnderscore(key: string) {
   return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
@@ -30,9 +35,9 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
-  eventView.fields = [{field: 'transaction'}, {field: 'project'}];
   eventView.start = new Date(requestStart * 1000).toISOString();
   eventView.end = new Date(requestEnd * 1000).toISOString();
+  eventView.dataset = DiscoverDatasets.METRICS;
 
   // If start and end were defined, then do not use default 14d stats period
   eventView.statsPeriod = requestStart && requestEnd ? '' : eventView.statsPeriod;
@@ -46,45 +51,40 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     return acc;
   }, {}) as NormalizedTrendsTransaction;
 
-  const additionalSeries: LineSeriesOption[] = [];
+  const {data, isLoading} = useGenericDiscoverQuery<
+    {
+      data: EventsStatsData;
+      meta: MetaType;
+    },
+    DiscoverQueryProps
+  >({
+    route: 'events-stats',
+    location,
+    eventView,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      // Manually inject y-axis for events-stats because
+      // getEventsAPIPayload doesn't pass it along
+      ...eventView.getEventsAPIPayload(location),
+      yAxis: 'p95(transaction.duration)',
+    }),
+  });
 
   return (
     <DataSection>
-      <TrendsDiscoverQuery
-        orgSlug={organization.slug}
-        eventView={eventView}
-        location={location}
-        trendChangeType={TrendChangeType.REGRESSION}
-        trendFunctionField={TrendFunctionField.P95}
-        limit={1}
-        queryExtras={{
-          withTimeseries: 'true',
-          interval: '1h',
-        }}
-        withBreakpoint
-      >
-        {({trendsData, isLoading}) => {
-          return (
-            <TrendsChart
-              organization={organization}
-              isLoading={isLoading}
-              statsData={trendsData?.stats ?? {}}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-              transaction={normalizedOccurrenceEvent}
-              trendChangeType={TrendChangeType.REGRESSION}
-              trendFunctionField={TrendFunctionField.P95}
-              additionalSeries={additionalSeries}
-              applyRegressionFormatToInterval
-              disableLegend
-            />
-          );
-        }}
-      </TrendsDiscoverQuery>
+      <TransitionChart loading={isLoading} reloading>
+        <TransparentLoadingMask visible={isLoading} />
+        <Chart
+          statsData={data?.data ?? []}
+          evidenceData={normalizedOccurrenceEvent}
+          start={eventView.start}
+          end={eventView.end}
+          chartLabel={generateTrendFunctionAsString(
+            TrendFunctionField.P95,
+            'transaction.duration'
+          )}
+        />
+      </TransitionChart>
     </DataSection>
   );
 }
