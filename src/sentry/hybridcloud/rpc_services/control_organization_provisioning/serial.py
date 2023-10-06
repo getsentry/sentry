@@ -1,5 +1,7 @@
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugReservation,
+)
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 
 
 def serialize_slug_reservation(
