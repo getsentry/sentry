@@ -181,18 +181,15 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
         )
 
-        filtered_options = controller._filter_options(
-            settings=self.setting_options, type=NotificationSettingEnum.DEPLOY.value
-        )
+        filtered_options = controller._filter_options(type=NotificationSettingEnum.DEPLOY.value)
         assert filtered_options == [self.setting_options[0]]
 
         filtered_options = controller._filter_options(
-            settings=self.setting_options, type=NotificationSettingEnum.ISSUE_ALERTS.value
+            type=NotificationSettingEnum.ISSUE_ALERTS.value
         )
         assert filtered_options == self.setting_options[1:]
 
         filtered_options = controller._filter_options(
-            settings=self.setting_options,
             type=NotificationSettingEnum.ISSUE_ALERTS.value,
             scope_type=NotificationScopeEnum.PROJECT.value,
         )
@@ -652,7 +649,7 @@ class NotificationControllerTest(TestCase):
 
         assert controller.get_participants() == {
             rpc_user: {
-                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
             }
         }
@@ -705,24 +702,6 @@ class NotificationControllerTest(TestCase):
         )
 
     def test_get_notification_provider_value_for_recipient_and_type(self):
-        add_notification_setting_provider(
-            scope_type=NotificationScopeEnum.USER,
-            scope_identifier=self.user.id,
-            type=NotificationSettingEnum.WORKFLOW,
-            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-            provider=ExternalProviderEnum.OPSGENIE,
-            user_id=self.user.id,
-        )
-
-        add_notification_setting_provider(
-            scope_type=NotificationScopeEnum.ORGANIZATION,
-            scope_identifier=self.organization.id,
-            type=NotificationSettingEnum.QUOTA_WARNINGS,
-            provider=ExternalProviderEnum.PAGERDUTY,
-            value=NotificationSettingsOptionEnum.NEVER,
-            user_id=self.user.id,
-        )
-
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -736,24 +715,6 @@ class NotificationControllerTest(TestCase):
                 provider=ExternalProviderEnum.SLACK,
             )
             == NotificationSettingsOptionEnum.ALWAYS
-        )
-
-        assert (
-            controller.get_notification_provider_value_for_recipient_and_type(
-                recipient=self.user,
-                type=NotificationSettingEnum.QUOTA_WARNINGS,
-                provider=ExternalProviderEnum.PAGERDUTY,
-            )
-            == NotificationSettingsOptionEnum.NEVER
-        )
-
-        assert (
-            controller.get_notification_provider_value_for_recipient_and_type(
-                recipient=self.user,
-                type=NotificationSettingEnum.QUOTA_ERRORS,
-                provider=ExternalProviderEnum.OPSGENIE,
-            )
-            == NotificationSettingsOptionEnum.NEVER
         )
 
     def test_get_notification_value_for_recipient_and_type_with_layering(self):

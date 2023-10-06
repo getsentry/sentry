@@ -297,6 +297,59 @@ class NotificationController:
 
         return most_specific_setting_providers
 
+    def get_combined_settings(
+        self,
+        type: NotificationSettingEnum | None = None,
+        actor_type: ActorType | None = None,
+        project_id: int | None = None,
+    ) -> MutableMapping[
+        Recipient,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ]:
+        """
+        Returns the recipients that should be notified for each provider,
+        filtered by the given notification type.
+
+        Args:
+            type: The notification type to filter providers and recipients by.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        kwargs = {}
+        if type:
+            kwargs["type"] = type.value
+        if project_id:
+            kwargs["project_id"] = project_id
+
+        types_to_search = [type] if type else NotificationSettingEnum
+
+        setting_options_map = self._get_layered_setting_options(**kwargs)
+        setting_providers_map = self._get_layered_setting_providers(**kwargs)
+
+        result = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        for recipient, recipient_options_map in setting_options_map.items():
+            actor = RpcActor.from_object(recipient)
+            if actor_type and actor.actor_type != actor_type:
+                continue
+
+            for type in types_to_search:
+                option_value = recipient_options_map[type]
+                if option_value == NotificationSettingsOptionEnum.NEVER:
+                    continue
+
+                provider_options_map = setting_providers_map[recipient][type]
+                for provider, provider_value in provider_options_map.items():
+                    if provider_value == NotificationSettingsOptionEnum.NEVER:
+                        continue
+                    # use the option value here as it has more specific information
+                    result[recipient][type][provider] = option_value
+
+        return result
+
     def get_notification_recipients(
         self,
         type: NotificationSettingEnum,
@@ -310,82 +363,19 @@ class NotificationController:
         Args:
             type: The notification type to filter providers and recipients by.
         """
-        if self.type and type != self.type:
-            raise Exception("Type mismatch: the provided type differs from the controller type")
-
-        setting_options_map = self._get_layered_setting_options(
-            type=type.value, project_id=project_id
+        combined_settings = self.get_combined_settings(
+            type=type, actor_type=actor_type, project_id=project_id
         )
-        setting_providers_map = self._get_layered_setting_providers(
-            type=type.value,
-            project_id=project_id,
-        )
-
         recipients: Mapping[ExternalProviders, set[RpcActor]] = defaultdict(set)
-        for recipient, recipient_options_map in setting_options_map.items():
+        for recipient, type_map in combined_settings.items():
             actor = RpcActor.from_object(recipient)
-            if actor_type and actor.actor_type != actor_type:
-                continue
-
-            option_value = recipient_options_map[type]
-            if option_value == NotificationSettingsOptionEnum.NEVER:
-                continue
-
-            provider_options_map = setting_providers_map[recipient][type]
-            for provider, provider_value in provider_options_map.items():
-                if provider_value == NotificationSettingsOptionEnum.NEVER:
-                    continue
-
-                recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
-        return recipients
-
-    def get_all_enabled_settings(
-        self,
-        **kwargs,
-    ) -> MutableMapping[
-        Recipient,
-        MutableMapping[
-            Scope,
-            MutableMapping[
-                NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-            ],
-        ],
-    ]:
-        """
-        Returns a mapping of all enabled notification setting providers for the enabled options.
-        Note that this includes default settings for any notification types that are not set.
-        """
-
-        setting_options = self._get_layered_setting_options(**kwargs)
-        setting_providers = self._get_layered_setting_providers(**kwargs)
-
-        setting_option_and_providers: MutableMapping[
-            Recipient,
-            MutableMapping[
-                Scope,
-                MutableMapping[
-                    NotificationSettingEnum,
-                    MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-                ],
-            ],
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        for recipient, setting_option in setting_options.items():
-            for scope, setting in setting_option.items():
-                for type, option_value in setting.items():
-                    if option_value == NotificationSettingsOptionEnum.NEVER:
+            for type, provider_map in type_map.items():
+                for provider, value in provider_map.items():
+                    if value == NotificationSettingsOptionEnum.NEVER:
                         continue
 
-                    recipient_providers = setting_providers[recipient][scope][type]
-                    for provider, provider_value in recipient_providers.items():
-                        if provider_value == NotificationSettingsOptionEnum.NEVER:
-                            continue
-
-                        setting_option_and_providers[recipient][scope][type][
-                            provider
-                        ] = provider_value
-
-        return setting_option_and_providers
+                    recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
+        return recipients
 
     def get_settings_for_user_by_projects(
         self, user: Recipient
@@ -407,29 +397,11 @@ class NotificationController:
             if not isinstance(project_id, int):
                 raise Exception("project_ids must be a list of integers")
 
-            setting_options_map = self._get_layered_setting_options(
-                project_id=project_id,
-                user_id=user.id,
-            )
-            setting_providers_map = self._get_layered_setting_providers(
-                project_id=project_id,
-                user_id=user.id,
-            )
+            combined_settings = self.get_combined_settings(project_id=project_id)
 
-            setting_options_for_recipient = setting_options_map[user]
-            setting_provider_for_recipient = setting_providers_map[user]
-
-            for type, option_value in setting_options_for_recipient.items():
-                if option_value == NotificationSettingsOptionEnum.NEVER:
-                    continue
-
-                recipient_providers = setting_provider_for_recipient[type]
-                for provider, provider_value in recipient_providers.items():
-                    if provider_value == NotificationSettingsOptionEnum.NEVER:
-                        continue
-
-                    # use the option value here
-                    result[project_id][type][provider] = option_value
+            # take the settings for this user
+            settings_for_user = combined_settings[user]
+            result[project_id] = settings_for_user
 
         return result
 
@@ -490,24 +462,21 @@ class NotificationController:
         if not self.type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_all_enabled_settings(type=self.type.value)
+        combined_settings = self.get_combined_settings(type=self.type)
         user_to_providers: MutableMapping[
             RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
-        for recipient, setting in enabled_settings.items():
+        for recipient, setting_map in combined_settings.items():
+            # TODO: make work for teams
             if not recipient_is_user(recipient):
                 continue
 
             actor = RpcActor.from_object(recipient)
-            for type_map in setting.values():
-                for type, provider_map in type_map.items():
-                    if type != self.type:
-                        continue
-
-                    user_to_providers[actor] = {
-                        EXTERNAL_PROVIDERS_REVERSE[provider]: value
-                        for provider, value in provider_map.items()
-                    }
+            provider_map = setting_map[self.type]
+            user_to_providers[actor] = {
+                EXTERNAL_PROVIDERS_REVERSE[provider]: value
+                for provider, value in provider_map.items()
+            }
 
         return user_to_providers
 
@@ -546,15 +515,10 @@ class NotificationController:
         if self.type and type != self.type:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
-        setting_options = self._get_layered_setting_options(type=type.value)
-        for _, setting in setting_options[recipient].items():
-            value = setting[type]
-            # Skip notifications that are off
-            if value == NotificationSettingsOptionEnum.NEVER:
-                continue
-            return value
-
-        return NotificationSettingsOptionEnum.NEVER
+        option_value_by_recipient_by_type = self._get_layered_setting_options(type=type.value)
+        option_value_by_type = option_value_by_recipient_by_type[recipient]
+        value = option_value_by_type[type]
+        return value
 
     def get_notification_provider_value_for_recipient_and_type(
         self, recipient: Recipient, type: NotificationSettingEnum, provider: ExternalProviderEnum
@@ -570,15 +534,10 @@ class NotificationController:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
         setting_providers = self._get_layered_setting_providers(type=type.value)
-        for _, recipient_mapping in setting_providers[recipient].items():
-            type_mapping = recipient_mapping[type]
-            value = type_mapping[provider]
-            if value == NotificationSettingsOptionEnum.NEVER:
-                continue
-
-            return value
-
-        return NotificationSettingsOptionEnum.NEVER
+        recipient_mapping = setting_providers[recipient]
+        type_mapping = recipient_mapping[type]
+        value = type_mapping[provider]
+        return value
 
     def get_users_for_weekly_reports(self) -> list[int]:
         if not self.organization_id:
