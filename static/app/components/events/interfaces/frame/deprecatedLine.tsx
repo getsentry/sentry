@@ -58,6 +58,7 @@ export interface DeprecatedLineProps {
   frameMeta?: Record<any, any>;
   frameSourceResolutionResults?: FrameSourceMapDebuggerData;
   hiddenFrameCount?: number;
+  hideSourceMapDebugger?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -316,7 +317,8 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     const shouldShowSourceMapDebuggerToggle =
-      data.inApp &&
+      !this.props.hideSourceMapDebugger &&
+      // data.inApp &&
       this.props.frameSourceResolutionResults &&
       (!this.props.frameSourceResolutionResults.frameIsResolved ||
         !hasContextSource(data));
