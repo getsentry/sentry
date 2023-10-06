@@ -24,10 +24,34 @@ describe('ProjectCspReports', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<ProjectCspReports />, {
       organization,
     });
+
+    // Renders the loading indication initially
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    // Heading
+    expect(
+      await screen.findByText('Content Security Policy', {selector: 'h4'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders loading error', async function () {
+    MockApiClient.addMockResponse({
+      url: projectUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+    render(<ProjectCspReports />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
   });
 
   it('can enable default ignored sources', async function () {

@@ -2,6 +2,8 @@ import Access from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -51,17 +53,36 @@ export default function ProjectCspReports() {
   const params = useParams();
   const projectId = params.projectId;
 
-  const {data: keyList} = useApiQuery<ProjectKey[]>(
-    [`/projects/${organization.slug}/${projectId}/keys/`],
-    {staleTime: 0}
-  );
-  const {data: project} = useApiQuery<Project>(
-    [`/projects/${organization.slug}/${projectId}/`],
-    {staleTime: 0}
-  );
+  const {
+    data: keyList,
+    isLoading: isLoadingKeyList,
+    error: keyListError,
+    refetch: refetchKeyList,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
+    staleTime: 0,
+  });
+  const {
+    data: project,
+    isLoading: isLoadingProject,
+    error: projectError,
+    refetch: refetchProject,
+  } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {
+    staleTime: 0,
+  });
 
-  if (!keyList || !project) {
-    return null;
+  if (isLoadingKeyList || isLoadingProject) {
+    return <LoadingIndicator />;
+  }
+
+  if (keyListError || projectError) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetchKeyList();
+          refetchProject();
+        }}
+      />
+    );
   }
 
   return (
