@@ -145,8 +145,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
         id__lte=most_recent_group_first_seen_seven_days_ago.id,
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
@@ -162,20 +160,10 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -247,8 +235,6 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
@@ -264,20 +250,10 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
                 group_ids=group_ids_with_regressed_history,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -349,8 +325,6 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         .filter(recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
@@ -366,20 +340,10 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 

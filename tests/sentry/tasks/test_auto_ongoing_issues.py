@@ -201,29 +201,15 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             sample_rate=1.0,
             tags={"count": 100},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 10},
-        )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
             tags={"count": 0},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
+
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
             sample_rate=1.0,
             tags={"count": 0},
         )
@@ -318,29 +304,15 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             sample_rate=1.0,
             tags={"count": 0},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
             tags={"count": 100},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 10},
-        )
+
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
             sample_rate=1.0,
             tags={"count": 0},
         )
@@ -436,29 +408,15 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
             sample_rate=1.0,
             tags={"count": 0},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
             tags={"count": 0},
         )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 0},
-        )
+
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
             sample_rate=1.0,
             tags={"count": 100},
-        )
-        mock_metrics_incr.assert_any_call(
-            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
-            sample_rate=1.0,
-            tags={"count": 10},
         )
