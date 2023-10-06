@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
@@ -114,7 +114,7 @@ function useMetricWidgets() {
   };
 }
 
-function MetricDashboard() {
+function MetricScratchpad() {
   const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
 
@@ -230,12 +230,15 @@ function MetricWidgetBodyInner({
     }
   }, [data]);
 
-  const toggleSeriesVisibility = (seriesName: string) => {
-    setHoveredLegend('');
-    onChange({
-      focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
-    });
-  };
+  const toggleSeriesVisibility = useCallback(
+    (seriesName: string) => {
+      setHoveredLegend('');
+      onChange({
+        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+      });
+    },
+    [focusedSeries, onChange]
+  );
 
   if (!dataToBeRendered || isError) {
     return (
@@ -408,13 +411,13 @@ function MetricChart({
   environments,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
-
+  // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
     const echartsInstance = chartRef?.current?.getEchartsInstance();
     if (echartsInstance && !echartsInstance.group) {
       echartsInstance.group = DDM_CHART_GROUP;
     }
-  }, []);
+  });
 
   const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
@@ -425,6 +428,7 @@ function MetricChart({
     },
     nameFormatter: mri => getNameFromMRI(mri),
   };
+  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
   const chartProps = {
     forwardedRef: chartRef,
@@ -461,7 +465,7 @@ function MetricChart({
   };
 
   return (
-    <Fragment>
+    <ChartWrapper>
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <ReleaseSeries
@@ -493,10 +497,10 @@ function MetricChart({
                 : undefined;
 
               const allProps = {
-                series: [...seriesToShow, ...releaseSeries],
-                legend,
                 ...chartProps,
                 ...zoomRenderProps,
+                series: [...seriesToShow, ...releaseSeries],
+                legend,
               };
 
               return displayType === MetricDisplayType.LINE ? (
@@ -510,7 +514,8 @@ function MetricChart({
           </ReleaseSeries>
         )}
       </ChartZoom>
-    </Fragment>
+      {displayFogOfWar && <FogOfWarOverlay />}
+    </ChartWrapper>
   );
 }
 
@@ -560,4 +565,24 @@ const AddWidgetPanel = styled(MetricWidgetPanel)`
   }
 `;
 
-export default MetricDashboard;
+const ChartWrapper = styled('div')`
+  position: relative;
+  height: 300px;
+`;
+
+const FogOfWarOverlay = styled('div')`
+  height: 238px;
+  width: 40px;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.background}00 0%,
+    ${p => p.theme.background}FF 70%,
+    ${p => p.theme.background}FF 100%
+  );
+`;
+
+export default MetricScratchpad;
