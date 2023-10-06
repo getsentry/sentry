@@ -253,11 +253,9 @@ function MetricWidgetBodyInner({
     );
   }
 
-  // TODO(ddm): we should move this into the useMetricsData hook
-  const sorted = sortData(dataToBeRendered);
   const unit = getUnitFromMRI(Object.keys(dataToBeRendered.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
-  const series = sorted.groups.map(g => {
+  const series = dataToBeRendered.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
       name: getSeriesName(
@@ -269,26 +267,27 @@ function MetricWidgetBodyInner({
       release: g.by.release,
     };
   });
-
   const colors = theme.charts.getColorPalette(series.length);
 
-  const chartSeries = series.map((item, i) => ({
-    seriesName: item.name,
-    unit,
-    color: colorFn(colors[i])
-      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
-      .string(),
-    hidden: focusedSeries && focusedSeries !== item.name,
-    data: item.values.map((value, index) => ({
-      name: sorted.intervals[index],
-      value,
-    })),
-    transaction: item.transaction as string | undefined,
-    release: item.release as string | undefined,
-    emphasis: {
-      focus: 'series',
-    } as LineSeriesOption['emphasis'],
-  })) as Series[];
+  const chartSeries = series
+    .sort((a, b) => a.name?.localeCompare(b.name))
+    .map((item, i) => ({
+      seriesName: item.name,
+      unit,
+      color: colorFn(colors[i])
+        .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+        .string(),
+      hidden: focusedSeries && focusedSeries !== item.name,
+      data: item.values.map((value, index) => ({
+        name: dataToBeRendered.intervals[index],
+        value,
+      })),
+      transaction: item.transaction as string | undefined,
+      release: item.release as string | undefined,
+      emphasis: {
+        focus: 'series',
+      } as LineSeriesOption['emphasis'],
+    })) as Series[];
 
   return (
     <StyledMetricWidgetBody>
@@ -299,7 +298,7 @@ function MetricWidgetBodyInner({
         operation={metricsDataProps.op}
         projects={metricsDataProps.projects}
         environments={metricsDataProps.environments}
-        {...normalizeChartTimeParams(sorted)}
+        {...normalizeChartTimeParams(dataToBeRendered)}
       />
       {metricsDataProps.showSummaryTable && (
         <SummaryTable
@@ -325,23 +324,6 @@ function getSeriesName(
   return Object.entries(group.by)
     .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
     .join(', ');
-}
-
-function sortData(data: MetricsData): MetricsData {
-  if (!data.groups.length) {
-    return data;
-  }
-
-  const key = Object.keys(data.groups[0].totals)[0];
-
-  const sortedGroups = data.groups.sort((a, b) =>
-    a.totals[key] < b.totals[key] ? 1 : -1
-  );
-
-  return {
-    ...data,
-    groups: sortedGroups,
-  };
 }
 
 function normalizeChartTimeParams(data: MetricsData) {
@@ -428,7 +410,10 @@ function MetricChart({
     },
     nameFormatter: mri => getNameFromMRI(mri),
   };
-  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+  const displayFogOfWar =
+    operation &&
+    displayType === MetricDisplayType.LINE &&
+    ['sum', 'count'].includes(operation);
 
   const chartProps = {
     forwardedRef: chartRef,
@@ -452,7 +437,6 @@ function MetricChart({
       axisPointer: {
         label: {show: true},
       },
-      ...formatters,
     },
 
     yAxis: {
@@ -572,7 +556,7 @@ const ChartWrapper = styled('div')`
 
 const FogOfWarOverlay = styled('div')`
   height: 238px;
-  width: 40px;
+  width: 10%;
   position: absolute;
   right: 10px;
   top: 18px;
