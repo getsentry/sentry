@@ -64,32 +64,29 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
         }
       )}{' '}
       {ineligibleProjects.length > 0 &&
-        tct(
-          'You may be missing data due to outdated SDKs. Projects with outdated SDKs: [projectList]',
-          {
-            documentation: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
-            ),
-            projectList: (
-              <Fragment>
-                {firstIneligibleProjects.map((project, projectIndex) => {
-                  return (
-                    <span key={project.id}>
-                      <a
-                        href={normalizeUrl(
-                          `/organizations/${organization.slug}/projects/${project.slug}/`
-                        )}
-                      >
-                        {project.name}
-                      </a>
-                      {projectIndex < firstIneligibleProjects.length - 1 && ', '}
-                    </span>
-                  );
-                })}
-              </Fragment>
-            ),
-          }
-        )}
+        tct('You may also be missing data due to outdated SDKs: [projectList]', {
+          documentation: (
+            <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
+          ),
+          projectList: (
+            <Fragment>
+              {firstIneligibleProjects.map((project, projectIndex) => {
+                return (
+                  <span key={project.id}>
+                    <a
+                      href={normalizeUrl(
+                        `/organizations/${organization.slug}/projects/${project.slug}/`
+                      )}
+                    >
+                      {project.name}
+                    </a>
+                    {projectIndex < firstIneligibleProjects.length - 1 && ', '}
+                  </span>
+                );
+              })}
+            </Fragment>
+          ),
+        })}
       {hasMoreIneligibleProjectsThanVisible &&
         tct(' and [count] more.', {
           count: ineligibleProjects.length - MAX_LISTED_PROJECTS,
