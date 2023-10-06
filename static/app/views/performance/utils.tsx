@@ -3,6 +3,7 @@ import {Theme} from '@emotion/react';
 import {Location} from 'history';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
@@ -579,6 +580,46 @@ export function getIntervalLine(
           ],
         ],
       }),
+      data: [],
+    });
+
+    additionalLineSeries.push({
+      seriesName: 'Baseline Axis Line',
+      type: 'line',
+      markLine:
+        MarkLine({
+          silent: true,
+          label: {
+            show: false,
+          },
+          lineStyle: {color: theme.green400, type: 'solid', width: 4},
+          data: [
+            [
+              {xAxis: 'min', y: 177},
+              {xAxis: breakpoint, y: 177},
+            ],
+          ],
+        }) ?? {},
+      data: [],
+    });
+
+    additionalLineSeries.push({
+      seriesName: 'Regression Axis Line',
+      type: 'line',
+      markLine:
+        MarkLine({
+          silent: true,
+          label: {
+            show: false,
+          },
+          lineStyle: {color: theme.red300, type: 'solid', width: 4},
+          data: [
+            [
+              {xAxis: breakpoint, y: 177},
+              {xAxis: 'max', y: 177},
+            ],
+          ],
+        }) ?? {},
       data: [],
     });
   }
