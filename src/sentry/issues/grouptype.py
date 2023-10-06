@@ -324,7 +324,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
 class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1017
     slug = "performance_duration_regression"
-    description = "Exp Transaction Duration Regression"
+    description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
@@ -413,7 +413,7 @@ class ProfileFrameDropType(GroupType):
 class ProfileFunctionRegressionExperimentalType(GroupType):
     type_id = 2010
     slug = "profile_function_regression_exp"
-    description = "Function Duration Regression"
+    description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
 
 

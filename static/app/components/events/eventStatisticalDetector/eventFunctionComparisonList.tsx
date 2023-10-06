@@ -6,6 +6,7 @@ import DateTime from 'sentry/components/dateTime';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,7 +94,10 @@ function EventComparisonListInner({
   project,
 }: EventComparisonListInnerProps) {
   const organization = useOrganization();
-  const maxDateTime = Date.now();
+
+  // Make sure to memo this. Otherwise, each re-render will have
+  // a different min/max date time, causing the query to refetch.
+  const maxDateTime = useMemo(() => Date.now(), []);
   const minDateTime = maxDateTime - 90 * DAY;
 
   const breakpointTime = breakpoint * 1000;
@@ -240,7 +244,8 @@ function EventList({
         <strong>{t('Timestamp')}</strong>
       </Container>
       <NumberContainer>
-        <strong>{t('Duration')}</strong>
+        <strong>{t('Duration')} </strong>
+        <QuestionTooltip size="xs" position="top" title={t('The profile duration')} />
       </NumberContainer>
       {profiles.map(item => {
         const target = generateProfileFlamechartRouteWithQuery({
@@ -294,6 +299,6 @@ const Wrapper = styled('div')`
 
 const ListContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: minmax(75px, 1fr) auto minmax(75px, 1fr);
   gap: ${space(1)};
 `;
