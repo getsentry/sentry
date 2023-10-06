@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Mapping, Optional
 
+from sentry_kafka_schemas.codecs import ValidationError
+
 from sentry.sentry_metrics.configuration import UseCaseKey
+
+MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 
 class UseCaseID(Enum):
@@ -48,3 +53,14 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 
 def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
     return METRIC_PATH_MAPPING.get(use_case_id)
+
+
+def extract_use_case_id(mri: str) -> UseCaseID:
+    """
+    Returns the use case ID given the MRI, returns None if MRI is invalid.
+    """
+    if matched := MRI_RE_PATTERN.match(mri):
+        use_case_str = matched.group(2)
+        if use_case_str in {id.value for id in UseCaseID}:
+            return UseCaseID(use_case_str)
+    raise ValidationError(f"Invalid mri: {mri}")
