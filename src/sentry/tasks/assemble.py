@@ -141,10 +141,8 @@ def assemble_file(
             detail="Reported checksum mismatch",
         )
         return None
-    else:
-        file.save()
 
-        return AssembleResult(bundle=file, bundle_temp_file=temp_file)
+    return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
 def _get_cache_key(task, scope, checksum):
