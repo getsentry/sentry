@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import {Event, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container} from 'sentry/utils/discover/styles';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
