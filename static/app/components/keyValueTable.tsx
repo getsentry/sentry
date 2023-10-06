@@ -7,7 +7,6 @@ import {space} from 'sentry/styles/space';
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
-  tooltip?: string;
   type?: undefined | 'error' | 'warning';
 };
 
