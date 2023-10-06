@@ -8,6 +8,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugReservation,
+)
 from sentry.models import (
     ApiKey,
     AuthIdentity,
@@ -25,7 +28,6 @@ from sentry.models import (
 from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
