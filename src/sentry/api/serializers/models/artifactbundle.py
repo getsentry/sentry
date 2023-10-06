@@ -1,5 +1,5 @@
 import base64
-from collections import defaultdict
+from typing import Dict, List, Tuple
 
 from sentry.api.serializers import Serializer
 from sentry.models import ReleaseArtifactBundle, SourceFileType
@@ -13,8 +13,8 @@ class ArtifactBundlesSerializer(Serializer):
         associations = []
 
         grouped_bundle = grouped_bundles.get(item[0], [])
-        # We want to sort the set, since we want consistent ordering in the UI.
-        for release, dist in sorted(grouped_bundle):
+        # We preserve the order of the list inside the grouped bundle.
+        for release, dist in grouped_bundle:
             associations.append({"release": release or None, "dist": dist or None})
 
         return associations
@@ -24,15 +24,16 @@ class ArtifactBundlesSerializer(Serializer):
         return None if date is None else date.isoformat()[:19] + "Z"
 
     def get_attrs(self, item_list, user):
+        # We sort by id, since it's the best (already existing) field to define total order of
+        # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             artifact_bundle_id__in=[r[0] for r in item_list]
-        )
+        ).order_by("-id")
 
-        grouped_bundles = defaultdict(set)
+        grouped_bundles: Dict[int, List[Tuple[str, str]]] = {}
         for release in release_artifact_bundles:
-            grouped_bundles[release.artifact_bundle_id].add(
-                (release.release_name, release.dist_name)
-            )
+            bundles = grouped_bundles.setdefault(release.artifact_bundle_id, [])
+            bundles.append((release.release_name, release.dist_name))
 
         return {
             item: {

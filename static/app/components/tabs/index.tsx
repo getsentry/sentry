@@ -6,11 +6,11 @@ import {AriaTabListOptions} from '@react-aria/tabs';
 import {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {Orientation} from '@react-types/shared';
 
-import {TabList} from './tabList';
+import {TabList, TabListProps} from './tabList';
 import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
-export {TabList, TabPanels};
+export {TabList, TabListProps, TabPanels};
 
 export interface TabsProps<T>
   extends Omit<

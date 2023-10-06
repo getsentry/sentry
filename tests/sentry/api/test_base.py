@@ -39,7 +39,7 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = None
+    error = NotImplementedError()
     handler_context_arg = None
     scope_arg = None
 
@@ -130,7 +130,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
 
@@ -155,7 +158,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
@@ -180,7 +186,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
@@ -236,7 +245,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")

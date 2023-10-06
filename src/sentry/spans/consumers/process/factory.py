@@ -3,81 +3,50 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime
-from functools import lru_cache
-from typing import Any, Mapping, MutableMapping, Tuple
+from typing import Any, Mapping, MutableMapping, Optional
 
-import msgpack
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
+from arroyo.types import FILTERED_PAYLOAD, Commit, FilteredPayload, Message, Partition, Topic
 from django.conf import settings
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
 
-from sentry import quotas
-from sentry.models import Organization, Project
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-TAG_MAPPING = {
-    "span.action": "action",
-    "span.description": "description",
-    "span.domain": "domain",
-    "span.group": "group",
-    "span.module": "module",
-    "span.op": "op",
-    "span.status": "status",
-    "span.status_code": "status_code",
-    "span.system": "system",
-    "transaction": "transaction",
-    "transaction.method": "transaction.method",
-    "transaction.op": "transaction.op",
-}
-SPAN_SCHEMA_VERSION = 1
-DEFAULT_SPAN_RETENTION_DAYS = 90
+SPAN_SCHEMA_V1 = 1
+SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
+SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
 
 
-@lru_cache(maxsize=10000)
-def get_organization(project_id: int) -> Tuple[Organization, int]:
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = project.organization
-    retention_days = (
-        quotas.backend.get_event_retention(
-            organization=organization,
-        )
-        or DEFAULT_SPAN_RETENTION_DAYS
-    )
-    return organization.id, retention_days
-
-
-def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    organization_id, retention_days = get_organization(
-        relay_span["project_id"],
-    )
-    span_data: Mapping[str, Any] = relay_span.get("data", {})
-
+def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
     snuba_span: MutableMapping[str, Any] = {}
-    snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization_id
+    snuba_span["organization_id"] = relay_span["organization_id"]
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
-    snuba_span["retention_days"] = retention_days
+    snuba_span["retention_days"] = relay_span["retention_days"]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
-    snuba_span["tags"] = {
-        k: str(v) for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
-    }
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
 
-    if (description := relay_span.get("description")) is not None:
-        snuba_span["description"] = description
+    for key in {"description", "tags"}:
+        if value := relay_span.get(key):
+            snuba_span[key] = value
+
+    # Copy optional event IDs to the Snuba span
+    for key in {"event_id", "profile_id"}:
+        if value := _format_event_id(relay_span, key=key):
+            snuba_span[key] = value
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
     snuba_span["start_timestamp_ms"] = int(start_timestamp.timestamp() * 1e3)
@@ -87,42 +56,27 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         0,
     )
 
-    sentry_tags: MutableMapping[str, Any] = {}
+    sentry_tags: dict[str, Any] = relay_span.get("sentry_tags", {}) or {}
 
-    if span_data:
-        for relay_tag, snuba_tag in TAG_MAPPING.items():
-            tag_value = span_data.get(relay_tag)
-            if snuba_tag == "group":
-                if tag_value is None:
-                    metrics.incr("spans.missing_group")
-                else:
-                    try:
-                        # Test if the value is valid hexadecimal.
-                        _ = int(tag_value, 16)
-                        # If valid, set the raw value to the tag.
-                        sentry_tags["group"] = tag_value
-                    except ValueError:
-                        metrics.incr("spans.invalid_group")
-            elif tag_value is not None:
-                sentry_tags[snuba_tag] = tag_value
+    # Check for top-level we need to add to sentry_tags
+    for key in {"op", "status"}:
+        if key not in sentry_tags and (value := relay_span.get(key)):
+            sentry_tags[key] = value
 
-    if "op" not in sentry_tags and (op := relay_span.get("op", "")) is not None:
-        sentry_tags["op"] = op
+    snuba_span["sentry_tags"] = sentry_tags
 
-    if "status" not in sentry_tags and (status := relay_span.get("status", "")) is not None:
-        sentry_tags["status"] = status
+    _process_group_raw(snuba_span, sentry_tags.get("transaction", ""))
 
-    if "status_code" in sentry_tags:
-        sentry_tags["status_code"] = sentry_tags["status_code"]
+    return snuba_span
 
-    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
+def _process_group_raw(snuba_span: MutableMapping[str, Any], transaction: str) -> None:
     grouping_config = load_span_grouping_config()
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
-            {"transaction": span_data.get("transaction", "")},
+            {"transaction": transaction},
         )
     else:
         # Build a span with only necessary values filled.
@@ -148,38 +102,47 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = "0"
         metrics.incr("spans.invalid_group_raw")
 
-    return snuba_span
 
-
-def _format_event_id(payload: Mapping[str, Any]) -> str:
-    event_id = payload.get("event_id")
+def _format_event_id(payload: Mapping[str, Any], key="event_id") -> Optional[str]:
+    event_id = payload.get(key)
     if event_id:
         return uuid.UUID(event_id).hex
-    return ""
+    return None
+
+
+def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+    return SPAN_SCHEMA.decode(payload)
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
-    payload = msgpack.unpackb(message.payload.value)
+    payload = _deserialize_payload(message.payload.value)
     relay_span = payload["span"]
+    relay_span["event_id"] = payload.get("event_id")
+    relay_span["organization_id"] = payload["organization_id"]
     relay_span["project_id"] = payload["project_id"]
-    relay_span["event_id"] = _format_event_id(payload)
-    snuba_span = _build_snuba_span(relay_span)
+    relay_span["retention_days"] = payload["retention_days"]
+
+    snuba_span = _process_relay_span_v1(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
 
-def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
+def _capture_exception(err: Exception) -> None:
+    if random.random() < 0.05:
+        sentry_sdk.capture_exception(err)
+
+
+def process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
     try:
         return _process_message(message)
-    except Exception as e:
+    except ValidationError as err:
+        metrics.incr("spans.consumer.schema_validation.failed")
+        _capture_exception(err)
+        return FILTERED_PAYLOAD
+    except Exception as err:
         metrics.incr("spans.consumer.message_processing_error")
-        if random.random() < 0.05:
-            sentry_sdk.capture_exception(e)
-        assert isinstance(message.value, BrokerValue)
-        raise InvalidMessage(
-            message.value.partition,
-            message.value.offset,
-        )
+        _capture_exception(err)
+        return FILTERED_PAYLOAD
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
