@@ -103,7 +103,7 @@ function ResourceTable({sort}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === 'span.op') {
-      const opName = row[key] === 'resource.script' ? 'Javascript' : 'Image';
+      const opName = row[key] === 'resource.script' ? t('Javascript') : t('Image');
       return <span>{opName}</span>;
     }
     if (key === 'http.decoded_response_content_length') {

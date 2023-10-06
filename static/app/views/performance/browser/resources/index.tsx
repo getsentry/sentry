@@ -116,9 +116,9 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: 'resource.script', label: 'JavaScript (.js)'},
-    {value: '.css', label: 'Stylesheets (.css)'},
-    {value: 'resource.img', label: 'Images (.png, .jpg, .jpeg, .gif, etc)'},
+    {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
+    {value: '.css', label: `${t('Stylesheet')} (.css)`},
+    {value: 'resource.img', label: `${t('Images')} (.png, .jpg, .jpeg, .gif, etc)`},
   ];
   return (
     <SelectControlWithProps
