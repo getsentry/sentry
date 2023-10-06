@@ -318,7 +318,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const shouldShowSourceMapDebuggerToggle =
       !this.props.hideSourceMapDebugger &&
-      // data.inApp &&
+      data.inApp &&
       this.props.frameSourceResolutionResults &&
       (!this.props.frameSourceResolutionResults.frameIsResolved ||
         !hasContextSource(data));
