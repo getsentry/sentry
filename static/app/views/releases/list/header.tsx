@@ -19,13 +19,12 @@ type Props = {
   hasV2ReleaseUIEnabled: boolean;
   organization: Organization;
   router: InjectedRouter;
+  togglePanel: () => void;
 };
 
-function Header({router, hasV2ReleaseUIEnabled}: Props) {
+function Header({router, hasV2ReleaseUIEnabled, togglePanel}: Props) {
   const [selected, setSelected] = useState(router.location.query.view);
-  // const selected = useMemo(() => {
-  //   return ;
-  // }, [router]);
+
   const location = useMemo(() => router.location, [router]);
   const {
     cursor: _cursor,
@@ -71,7 +70,7 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
       </Layout.HeaderContent>
       {selected === THRESHOLDS_VIEW && (
         <Layout.HeaderActions>
-          <Button size="sm" priority="primary">
+          <Button size="sm" priority="primary" onClick={togglePanel}>
             <IconAdd isCircled size="sm" />
             &nbsp; Create Threshold
           </Button>

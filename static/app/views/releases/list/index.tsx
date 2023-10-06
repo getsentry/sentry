@@ -50,6 +50,7 @@ import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 import {THRESHOLDS_VIEW} from '../utils/constants';
 
+import ThresholdForm from './thresholdMgmt/thresholdForm';
 import Header from './header';
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
@@ -72,6 +73,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
+  thresholdFormData?: {[key: string]: any};
 } & DeprecatedAsyncView['state'];
 
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
@@ -302,6 +304,11 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     return (loading && !reloading) || (loading && !releases?.length);
   }
+
+  openPanel = () => {
+    // NOTE: pass this to the threshold list/groups also for edit
+    this.setState({thresholdFormData: {}});
+  };
 
   renderLoading() {
     return this.renderBody();
@@ -567,6 +574,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
             organization={organization}
             router={router}
             hasV2ReleaseUIEnabled={hasV2ReleaseUIEnabled}
+            togglePanel={this.openPanel}
           />
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -641,8 +649,19 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-              {/* TODO: remove test render */}
-              {/* {this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)} */}
+
+              {/* <SlideOverPanel collapsed={!this.state.panelOpen}>
+                BizBaz
+                <Button onClick={() => this.setState({panelOpen: false})}>close</Button>
+              </SlideOverPanel> */}
+              <ThresholdForm
+                formData={this.state.thresholdFormData}
+                onClose={() => {
+                  this.setState({thresholdFormData: undefined});
+                }}
+              >
+                FooBar
+              </ThresholdForm>
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
