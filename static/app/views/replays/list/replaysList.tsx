@@ -97,7 +97,7 @@ function ReplaysListTable({
   ];
 
   return (
-    <Fragment>
+    <NoMarginContainer>
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
@@ -132,7 +132,7 @@ function ReplaysListTable({
           });
         }}
       />
-    </Fragment>
+    </NoMarginContainer>
   );
 }
 
@@ -145,4 +145,9 @@ const ReplayPagination = styled(Pagination)`
   margin-top: 0;
 `;
 
+const NoMarginContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`;
 export default ReplaysList;

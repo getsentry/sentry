@@ -10,6 +10,23 @@ type Props = {
   sort?: Sort;
 };
 
+export const colToHeader = {
+  [ReplayColumn.ACTIVITY]: t('Activity'),
+  [ReplayColumn.BROWSER]: t('Browser'),
+  [ReplayColumn.COUNT_DEAD_CLICKS]: t('Dead Clicks'),
+  [ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER]: '',
+  [ReplayColumn.COUNT_ERRORS]: t('Errors'),
+  [ReplayColumn.COUNT_RAGE_CLICKS]: t('Rage Clicks'),
+  [ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER]: '',
+  [ReplayColumn.DURATION]: t('Duration'),
+  [ReplayColumn.OS]: t('OS'),
+  [ReplayColumn.REPLAY]: t('Replay'),
+  [ReplayColumn.SLOWEST_TRANSACTION]: t('Slowest Transaction'),
+  [ReplayColumn.MOST_RAGE_CLICKS]: t('Most Rage Clicks'),
+  [ReplayColumn.MOST_DEAD_CLICKS]: t('Most Dead Clicks'),
+  [ReplayColumn.MOST_ERRONEOUS_REPLAYS]: t('Most Erroneous Replays'),
+};
+
 function HeaderCell({column, sort}: Props) {
   switch (column) {
     case ReplayColumn.ACTIVITY:

@@ -20,10 +20,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DeadRageSelectorItem, ReplayClickElement} from 'sentry/views/replays/types';
 
-export interface UrlState {
-  widths: string[];
-}
-
 export function getAriaLabel(str: string) {
   const pre = str.split('aria="')[1];
   if (!pre) {
@@ -100,7 +96,7 @@ interface Props {
   data: DeadRageSelectorItem[];
   isError: boolean;
   isLoading: boolean;
-  location: Location<any>;
+  location: Location;
   title?: ReactNode;
 }
 
@@ -136,7 +132,6 @@ export default function SelectorTable({
   isError,
   isLoading,
   location,
-  title,
   clickCountSortable,
 }: Props) {
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
@@ -215,7 +210,6 @@ export default function SelectorTable({
         renderBodyCell,
       }}
       location={location as Location<any>}
-      title={title}
     />
   );
 }

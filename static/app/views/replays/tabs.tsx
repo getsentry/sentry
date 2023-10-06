@@ -30,7 +30,15 @@ export default function ReplayTabs({selected}: Props) {
             key={tab.key}
             to={{
               ...location,
-              query: location.query,
+              query: {
+                query: undefined,
+                cursor: undefined,
+                end: location.query.end,
+                start: location.query.start,
+                statsPeriod: location.query.statsPeriod,
+                utc: location.query.utc,
+                widths: [],
+              },
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/replays/${tab.to}`
               ),
