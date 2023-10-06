@@ -77,7 +77,7 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
-        textWithMarkupMatcher('You may be missing data due to outdated SDKs.')
+        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
       )
     ).not.toBeInTheDocument();
   });
@@ -106,7 +106,7 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        textWithMarkupMatcher('You may be missing data due to outdated SDKs.')
+        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
       )
     ).toBeInTheDocument();
 
