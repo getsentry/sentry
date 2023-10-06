@@ -14,16 +14,18 @@ from django.conf import settings
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 SPAN_SCHEMA_V1 = 1
 SPAN_SCHEMA_VERSION = SPAN_SCHEMA_V1
-SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
+INGEST_SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
+SNUBA_SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 
 
 def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
@@ -111,20 +113,31 @@ def _format_event_id(payload: Mapping[str, Any], key="event_id") -> Optional[str
 
 
 def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
-    return SPAN_SCHEMA.decode(payload)
+    return INGEST_SPAN_SCHEMA.decode(payload)
 
 
-def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
-    payload = _deserialize_payload(message.payload.value)
+def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
+    try:
+        payload = _deserialize_payload(message.payload.value)
+    except ValidationError as err:
+        metrics.incr("spans.consumer.input.schema_validation.failed")
+        _capture_exception(err)
+        return FILTERED_PAYLOAD
+
     relay_span = payload["span"]
     relay_span["event_id"] = payload.get("event_id")
     relay_span["organization_id"] = payload["organization_id"]
     relay_span["project_id"] = payload["project_id"]
     relay_span["retention_days"] = payload["retention_days"]
-
     snuba_span = _process_relay_span_v1(relay_span)
-    snuba_payload = json.dumps(snuba_span).encode("utf-8")
-    return KafkaPayload(key=None, value=snuba_payload, headers=[])
+
+    try:
+        snuba_payload = SNUBA_SPAN_SCHEMA.encode(SpanEvent(**snuba_span))
+        return KafkaPayload(key=None, value=snuba_payload, headers=[])
+    except ValidationError as err:
+        metrics.incr("spans.consumer.input.schema_validation.failed")
+        _capture_exception(err)
+        return FILTERED_PAYLOAD
 
 
 def _capture_exception(err: Exception) -> None:
@@ -135,10 +148,6 @@ def _capture_exception(err: Exception) -> None:
 def process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
     try:
         return _process_message(message)
-    except ValidationError as err:
-        metrics.incr("spans.consumer.schema_validation.failed")
-        _capture_exception(err)
-        return FILTERED_PAYLOAD
     except Exception as err:
         metrics.incr("spans.consumer.message_processing_error")
         _capture_exception(err)
