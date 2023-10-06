@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -360,6 +359,69 @@ function RuleNode({
     );
   }
 
+  /**
+   * Displays a button to open a custom modal for sentry apps or ticket integrations
+   */
+  function renderIntegrationButton() {
+    if (!node || !('actionType' in node)) {
+      return null;
+    }
+
+    if (node.actionType === 'ticket') {
+      return (
+        <Button
+          size="sm"
+          icon={<IconSettings size="xs" />}
+          onClick={() =>
+            openModal(deps => (
+              <TicketRuleModal
+                {...deps}
+                formFields={node.formFields || {}}
+                link={node.link}
+                ticketType={node.ticketType}
+                instance={data}
+                index={index}
+                onSubmitAction={updateParentFromTicketRule}
+                organization={organization}
+              />
+            ))
+          }
+        >
+          {t('Issue Link Settings')}
+        </Button>
+      );
+    }
+
+    if (node.actionType === 'sentryapp' && node.sentryAppInstallationUuid) {
+      return (
+        <Button
+          size="sm"
+          icon={<IconSettings size="xs" />}
+          disabled={Boolean(data.disabled) || disabled}
+          onClick={() => {
+            openModal(
+              deps => (
+                <SentryAppRuleModal
+                  {...deps}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
+                  config={node.formFields as SchemaFormConfig}
+                  appName={node.prompt ?? node.label}
+                  onSubmitSuccess={updateParentFromSentryAppRule}
+                  resetValues={data}
+                />
+              ),
+              {closeEvents: 'escape-key'}
+            );
+          }}
+        >
+          {t('Settings')}
+        </Button>
+      );
+    }
+
+    return null;
+  }
+
   function conditionallyRenderHelpfulBanner() {
     if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
@@ -559,63 +621,13 @@ function RuleNode({
     [index, onPropertyChange]
   );
 
-  const {actionType, id, sentryAppInstallationUuid} = node || {};
-  const ticketRule = actionType === 'ticket';
-  const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
-  const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
       <RuleRow>
         <Rule>
-          {isNew && <StyledFeatureBadge type="new" />}
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
-          {ticketRule && node && (
-            <Button
-              size="sm"
-              icon={<IconSettings size="xs" />}
-              onClick={() =>
-                openModal(deps => (
-                  <TicketRuleModal
-                    {...deps}
-                    formFields={node.formFields || {}}
-                    link={node.link}
-                    ticketType={node.ticketType}
-                    instance={data}
-                    index={index}
-                    onSubmitAction={updateParentFromTicketRule}
-                    organization={organization}
-                  />
-                ))
-              }
-            >
-              {t('Issue Link Settings')}
-            </Button>
-          )}
-          {sentryAppRule && node && (
-            <Button
-              size="sm"
-              icon={<IconSettings size="xs" />}
-              disabled={Boolean(data.disabled) || disabled}
-              onClick={() => {
-                openModal(
-                  deps => (
-                    <SentryAppRuleModal
-                      {...deps}
-                      sentryAppInstallationUuid={sentryAppInstallationUuid}
-                      config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt ?? node.label}
-                      onSubmitSuccess={updateParentFromSentryAppRule}
-                      resetValues={data}
-                    />
-                  ),
-                  {closeEvents: 'escape-key'}
-                );
-              }}
-            >
-              {t('Settings')}
-            </Button>
-          )}
+          {renderIntegrationButton()}
         </Rule>
         <DeleteButton
           disabled={disabled}
@@ -686,8 +698,4 @@ const MarginlessAlert = styled(Alert)`
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
   padding: ${space(1)} ${space(1)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin: 0 ${space(1)} 0 0;
 `;
