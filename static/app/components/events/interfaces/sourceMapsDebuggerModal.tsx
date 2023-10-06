@@ -842,7 +842,7 @@ function ReleaseSourceFileMatchingChecklistItem({
         </InstructionList>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist
+          {sourceResolutionResults.dist !== null
             ? tct(
                 'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
                 {
@@ -961,7 +961,7 @@ function ReleaseSourceMapMatchingChecklistItem({
         </p>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist
+          {sourceResolutionResults.dist !== null
             ? tct(
                 'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
                 {
