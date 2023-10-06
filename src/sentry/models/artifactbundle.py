@@ -379,7 +379,7 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> List[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> Sequence[Tuple[SourceFileType, str]]:
+    def get_all_debug_ids(self) -> Sequence[Tuple[str, SourceFileType]]:
         return self._entries_by_debug_id.keys()
 
     def has_debug_ids(self):
