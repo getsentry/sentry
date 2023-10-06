@@ -7,7 +7,7 @@ type Query = {
   sort?: string;
 };
 
-const SORTABLE_FIELDS = ['avg(span.duration)'] as const;
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'span.description', 'spm()'] as const;
 
 export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
