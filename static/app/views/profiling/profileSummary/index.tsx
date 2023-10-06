@@ -111,24 +111,26 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
     });
 
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
+    <ProfilingHeader>
+      <ProfilingHeaderContent>
         <ProfilingBreadcrumbs
           organization={props.organization}
           trails={breadcrumbTrails}
         />
         <Layout.Title>
-          {props.project ? (
-            <IdBadge
-              hideName
-              project={props.project}
-              avatarSize={28}
-              avatarProps={{hasTooltip: true, tooltip: props.project.slug}}
-            />
-          ) : null}
-          {props.transaction}
+          <ProfilingTitleContainer>
+            {props.project ? (
+              <IdBadge
+                hideName
+                project={props.project}
+                avatarSize={22}
+                avatarProps={{hasTooltip: true, tooltip: props.project.slug}}
+              />
+            ) : null}
+            {props.transaction}
+          </ProfilingTitleContainer>
         </Layout.Title>
-      </Layout.HeaderContent>
+      </ProfilingHeaderContent>
       {transactionSummaryTarget && (
         <Layout.HeaderActions>
           <LinkButton to={transactionSummaryTarget} size="sm">
@@ -136,9 +138,25 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
           </LinkButton>
         </Layout.HeaderActions>
       )}
-    </Layout.Header>
+    </ProfilingHeader>
   );
 }
+
+const ProfilingHeader = styled(Layout.Header)`
+  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+`;
+
+const ProfilingHeaderContent = styled(Layout.HeaderContent)`
+  h1 {
+    line-height: normal;
+  }
+`;
+const ProfilingTitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
 
 interface ProfileFiltersProps {
   location: Location;
@@ -463,15 +481,19 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   return (
     <AggregateFlamegraphToolbarContainer>
-      <AggregateFlamegraphViewSegmentedControl
-        aria-label={t('View')}
-        size="xs"
-        value={props.visualization}
-        onChange={props.onVisualizationChange}
-      >
-        <SegmentedControl.Item key="flamegraph">{t('Flamegraph')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
-      </AggregateFlamegraphViewSegmentedControl>
+      <ViewSelectContainer>
+        <SegmentedControl
+          aria-label={t('View')}
+          size="xs"
+          value={props.visualization}
+          onChange={props.onVisualizationChange}
+        >
+          <SegmentedControl.Item key="flamegraph">
+            {t('Flamegraph')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ViewSelectContainer>
       <AggregateFlamegraphSearch
         spans={spans}
         canvasPoolManager={props.canvasPoolManager}
@@ -490,9 +512,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   );
 }
 
-const AggregateFlamegraphViewSegmentedControl = styled(
-  SegmentedControl<'call tree' | 'flamegraph'>
-)`
+const ViewSelectContainer = styled('div')`
   min-width: 140px;
 `;
 
@@ -522,6 +542,7 @@ const ProfileDigestContainer = styled('div')`
   flex: 1 1 100%;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 `;
 
 const ProfileDigestScrollContainer = styled('div')`
@@ -531,7 +552,8 @@ const ProfileDigestScrollContainer = styled('div')`
   right: 0;
   top: 0;
   bottom: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ProfileVisualizationContainer = styled('div')`

@@ -11,8 +11,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const MAX_REGRESSED_FUNCTIONS = 5;
-const REGRESSIONS_CURSOR = 'functionRegressionCursor';
+const REGRESSED_FUNCTIONS_LIMIT = 5;
+const REGRESSED_FUNCTIONS_CURSOR = 'functionRegressionCursor';
 
 interface MostRegressedProfileFunctionsProps {
   transaction: string;
@@ -22,14 +22,14 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   const location = useLocation();
 
   const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[REGRESSIONS_CURSOR]),
+    () => decodeScalar(location.query[REGRESSED_FUNCTIONS_CURSOR]),
     [location.query]
   );
 
   const handleRegressedFunctionsCursor = useCallback((cursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [REGRESSIONS_CURSOR]: cursor},
+      query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
     });
   }, []);
 
@@ -44,7 +44,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     trendFunction: 'p95()',
     trendType: 'regression',
     query: functionQuery,
-    limit: MAX_REGRESSED_FUNCTIONS,
+    limit: REGRESSED_FUNCTIONS_LIMIT,
     cursor: fnTrendCursor,
   });
 
@@ -80,7 +80,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 }
 
 const RegressedFunctionsContainer = styled('div')`
-  min-height: 80px;
+  flex-basis: 80px;
   margin-top: ${space(0.5)};
 `;
 

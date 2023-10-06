@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -100,8 +100,8 @@ export function ProfilesSummaryChart({
     return allSeries;
   }, [profileStats, seriesOrder]);
 
-  const chartProps: LineChartProps = useMemo(() => {
-    const baseProps: LineChartProps = {
+  const chartProps: AreaChartProps = useMemo(() => {
+    const baseProps: AreaChartProps = {
       height: 150,
       series,
       grid: [
@@ -177,7 +177,7 @@ export function ProfilesSummaryChart({
       <ProfilesChartTitle>{t('Profile durations')}</ProfilesChartTitle>
       <ChartZoom router={router} {...selection?.datetime}>
         {zoomRenderProps => (
-          <LineChart
+          <AreaChart
             {...chartProps}
             isGroupedByDate
             showTimeInTooltip
@@ -193,7 +193,7 @@ const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   font-weight: 600;
-  padding: ${space(1)};
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`
