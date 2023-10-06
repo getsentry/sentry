@@ -6,6 +6,15 @@
   </p>
   <p align="center">
     Users and logs provide clues. Sentry provides answers.
+    <br>
+    <br>
+    <a href="https://github.com/getsentry/sentry/issues/new?assignees=&labels=&projects=&template=bug.yml">Bug Report</a>
+    ·
+    <a href="https://github.com/getsentry/sentry/issues/new?assignees=&labels=&projects=&template=feature.yml">Feature Request</a>
+    ·
+    <a href="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Type%3A+CI+Flakiness&projects=&template=flaky.yml&title=%5BFlaky+CI%5D%3A+">Flaky Test</a>
+    ·
+    <a href="https://github.com/getsentry/sentry/security/policy">Report a security vulnerability</a>
   </p>
 </p>
 
