@@ -146,5 +146,5 @@ export default SpanSummaryPage;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage(local)',
+  field: 'time_spent_percentage()',
 };
