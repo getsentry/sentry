@@ -7,9 +7,10 @@ from click.testing import CliRunner
 from django.db import IntegrityError
 
 from sentry.runner.commands.backup import compare, export, import_
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -113,8 +114,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
         cli_import_then_export("users", export_args=["--filter_usernames", "testing@example.com"])
 
 
-class BadImportExportCommandTests(TransactionTestCase):
-    @django_db_all(transaction=True)
+class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self):
         # First import should succeed.
         rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH] + [])
@@ -129,10 +129,15 @@ class BadImportExportCommandTests(TransactionTestCase):
         assert isinstance(rv.exception, IntegrityError)
         assert rv.exit_code == 1, rv.output
 
+
+class BadImportExportCommandTests(TestCase):
     def test_import_file_read_error_exit_code(self):
         rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH])
         assert not isinstance(rv.exception, IntegrityError)
         assert rv.exit_code == 2, rv.output
 
-
-# TODO(getsentry/team-ospo#199): Add bad compare tests.
+    @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
+    def test_export_in_control_silo(self):
+        rv = CliRunner().invoke(export, ["global", NONEXISTENT_FILE_PATH])
+        assert isinstance(rv.exception, RuntimeError)
+        assert "Exports must be run in REGION or MONOLITH instances only" in rv.output
