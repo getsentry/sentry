@@ -2,11 +2,13 @@ import {useMemo, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -67,6 +69,14 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
+      {selected === THRESHOLDS_VIEW && (
+        <Layout.HeaderActions>
+          <Button size="sm" priority="primary">
+            <IconAdd isCircled size="sm" />
+            &nbsp; Create Threshold
+          </Button>
+        </Layout.HeaderActions>
+      )}
       <StyledTabs value={selected} onChange={onTabSelect}>
         <TabList hideBorder>
           {tabs.map(({key, label, description, query}) => {
