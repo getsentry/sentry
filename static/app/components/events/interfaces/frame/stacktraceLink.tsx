@@ -309,10 +309,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
 
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
-  if (hasGithubSourceLink && (match.error || match.integrations.length > 0)) {
+  if (
+    frame.sourceLink &&
+    hasGithubSourceLink &&
+    (match.error || match.integrations.length > 0)
+  ) {
     return (
       <StacktraceLinkWrapper>
-        <OpenInLink onClick={onOpenLink} href={frame.sourceLink!} openInNewTab>
+        <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
           {t('Open this line in GitHub')}
         </OpenInLink>
