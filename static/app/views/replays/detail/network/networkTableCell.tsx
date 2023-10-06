@@ -12,6 +12,7 @@ import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
+  getReqRespContentTypes,
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
@@ -60,6 +61,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 
     const method = getFrameMethod(frame);
     const statusCode = getFrameStatus(frame);
+    const isStatus400or500 = typeof statusCode === 'number' && statusCode >= 400;
+    const contentTypeHeaders = getReqRespContentTypes(frame);
+    const isContentTypeSane =
+      contentTypeHeaders.req === undefined ||
+      contentTypeHeaders.resp === undefined ||
+      contentTypeHeaders.req === contentTypeHeaders.resp;
+
     const size = getResponseBodySize(frame);
 
     const hasOccurred = currentTime >= frame.offsetMs;
@@ -95,7 +103,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
       isSelected,
-      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      isStatusError: isStatus400or500,
+      isStatusWarning: !isContentTypeSane,
       onClick: () => onClickCell({dataIndex, rowIndex}),
       onMouseEnter: () => onMouseEnter(frame),
       onMouseLeave: () => onMouseLeave(frame),

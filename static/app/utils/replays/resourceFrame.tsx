@@ -27,6 +27,19 @@ export function getFrameStatus(frame: SpanFrame) {
     : undefined;
 }
 
+export function getReqRespContentTypes(frame: SpanFrame) {
+  if (isRequestFrame(frame)) {
+    return {
+      req: frame.data.request?.headers['content-type'],
+      resp: frame.data.response?.headers['content-type'],
+    };
+  }
+  return {
+    req: undefined,
+    resp: undefined,
+  };
+}
+
 export function getResponseBodySize(frame: SpanFrame) {
   if (isRequestFrame(frame)) {
     // `data.responseBodySize` is from SDK version 7.44-7.45

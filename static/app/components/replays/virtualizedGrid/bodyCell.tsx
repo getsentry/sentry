@@ -7,23 +7,29 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
     return `background-color: ${p.theme.textColor};`;
   }
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    return `background-color: inherit;`;
+  if (p.isStatusError) {
+    return `background-color: ${p.theme.red100};`;
   }
-  const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
-  return `background-color: ${color};`;
+  if (p.isStatusWarning) {
+    return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;
+  }
+  return `background-color: inherit;`;
 };
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    const colors = p.isStatusError
-      ? [p.theme.alert.error.background]
-      : [p.theme.background];
-    return `color: ${colors[0]};`;
+    const color = p.isStatusError
+      ? p.theme.red300
+      : p.isStatusWarning
+      ? p.theme.yellow300
+      : p.theme.background;
+    return `color: ${color};`;
   }
   const colors = p.isStatusError
-    ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
-    : ['inherit', p.theme.gray300];
+    ? [p.theme.red300, p.theme.red400]
+    : p.isStatusWarning
+    ? [p.theme.textColor, p.theme.subText]
+    : ['inherit', p.theme.subText];
 
   return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
 };
@@ -34,6 +40,7 @@ type CellProps = {
   hasOccurred?: boolean;
   isSelected?: boolean;
   isStatusError?: boolean;
+  isStatusWarning?: boolean;
   numeric?: boolean;
   onClick?: undefined | (() => void);
 };
