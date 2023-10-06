@@ -609,12 +609,12 @@ def generate_cache_key_for_async_result(org_id):
     return f"ds::o:{org_id}:check_am2_compatibility_results"
 
 
-def set_check_status(org_id, status):
+def set_check_status(org_id, status, ttl=CACHING_TTL_IN_SECONDS):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
     redis_client.set(cache_key, status.value)
-    redis_client.expire(cache_key, CACHING_TTL_IN_SECONDS)
+    redis_client.expire(cache_key, ttl)
 
 
 def get_check_status(org_id):
