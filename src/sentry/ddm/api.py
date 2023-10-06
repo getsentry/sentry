@@ -213,7 +213,7 @@ def _translate_query_results(
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
     intermediate_groups: Dict[
-        Tuple[Tuple[str, str], ...], Dict[str, List[List[Tuple[str, Any]], Any]]
+        Tuple[Tuple[str, str], ...], Dict[str, List[Union[Any, List[Tuple[str, Any]]]]]
     ] = {}
     intermediate_meta: Dict[str, str] = {}
     for metric_name, group_bys, interval, snuba_result in query_results:
