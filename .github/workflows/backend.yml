@@ -113,6 +113,17 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Upload coverage - special case to test Codecov ATS
+        if: ${{ always() }}
+        uses: codecov/codecov-action@v4-beta
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          files: .artifacts/python.coverage.codecov.json
+          flags: smart-tests
+          plugins: compress-pycoverage
+        continue-on-error: true
+
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed

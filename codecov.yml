@@ -90,6 +90,9 @@ cli:
   plugins:
     pycoverage:
       report_type: "json"
+    compress-pycoverage:
+      file_to_compress: ".artifacts/python.coverage.json"
+      delete_uncompressed: false
   runners:
     python:
       include_curr_dir: true
