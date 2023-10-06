@@ -61,11 +61,11 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     )
     conditions = serializers.ListField(
         child=RuleNodeField(type="condition/event"),
-        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid conditions.",
+        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid conditions.",
     )
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
-        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
+        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid actions.",
     )
     frequency = serializers.IntegerField(
         min_value=5,
@@ -87,7 +87,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     filters = serializers.ListField(
         child=RuleNodeField(type="filter/event"),
         required=False,
-        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid filters.",
+        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
