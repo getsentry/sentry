@@ -21,6 +21,7 @@ from sentry.incidents.logic import (
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
+    ChannelLookupTimeoutError,
     InvalidTriggerActionError,
     ProjectsNotAssociatedWithAlertRuleError,
     create_alert_rule,
@@ -67,7 +68,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
@@ -1909,6 +1910,48 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                     target_type,
                     target_identifier=channel_id,
                     integration_id=None,
+                )
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.utils.channel.validate_channel_id")
+    def test_discord_timeout(self, mock_validate_channel_id):
+        mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
+
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(ChannelLookupTimeoutError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
                 )
 
 

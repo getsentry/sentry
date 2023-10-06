@@ -96,12 +96,9 @@ class ApiToken(Model, HasApiScopes):
         query = models.Q(token=self.token) | models.Q(refresh_token=self.refresh_token)
         existing = self.__class__.objects.filter(query).first()
         if existing:
-            self.pk = existing.pk
             self.expires_at = timezone.now() + DEFAULT_EXPIRATION
             self.token = generate_token()
             self.refresh_token = generate_token()
-            self.save()
-            return (self.pk, ImportKind.Overwrite)
 
         return super().write_relocation_import(scope, flags)
 

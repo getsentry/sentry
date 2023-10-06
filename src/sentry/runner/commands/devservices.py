@@ -585,7 +585,7 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
 
 
 def run_with_retries(
-    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message="Command failed"
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message: str = "Command failed"
 ) -> None:
     for retry in range(1, retries + 1):
         try:
@@ -701,6 +701,57 @@ def check_kafka(containers: dict[str, Any]) -> None:
     )
 
 
+def check_symbolicator(containers: dict[str, Any]) -> None:
+    options = containers["symbolicator"]
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "curl",
+            f"http://{port[0]}:{port[1]}/healthcheck",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def python_call_url_prog(url: str) -> str:
+    return f"""
+import urllib.request
+try:
+    req = urllib.request.urlopen({url!r}, timeout=1)
+except Exception as e:
+    raise SystemExit(f'service is not ready: {{e}}')
+else:
+    print('service is ready!')
+"""
+
+
+def check_chartcuterie(containers: dict[str, Any]) -> None:
+    options = containers["chartcuterie"]
+
+    # Chartcuterie binds the internal port to a different port
+    internal_port = 9090
+    port = options["ports"][f"{internal_port}/tcp"]
+    url = f"http://{port[0]}:{internal_port}/api/chartcuterie/healthcheck/live"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -714,4 +765,6 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "clickhouse": ServiceHealthcheck(check=check_clickhouse),
     "kafka": ServiceHealthcheck(check=check_kafka),
     "vroom": ServiceHealthcheck(check=check_vroom),
+    "symbolicator": ServiceHealthcheck(check=check_symbolicator),
+    "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
 }

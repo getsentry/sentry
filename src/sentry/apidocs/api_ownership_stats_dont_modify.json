@@ -95,6 +95,8 @@
         "public": [
             "MonitorIngestCheckInDetailsEndpoint::PUT",
             "MonitorIngestCheckInIndexEndpoint::POST",
+            "OrganizationAlertRuleIndexEndpoint::GET",
+            "OrganizationAlertRuleIndexEndpoint::POST",
             "OrganizationMemberDetailsEndpoint::DELETE",
             "OrganizationMemberDetailsEndpoint::GET",
             "OrganizationMemberDetailsEndpoint::PUT",
@@ -238,8 +240,6 @@
             "OrganizationAlertRuleDetailsEndpoint::DELETE",
             "OrganizationAlertRuleDetailsEndpoint::GET",
             "OrganizationAlertRuleDetailsEndpoint::PUT",
-            "OrganizationAlertRuleIndexEndpoint::GET",
-            "OrganizationAlertRuleIndexEndpoint::POST",
             "OrganizationApiKeyDetailsEndpoint::DELETE",
             "OrganizationApiKeyDetailsEndpoint::GET",
             "OrganizationApiKeyDetailsEndpoint::PUT",
@@ -671,6 +671,7 @@
             "OrganizationProjectsExperimentEndpoint::POST",
             "OrganizationSCIMMemberDetails::PUT",
             "OrganizationSCIMTeamDetails::PUT",
+            "ReleaseThresholdIndexEndpoint::GET",
             "ReleaseThresholdStatusIndexEndpoint::GET"
         ],
         "unknown": [
@@ -707,7 +708,7 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 709,
+        "block_start": 710,
         "public": [],
         "private": [],
         "experimental": [
@@ -726,7 +727,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 727,
+        "block_start": 729,
         "public": [],
         "private": [],
         "experimental": [],
@@ -736,7 +737,7 @@
         ]
     },
     "growth": {
-        "block_start": 737,
+        "block_start": 739,
         "public": [],
         "private": [],
         "experimental": [],
@@ -745,7 +746,7 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 746,
+        "block_start": 748,
         "public": [],
         "private": [],
         "experimental": [
@@ -757,7 +758,7 @@
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 758,
+        "block_start": 760,
         "public": [],
         "private": [],
         "experimental": [],
@@ -766,7 +767,7 @@
         ]
     },
     "profiling": {
-        "block_start": 767,
+        "block_start": 769,
         "public": [],
         "private": [],
         "experimental": [],
@@ -782,7 +783,7 @@
         ]
     },
     "team-web-sdk-frontend": {
-        "block_start": 783,
+        "block_start": 785,
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -791,7 +792,7 @@
         "unknown": []
     },
     "hybrid-cloud": {
-        "block_start": 792,
+        "block_start": 794,
         "public": [],
         "private": [],
         "experimental": [],
