@@ -9,6 +9,7 @@ export function ProjectKeys(params: ProjectKey[] = []): ProjectKey[] {
           'http://188ee45a58094d939428d8585aa6f661:a33bf9aba64c4bbdaf873bb9023b6d2d@dev.getsentry.net:8000/1',
         minidump:
           'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f661',
+        nel: 'http://dev.getsentry.net:8000/api/1/nel/?sentry_key=188ee45a58094d939428d8585aa6f661',
         public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
         cdn: 'http://dev.getsentry.net:800/js-sdk-loader/188ee45a58094d939428d8585aa6f661.min.js',
         csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
