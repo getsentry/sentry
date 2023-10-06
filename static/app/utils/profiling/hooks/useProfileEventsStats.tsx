@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {EventsStatsSeries, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -102,7 +103,11 @@ export function transformStatsResponse<F extends string>(
   let firstAxis = true;
 
   for (const yAxis of yAxes) {
-    const transformed = transformSingleSeries(yAxis, rawData[yAxis]);
+    const dataForYAxis = rawData[yAxis];
+    if (!defined(dataForYAxis)) {
+      continue;
+    }
+    const transformed = transformSingleSeries(yAxis, dataForYAxis);
 
     if (firstAxis) {
       meta = transformed.meta;
