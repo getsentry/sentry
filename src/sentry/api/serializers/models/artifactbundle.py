@@ -1,4 +1,5 @@
 import base64
+from typing import Dict, List, Tuple
 
 from sentry.api.serializers import Serializer
 from sentry.models import ReleaseArtifactBundle, SourceFileType
@@ -29,7 +30,7 @@ class ArtifactBundlesSerializer(Serializer):
             artifact_bundle_id__in=[r[0] for r in item_list]
         ).order_by("-id")
 
-        grouped_bundles = {}
+        grouped_bundles: Dict[int, List[Tuple[str, str]]] = {}
         for release in release_artifact_bundles:
             bundles = grouped_bundles.setdefault(release.artifact_bundle_id, [])
             bundles.append((release.release_name, release.dist_name))
