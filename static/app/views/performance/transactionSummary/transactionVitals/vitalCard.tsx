@@ -17,8 +17,9 @@ import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {WebVital} from 'sentry/utils/fields';
-import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatFloat} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {

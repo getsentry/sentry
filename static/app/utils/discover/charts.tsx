@@ -6,12 +6,12 @@ import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {AggregationOutputType, RateUnits} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {
   DAY,
   formatAbbreviatedNumber,
   formatPercentage,
   formatRate,
-  getDuration,
   HOUR,
   MINUTE,
   SECOND,

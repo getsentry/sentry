@@ -12,7 +12,7 @@ import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {TableColumn} from './types';

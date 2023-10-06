@@ -17,7 +17,7 @@ import {
   IgnoredStatusDetails,
   SelectValue,
 } from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 

@@ -14,7 +14,7 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {
   PageErrorAlert,
   PageErrorProvider,

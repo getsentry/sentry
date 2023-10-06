@@ -6,7 +6,7 @@ import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {GroupInboxReason, InboxDetails} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 

@@ -20,7 +20,7 @@ import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import localStorage from 'sentry/utils/localStorage';
 import {
   QuickTrace as QuickTraceType,

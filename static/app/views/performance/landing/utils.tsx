@@ -6,11 +6,11 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
-  getDuration,
 } from 'sentry/utils/formatters';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';

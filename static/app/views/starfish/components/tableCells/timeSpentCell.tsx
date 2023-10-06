@@ -4,7 +4,8 @@ import clamp from 'lodash/clamp';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {

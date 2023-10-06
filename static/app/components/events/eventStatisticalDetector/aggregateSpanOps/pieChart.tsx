@@ -6,7 +6,8 @@ import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import PieSeries from 'sentry/components/charts/series/pieSeries';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 export interface PieChartSeries
   extends Series,
