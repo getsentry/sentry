@@ -102,6 +102,25 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {"platform": "ios"}
         assert groups[0]["series"] == {field: [None, 3.0, 3.0]}
 
+        # Query with two aggregations.
+        field_1 = f"min({TransactionMRI.DURATION.value})"
+        field_2 = f"max({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field_1, field_2],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            use_case_id=UseCaseID.TRANSACTIONS,
+            organization=self.project.organization,
+            projects=[self.project],
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field_2: [None, 5.0, 3.0], field_1: [None, 1.0, 2.0]}
+
     @pytest.mark.skip(reason="use_case_id for Sessions is wrongly set to '' instead of 'sessions'")
     def test_with_sessions(self) -> None:
         self.store_session(

@@ -249,9 +249,7 @@ def _translate_query_results(
                 intermediate_meta[meta_name] = meta_type
 
     translated_groups = []
-    for group_key, group_serieses in sorted(
-        intermediate_groups.items(), key=lambda element: element[0]
-    ):
+    for group_key, group_serieses in sorted(intermediate_groups.items(), key=lambda v: v[0]):
         # This case should never happen, since if we have start and intervals not None
         if start is None or intervals is None:
             continue
@@ -264,7 +262,7 @@ def _translate_query_results(
                 series_metric_name: _generate_full_series(
                     start_seconds, num_intervals, interval, series
                 )
-                for series_metric_name, series in group_serieses.items()
+                for series_metric_name, series in sorted(group_serieses.items(), key=lambda v: v[0])
             },
             "totals": {
                 # Totals will have to be supported by the metrics layer.
