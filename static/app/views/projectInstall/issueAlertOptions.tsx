@@ -11,7 +11,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertRuleAction,
+} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
 export enum MetricValues {
@@ -25,25 +29,17 @@ export enum RuleAction {
   CREATE_ALERT_LATER,
 }
 
-const UNIQUE_USER_FREQUENCY_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
-const EVENT_FREQUENCY_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
-export const EVENT_FREQUENCY_PERCENT_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
-export const REAPPEARED_EVENT_CONDITION =
-  'sentry.rules.conditions.reappeared_event.ReappearedEventCondition';
 const ISSUE_ALERT_DEFAULT_ACTION: Omit<
   IssueAlertRuleAction,
   'label' | 'name' | 'prompt'
 > = {
-  id: 'sentry.mail.actions.NotifyEmailAction',
+  id: IssueAlertActionType.NOTIFY_EMAIL,
   targetType: 'IssueOwners',
 };
 
 const METRIC_CONDITION_MAP = {
-  [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
-  [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
+  [MetricValues.ERRORS]: IssueAlertConditionType.EVENT_FREQUENCY,
+  [MetricValues.USERS]: IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY,
 } as const;
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
@@ -85,10 +81,10 @@ function getConditionFrom(
   let condition: string;
   switch (metricValue) {
     case MetricValues.ERRORS:
-      condition = EVENT_FREQUENCY_CONDITION;
+      condition = IssueAlertConditionType.EVENT_FREQUENCY;
       break;
     case MetricValues.USERS:
-      condition = UNIQUE_USER_FREQUENCY_CONDITION;
+      condition = IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY;
       break;
     default:
       throw new RangeError('Supplied metric value is not handled');

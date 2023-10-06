@@ -2,6 +2,39 @@ import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrati
 
 import type {IssueConfigField} from './integrations';
 
+export const enum IssueAlertActionType {
+  SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+  NOTIFY_EMAIL = 'sentry.mail.actions.NotifyEmailAction',
+  DISCORD = 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction',
+  JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
+  AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
+  SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+  MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',
+  PAGER_DUTY = 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
+  OPSGENIE = 'sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction',
+}
+
+export const enum IssueAlertConditionType {
+  EVERY_EVENT = 'sentry.rules.conditions.every_event.EveryEventCondition',
+  FIRST_SEEN_EVENT = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+  REGRESSION_EVENT = 'sentry.rules.conditions.regression_event.RegressionEventCondition',
+  REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
+  EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+  EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+}
+
+export const enum IssueAlertFilterType {
+  AGE_COMPARISON = 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+  ISSUE_OCCURRENCES = 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+  ASSIGNED_TO = 'sentry.rules.filters.assigned_to.AssignedToFilter',
+  LATEST_RELEASE = 'sentry.rules.filters.latest_release.LatestReleaseFilter',
+  ISSUE_CATEGORY = 'sentry.rules.filters.issue_category.IssueCategoryFilter',
+  EVENT_ATTRIBUTE = 'sentry.rules.filters.event_attribute.EventAttributeFilter',
+  TAGGED_EVENT = 'sentry.rules.filters.tagged_event.TaggedEventFilter',
+  LEVEL = 'sentry.rules.filters.level.LevelFilter',
+}
+
 type IssueAlertRuleFormField =
   | {
       type: 'choice';
