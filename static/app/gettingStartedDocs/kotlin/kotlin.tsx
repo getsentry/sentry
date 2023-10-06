@@ -52,7 +52,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
 const introduction = (
   <p>
     {tct(
-      "Sentry supports Kotlin for both JVM and [Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
       {
         gettingStartedWithAndroidLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/android/" />
@@ -61,6 +61,7 @@ const introduction = (
           <ExternalLink href="https://docs.sentry.io/platforms/java/" />
         ),
         strong: <strong />,
+        strong2: <strong />,
       }
     )}
   </p>
@@ -219,10 +220,10 @@ sentry {
     additionalInfo: (
       <p>
         {tct(
-          'To upload your source code to Sentry so it can be shown in stack traces, please refer to [link:Manually Uploading Source Context].',
+          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
             ),
           }
         )}
