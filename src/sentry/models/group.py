@@ -12,7 +12,7 @@ from operator import or_
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -421,26 +421,30 @@ class GroupManager(BaseManager):
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
-            status=status, substatus=substatus
-        )
-
-        for group in to_be_updated:
-            group.status = status
-            group.substatus = substatus
-
-        self.bulk_update(to_be_updated, ["status", "substatus"])
-
-        for group in to_be_updated:
-            group.status = status
-            group.substatus = substatus
-            Activity.objects.create_group_activity(
-                group,
-                activity_type,
-                data=activity_data,
-                send_notification=send_activity_notification,
+        groups_list = []
+        with transaction.atomic(router.db_for_write(Group)):
+            selected_groups = (
+                Group.objects.filter(id__in=[g.id for g in groups])
+                .exclude(status=status, substatus=substatus)
+                .select_for_update()
             )
-            record_group_history_from_activity_type(group, activity_type.value)
+
+            for group in selected_groups:
+                group.status = status
+                group.substatus = substatus
+                groups_list.append(group)
+
+            Group.objects.bulk_update(groups_list, ["status", "substatus"])
+
+            for group in groups_list:
+                Activity.objects.create_group_activity(
+                    group,
+                    activity_type,
+                    data=activity_data,
+                    send_notification=send_activity_notification,
+                )
+
+                record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
