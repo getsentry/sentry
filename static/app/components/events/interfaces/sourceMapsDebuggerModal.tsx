@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -93,7 +94,10 @@ export function SourceMapsDebuggerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Make Your Stack Traces Readable')}</h4>
+        <ModalHeadingContainer>
+          <h4>{t('Make Your Stack Traces Readable')}</h4>
+          <FeatureBadge type="beta" tooltipProps={{position: 'right'}} />
+        </ModalHeadingContainer>
       </Header>
       <Body>
         <p>
@@ -317,7 +321,7 @@ export function SourceMapsDebuggerModal({
             ));
           }}
         >
-          {t('Was this helpful?')} <IconMegaphone size="xs" />
+          {t('Was this helpful? Give us feedback!')} <IconMegaphone size="xs" />
         </Link>
       </Footer>
     </Fragment>
@@ -1204,4 +1208,9 @@ const InstructionList = styled('ul')`
   li {
     margin-bottom: ${space(0.5)};
   }
+`;
+
+const ModalHeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
 `;
