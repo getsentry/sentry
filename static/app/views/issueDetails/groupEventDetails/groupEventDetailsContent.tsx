@@ -18,6 +18,7 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
@@ -230,6 +231,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
     >
       <Fragment>
         <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>

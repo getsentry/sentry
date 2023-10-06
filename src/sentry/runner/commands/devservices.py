@@ -752,6 +752,26 @@ def check_chartcuterie(containers: dict[str, Any]) -> None:
     )
 
 
+def check_snuba(containers: dict[str, Any]) -> None:
+    options = containers["snuba"]
+    port = options["ports"]["1218/tcp"]
+
+    url = f"http://{port[0]}:{port[1]}/health_envoy"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
     retries: int = 3
@@ -767,4 +787,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "vroom": ServiceHealthcheck(check=check_vroom),
     "symbolicator": ServiceHealthcheck(check=check_symbolicator),
     "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=6, timeout=10),
 }
