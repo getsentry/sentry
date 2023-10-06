@@ -49,7 +49,7 @@ export function OtherPlatformsInfo({
       </CodeSnippet>
       <Suggestion>
         {t(
-          'Since it can be a lot work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
+          'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
         )}
         <List symbol="bullet">
           <ListItem>
