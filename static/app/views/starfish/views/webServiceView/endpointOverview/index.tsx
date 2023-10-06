@@ -402,7 +402,7 @@ function SpanMetricsTable({
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
       sort={{
-        field: 'time_spent_percentage(local)',
+        field: 'time_spent_percentage()',
         kind: 'desc',
       }}
       endpoint={transaction}

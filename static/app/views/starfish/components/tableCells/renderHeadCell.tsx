@@ -36,7 +36,6 @@ export const SORTABLE_FIELDS = new Set([
   `${SPS}()`,
   `${SPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
-  `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
 ]);
 

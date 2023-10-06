@@ -16,7 +16,7 @@ export type SpanTransactionMetrics = {
   'http_error_count()': number;
   'spm()': number;
   'sum(span.self_time)': number;
-  'time_spent_percentage(local)': number;
+  'time_spent_percentage()': number;
   transaction: string;
   'transaction.method': string;
   'transaction.op': string;
@@ -68,11 +68,11 @@ function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: 
         'spm()',
         `sum(${SPAN_SELF_TIME})`,
         `avg(${SPAN_SELF_TIME})`,
-        'time_spent_percentage(local)',
+        'time_spent_percentage()',
         'transaction.op',
         'http_error_count()',
       ],
-      orderby: '-time_spent_percentage_local',
+      orderby: '-time_spent_percentage',
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },

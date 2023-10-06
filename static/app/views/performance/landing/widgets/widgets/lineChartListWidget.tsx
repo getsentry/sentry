@@ -468,7 +468,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       />
                     </StyledTextOverflow>
                     <RightAlignedCell>
-                      <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
+                      <TimeSpentCell
+                        percentage={timeSpentPercentage}
+                        total={totalTime}
+                        op="db"
+                      />
                     </RightAlignedCell>
                     {!props.withStaticFilters && (
                       <ListClose
