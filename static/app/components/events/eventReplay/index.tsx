@@ -42,10 +42,10 @@ function EventReplayContent({event, group}: Props) {
     return null;
   }
 
-  const timeOfEvent = event?.dateCreated ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent
-    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
-    : 0;
+  const startTimestampMS =
+    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   return (
     <EventReplaySection>
