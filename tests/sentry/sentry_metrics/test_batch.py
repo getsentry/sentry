@@ -687,6 +687,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     "sentry.sentry_metrics.aggregation_option_registry.USE_CASE_AGG_OPTION",
     MOCK_USE_CASE_AGG_OPTION,
 )
+@override_options({"sentry-metrics.10s-granularity": True})
 def test_resolved_with_aggregation_options(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     counter_metric_id = "c:transactions/alert@none"
