@@ -18,6 +18,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
   return {
+    [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: (
@@ -48,6 +49,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
       </Fragment>
     ) : null,
     [TabKey.MEMORY]: t('Memory'),
+    [TabKey.TAGS]: t('Tags'),
   };
 }
 

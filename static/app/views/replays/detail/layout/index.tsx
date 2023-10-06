@@ -12,16 +12,12 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
-import SidebarArea from 'sentry/views/replays/detail/layout/sidebarArea';
-import SideTabs from 'sentry/views/replays/detail/layout/sideTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
-const MIN_VIDEO_WIDTH = 325;
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
-const MIN_SIDEBAR_HEIGHT = 120;
 
 const DIVIDER_SIZE = 16;
 
@@ -69,14 +65,6 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     </ErrorBoundary>
   );
 
-  const sidebarArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginSideTabs />}>
-        <SidebarArea />
-      </FluidPanel>
-    </ErrorBoundary>
-  );
-
   const hasSize = width + height > 0;
 
   if (layout === LayoutKey.NO_VIDEO) {
@@ -84,19 +72,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
       <BodyContent>
         {timeline}
         <FluidHeight ref={measureRef}>
-          {hasSize ? (
-            <SplitPanel
-              key={layout}
-              availableSize={width}
-              left={{
-                content: focusArea,
-                default: (width - DIVIDER_SIZE) * 0.9,
-                min: 0,
-                max: width - DIVIDER_SIZE,
-              }}
-              right={sidebarArea}
-            />
-          ) : null}
+          {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
         </FluidHeight>
       </BodyContent>
     );
@@ -112,22 +88,10 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
               key={layout}
               availableSize={width}
               left={{
-                content: (
-                  <SplitPanel
-                    key={layout}
-                    availableSize={height}
-                    top={{
-                      content: video,
-                      default: (height - DIVIDER_SIZE) * 0.65,
-                      min: MIN_CONTENT_HEIGHT,
-                      max: height - DIVIDER_SIZE - MIN_SIDEBAR_HEIGHT,
-                    }}
-                    bottom={sidebarArea}
-                  />
-                ),
-                default: (width - DIVIDER_SIZE) * 0.5,
+                content: <PanelContainer key={layout}>{video}</PanelContainer>,
+                default: width * 0.5,
                 min: MIN_SIDEBAR_WIDTH,
-                max: width - DIVIDER_SIZE - MIN_CONTENT_WIDTH,
+                max: width - MIN_CONTENT_WIDTH,
               }}
               right={focusArea}
             />
@@ -147,18 +111,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
             key={layout}
             availableSize={height}
             top={{
-              content: (
-                <SplitPanel
-                  availableSize={width}
-                  left={{
-                    content: video,
-                    default: (width - DIVIDER_SIZE) * 0.5,
-                    min: MIN_VIDEO_WIDTH,
-                    max: width - DIVIDER_SIZE - MIN_SIDEBAR_WIDTH,
-                  }}
-                  right={sidebarArea}
-                />
-              ),
+              content: <PanelContainer>{video}</PanelContainer>,
               default: (height - DIVIDER_SIZE) * 0.5,
               min: MIN_VIDEO_HEIGHT,
               max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
@@ -185,9 +138,6 @@ const BodyContent = styled('main')`
 const SmallMarginFocusTabs = styled(FocusTabs)`
   margin-bottom: ${space(1)};
 `;
-const SmallMarginSideTabs = styled(SideTabs)`
-  margin-bottom: ${space(1)};
-`;
 
 const VideoSection = styled(FluidHeight)`
   background: ${p => p.theme.background};
@@ -198,4 +148,16 @@ const VideoSection = styled(FluidHeight)`
   }
 `;
 
+const PanelContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  display: grid;
+  overflow: auto;
+
+  &.disable-iframe-pointer iframe {
+    pointer-events: none !important;
+  }
+`;
 export default ReplayLayout;
