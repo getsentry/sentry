@@ -42,6 +42,7 @@ export function ProfilesSummaryChart({
   }, [hideCount]);
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query,
     referrer,
     yAxes: seriesOrder,
@@ -54,9 +55,9 @@ export function ProfilesSummaryChart({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    const allSeries = profileStats.data[0].data
+    const allSeries = profileStats.data.data
       .filter(rawData => seriesOrder.includes(rawData.axis))
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {

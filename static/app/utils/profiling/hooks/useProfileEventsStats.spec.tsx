@@ -36,27 +36,22 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
     });
 
     await waitFor(() => result.current.isSuccess);
-    expect(result.current.data).toEqual([
-      {
-        data: [],
-        meta: {
-          dataset: 'profiles',
-          end: 0,
-          start: 0,
-        },
-        timestamps: [],
+    expect(result.current.data).toEqual({
+      data: [],
+      meta: {
+        dataset: 'profiles',
+        end: 0,
+        start: 0,
       },
-      expect.anything(),
-      expect.objectContaining({
-        getResponseHeader: expect.anything(),
-      }),
-    ]);
+      timestamps: [],
+    });
   });
 
   it('handles 1 axis', async function () {
@@ -82,27 +77,22 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
     });
 
     await waitFor(() => result.current.isSuccess);
-    expect(result.current.data).toEqual([
-      {
-        data: [{axis: 'count()', values: [1, 2]}],
-        meta: {
-          dataset: 'profiles',
-          start: 0,
-          end: 10,
-        },
-        timestamps: [0, 5],
+    expect(result.current.data).toEqual({
+      data: [{axis: 'count()', values: [1, 2]}],
+      meta: {
+        dataset: 'profiles',
+        start: 0,
+        end: 10,
       },
-      expect.anything(),
-      expect.objectContaining({
-        getResponseHeader: expect.anything(),
-      }),
-    ]);
+      timestamps: [0, 5],
+    });
   });
 
   it('handles n axes', async function () {
@@ -142,29 +132,24 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
     });
 
     await waitFor(() => result.current.isSuccess);
-    expect(result.current.data).toEqual([
-      {
-        data: [
-          {axis: 'count()', values: [1, 2]},
-          {axis: 'p99()', values: [3, 4]},
-        ],
-        meta: {
-          dataset: 'profiles',
-          start: 0,
-          end: 10,
-        },
-        timestamps: [0, 5],
+    expect(result.current.data).toEqual({
+      data: [
+        {axis: 'count()', values: [1, 2]},
+        {axis: 'p99()', values: [3, 4]},
+      ],
+      meta: {
+        dataset: 'profiles',
+        start: 0,
+        end: 10,
       },
-      expect.anything(),
-      expect.objectContaining({
-        getResponseHeader: expect.anything(),
-      }),
-    ]);
+      timestamps: [0, 5],
+    });
   });
 });
