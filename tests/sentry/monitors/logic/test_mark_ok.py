@@ -1,6 +1,3 @@
-from unittest.mock import patch
-
-from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
@@ -13,15 +10,12 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
 class MarkOkTestCase(TestCase):
-    @with_feature("organizations:issue-platform")
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
+    def test_mark_ok_recovery_threshold(self):
         recovery_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -36,28 +30,29 @@ class MarkOkTestCase(TestCase):
                 "checkin_margin": None,
             },
         )
+
+        # Start with monitor in an ERROR state with an active incident
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             status=MonitorStatus.ERROR,
             last_state_change=None,
         )
-
-        checkin = MonitorCheckIn.objects.create(
+        first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
-
         incident = MonitorIncident.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            starting_checkin=checkin,
-            starting_timestamp=checkin.date_added,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
             grouphash=monitor_environment.incident_grouphash,
         )
 
+        # Create OK check-ins
         for i in range(0, recovery_threshold - 1):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -68,10 +63,15 @@ class MarkOkTestCase(TestCase):
             mark_ok(checkin, checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        incident.refresh_from_db()
+        monitor_environment.refresh_from_db()
+
         assert monitor_environment.status != MonitorStatus.OK
         # check that timestamp has not updated
         assert monitor_environment.last_state_change is None
+        # Incidnet has not resolved
+        assert incident.resolving_checkin is None
+        assert incident.resolving_timestamp is None
 
         # create another failed check-in to break the chain
         failed_checkin = MonitorCheckIn.objects.create(
@@ -80,10 +80,13 @@ class MarkOkTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
-        mark_failed(failed_checkin, ts=failed_checkin.date_added)
-        # assert occurrence was sent
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
+        # Still not resolved
+        incident.refresh_from_db()
+        assert incident.resolving_checkin is None
+        assert incident.resolving_timestamp is None
+
+        # Create enough check-ins to resolve the incident
         last_checkin = None
         for i in range(0, recovery_threshold):
             checkin = MonitorCheckIn.objects.create(
@@ -97,12 +100,12 @@ class MarkOkTestCase(TestCase):
             mark_ok(checkin, checkin.date_added)
 
         # recovery has hit threshold, monitor should be in an ok state
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        incident.refresh_from_db()
+        monitor_environment.refresh_from_db()
+
         assert monitor_environment.status == MonitorStatus.OK
         # check that monitor environment has updated timestamp used for fingerprinting
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
-
-        # check that resolving check-in is set on the incident
-        incident = MonitorIncident.objects.get(id=incident.id)
+        # Incident reoslved
         assert incident.resolving_checkin == last_checkin
         assert incident.resolving_timestamp == last_checkin.date_added
