@@ -9,6 +9,7 @@ from sentry.tasks.check_am2_compatibility import (
     CheckStatus,
     get_check_results,
     get_check_status,
+    refresh_check_state,
     run_compatibility_check_async,
 )
 
@@ -23,18 +24,26 @@ class CheckAM2CompatibilityEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         try:
             org_id = request.GET.get("orgId")
-            check_status = get_check_status(org_id)
-            if check_status == CheckStatus.DONE:
-                results = get_check_results(org_id)
-                # In case the state is done, but we didn't find a valid value in cache, we have a problem.
-                if results is None:
-                    raise Exception("the check status is done in cache but there are no results.")
+            refresh = request.GET.get("refresh") == "true"
 
-                return Response({"status": CheckStatus.DONE.value, **results}, status=200)
-            elif check_status == CheckStatus.IN_PROGRESS:
-                return Response({"status": CheckStatus.IN_PROGRESS.value}, status=202)
-            elif check_status == CheckStatus.ERROR:
-                raise Exception("the asynchronous task had an internal error.")
+            if refresh:
+                refresh_check_state(org_id)
+            else:
+                # We check the caches only if we are not refreshing.
+                check_status = get_check_status(org_id)
+                if check_status == CheckStatus.DONE:
+                    results = get_check_results(org_id)
+                    # In case the state is done, but we didn't find a valid value in cache, we have a problem.
+                    if results is None:
+                        raise Exception(
+                            "the check status is done in cache but there are no results."
+                        )
+
+                    return Response({"status": CheckStatus.DONE.value, **results}, status=200)
+                elif check_status == CheckStatus.IN_PROGRESS:
+                    return Response({"status": CheckStatus.IN_PROGRESS.value}, status=202)
+                elif check_status == CheckStatus.ERROR:
+                    raise Exception("the asynchronous task had an internal error.")
 
             # In case we have no status, we will trigger the asynchronous job and return.
             run_compatibility_check_async.delay(org_id)
