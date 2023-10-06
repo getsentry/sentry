@@ -4,6 +4,9 @@ import round from 'lodash/round';
 import {t} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
+import getExactDuration from 'sentry/utils/duration/getExactDuration';
+
+export {getExactDuration};
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
