@@ -628,6 +628,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
+                artifact_bundle,
                 release=self.release,
                 dist=(self.dist or NULL_STRING),
                 date_snapshot=date_snapshot,
@@ -714,7 +715,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @sentry_sdk.tracing.trace
-    def _index_bundle_if_needed(self, release: str, dist: str, date_snapshot: datetime):
+    def _index_bundle_if_needed(
+        self, artifact_bundle: ArtifactBundle, release: str, dist: str, date_snapshot: datetime
+    ):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
@@ -759,7 +762,10 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                 # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing
                 # function no consistency issues should arise.
                 bundles_to_index = [
-                    associated_bundle
+                    (
+                        associated_bundle,
+                        self.archive if associated_bundle.id == artifact_bundle.id else None,
+                    )
                     for associated_bundle in associated_bundles
                     if associated_bundle.indexing_state
                     == ArtifactBundleIndexingState.NOT_INDEXED.value
@@ -770,8 +776,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                     index_artifact_bundles_for_release(
                         organization_id=self.organization.id,
                         artifact_bundles=bundles_to_index,
-                        release=release,
-                        dist=dist,
                     )
             except Exception as e:
                 # We want to capture any exception happening during indexing, since it's crucial to understand if
