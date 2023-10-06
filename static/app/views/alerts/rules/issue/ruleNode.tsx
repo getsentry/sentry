@@ -15,6 +15,9 @@ import {space} from 'sentry/styles/space';
 import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   AssigneeTargetType,
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -24,13 +27,7 @@ import {
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {
-  EVENT_FREQUENCY_PERCENT_CONDITION,
-  REAPPEARED_EVENT_CONDITION,
-} from 'sentry/views/projectInstall/issueAlertOptions';
 import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
 
 export function hasStreamlineTargeting(organization: Organization): boolean {
   return organization.features.includes('streamline-targeting-context');
@@ -62,7 +59,7 @@ function NumberField({
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
+      data.id === IssueAlertFilterType.ISSUE_OCCURRENCES &&
       isNaN(value) &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
@@ -312,7 +309,7 @@ function RuleNode({
     let {label} = node;
 
     if (
-      data.id === NOTIFY_EMAIL_ACTION &&
+      data.id === IssueAlertActionType.NOTIFY_EMAIL &&
       data.targetType !== MailActionTargetType.ISSUE_OWNERS &&
       organization.features.includes('issue-alert-fallback-targeting')
     ) {
@@ -321,7 +318,7 @@ function RuleNode({
     }
 
     if (
-      data.id === REAPPEARED_EVENT_CONDITION &&
+      data.id === IssueAlertConditionType.REAPPEARED_EVENT &&
       organization.features.includes('escalating-issues')
     ) {
       label = t('The issue changes state from archived to escalating');
@@ -423,7 +420,7 @@ function RuleNode({
   }
 
   function conditionallyRenderHelpfulBanner() {
-    if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+    if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
           <MarginlessAlert type="error">
@@ -453,7 +450,7 @@ function RuleNode({
       );
     }
 
-    if (data.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+    if (data.id === IssueAlertActionType.SLACK) {
       return (
         <MarginlessAlert
           type="info"
@@ -473,9 +470,7 @@ function RuleNode({
       );
     }
 
-    if (
-      data.id === 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction'
-    ) {
+    if (data.id === IssueAlertActionType.DISCORD) {
       return (
         <MarginlessAlert
           type="info"
@@ -496,7 +491,7 @@ function RuleNode({
     }
 
     if (
-      data.id === NOTIFY_EMAIL_ACTION &&
+      data.id === IssueAlertActionType.NOTIFY_EMAIL &&
       data.targetType === MailActionTargetType.ISSUE_OWNERS &&
       !organization.features.includes('issue-alert-fallback-targeting')
     ) {
