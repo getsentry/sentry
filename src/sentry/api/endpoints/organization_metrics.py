@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.ddm.api import run_metrics_query
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -21,7 +22,6 @@ from sentry.snuba.metrics import (
     get_tag_values,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
-from sentry.snuba.metrics_layer.api import run_metrics_query
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
