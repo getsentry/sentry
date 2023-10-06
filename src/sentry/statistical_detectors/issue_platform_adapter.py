@@ -36,7 +36,7 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
             resource_id=None,
             project_id=project_id,
             event_id=uuid.uuid4().hex,
-            fingerprint=[fingerprint_regression(regression, automatic_detection)],
+            fingerprint=[fingerprint_regression(regression["transaction"], automatic_detection)],
             type=PerformanceDurationRegressionGroupType,
             issue_title=PerformanceDurationRegressionGroupType.description,
             subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
