@@ -24,10 +24,16 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 type Props = {
   groupId: string;
   transactionName: string;
+  onClose?: () => void;
   transactionMethod?: string;
 };
 
-export function SampleList({groupId, transactionName, transactionMethod}: Props) {
+export function SampleList({
+  groupId,
+  transactionName,
+  transactionMethod,
+  onClose,
+}: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
@@ -72,15 +78,19 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
     transaction: transactionName,
   })}`;
 
+  function defaultOnClose() {
+    router.replace({
+      pathname: router.location.pathname,
+      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+    });
+  }
+
   return (
     <PageErrorProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(router.location.query, 'transaction', 'transactionMethod'),
-          });
+          onClose ? onClose() : defaultOnClose();
         }}
         onOpen={onOpenDetailPanel}
       >
