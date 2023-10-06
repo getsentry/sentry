@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Optional
 
+from sentry import options
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 
 
@@ -24,7 +25,7 @@ def get_aggregation_option(metric_id: str) -> Optional[AggregationOption]:
     if metric_id in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION.get(metric_id)
     # And move to the use case if not
-    elif use_case_id in USE_CASE_AGG_OPTION:
+    elif options.get("sentry-metrics.10s-granularity") and (use_case_id in USE_CASE_AGG_OPTION):
         return USE_CASE_AGG_OPTION[use_case_id]
 
     return None
