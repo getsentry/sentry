@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Event, EventsStatsData} from 'sentry/types';
@@ -9,6 +7,7 @@ import {
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -29,8 +28,6 @@ type EventBreakpointChartProps = {
   event: Event;
 };
 
-const DAY = 24 * 60 * 60 * 1000;
-
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -41,21 +38,13 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
   eventView.dataset = DiscoverDatasets.METRICS;
 
-  const maxDateTime = useMemo(() => Date.now(), []);
-  const minDateTime = maxDateTime - 90 * DAY;
+  const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 7,
+  });
 
-  const breakpointTime = breakpoint * 1000;
-
-  const beforeTime = breakpointTime - DAY * 7;
-  const beforeDateTime =
-    beforeTime >= minDateTime ? new Date(beforeTime) : new Date(minDateTime);
-
-  const afterTime = breakpointTime + DAY * 7;
-  const afterDateTime =
-    afterTime <= maxDateTime ? new Date(afterTime) : new Date(maxDateTime);
-
-  eventView.start = beforeDateTime.toISOString();
-  eventView.end = afterDateTime.toISOString();
+  eventView.start = (beforeDateTime as Date).toISOString();
+  eventView.end = (afterDateTime as Date).toISOString();
   eventView.statsPeriod = undefined;
 
   // The evidence data keys are returned to us in camelCase, but we need to

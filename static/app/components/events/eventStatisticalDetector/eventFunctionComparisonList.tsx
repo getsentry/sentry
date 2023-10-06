@@ -17,6 +17,7 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -84,8 +85,6 @@ interface EventComparisonListInnerProps {
   project: Project;
 }
 
-const DAY = 24 * 60 * 60 * 1000;
-
 function EventComparisonListInner({
   breakpoint,
   fingerprint,
@@ -95,21 +94,12 @@ function EventComparisonListInner({
 }: EventComparisonListInnerProps) {
   const organization = useOrganization();
 
-  // Make sure to memo this. Otherwise, each re-render will have
-  // a different min/max date time, causing the query to refetch.
-  const maxDateTime = useMemo(() => Date.now(), []);
-  const minDateTime = maxDateTime - 90 * DAY;
-
-  const breakpointTime = breakpoint * 1000;
-  const breakpointDateTime = new Date(breakpointTime);
-
-  const beforeTime = breakpointTime - DAY;
-  const beforeDateTime =
-    beforeTime >= minDateTime ? new Date(beforeTime) : new Date(minDateTime);
-
-  const afterTime = breakpointTime + DAY;
-  const afterDateTime =
-    afterTime <= maxDateTime ? new Date(afterTime) : new Date(maxDateTime);
+  const breakpointDateTime = new Date(breakpoint * 1000);
+  const datetime = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 1,
+  });
+  const {start: beforeDateTime, end: afterDateTime} = datetime;
 
   const beforeProfilesQuery = useProfileFunctions({
     datetime: {
@@ -153,6 +143,7 @@ function EventComparisonListInner({
     (afterProfilesQuery.data?.data?.[0]?.['examples()'] as string[]) ?? [];
 
   const profilesQuery = useProfileEvents({
+    datetime,
     fields: ['id', 'transaction', 'timestamp', 'profile.duration'],
     query: `id:[${[...beforeProfileIds, ...afterProfileIds].join(', ')}]`,
     sort: {
