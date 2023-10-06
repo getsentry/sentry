@@ -318,8 +318,15 @@ def _execute_series_and_totals_query(
     base_query.rollup = Rollup(interval=interval, granularity=_get_granularity(interval))
     series_result = run_query(request=request)
 
-    # TODO: implement granularity computation based on the start - end diff.
-    base_query.rollup = Rollup(totals=True, granularity=_get_granularity(interval))
+    # This is a hack, to make sure that we choose the right granularity for the totals query.
+    # This is done since for example if we query 24 hours with 1 hour interval:
+    # * For series the granularity is 1 hour since we want to aggregate on 1 hour
+    # * For totals it doesn't make sense to choose 1 hour, and instead it's better to choose 24 hours
+    series_start_seconds = series_result["start"].timestamp()
+    series_end_seconds = series_result["end"].timestamp()
+    totals_interval_seconds = int(series_end_seconds - series_start_seconds)
+
+    base_query.rollup = Rollup(totals=True, granularity=_get_granularity(totals_interval_seconds))
     request.query = base_query
     totals_result = run_query(request=request)
 
