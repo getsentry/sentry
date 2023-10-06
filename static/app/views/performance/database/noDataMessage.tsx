@@ -16,7 +16,7 @@ function DivWrapper(props) {
   return <div {...props} />;
 }
 
-export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
+export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
   const options = {
@@ -26,7 +26,7 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
     enabled: pageFilterIsReady,
   };
 
-  const {hasMetrics} = useHasAnySpanMetrics(options);
+  const {hasMetrics: selectedProjectsHaveRecentMetrics} = useHasAnySpanMetrics(options);
   const {ineligibleProjects} = useIneligibleProjects(options);
 
   const organization = useOrganization();
@@ -34,11 +34,7 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
 
-  if (hasMetrics) {
-    return null;
-  }
-
-  if (ineligibleProjects.length < 1) {
+  if (selectedProjectsHaveRecentMetrics) {
     return null;
   }
 

@@ -12,9 +12,9 @@ jest.mock('sentry/utils/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
 
-import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 
-describe('NoDataDueToOldSDKMessage', () => {
+describe('NoDataMessage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
@@ -43,7 +43,7 @@ describe('NoDataDueToOldSDKMessage', () => {
       },
     });
 
-    render(<NoDataDueToOldSDKMessage />);
+    render(<NoDataMessage />);
 
     await waitFor(() => {
       expect(
