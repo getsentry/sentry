@@ -50,12 +50,12 @@ const COLUMN_TITLES = [
 
 type Props = {
   eventView: EventView;
+  inactiveTransactions: string[];
   location: Location;
   organization: Organization;
   setError: (msg: string | undefined) => void;
   setInactiveTransactions: (endpoints: string[]) => void;
   setTransactionsList: (endpoints: string[]) => void;
-  transactionsList: string[];
   transactionsList: string[];
 };
 

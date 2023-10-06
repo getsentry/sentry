@@ -97,7 +97,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
       initialData: {},
     });
     useSynchronizeCharts([!loading]);
-    if (loading || totalLoading || !totalResults || !results || results.length === 0) {
+    if (loading || totalLoading || !totalResults || !results) {
       return <ChartPlaceholder />;
     }
     const seriesByName: {[category: string]: Series[]} = {};
@@ -124,7 +124,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
             seriesName: transaction,
             color: CHART_PALETTE[transactionsList.length][index],
             data:
-              seriesData[key]?.data.map(datum => {
+              seriesData?.[key]?.data.map(datum => {
                 return {
                   name: datum[0] * 1000,
                   value: datum[1][0].count,
