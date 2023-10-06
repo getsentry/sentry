@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Event, EventsStatsData} from 'sentry/types';
@@ -27,20 +29,34 @@ type EventBreakpointChartProps = {
   event: Event;
 };
 
+const DAY = 24 * 60 * 60 * 1000;
+
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {transaction, requestStart, requestEnd} = event?.occurrence?.evidenceData ?? {};
+  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
-  eventView.start = new Date(requestStart * 1000).toISOString();
-  eventView.end = new Date(requestEnd * 1000).toISOString();
   eventView.dataset = DiscoverDatasets.METRICS;
 
-  // If start and end were defined, then do not use default 14d stats period
-  eventView.statsPeriod = requestStart && requestEnd ? '' : eventView.statsPeriod;
+  const maxDateTime = useMemo(() => Date.now(), []);
+  const minDateTime = maxDateTime - 90 * DAY;
+
+  const breakpointTime = breakpoint * 1000;
+
+  const beforeTime = breakpointTime - DAY * 7;
+  const beforeDateTime =
+    beforeTime >= minDateTime ? new Date(beforeTime) : new Date(minDateTime);
+
+  const afterTime = breakpointTime + DAY * 7;
+  const afterDateTime =
+    afterTime <= maxDateTime ? new Date(afterTime) : new Date(maxDateTime);
+
+  eventView.start = beforeDateTime.toISOString();
+  eventView.end = afterDateTime.toISOString();
+  eventView.statsPeriod = undefined;
 
   // The evidence data keys are returned to us in camelCase, but we need to
   // convert them to snake_case to match the NormalizedTrendsTransaction type

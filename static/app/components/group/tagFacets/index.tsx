@@ -133,8 +133,9 @@ export default function TagFacets({
   event,
 }: Props) {
   const organization = useOrganization();
+  const now = useMemo(() => Date.now(), []);
 
-  const {transaction, aggregateRange2, breakpoint, requestEnd} =
+  const {transaction, aggregateRange2, breakpoint} =
     event?.occurrence?.evidenceData ?? {};
   const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
@@ -142,12 +143,12 @@ export default function TagFacets({
     environment: environments,
     isStatisticalDetector,
     statisticalDetectorParameters:
-      isStatisticalDetector && defined(breakpoint) && defined(requestEnd)
+      isStatisticalDetector && defined(breakpoint)
         ? {
             transaction,
             durationBaseline: aggregateRange2,
             start: new Date(breakpoint * 1000).toISOString(),
-            end: new Date(requestEnd * 1000).toISOString(),
+            end: new Date(now).toISOString(),
           }
         : undefined,
   });

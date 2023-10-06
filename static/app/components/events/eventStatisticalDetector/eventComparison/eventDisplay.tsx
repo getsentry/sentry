@@ -70,8 +70,9 @@ function useFetchSampleEvents({
   const organization = useOrganization();
   const eventView = new EventView({
     dataset: DiscoverDatasets.DISCOVER,
-    start: new Date(start * 1000).toISOString(),
-    end: new Date(end * 1000).toISOString(),
+    // Assumes the start and end timestamps are already in milliseconds
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
     fields: [{field: 'id'}, {field: 'timestamp'}],
     query: getSampleEventQuery({transaction, durationBaseline}),
 
