@@ -146,6 +146,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
+  span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
@@ -163,7 +164,6 @@ export type SpanBarProps = {
   measure?: () => void;
   spanBarColor?: string;
   spanBarType?: SpanBarType;
-  span: ProcessedSpanType | AggregateSpanType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
