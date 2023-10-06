@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import socket
 from typing import Any, Callable, TypeVar
+from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
@@ -65,11 +66,14 @@ def service_options(name: str) -> dict[str, Any]:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    options = service_options("snuba")
-    port = options["ports"]["1218/tcp"]
+    parsed = urlparse(settings.SENTRY_SNUBA)
+    assert parsed.hostname is not None
+    assert parsed.port is not None
 
-    if not _service_available(port[0], port[1]):
+    if not _service_available(parsed.hostname, parsed.port):
         pytest.skip("requires snuba server running")
+
+    options = service_options("snuba")
 
     try:
         check_health("snuba", options)
