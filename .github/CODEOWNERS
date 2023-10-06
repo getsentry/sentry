@@ -267,6 +267,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
 /static/app/views/performance/database                                              @getsentry/team-starfish
+/static/app/views/performance/browser                                               @getsentry/team-starfish
 ## Endof Starfish
 
 
