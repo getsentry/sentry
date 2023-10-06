@@ -14,12 +14,14 @@ from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
@@ -214,12 +216,22 @@ class _ClientConfig:
         return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
-    def links(self) -> Iterable[Tuple[str, str]]:
+    def links(self) -> Iterable[Tuple[str, str | None]]:
         organization_url = (
             generate_organization_url(self.last_org_slug) if self.last_org_slug else None
         )
+        region_url = None
+        if self.last_org:
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                organization_mapping = OrganizationMapping.objects.get(
+                    organization_id=self.last_org.id
+                )
+                region_url = generate_region_url(organization_mapping.region_name)
+            else:
+                region_url = generate_region_url()
+
         yield "organizationUrl", organization_url
-        yield "regionUrl", generate_region_url() if self.last_org_slug else None
+        yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
         if self._is_superuser() and superuser.ORG_ID is not None:
