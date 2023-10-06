@@ -87,15 +87,28 @@ class InfiniteListLoader {
   }
 
   get feedbacks() {
-    const feedbacks: HydratedFeedbackItem[] = [];
     const initialDateTime = this.initialDate.getTime();
-    for (const [timestamp, feedback] of this.timestampToFeedback.entries()) {
-      if (timestamp < initialDateTime) {
-        feedbacks.push(feedback);
-      }
-    }
+    const timestamps = Array.from(this.timestampToFeedback.keys())
+      .filter(timestamp => timestamp < initialDateTime)
+      .sort()
+      .reverse();
+
+    const feedbacks = timestamps.map(timestamp =>
+      this.timestampToFeedback.get(timestamp)
+    );
     return feedbacks;
   }
+
+  setFeedback = (feedbackId: string, feedback: undefined | HydratedFeedbackItem) => {
+    const old = this.feedbacks.find(fb => fb?.feedback_id === feedbackId);
+    if (old) {
+      if (!feedback) {
+        this.timestampToFeedback.delete(old.timestamp.getTime());
+      } else {
+        this.timestampToFeedback.set(old.timestamp.getTime(), feedback);
+      }
+    }
+  };
 
   onChange(handler: () => void): Unsubscribe {
     this.dispatch.addEventListener('change', handler);
@@ -228,12 +241,12 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   isRowLoaded: () => false,
   loadMoreRows: () => Promise.resolve(),
   queryView: EMPTY_QUERY_VIEW,
+  setFeedback: () => undefined,
   totalHits: 0,
-  updateFeedback: () => undefined,
 };
 
 type State = {
-  items: HydratedFeedbackItem[];
+  items: (HydratedFeedbackItem | undefined)[];
   totalHits: undefined | number;
 };
 
@@ -283,9 +296,12 @@ export default function useFetchFeedbackInfiniteListData({
     return loaderRef.current?.fetchNext() ?? Promise.resolve();
   }, []);
 
-  const updateFeedback = useCallback(({feedbackId: _}: {feedbackId: string}) => {
-    // TODO
-  }, []);
+  const setFeedback = useCallback(
+    (feedbackId: string, feedback: undefined | HydratedFeedbackItem) => {
+      return loaderRef.current?.setFeedback(feedbackId, feedback);
+    },
+    []
+  );
 
   useEffect(() => {
     loadMoreRows({startIndex: 0, stopIndex: PER_PAGE});
@@ -299,7 +315,7 @@ export default function useFetchFeedbackInfiniteListData({
     isRowLoaded,
     loadMoreRows,
     queryView,
+    setFeedback,
     totalHits: state.totalHits,
-    updateFeedback,
   };
 }
