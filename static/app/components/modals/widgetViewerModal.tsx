@@ -1173,7 +1173,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}
