@@ -1,3 +1,4 @@
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models import (
     AuthIdentity,
     AuthIdentityReplica,
@@ -60,6 +61,28 @@ def test_replicate_auth_provider():
     region_replica_service.upsert_replicated_auth_provider(
         auth_provider=serialized, region_name="us"
     )
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_api_key():
+    org = Factories.create_organization()
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        api_key = Factories.create_api_key(org, scope_list=["a", "b"])
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
+
+    assert replicated.get_scopes() == api_key.get_scopes()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        api_key.scope_list = ["a", "b", "c"]
+        api_key.save()
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
+
+    assert replicated.get_scopes() == api_key.get_scopes()
 
 
 @django_db_all(transaction=True)

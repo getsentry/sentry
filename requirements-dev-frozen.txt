@@ -170,7 +170,7 @@ s3transfer==0.6.1
 selenium==4.3.0
 sentry-arroyo==2.14.9
 sentry-cli==2.16.0
-sentry-kafka-schemas==0.1.29
+sentry-kafka-schemas==0.1.30
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.31
 sentry-sdk==1.31.0

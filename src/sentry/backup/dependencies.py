@@ -146,6 +146,32 @@ class ModelRelations:
             return self.model.get_possible_relocation_scopes()
         return set()
 
+    def get_uniques_without_foreign_keys(self) -> list[frozenset[str]]:
+        """
+        Gets all unique sets (that is, either standalone fields that are marked `unique=True`, or
+        groups of fields listed in `Meta.unique_together`) for a model, as long as those sets do not
+        include any fields that are foreign keys. Note that the `id` field would be trivially
+        included in this list for every model, and is therefore ignored.
+        """
+
+        out = []
+        for u in self.uniques:
+            # Exclude unique sets that are just {"id"}, since this is true for every model and not
+            # very useful when searching for potential collisions.
+            if u == {"id"}:
+                continue
+
+            has_foreign_key = False
+            for field in u:
+                if self.foreign_keys.get(field):
+                    has_foreign_key = True
+                    break
+
+            if not has_foreign_key:
+                out.append(u)
+
+        return out
+
 
 def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
