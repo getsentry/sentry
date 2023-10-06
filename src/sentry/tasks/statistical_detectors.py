@@ -185,7 +185,7 @@ def detect_transaction_change_points(
 
     metrics.incr(
         "statistical_detectors.breakpoint.transactions",
-        amount=len(breakpoints),
+        amount=breakpoint_count,
         sample_rate=1.0,
     )
 
