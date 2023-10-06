@@ -2,12 +2,11 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, options
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.utils import get_auth_api_token_type
 from sentry.constants import ObjectStatus
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models import Project
@@ -129,15 +128,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 "chunks": chunks,
                 "upload_as_artifact_bundle": True,
             }
-        )
-
-        analytics.record(
-            "artifactbundle.assemble",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization.id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            auth_type=get_auth_api_token_type(request.auth),
         )
 
         if is_org_auth_token_auth(request.auth):
