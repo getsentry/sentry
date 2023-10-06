@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -37,13 +38,16 @@ function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              {t('Most Dead Clicks')}
-              <QuestionTooltip
-                size="xs"
-                position="top"
-                title={t('The top selectors your users have dead clicked on.')}
-                isHoverable
-              />
+              <TitleTooltipContainer>
+                {t('Most Dead Clicks')}
+                <QuestionTooltip
+                  size="xs"
+                  position="top"
+                  title={t('The top selectors your users have dead clicked on.')}
+                  isHoverable
+                />
+              </TitleTooltipContainer>
+              <FeatureBadge type="beta" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -55,13 +59,16 @@ function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              {t('Most Rage Clicks')}
-              <QuestionTooltip
-                size="xs"
-                position="top"
-                title={t('The top selectors your users have rage clicked on.')}
-                isHoverable
-              />
+              <TitleTooltipContainer>
+                {t('Most Rage Clicks')}
+                <QuestionTooltip
+                  size="xs"
+                  position="top"
+                  title={t('The top selectors your users have rage clicked on.')}
+                  isHoverable
+                />
+              </TitleTooltipContainer>
+              <FeatureBadge type="beta" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -275,10 +282,15 @@ const StyledAccordionHeader = styled('div')`
   flex: 1;
 `;
 
+const TitleTooltipContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
   display: grid;
-  gap: ${space(1)};
-  justify-content: start;
+  justify-content: space-between;
   align-items: center;
 `;
 
