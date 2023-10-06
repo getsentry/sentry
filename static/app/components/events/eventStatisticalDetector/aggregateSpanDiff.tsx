@@ -164,6 +164,10 @@ function renderBodyCell({
     const strippedLabel = Math.abs(percentDelta).toFixed(2);
     const isPositive = percentDelta > 0;
 
+    const labelContent =
+      row[`${prefix}_before`] !== 0
+        ? `${isPositive ? '+' : '-'}${strippedLabel}%`
+        : t('Added');
     return (
       <Tooltip
         title={tct('From [before] to [after]', {
@@ -171,9 +175,7 @@ function renderBodyCell({
           after: `${row[`${prefix}_after`].toFixed(2)}${unitSuffix}`,
         })}
       >
-        <ChangeLabel isPositive={isPositive}>{`${
-          isPositive ? '+' : '-'
-        }${strippedLabel}%`}</ChangeLabel>
+        <ChangeLabel isPositive={isPositive}>{labelContent}</ChangeLabel>
       </Tooltip>
     );
   }
