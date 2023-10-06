@@ -16,7 +16,7 @@ class MetricAlertExamples:
                     "aggregate": "count()",
                     "thresholdType": 0,
                     "resolveThreshold": None,
-                    "timeWindow": "1440",
+                    "timeWindow": 1440,
                     "environment": "prod",
                     "triggers": [
                         {
@@ -69,7 +69,7 @@ class MetricAlertExamples:
                 "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
                 "thresholdType": 0,
                 "resolveThreshold": 80.0,
-                "timeWindow": "120",
+                "timeWindow": 120,
                 "environment": None,
                 "triggers": [
                     {
@@ -135,7 +135,7 @@ class MetricAlertExamples:
                 "aggregate": "count_unique(user)",
                 "thresholdType": 0,
                 "resolveThreshold": None,
-                "timeWindow": 60.0,
+                "timeWindow": 60,
                 "environment": None,
                 "triggers": [
                     {
@@ -178,7 +178,7 @@ class MetricAlertExamples:
                 "aggregate": "percentile(transaction.duration,0.3)",
                 "thresholdType": 1,
                 "resolveThreshold": None,
-                "timeWindow": 60.0,
+                "timeWindow": 60,
                 "environment": None,
                 "triggers": [
                     {
