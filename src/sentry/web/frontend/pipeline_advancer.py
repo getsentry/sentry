@@ -20,6 +20,7 @@ PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
 # they will redirect here *without* being in the pipeline. If that happens
 # redirect to the integration install org picker.
 FORWARD_INSTALL_FOR = ["github"]
+EXPECTED_REFERER = "https://github.com/"
 
 
 from rest_framework.request import Request
@@ -40,6 +41,13 @@ class PipelineAdvancerView(BaseView):
             pipeline = pipeline_cls.get_for_request(request=request)
             if pipeline:
                 break
+
+        if provider_id == "github" and request.headers.get("Referer", None) != EXPECTED_REFERER:
+            return HttpResponse(
+                f'The expected header "Referer: {EXPECTED_REFERER}" was not found.',
+                status=400,
+                content_type="text/plain",
+            )
 
         if (
             provider_id in FORWARD_INSTALL_FOR
