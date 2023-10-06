@@ -69,9 +69,7 @@ class OrganizationProvisioningService:
             )
         )
 
-        rpc_org: RpcOrganization = organization_service.get(
-            id=rpc_org_slug_reservation.organization_id
-        )
+        rpc_org = organization_service.get(id=rpc_org_slug_reservation.organization_id)
 
         if rpc_org is None:
             raise OrganizationProvisioningException("Provisioned organization was not found")
@@ -113,7 +111,14 @@ class OrganizationProvisioningService:
             )
         )
 
-        return organization_service.get(id=rpc_slug_reservation.organization_id)
+        rpc_org = organization_service.get(id=rpc_slug_reservation.organization_id)
+
+        if rpc_org is None:
+            raise OrganizationProvisioningException(
+                "Organization not found despite slug change succeeding"
+            )
+
+        return rpc_org
 
 
 organization_provisioning_service = OrganizationProvisioningService()
