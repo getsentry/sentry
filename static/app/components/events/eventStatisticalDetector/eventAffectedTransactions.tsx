@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {Container} from 'sentry/utils/discover/styles';
 import {getDuration} from 'sentry/utils/formatters';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -63,8 +64,6 @@ export function EventAffectedTransactions({
   );
 }
 
-const DAY = 24 * 60 * 60 * 1000;
-
 interface EventAffectedTransactionsInnerProps {
   breakpoint: number;
   fingerprint: number;
@@ -78,32 +77,17 @@ function EventAffectedTransactionsInner({
 }: EventAffectedTransactionsInnerProps) {
   const organization = useOrganization();
 
-  // Make sure to memo this. Otherwise, each re-render will have
-  // a different min/max date time, causing the query to refetch.
-  const maxDateTime = useMemo(() => Date.now(), []);
-  const minDateTime = maxDateTime - 90 * DAY;
-
-  const breakpointTime = breakpoint * 1000;
-
-  // Try to create a query for a 14 day period around the breakpoint.
-  const beforeTime = breakpointTime - 7 * DAY;
-  const beforeDateTime =
-    beforeTime >= minDateTime ? new Date(beforeTime) : new Date(minDateTime);
-  const afterTime = breakpointTime + 7 * DAY;
-  const afterDateTime =
-    afterTime <= maxDateTime ? new Date(afterTime) : new Date(maxDateTime);
+  const datetime = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 7,
+  });
 
   const percentileBefore = `percentile_before(function.duration, 0.95, ${breakpoint})`;
   const percentileAfter = `percentile_after(function.duration, 0.95, ${breakpoint})`;
   const percentileDelta = `percentile_delta(function.duration, 0.95, ${breakpoint})`;
 
   const transactionsDeltaQuery = useProfileFunctions({
-    datetime: {
-      start: beforeDateTime,
-      end: afterDateTime,
-      utc: true,
-      period: null,
-    },
+    datetime,
     fields: ['transaction', percentileBefore, percentileAfter, percentileDelta],
     sort: {
       key: percentileDelta,
