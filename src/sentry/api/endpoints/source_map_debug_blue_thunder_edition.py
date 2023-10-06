@@ -54,6 +54,37 @@ NO_DEBUG_ID_SDKS = {
 ARTIFACT_INDEX_LOOKUP_LIMIT = 25
 
 
+class ScrapingResultSuccess(TypedDict):
+    status: Literal["success"]
+
+
+class ScrapingResultNotAttempted(TypedDict):
+    status: Literal["not_attempted"]
+
+
+class ScrapingResultFailure(TypedDict):
+    status: Literal["failure"]
+    reason: Literal[
+        "not_found",
+        "disabled",
+        "invalid_host",
+        "permission_denied",
+        "timeout",
+        "download_error",
+        "other",
+    ]
+    details: Optional[str]
+
+
+class SourceMapScrapingProcessResult(TypedDict):
+    source_file: Optional[
+        Union[ScrapingResultSuccess, ScrapingResultNotAttempted, ScrapingResultFailure]
+    ]
+    source_map: Optional[
+        Union[ScrapingResultSuccess, ScrapingResultNotAttempted, ScrapingResultFailure]
+    ]
+
+
 class SourceMapDebugIdProcessResult(TypedDict):
     debug_id: Optional[str]
     uploaded_source_file_with_correct_debug_id: bool
@@ -72,6 +103,7 @@ class SourceMapReleaseProcessResult(TypedDict):
 class SourceMapDebugFrame(TypedDict):
     debug_id_process: SourceMapDebugIdProcessResult
     release_process: Optional[SourceMapReleaseProcessResult]
+    scraping_process: SourceMapScrapingProcessResult
 
 
 class SourceMapDebugException(TypedDict):
@@ -88,6 +120,7 @@ class SourceMapDebugResponse(TypedDict):
     release_has_some_artifact: bool
     has_uploaded_some_artifact_with_a_debug_id: bool
     sdk_debug_id_support: Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"]
+    has_scraping_data: bool
 
 
 @region_silo_endpoint
@@ -197,6 +230,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                 path_data = ReleaseLookupData(abs_path, project, release, event).to_dict()
                 release_process_abs_path_data[abs_path] = path_data
 
+        # Get a map that maps from abs_path to scraping data
+        scraping_attempt_map = get_scraping_attempt_map(event_data)
+
         # build information about individual exceptions and their stack traces
         processed_exceptions = []
         exception_values = get_path(event_data, "exception", "values")
@@ -227,6 +263,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                     in debug_ids_with_uploaded_source_map,
                                 },
                                 "release_process": release_process_abs_path_data.get(abs_path),
+                                "scraping_process": get_scraping_data_for_frame(
+                                    scraping_attempt_map, frame
+                                ),
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
@@ -243,8 +282,26 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                 or has_uploaded_artifact_bundle_with_release,
                 "has_uploaded_some_artifact_with_a_debug_id": has_uploaded_some_artifact_with_a_debug_id,
                 "sdk_debug_id_support": get_sdk_debug_id_support(event_data),
+                "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
+
+
+def get_scraping_data_for_frame(scraping_attempt_map, frame):
+    abs_path = frame.get("abs_path")
+    if abs_path is None:
+        return {"source_file": None, "source_map": None}
+
+    source_file_data = scraping_attempt_map.get(abs_path)
+    source_map_data = None
+
+    data = frame.get("data", {})
+    source_map_url = data.get("sourcemap")
+
+    if source_map_url is not None:
+        source_map_data = scraping_attempt_map.get(source_map_url)
+
+    return {"source_file": source_file_data, "source_map": source_map_data}
 
 
 class ReleaseLookupData:
@@ -619,3 +676,21 @@ def get_abs_paths_in_event(event_data):
                     if abs_path:
                         abs_paths.add(abs_path)
     return abs_paths
+
+
+def get_scraping_attempt_map(event_data):
+    scraping_attempt_map = {}  # maps from url to attempt
+    scraping_attempts = event_data.get("scraping_attempts") or []
+    for scraping_attempt in scraping_attempts:
+        attempt_data = {"status": scraping_attempt["status"]}
+
+        reason = scraping_attempt.get("reason")
+        if reason is not None:
+            attempt_data["reason"] = reason
+
+        details = scraping_attempt.get("details")
+        if details is not None:
+            attempt_data["details"] = details
+
+        scraping_attempt_map[scraping_attempt["url"]] = attempt_data
+    return scraping_attempt_map
