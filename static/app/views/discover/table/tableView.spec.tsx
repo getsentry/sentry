@@ -106,6 +106,13 @@ describe('TableView > CellActions', function () {
         },
       ],
     };
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      method: 'GET',
+      statusCode: 204,
+      body: '',
+    });
   });
 
   afterEach(() => {
@@ -346,6 +353,7 @@ describe('TableView > CellActions', function () {
     const orgWithFeature = Organization({
       projects: [TestStubs.Project()],
     });
+
     render(
       <TableView
         organization={orgWithFeature}

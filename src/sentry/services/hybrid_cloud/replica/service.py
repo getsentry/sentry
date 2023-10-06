@@ -1,6 +1,9 @@
 import abc
 from typing import cast
 
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugReservation,
+)
 from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcApiToken,
@@ -8,7 +11,6 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method

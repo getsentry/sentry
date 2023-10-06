@@ -18,7 +18,9 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -217,6 +219,7 @@ function PerformanceDurationRegressionIssueDetailsContent({
 function ProfilingDurationRegressionIssueDetailsContent({
   group,
   event,
+  project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
 
@@ -228,6 +231,12 @@ function ProfilingDurationRegressionIssueDetailsContent({
     >
       <Fragment>
         <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventFunctionComparisonList event={event} group={group} project={project} />
+        </ErrorBoundary>
       </Fragment>
     </Feature>
   );

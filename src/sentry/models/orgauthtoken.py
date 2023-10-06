@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.encoding import force_str
 
@@ -85,7 +84,7 @@ class OrgAuthToken(ReplicatedControlModel):
         return self.date_deactivated is None
 
     def write_relocation_import(
-        self, _s: ImportScope, _f: ImportFlags
+        self, scope: ImportScope, flags: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
@@ -114,16 +113,7 @@ class OrgAuthToken(ReplicatedControlModel):
             self.token_hashed = hash_token(token_str)
             self.token_last_characters = token_str[-4:]
 
-        (key, created) = OrgAuthToken.objects.get_or_create(
-            token_hashed=self.token_hashed,
-            token_last_characters=self.token_last_characters,
-            defaults=model_to_dict(self),
-        )
-        if key:
-            self.pk = key.pk
-            self.save()
-
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return super().write_relocation_import(scope, flags)
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token

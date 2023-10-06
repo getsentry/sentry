@@ -151,7 +151,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if project.get_option("filters:chunk-load-error") == "1":
         # ChunkLoadError: Loading chunk 3662 failed.\n(error:
         # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += ["ChunkLoadError: Loading chunk * failed.\n(error: *)"]
+        error_messages += ["ChunkLoadError: Loading chunk *"]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}

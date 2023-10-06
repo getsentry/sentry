@@ -13,7 +13,7 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, features, options
+from sentry import features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
@@ -141,10 +141,8 @@ def assemble_file(
             detail="Reported checksum mismatch",
         )
         return None
-    else:
-        file.save()
 
-        return AssembleResult(bundle=file, bundle_temp_file=temp_file)
+    return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
 def _get_cache_key(task, scope, checksum):
@@ -542,13 +540,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
         # formatted with `-` to 36 chars.
         bundle_id = bundle_id[:36] if bundle_id else uuid.uuid4().hex
-
-        analytics.record(
-            "artifactbundle.manifest_extracted",
-            organization_id=self.organization.id,
-            project_ids=self.project_ids,
-            has_debug_ids=len(debug_ids_with_types) > 0,
-        )
 
         # We don't allow the creation of a bundle if no debug ids and release are present, since we are not able to
         # efficiently index

@@ -2202,6 +2202,8 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
+# How many frames are used in jira issues
+SENTRY_MAX_STACKTRACE_FRAMES = 100
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
@@ -3365,6 +3367,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "sentry",
     "social_auth",
     "feedback",
+    "hybridcloud",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

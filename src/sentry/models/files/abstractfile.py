@@ -305,7 +305,7 @@ class AbstractFile(Model):
         return results
 
     @sentry_sdk.tracing.trace
-    def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
+    def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the
         contents.
@@ -356,8 +356,8 @@ class AbstractFile(Model):
                 raise AssembleChecksumMismatch("Checksum mismatch")
 
         metrics.timing("filestore.file-size", offset)
-        if commit:
-            self.save()
+        self.save()
+
         tf.flush()
         tf.seek(0)
         return tf
