@@ -36,6 +36,7 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
@@ -82,6 +83,7 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
@@ -142,6 +144,7 @@ describe('useProfileEvents', function () {
     const {result, waitFor} = reactHooks.renderHook(useProfileEventsStats, {
       wrapper: TestContext,
       initialProps: {
+        dataset: 'profiles' as const,
         yAxes,
         referrer: '',
       },
