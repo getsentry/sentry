@@ -40,7 +40,7 @@ function startDateFromQueryView({start, statsPeriod}: QueryView): Date {
       const msdifference = formatDuration({
         precision: 'ms',
         style: 'count',
-        timespan: [value, unit],
+        duration: [value, unit],
       });
       return moment.utc().subtract(msdifference, 'ms').toDate();
     }
