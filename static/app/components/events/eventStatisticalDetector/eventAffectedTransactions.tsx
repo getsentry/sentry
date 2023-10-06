@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -77,7 +77,10 @@ function EventAffectedTransactionsInner({
   project,
 }: EventAffectedTransactionsInnerProps) {
   const organization = useOrganization();
-  const maxDateTime = Date.now();
+
+  // Make sure to memo this. Otherwise, each re-render will have
+  // a different min/max date time, causing the query to refetch.
+  const maxDateTime = useMemo(() => Date.now(), []);
   const minDateTime = maxDateTime - 90 * DAY;
 
   const breakpointTime = breakpoint * 1000;

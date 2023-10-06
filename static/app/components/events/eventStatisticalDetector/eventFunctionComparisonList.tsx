@@ -94,7 +94,10 @@ function EventComparisonListInner({
   project,
 }: EventComparisonListInnerProps) {
   const organization = useOrganization();
-  const maxDateTime = Date.now();
+
+  // Make sure to memo this. Otherwise, each re-render will have
+  // a different min/max date time, causing the query to refetch.
+  const maxDateTime = useMemo(() => Date.now(), []);
   const minDateTime = maxDateTime - 90 * DAY;
 
   const breakpointTime = breakpoint * 1000;
