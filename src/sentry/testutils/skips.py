@@ -3,10 +3,11 @@ from __future__ import annotations
 import os
 import socket
 from typing import Any, Callable, TypeVar
-from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
+
+from sentry.runner.commands.devservices import check_health, ensure_interface
 
 T = TypeVar("T", bound=Callable[..., Any])
 
@@ -55,31 +56,53 @@ def _service_available(host: str, port: int) -> bool:
         return True
 
 
+def service_options(name: str) -> dict[str, Any]:
+    options = settings.SENTRY_DEVSERVICES[name](settings, {})
+    options["name"] = f"sentry_{name}"
+    options["ports"] = ensure_interface(options["ports"])
+    return options
+
+
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    parsed = urlparse(settings.SENTRY_SNUBA)
-    assert parsed.hostname is not None
-    assert parsed.port is not None
-    if not _service_available(parsed.hostname, parsed.port):
+    options = service_options("snuba")
+    port = options["ports"]["1218/tcp"]
+
+    if not _service_available(port[0], port[1]):
         pytest.skip("requires snuba server running")
+
+    try:
+        check_health("snuba", options)
+    except Exception as e:
+        pytest.fail(f"snuba server is not heathy: {e}")
 
 
 @pytest.fixture(scope="session")
 def _requires_kafka() -> None:
-    kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
-    (port,) = kafka_conf["ports"].values()
+    options = service_options("kafka")
+    (port,) = options["ports"].values()
 
-    if not _service_available("127.0.0.1", port):
+    if not _service_available(port[0], port[1]):
         pytest.skip("requires kafka server running")
+
+    try:
+        check_health("kafka", options)
+    except Exception as e:
+        pytest.fail(f"kafka server is not heathy: {e}")
 
 
 @pytest.fixture(scope="session")
 def _requires_symbolicator() -> None:
-    symbolicator_conf = settings.SENTRY_DEVSERVICES["symbolicator"](settings, {})
-    (port,) = symbolicator_conf["ports"].values()
+    options = service_options("symbolicator")
+    (port,) = options["ports"].values()
 
-    if not _service_available("127.0.0.1", port):
+    if not _service_available(port[0], port[1]):
         pytest.skip("requires symbolicator server running")
+
+    try:
+        check_health("symbolicator", options)
+    except Exception as e:
+        pytest.fail(f"symbolicator server is not heathy: {e}")
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
