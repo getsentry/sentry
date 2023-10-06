@@ -93,16 +93,22 @@ jobs:
             BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
             echo $BASE_COMMIT
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT})
+            json_output=$(echo $output | grep -o -e "{.*}")
             if [ $? -eq 0 ]
             then
-              ATS_TESTS_TO_RUN=$(echo $output | grep -e ATS_TESTS_TO_RUN= | tr -d "ATS_TESTS_TO_RUN=")
-              ATS_TESTS_TO_SKIP=$(echo $output | grep -e ATS_TESTS_TO_SKIP= | tr -d "ATS_TESTS_TO_SKIP=")
+              tests_to_run=$(echo $json_output | jq -r '.ats_tests_to_run[]' | tr '\n' ' ')
+              tests_to_skip=$(echo $json_output | jq -r '.ats_tests_to_skip[]' | tr '\n' ' ')
+              runner_options=$(echo $json_output | jq -r '.runner_options[]' | tr '\n' ' ')
 
-              echo "ATS_TESTS_TO_RUN=$ATS_TESTS_TO_RUN" >> "$GITHUB_OUTPUT"
-              echo "ATS_TESTS_TO_SKIP=$ATS_TESTS_TO_SKIP" >> "$GITHUB_OUTPUT"
+              echo $ATS_TESTS_TO_RUN
+              echo $ATS_TESTS_TO_SKIP
 
-              test_to_run_count=$(echo $ATS_TESTS_TO_RUN | awk '{print gsub("[ \t]",""); exit}')
-              test_to_skip_count=$(echo $ATS_TESTS_TO_SKIP | awk '{print gsub("[ \t]",""); exit}')
+              echo "ATS_TESTS_TO_RUN=$(echo $runner_options $tests_to_run)" >> "$GITHUB_OUTPUT"
+              echo "ATS_TESTS_TO_SKIP=$(echo $runner_options $tests_to_skip)" >> "$GITHUB_OUTPUT"
+
+              test_to_run_count=$(echo $json_output | jq '.ats_tests_to_run | length')
+              test_to_skip_count=$(echo $json_output | jq '.ats_tests_to_skip | length')
+              total_tests_count=$(($test_to_run_count + $test_to_skip_count))
               echo "Selected $test_to_run_count / $total_tests_count tests to run" >> $GITHUB_STEP_SUMMARY
             else
               echo "ATS failed. Can't get list of tests to run. Fallback to all tests"
@@ -110,9 +116,18 @@ jobs:
               echo "ATS_TESTS_TO_RUN=--cov-context=test" >> "$GITHUB_OUTPUT"
               echo "ATS_TESTS_TO_SKIP=" >> "$GITHUB_OUTPUT"
             fi
-
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
     # The actual running of tests would come here, after the labels are available
     # Something like pytest <options> $ATS_TESTS_TO_RUN
+    debug:
+      runs-on: ubuntu-latest
+      needs: coverage-ats
+      steps:
+        - name: Debug ATS_TESTS_TO_RUN
+          run: |
+            echo ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }}
+        - name: Debug ATS_TESTS_TO_SKIP
+          run: |
+            echo ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}
