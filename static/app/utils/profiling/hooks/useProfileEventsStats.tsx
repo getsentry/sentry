@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {EventsStatsSeries, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -58,8 +60,13 @@ export function useProfileEventsStats<F extends string>({
     staleTime: Infinity,
   });
 
+  const transformed = useMemo(
+    () => data && transformStatsResponse(yAxes, data),
+    [yAxes, data]
+  );
+
   return {
-    data: data && transformStatsResponse(yAxes, data),
+    data: transformed,
     ...rest,
   };
 }
