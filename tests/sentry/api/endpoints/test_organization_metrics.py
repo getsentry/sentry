@@ -31,8 +31,8 @@ MOCKED_DERIVED_METRICS.update(
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="percentage",
-            snql=lambda *args, entity, metric_ids, alias=None: complement(
-                division_float(*args, entity, metric_ids), alias="crash_free_fake"
+            snql=lambda crashed_count, errored_set, entity, metric_ids, alias=None: complement(
+                division_float(crashed_count, errored_set, alias=alias), alias="crash_free_fake"
             ),
         )
     }
@@ -44,7 +44,9 @@ def mocked_mri_resolver(metric_names, mri_func):
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    ret = indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
