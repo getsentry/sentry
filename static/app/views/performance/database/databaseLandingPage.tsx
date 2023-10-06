@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -57,7 +57,7 @@ function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <NoDataDueToOldSDKMessage Wrapper={AlertBanner} />
+          <NoDataMessage Wrapper={AlertBanner} />
 
           <PaddedContainer>
             <PageFilterBar condensed>
