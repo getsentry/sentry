@@ -9,7 +9,9 @@ import {
 import styled from '@emotion/styled';
 
 import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
+import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,6 +32,8 @@ export default function FeedbackList() {
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
+
+  const {checked, toggleChecked} = useListItemCheckboxState();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -59,14 +63,21 @@ export default function FeedbackList() {
         parent={parent}
         rowIndex={index}
       >
-        <FeedbackListItem feedbackItem={item} style={style} />
+        <FeedbackListItem
+          feedbackItem={item}
+          style={style}
+          isChecked={checked.includes(item.feedback_id)}
+          onChecked={() => {
+            toggleChecked(item.feedback_id);
+          }}
+        />
       </CellMeasurer>
     );
   };
 
   return (
     <Fragment>
-      <HeaderPanelItem> </HeaderPanelItem>
+      <FeedbackListHeader checked={checked} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
@@ -105,11 +116,6 @@ export default function FeedbackList() {
     </Fragment>
   );
 }
-
-const HeaderPanelItem = styled(PanelItem)`
-  display: grid;
-  padding: ${space(1)} ${space(2)};
-`;
 
 const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
