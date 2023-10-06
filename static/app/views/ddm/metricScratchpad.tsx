@@ -14,6 +14,7 @@ import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {clearQuery, updateQuery} from 'sentry/utils/metrics';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOverlay from 'sentry/utils/useOverlay';
 import useRouter from 'sentry/utils/useRouter';
@@ -117,7 +118,7 @@ export function useScratchpads() {
     add,
     update,
     remove,
-    toggleSelect: toggleSelected,
+    toggleSelected,
     setDefault,
   };
 }
@@ -154,7 +155,6 @@ export function ScratchpadSelector() {
   return (
     <ScratchpadGroup>
       <Button
-        size="sm"
         disabled={!scratchpads.selected}
         onClick={() => {
           if (isDefaultSelected) {
@@ -175,12 +175,12 @@ export function ScratchpadSelector() {
       />
       <CompactSelect
         options={scratchpadOptions}
-        value={scratchpads.selected ?? ''}
+        value={scratchpads.selected ?? `None`}
         closeOnSelect={false}
         onChange={option => {
-          scratchpads.toggleSelect(option.value);
+          scratchpads.toggleSelected(option.value);
         }}
-        triggerProps={{prefix: t('Scratchpad'), size: 'sm'}}
+        triggerProps={{prefix: t('Scratchpad')}}
         emptyMessage="No scratchpads yet."
         disabled={false}
       />
@@ -195,13 +195,33 @@ function SaveAsDropdown({
   mode: 'save' | 'fork';
   onSave: (name: string) => void;
 }) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({});
+  const {
+    isOpen,
+    triggerProps,
+    overlayProps,
+    arrowProps,
+    state: {setOpen},
+  } = useOverlay({});
   const theme = useTheme();
   const [name, setName] = useState('');
 
+  const save = useCallback(() => {
+    onSave(name);
+    setOpen(false);
+    setName('');
+  }, [name, onSave, setOpen]);
+
+  const enterKeyPressed = useKeyPress('Enter', undefined, true);
+
+  useEffect(() => {
+    if (isOpen && enterKeyPressed && name) {
+      save();
+    }
+  }, [enterKeyPressed, isOpen, name, save]);
+
   return (
     <div>
-      <Button size="sm" icon={<IconStar />} {...triggerProps}>
+      <Button icon={<IconStar />} {...triggerProps}>
         {mode === 'fork' ? t('Fork as ...') : t('Save as ...')}
       </Button>
       <AnimatePresence>
@@ -218,12 +238,11 @@ function SaveAsDropdown({
                   onChange={({target}) => setName(target.value)}
                 />
                 <SaveAsButton
+                  priority="primary"
                   disabled={!name}
                   onClick={() => {
-                    onSave(name);
+                    save();
                   }}
-                  size="sm"
-                  priority="primary"
                 >
                   {mode === 'fork' ? t('Fork') : t('Save')}
                 </SaveAsButton>
