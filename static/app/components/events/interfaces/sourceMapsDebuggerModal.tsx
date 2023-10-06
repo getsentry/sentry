@@ -840,6 +840,19 @@ function ReleaseSourceFileMatchingChecklistItem({
             </li>
           ))}
         </InstructionList>
+        <p>
+          {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
+          {sourceResolutionResults.dist
+            ? tct(
+                'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
+                {
+                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
+                }
+              )
+            : t(
+                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
+              )}
+        </p>
         {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
@@ -945,6 +958,19 @@ function ReleaseSourceMapMatchingChecklistItem({
               ),
             }
           )}
+        </p>
+        <p>
+          {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
+          {sourceResolutionResults.dist
+            ? tct(
+                'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
+                {
+                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
+                }
+              )
+            : t(
+                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
+              )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
