@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -197,9 +198,10 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
   const location = useLocation();
   const organization = useOrganization();
   const now = useMemo(() => Date.now(), []);
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const {transaction, dataStart, breakpoint} = event?.occurrence?.evidenceData ?? {};
 
-  const start = new Date(dataStart * 1000).toISOString();
+  const start = new Date(Math.max(dataStart * 1000, retentionPeriodMs)).toISOString();
   const end = new Date(now).toISOString();
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({

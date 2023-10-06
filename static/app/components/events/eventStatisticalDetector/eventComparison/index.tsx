@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
@@ -20,6 +21,7 @@ type EventComparisonProps = {
 
 function EventComparison({event, project, group}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
     event?.occurrence?.evidenceData ?? {};
 
@@ -32,7 +34,7 @@ function EventComparison({event, project, group}: EventComparisonProps) {
           <EventDisplay
             eventSelectLabel={t('Baseline Event ID')}
             project={project}
-            start={dataStart * 1000}
+            start={Math.max(dataStart * 1000, retentionPeriodMs)}
             end={breakpoint * 1000}
             transaction={transaction}
             durationBaseline={aggregateRange1}

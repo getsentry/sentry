@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -43,13 +44,16 @@ function getPostBreakpointEventView(location: Location, event: Event, end: numbe
 }
 
 function getPreBreakpointEventView(location: Location, event: Event) {
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const eventView = EventView.fromLocation(location);
   eventView.fields = REQUEST_FIELDS;
 
   if (event?.occurrence) {
     const {breakpoint, aggregateRange1, transaction, dataStart} =
       event?.occurrence?.evidenceData;
-    eventView.start = new Date(dataStart * 1000).toISOString();
+    eventView.start = new Date(
+      Math.max(dataStart * 1000, retentionPeriodMs)
+    ).toISOString();
     eventView.end = new Date(breakpoint * 1000).toISOString();
 
     eventView.query = `event.type:transaction transaction:"${transaction}" transaction.duration:<${
