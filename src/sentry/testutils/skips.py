@@ -61,7 +61,7 @@ def _requires_snuba() -> None:
     assert parsed.hostname is not None
     assert parsed.port is not None
     if not _service_available(parsed.hostname, parsed.port):
-        pytest.skip("requires snuba server running")
+        pytest.fail("requires snuba server running")
 
 
 @pytest.fixture(scope="session")
@@ -70,7 +70,7 @@ def _requires_kafka() -> None:
     (port,) = kafka_conf["ports"].values()
 
     if not _service_available("127.0.0.1", port):
-        pytest.skip("requires kafka server running")
+        pytest.fail("requires kafka server running")
 
 
 @pytest.fixture(scope="session")
@@ -79,7 +79,7 @@ def _requires_symbolicator() -> None:
     (port,) = symbolicator_conf["ports"].values()
 
     if not _service_available("127.0.0.1", port):
-        pytest.skip("requires symbolicator server running")
+        pytest.fail("requires symbolicator server running")
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
