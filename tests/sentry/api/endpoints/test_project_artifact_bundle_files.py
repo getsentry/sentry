@@ -56,8 +56,8 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [
-                {"release": "1.0", "dist": "android"},
                 {"release": "2.0", "dist": "android"},
+                {"release": "1.0", "dist": "android"},
             ],
             "date": "2023-03-15T00:00:00Z",
             "dateModified": "2023-03-15T01:00:00Z",
