@@ -77,12 +77,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         groups = results["groups"]
         assert len(groups) == 3
-        assert groups[0]["by"] == {"platform": "windows", "transaction": "/world"}
-        assert groups[0]["series"] == {field: [None, 5.0, 3.0]}
+        assert groups[0]["by"] == {"platform": "android", "transaction": "/hello"}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
         assert groups[1]["series"] == {field: [None, 3.0, 3.0]}
-        assert groups[2]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert groups[2]["series"] == {field: [None, 1.0, 2.0]}
+        assert groups[2]["by"] == {"platform": "windows", "transaction": "/world"}
+        assert groups[2]["series"] == {field: [None, 5.0, 3.0]}
 
         # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"

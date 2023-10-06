@@ -185,12 +185,11 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     return intervals
 
 
-def _zerofill_series(
+def _generate_full_series(
     start_seconds: int, num_intervals: int, interval: int, series: Sequence[Tuple[str, Any]]
 ) -> Union[int, float, Sequence[Optional[Union[int, float]]]]:
     """
-    Computes a zerofilled series in which given a number of intervals, the start and the interval length,
-    a list of zeros and the merged series values will be returned.
+    Computes a full series over the entire requested interval with None set where there are no data points.
     """
     zerofilled_series = [None] * num_intervals
     for time, value in series:
@@ -208,12 +207,13 @@ def _translate_query_results(
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
-
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     intervals: Optional[Sequence[datetime]] = None
 
-    groups: Dict[Tuple[Tuple[str, str], ...], Dict[str, List[Tuple[str, Any]]]] = {}
+    # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
+    intermediate_groups: Dict[Tuple[Tuple[str, str], ...], Dict[str, List[Tuple[str, Any]]]] = {}
+    intermediate_meta: Dict[str, str] = {}
     for metric_name, group_bys, interval, snuba_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
         # the same params. This would be solved once this code is embedded within the layer itself.
@@ -225,19 +225,33 @@ def _translate_query_results(
             intervals = _build_intervals(start, end, interval)
 
         data = snuba_result["data"]
-        for value in data:
+        for data_item in data:
             grouped_values = []
             for group_by in group_bys or ():
-                grouped_values.append((group_by.key, value.get(group_by.key)))
+                grouped_values.append((group_by.key, data_item.get(group_by.key)))
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
-            serieses = groups.setdefault(group_key, {})
+            serieses = intermediate_groups.setdefault(group_key, {})
             series = serieses.setdefault(metric_name, [])
-            series.append((value.get("time"), value.get("aggregate_value")))
+            series.append((data_item.get("time"), data_item.get("aggregate_value")))
 
-    final_groups = []
-    for group_key, group_serieses in groups.items():
+        meta = snuba_result["meta"]
+        for meta_item in meta:
+            meta_name = meta_item.get("name")
+            meta_type = meta_item.get("type")
+
+            # Since we have to handle multiple time series, we map the aggregate value to the actual
+            # metric name that was queried.
+            if meta_name == "aggregate_value":
+                intermediate_meta[metric_name] = meta_type
+            else:
+                intermediate_meta[meta_name] = meta_type
+
+    translated_groups = []
+    for group_key, group_serieses in sorted(
+        intermediate_groups.items(), key=lambda element: element[0]
+    ):
         # This case should never happen, since if we have start and intervals not None
         if start is None or intervals is None:
             continue
@@ -247,7 +261,9 @@ def _translate_query_results(
         inner_group = {
             "by": {name: value for name, value in group_key},
             "series": {
-                series_metric_name: _zerofill_series(start_seconds, num_intervals, interval, series)
+                series_metric_name: _generate_full_series(
+                    start_seconds, num_intervals, interval, series
+                )
                 for series_metric_name, series in group_serieses.items()
             },
             "totals": {
@@ -255,12 +271,16 @@ def _translate_query_results(
             },
         }
 
-        final_groups.append(inner_group)
+        translated_groups.append(inner_group)
+
+    translated_meta = [
+        {"name": meta_name, "type": meta_type} for meta_name, meta_type in intermediate_meta.items()
+    ]
 
     return {
         "intervals": intervals,
-        "groups": final_groups if len(final_groups) > 0 else None,
-        "meta": [],
+        "groups": translated_groups,
+        "meta": translated_meta,
         "query": "",
         "start": start,
         "end": end,
