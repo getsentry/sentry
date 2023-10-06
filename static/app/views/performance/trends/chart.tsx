@@ -56,7 +56,10 @@ type Props = ViewProps & {
   trendFunctionField?: TrendFunctionField;
 };
 
-function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
+export function transformEventStats(
+  data: EventsStatsData,
+  seriesName?: string
+): Series[] {
   return [
     {
       seriesName: seriesName || 'Current',
