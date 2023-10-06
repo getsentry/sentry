@@ -7,11 +7,11 @@ interface Options {
   projectId?: string[];
 }
 
-export const useHasAnySpanMetrics = ({projectId, enabled}: Options) => {
+export const useProjectSpanMetricCounts = ({projectId, enabled}: Options) => {
   const eventView = EventView.fromSavedQuery({
     name: 'Has Any Span Metrics',
     query: '',
-    fields: ['count()'],
+    fields: ['project.id', 'count()'],
     projects: projectId && projectId.map(id => parseInt(id, 10)),
     dataset: DiscoverDatasets.SPANS_METRICS,
     version: 2,
@@ -19,17 +19,14 @@ export const useHasAnySpanMetrics = ({projectId, enabled}: Options) => {
 
   eventView.statsPeriod = SAMPLE_STATS_PERIOD;
 
-  const result = useSpansQuery({
+  const result = useSpansQuery<{'count()': number; 'project.id': number}[]>({
     eventView,
-    initialData: true,
+    initialData: [],
     enabled,
     referrer: 'span-metrics',
   });
 
-  return {
-    ...result,
-    hasMetrics: result?.data?.[0]?.count > 0,
-  };
+  return result;
 };
 
 const SAMPLE_STATS_PERIOD = '10d'; // The time period in which to check for any presence of span metrics

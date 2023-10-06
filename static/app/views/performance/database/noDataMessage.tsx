@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
+import sumBy from 'lodash/sumBy';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
-import {useHasAnySpanMetrics} from 'sentry/views/starfish/queries/useHasAnySpanMetrics';
+import {useProjectSpanMetricCounts} from 'sentry/views/starfish/queries/useProjectSpanMetricsCounts';
 
 interface Props {
   Wrapper?: React.ComponentType;
@@ -19,14 +20,18 @@ function DivWrapper(props) {
 export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
+  const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
+
   const options = {
-    projectId: pageFilterIsReady
-      ? selection.projects.map(projectId => projectId.toString())
-      : undefined,
+    projectId: selectedProjectIds,
     enabled: pageFilterIsReady,
   };
 
-  const {hasMetrics: selectedProjectsHaveRecentMetrics} = useHasAnySpanMetrics(options);
+  const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts(options);
+
+  const doesAnySelectedProjectHaveMetrics =
+    sumBy(projectSpanMetricsCounts, 'count()') > 0;
+
   const {ineligibleProjects} = useIneligibleProjects(options);
 
   const organization = useOrganization();
@@ -34,45 +39,58 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
 
-  if (selectedProjectsHaveRecentMetrics) {
+  if (isLoading) {
     return null;
   }
 
-  const listedProjects = ineligibleProjects.slice(0, MAX_LISTED_PROJECTS + 1);
+  if (doesAnySelectedProjectHaveMetrics) {
+    return null;
+  }
+
+  const firstIneligibleProjects = ineligibleProjects.slice(0, MAX_LISTED_PROJECTS + 1);
 
   return (
     <Wrapper>
+      {t('No queries found.')}{' '}
       {tct(
-        "You may be missing data due to outdated SDKs. Please refer to Sentry's [documentation:documentation] for more information. Projects with outdated SDKs: [projectList]",
+        'Try updating your filters, or learn more about performance monitoring for queries in our [documentation:documentation].',
         {
           documentation: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
-          ),
-          projectList: (
-            <Fragment>
-              {listedProjects.map((project, projectIndex) => {
-                return (
-                  <span key={project.id}>
-                    <a
-                      href={normalizeUrl(
-                        `/organizations/${organization.slug}/projects/${project.slug}/`
-                      )}
-                    >
-                      {project.name}
-                    </a>
-                    {projectIndex < listedProjects.length - 1 && ', '}
-                  </span>
-                );
-              })}
-            </Fragment>
+            <ExternalLink href="https://docs.sentry.io/product/performance/queries/" />
           ),
         }
-      )}
-      {hasMoreIneligibleProjectsThanVisible
-        ? tct(' and [count] more', {
-            count: ineligibleProjects.length - MAX_LISTED_PROJECTS,
-          })
-        : ''}
+      )}{' '}
+      {ineligibleProjects.length > 0 &&
+        tct(
+          'You may be missing data due to outdated SDKs. Projects with outdated SDKs: [projectList]',
+          {
+            documentation: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
+            ),
+            projectList: (
+              <Fragment>
+                {firstIneligibleProjects.map((project, projectIndex) => {
+                  return (
+                    <span key={project.id}>
+                      <a
+                        href={normalizeUrl(
+                          `/organizations/${organization.slug}/projects/${project.slug}/`
+                        )}
+                      >
+                        {project.name}
+                      </a>
+                      {projectIndex < firstIneligibleProjects.length - 1 && ', '}
+                    </span>
+                  );
+                })}
+              </Fragment>
+            ),
+          }
+        )}
+      {hasMoreIneligibleProjectsThanVisible &&
+        tct(' and [count] more.', {
+          count: ineligibleProjects.length - MAX_LISTED_PROJECTS,
+        })}{' '}
     </Wrapper>
   );
 }
