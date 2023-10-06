@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -195,11 +196,11 @@ function renderBodyCell({
 function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  const {transaction, requestStart, requestEnd, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
+  const now = useMemo(() => Date.now(), []);
+  const {transaction, dataStart, breakpoint} = event?.occurrence?.evidenceData ?? {};
 
-  const start = new Date(requestStart * 1000).toISOString();
-  const end = new Date(requestEnd * 1000).toISOString();
+  const start = new Date(dataStart * 1000).toISOString();
+  const end = new Date(now).toISOString();
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
