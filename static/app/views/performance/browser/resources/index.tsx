@@ -116,7 +116,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: 'resource.script', label: 'Javscript (.js)'},
+    {value: 'resource.script', label: 'JavaScript (.js)'},
     {value: '.css', label: 'Stylesheets (.css)'},
     {value: 'resource.img', label: 'Images (.png, .jpg, .jpeg, .gif, etc)'},
   ];
