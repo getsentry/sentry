@@ -273,7 +273,7 @@ Sentry.onLoad(function() {
           <div>
             <p>
               {t(
-                "Initialise Sentry as early as possible in your application's lifecycle."
+                "Initialize Sentry as early as possible in your application's lifecycle."
               )}
             </p>
             <CodeSnippet dark language="html">
