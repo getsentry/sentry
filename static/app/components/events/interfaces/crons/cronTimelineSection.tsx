@@ -78,13 +78,13 @@ export function CronTimelineSection({event, organization}: Props) {
 
   const actions = (
     <ButtonBar gap={1}>
-      <MonitorLinkButton
-        size="sm"
+      <LinkButton
+        size="xs"
         icon={<IconOpen size="xs" />}
         to={`/organizations/${organization.slug}/crons/${monitorSlug}`}
       >
-        {t('View in monitor details')}
-      </MonitorLinkButton>
+        {t('View in Monitor Details')}
+      </LinkButton>
       <ResolutionSelector />
     </ButtonBar>
   );
@@ -135,11 +135,6 @@ export function CronTimelineSection({event, organization}: Props) {
     </EventDataSection>
   );
 }
-
-const MonitorLinkButton = styled(LinkButton)`
-  height: 26px;
-  min-height: 26px;
-`;
 
 const TimelineContainer = styled(Panel)`
   display: grid;
