@@ -12,9 +12,10 @@ import {
 type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
+  transaction?: string | null;
 };
 
-export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
+export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -33,7 +34,7 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload (transaction:/performance* or transaction:/discover* or transaction:/dashboards*)',
+        'transaction.op:pageload' + (transaction ? ` transaction:*${transaction}*` : ''),
       orderby: mapWebVitalToOrderBy(orderBy),
       version: 2,
     },

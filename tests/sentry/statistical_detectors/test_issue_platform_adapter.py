@@ -7,7 +7,7 @@ from sentry.statistical_detectors.issue_platform_adapter import send_regressions
 
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
-def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
+def test_send_regressions_to_plaform(mock_produce_occurrence_to_kafka):
     project_id = "123"
 
     mock_regressions: List[BreakpointData] = [

@@ -2708,13 +2708,23 @@ class MonitorTestCase(APITestCase):
         )
 
     def _create_alert_rule(self, monitor):
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="all",
-            filter_match="any",
-            conditions=[],
+            action_match="any",
+            filter_match="all",
+            conditions=conditions,
             actions=[],
             frequency=5,
             environment=self.environment.id,

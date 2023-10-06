@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -42,7 +44,8 @@ test_data = {
 class FeedbackIngestTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-feedback-ingest"
 
-    def test_save_feedback(self):
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_save_feedback(self, mock_produce_occurrence_to_kafka):
         # Feature enabled should lead to successful save
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
@@ -71,6 +74,8 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 == "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
             )
             assert feedback.data["platform"] == "javascript"
+
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save
