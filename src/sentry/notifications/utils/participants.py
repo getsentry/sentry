@@ -580,28 +580,29 @@ def get_recipients_by_provider(
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
-    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
-
-    # notification v2 is enabled for the organization
-    if should_use_notifications_v2(project.organization):
-        controller = NotificationController(
-            recipients=recipients,
-            organization_id=project.organization_id,
-            project_ids=[project.id],
-            type=setting_type,
-        )
-        return controller.get_notification_recipients(type=setting_type)
-
     recipients_by_type = partition_recipients(recipients)
     teams = recipients_by_type[ActorType.TEAM]
     users = recipients_by_type[ActorType.USER]
 
-    # First evaluate the teams for old notification settings.
-    teams_by_provider: Mapping[
-        ExternalProviders, Iterable[RpcActor]
-    ] = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, teams, notification_type
-    )
+    # First evaluate the teams.
+    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
+    if should_use_notifications_v2(project.organization):
+        # get by team
+        controller = NotificationController(
+            recipients=teams,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
+        teams_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.TEAM
+        )
+    else:
+        teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, teams, notification_type
+        )
 
     # Teams cannot receive emails so omit EMAIL settings.
     teams_by_provider = {
@@ -614,10 +615,20 @@ def get_recipients_by_provider(
     users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
 
     # Repeat for users.
-    users_by_provider: Mapping[
-        ExternalProviders, Iterable[RpcActor]
-    ] = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, users, notification_type
-    )
+    users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+    if should_use_notifications_v2(project.organization):
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
+        users_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.USER
+        )
+    else:
+        users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, users, notification_type
+        )
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)
