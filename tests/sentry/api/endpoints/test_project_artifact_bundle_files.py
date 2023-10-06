@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.models import ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils.cases import APITestCase
@@ -13,7 +16,10 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
-            self.organization, artifact_count=6, fixture_path="artifact_bundle_debug_ids"
+            self.organization,
+            artifact_count=6,
+            fixture_path="artifact_bundle_debug_ids",
+            date_last_modified=(timezone.now() + timedelta(hours=1)),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -50,9 +56,12 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [
-                {"release": "1.0", "dist": "android"},
                 {"release": "2.0", "dist": "android"},
+                {"release": "1.0", "dist": "android"},
             ],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": "2023-03-15T01:00:00Z",
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": None,
@@ -135,6 +144,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             {
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [{"release": "1.0", "dist": None}],
+                "date": "2023-03-15T00:00:00Z",
+                "dateModified": None,
+                "fileCount": 6,
                 "files": [
                     {
                         "debugId": None,
@@ -157,6 +169,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             {
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [{"release": "1.0", "dist": None}],
+                "date": "2023-03-15T00:00:00Z",
+                "dateModified": None,
+                "fileCount": 6,
                 "files": [
                     {
                         "debugId": None,
@@ -179,6 +194,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             {
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [{"release": "1.0", "dist": None}],
+                "date": "2023-03-15T00:00:00Z",
+                "dateModified": None,
+                "fileCount": 6,
                 "files": [
                     {
                         "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -237,6 +255,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": None,
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": None,
@@ -256,6 +277,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": None,
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": None,
@@ -291,6 +315,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": None,
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -317,6 +344,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": None,
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -343,6 +373,9 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [],
+            "date": "2023-03-15T00:00:00Z",
+            "dateModified": None,
+            "fileCount": 6,
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",

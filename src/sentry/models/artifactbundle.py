@@ -94,9 +94,11 @@ class ArtifactBundle(Model):
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
     ) -> List[Mapping[str, str | None]]:
+        # We sort by id, since it's the best (already existing) field to define total order of
+        # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
-        )
+        ).order_by("-id")
 
         return [
             {

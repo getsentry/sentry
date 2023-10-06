@@ -289,11 +289,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -301,8 +297,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",
@@ -322,11 +322,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -334,8 +330,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",
