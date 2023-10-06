@@ -1,5 +1,5 @@
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +8,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
+from sentry.api.serializers.models.alert_rule import (
+    AlertRuleSerializer,
+    DetailedAlertRuleSerializer,
+)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -16,8 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-
-# from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples # TODO: blocked
+from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import (
@@ -142,10 +144,11 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     aggregate = serializers.CharField(
-        help_text="A string representing the aggregate used in this alert rule."
+        help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types under Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations."
     )
     timeWindow = serializers.ChoiceField(
         choices=(
@@ -211,39 +214,43 @@ Metric alert rule trigger actions follow the following structure:
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
 """,
     )
-    queryType = serializers.ChoiceField(
-        required=False,
-        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.`",
-    )
-    dataset = serializers.CharField(
-        required=False,
-        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`.",
-    )
     environment = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="The name of the environment to filter by.",
+        help_text="The name of the environment to filter by. Defaults to all environments.",
+    )
+    dataset = serializers.CharField(
+        required=False,
+        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`. Defaults to `events`. See [Metric Alert Rule Types under Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations.",
+    )
+    queryType = serializers.ChoiceField(
+        required=False,
+        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
+        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types under Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="List of event types that this alert will be related to. Valid values are `error` and `transaction`.",
+        help_text="List of event types that this alert will be related to. Valid values are `default` (events captured using [Capture Message](/product/sentry-basics/integrate-backend/capturing-errors/#capture-message)), `error` and `transaction`.",
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
-        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-session-rate) or [Crash Free User Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-user-rate).',
+        help_text='An optional int representing the time delta to use as the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/alerts/create-a-metric-alert-rule-for-an-organization/#crash-free-session-rate) or [Crash Free User Rate](/api/alerts/create-a-metric-alert-rule-for-an-organization/#crash-free-user-rate).',
     )
     resolveThreshold = serializers.FloatField(
         required=False,
-        help_text="Optional value that the subscription needs to reach to resolve the alert. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
+        help_text="Optional value that the metric needs to reach to resolve the alert. If no value is provided, this is set automatically based on the lowest severity trigger's `alertThreshold`. For example, if the alert is set to trigger at the warning level when the number of errors is above 50, then the alert would be set to resolve when there are less than 50 errors. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
+    excludedProjects = serializers.ListField(
+        child=ProjectField(scope="project:read"), required=False
+    )
+    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     publish_status = {
@@ -262,25 +269,32 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
             return func(self, request, organization, alert_rule)
 
+        if hasattr(func, "__doc__"):
+            wrapper.__doc__ = func.__doc__
         return wrapper
 
     @extend_schema(
         operation_id="Retrieve a Metric Alert Rule for an Organization",
         parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
-            200: RESPONSE_ACCEPTED,  # TODO: BLOCKED, NEED AlertRuleModelSerializer
+            200: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # examples=MetricAlertExamples.GET_ORG_RULE  # TODO: BLOCKED
+        examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     @check_project_access
     def get(self, request: Request, organization, alert_rule) -> Response:
         """
         Return details on an individual metric alert rule.
 
-        TODO: add whatever description is used in OrganizationAlertRuleIndexEndpoint
+        A metric alert rule is a configuration that defines the conditions for triggering an alert.
+        It specifies the metric type, function, time interval, and threshold
+        values that determine when an alert should be triggered. Metric alert rules are used to monitor
+        and notify you when certain metrics, like error count, latency, or failure rate, cross a
+        predefined threshold. These rules help you proactively identify and address issues in your
+        project.
         """
         return fetch_alert_rule(request, organization, alert_rule)
 
@@ -289,20 +303,29 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
         request=OrganizationAlertRuleDetailsPutSerializer,
         responses={
-            200: RESPONSE_ACCEPTED,  # TODO: BLOCKED, NEED AlertRuleSerializer
+            200: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # examples=MetricAlertExamples.UPDATE_PROJECT_RULE  # TODO: BLOCKED
+        examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
     @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
-        Updates a metric alert rule. See [Metric Alert Rule Types](/api/organizations/metric-alert-rule-types) for the different types of metric alert rules and their configurations.
+        Updates a metric alert rule. See [Metric Alert Rule Types under
+        Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
+        to see valid request body configurations for different types of metric alert rule types.
         > Please note that this endpoint rewrites the specified metric alert rule completely.
 
-        TODO: add whatever description is used in OrganizationAlertRuleIndexEndpoint
+        A metric alert rule is a configuration that defines the conditions for triggering an alert.
+        It specifies the metric type, function, time interval, and threshold
+        values that determine when an alert should be triggered. Metric alert rules are used to monitor
+        and notify you when certain metrics, like error count, latency, or failure rate, cross a
+        predefined threshold. These rules help you proactively identify and address issues in your
+        project.
+
+
         """
         return update_alert_rule(request, organization, alert_rule)
 
@@ -321,6 +344,11 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         """
         Delete a specific metric alert rule.
 
-        TODO: add whatever description is used in OrganizationAlertRuleIndexEndpoint
+        A metric alert rule is a configuration that defines the conditions for triggering an alert.
+        It specifies the metric type, function, time interval, and threshold
+        values that determine when an alert should be triggered. Metric alert rules are used to monitor
+        and notify you when certain metrics, like error count, latency, or failure rate, cross a
+        predefined threshold. These rules help you proactively identify and address issues in your
+        project.
         """
         return remove_alert_rule(request, organization, alert_rule)
