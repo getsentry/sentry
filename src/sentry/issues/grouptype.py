@@ -413,7 +413,7 @@ class ProfileFrameDropType(GroupType):
 class ProfileFunctionRegressionExperimentalType(GroupType):
     type_id = 2010
     slug = "profile_function_regression_exp"
-    description = "Function Duration Regression"
+    description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
 
 
