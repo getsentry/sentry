@@ -5,9 +5,14 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 interface Options {
   enabled?: boolean;
   projectId?: string[];
+  statsPeriod?: string;
 }
 
-export const useProjectSpanMetricCounts = ({projectId, enabled}: Options) => {
+export const useProjectSpanMetricCounts = ({
+  projectId,
+  enabled,
+  statsPeriod,
+}: Options) => {
   const eventView = EventView.fromSavedQuery({
     name: 'Has Any Span Metrics',
     query: '',
@@ -17,7 +22,7 @@ export const useProjectSpanMetricCounts = ({projectId, enabled}: Options) => {
     version: 2,
   });
 
-  eventView.statsPeriod = SAMPLE_STATS_PERIOD;
+  eventView.statsPeriod = statsPeriod;
 
   const result = useSpansQuery<{'count()': number; 'project.id': number}[]>({
     eventView,
@@ -28,5 +33,3 @@ export const useProjectSpanMetricCounts = ({projectId, enabled}: Options) => {
 
   return result;
 };
-
-const SAMPLE_STATS_PERIOD = '10d'; // The time period in which to check for any presence of span metrics

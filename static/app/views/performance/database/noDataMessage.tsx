@@ -22,17 +22,19 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const options = {
-    projectId: selectedProjectIds,
+  const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts({
+    statsPeriod: SAMPLE_STATS_PERIOD,
     enabled: pageFilterIsReady,
-  };
-
-  const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts(options);
+    projectId: selectedProjectIds,
+  });
 
   const doesAnySelectedProjectHaveMetrics =
     sumBy(projectSpanMetricsCounts, 'count()') > 0;
 
-  const {ineligibleProjects} = useIneligibleProjects(options);
+  const {ineligibleProjects} = useIneligibleProjects({
+    projectId: selectedProjectIds,
+    enabled: pageFilterIsReady && !doesAnySelectedProjectHaveMetrics,
+  });
 
   const organization = useOrganization();
 
@@ -96,3 +98,5 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
 }
 
 const MAX_LISTED_PROJECTS = 3;
+
+const SAMPLE_STATS_PERIOD = '14d'; // The time period in which to check for any presence of span metrics
