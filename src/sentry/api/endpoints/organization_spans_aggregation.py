@@ -252,9 +252,11 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "span_id": span["span_id"],
                         "is_segment": False,
                         "parent_span_id": span["parent_span_id"],
-                        "group": span.get("data", {}).get("span.group", NULL_GROUP),
+                        "group": span.get("sentry_tags", {}).get("group")
+                        or span.get("data", {}).get("span.group", NULL_GROUP),
                         "group_raw": span["hash"],
-                        "description": span.get("data", {}).get("span.description")
+                        "description": span.get("sentry_tags", {}).get("description")
+                        or span.get("data", {}).get("span.description")
                         or span.get("description", ""),
                         "op": span.get("op", ""),
                         "start_timestamp_ms": span["start_timestamp"]
