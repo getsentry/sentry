@@ -23,6 +23,7 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
   const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts({
+    query: 'span.module:db',
     statsPeriod: SAMPLE_STATS_PERIOD,
     enabled: pageFilterIsReady,
     projectId: selectedProjectIds,
