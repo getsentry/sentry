@@ -552,7 +552,12 @@ export class Client {
                 // this should be an error.
                 ok = false;
                 errorReason = 'JSON parse error';
-              } else if (wasExpectingJson && error instanceof SyntaxError) {
+              } else if (
+                // Empty responses from POST 201 requests are valid
+                responseText?.length > 0 &&
+                wasExpectingJson &&
+                error instanceof SyntaxError
+              ) {
                 // Was expecting json but was returned something else. Possibly HTML.
                 // Ideally this would not be a 200, but we should reject the promise
                 ok = false;
