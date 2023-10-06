@@ -92,7 +92,9 @@ cli:
       report_type: "json"
     compress-pycoverage:
       file_to_compress: ".artifacts/python.coverage.json"
-      delete_uncompressed: false
+      # We don't want to upload the original coverage report by accident
+      # Because it's too big
+      delete_uncompressed: true
   runners:
     python:
       include_curr_dir: true

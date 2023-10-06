@@ -133,7 +133,7 @@ test-python-ci: create-db
 		tests/sentry \
 		tests/sentry_plugins \
 		tests/symbolicator \
-		--cov . --cov-report="json:.artifacts/python.coverage.json" --cov-report="xml:.artifacts/python.coverage.xml" --cov-context=test
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --cov-context=test
 	@echo ""
 
 

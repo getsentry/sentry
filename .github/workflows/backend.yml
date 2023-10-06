@@ -104,6 +104,7 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+          coverage json -o .artifacts/python.coverage.json --show-contexts
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -112,7 +113,13 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
+      # This is temporary because codecov/codecov-action@v4-beta
+      # Doesn't support --disable-search option
+      # And we don't want to upload random reports (for safety)
+      - name: Clean state of uploads - special case to test Codecov ATS
+        if: ${{ always() }}
+        run: rm .artifacts/python.coverage.xml
+        continue-on-error: true
       - name: Upload coverage - special case to test Codecov ATS
         if: ${{ always() }}
         uses: codecov/codecov-action@v4-beta
