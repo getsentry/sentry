@@ -104,6 +104,9 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         assert list(response_old["groups"][0]["series"].values()) == list(
             response_new["groups"][0]["series"].values()
         )
+        assert list(response_old["groups"][0]["totals"].values()) == list(
+            response_new["groups"][0]["totals"].values()
+        )
         assert response_old["intervals"] == response_new["intervals"]
         assert response_old["start"] == response_new["start"]
         assert response_old["end"] == response_new["end"]

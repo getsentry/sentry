@@ -155,15 +155,15 @@ def _group_bys_to_snql(
     return columns
 
 
-def _get_granularity(interval: int) -> int:
+def _get_granularity(time_seconds: int) -> int:
     best_granularity: Optional[int] = None
 
     for granularity in sorted(GRANULARITIES):
-        if granularity <= interval:
+        if granularity <= time_seconds:
             best_granularity = granularity
 
     if best_granularity is None:
-        raise InvalidMetricsQuery("The interval specified is lower than the minimum granularity")
+        raise InvalidMetricsQuery("The time specified is lower than the minimum granularity")
 
     return best_granularity
 
@@ -212,7 +212,9 @@ def _translate_query_results(
     intervals: Optional[Sequence[datetime]] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
-    intermediate_groups: Dict[Tuple[Tuple[str, str], ...], Dict[str, List[Tuple[str, Any]]]] = {}
+    intermediate_groups: Dict[
+        Tuple[Tuple[str, str], ...], Dict[str, List[List[Tuple[str, Any]], Any]]
+    ] = {}
     intermediate_meta: Dict[str, str] = {}
     for metric_name, group_bys, interval, snuba_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
@@ -232,9 +234,24 @@ def _translate_query_results(
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
-            serieses = intermediate_groups.setdefault(group_key, {})
-            series = serieses.setdefault(metric_name, [])
-            series.append((data_item.get("time"), data_item.get("aggregate_value")))
+            group_metrics = intermediate_groups.setdefault(group_key, {})
+            metric_values = group_metrics.setdefault(metric_name, [[], 0])
+            # The item at position 0 is the "series".
+            metric_values[0].append((data_item.get("time"), data_item.get("aggregate_value")))
+
+        # TODO: reduce duplication.
+        totals = snuba_result["totals"]
+        for totals_item in totals:
+            grouped_values = []
+            for group_by in group_bys or ():
+                grouped_values.append((group_by.key, totals_item.get(group_by.key)))
+
+            # The group key must be ordered, in order to be consistent across executions.
+            group_key = tuple(sorted(grouped_values))
+            group_metrics = intermediate_groups.setdefault(group_key, {})
+            metric_values = group_metrics.setdefault(metric_name, [[], 0])
+            # The item at position 1 is the "totals".
+            metric_values[1] = totals_item.get("aggregate_value")
 
         meta = snuba_result["meta"]
         for meta_item in meta:
@@ -249,24 +266,26 @@ def _translate_query_results(
                 intermediate_meta[meta_name] = meta_type
 
     translated_groups = []
-    for group_key, group_serieses in sorted(intermediate_groups.items(), key=lambda v: v[0]):
+    for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
         # This case should never happen, since if we have start and intervals not None
         if start is None or intervals is None:
             continue
 
         start_seconds = int(start.timestamp())
         num_intervals = len(intervals)
+
+        series = {}
+        totals = {}
+        for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
+            series[metric_name] = _generate_full_series(
+                start_seconds, num_intervals, interval, metric_values[0]
+            )
+            totals[metric_name] = metric_values[1]
+
         inner_group = {
             "by": {name: value for name, value in group_key},
-            "series": {
-                series_metric_name: _generate_full_series(
-                    start_seconds, num_intervals, interval, series
-                )
-                for series_metric_name, series in sorted(group_serieses.items(), key=lambda v: v[0])
-            },
-            "totals": {
-                # Totals will have to be supported by the metrics layer.
-            },
+            "series": series,
+            "totals": totals,
         }
 
         translated_groups.append(inner_group)
@@ -285,6 +304,28 @@ def _translate_query_results(
     }
 
 
+def _execute_series_and_totals_query(
+    organization: Organization, use_case_id: UseCaseID, interval: int, base_query: MetricsQuery
+) -> Mapping[str, Any]:
+    dataset = Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
+    request = Request(
+        dataset=dataset.value,
+        query=base_query,
+        app_id="default",
+        tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
+    )
+
+    base_query.rollup = Rollup(interval=interval, granularity=_get_granularity(interval))
+    series_result = run_query(request=request)
+
+    # TODO: implement granularity computation based on the start - end diff.
+    base_query.rollup = Rollup(totals=True, granularity=_get_granularity(interval))
+    request.query = base_query
+    totals_result = run_query(request=request)
+
+    return {**series_result, "totals": totals_result["data"]}
+
+
 def run_metrics_query(
     fields: Sequence[str],
     query: Optional[str],
@@ -300,7 +341,6 @@ def run_metrics_query(
     base_query = MetricsQuery(
         start=start,
         end=end,
-        rollup=Rollup(interval=interval, granularity=_get_granularity(interval)),
         scope=MetricsScope(
             org_ids=[organization.id],
             project_ids=[project.id for project in projects],
@@ -321,15 +361,9 @@ def run_metrics_query(
     query_results = []
     for field in parsed_fields:
         base_query.query = _build_snql_query(field, snql_filters, snql_group_bys)
-        request = Request(
-            dataset=(
-                Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
-            ).value,
-            app_id="default",
-            query=base_query,
-            tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
+        snuba_result = _execute_series_and_totals_query(
+            organization, use_case_id, interval, base_query
         )
-        snuba_result = run_query(request=request)
         query_results.append(
             (
                 f"{field.aggregate}({field.metric_name})",
