@@ -1,9 +1,12 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
@@ -73,12 +76,25 @@ export function CronTimelineSection({event, organization}: Props) {
   const eventTickLeft =
     (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
 
+  const actions = (
+    <ButtonBar gap={1}>
+      <LinkButton
+        size="xs"
+        icon={<IconOpen size="xs" />}
+        to={`/organizations/${organization.slug}/crons/${monitorSlug}`}
+      >
+        {t('View in Monitor Details')}
+      </LinkButton>
+      <ResolutionSelector />
+    </ButtonBar>
+  );
+
   return (
     <EventDataSection
       title={t('Check-ins')}
       type="check-ins"
       help={t('A timeline of check-ins that happened before and after this event')}
-      actions={<ResolutionSelector />}
+      actions={actions}
     >
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
