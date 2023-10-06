@@ -9,7 +9,7 @@ from .mail import MailPreview
 
 class DebugInvalidIdentityEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
-        identity = UserSocialAuth(user=request.user, provider="dummy")
+        identity = UserSocialAuth(user_id=request.user.id, provider="dummy")
 
         email = generate_invalid_identity_email(identity=identity)
         return MailPreview(

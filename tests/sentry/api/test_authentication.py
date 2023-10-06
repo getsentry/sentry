@@ -50,7 +50,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
         user, _ = self.auth.authenticate(request)
 
-        assert user == self.sentry_app.proxy_user
+        assert user.id == self.sentry_app.proxy_user.id
 
     def test_without_json_body(self):
         request = HttpRequest()
