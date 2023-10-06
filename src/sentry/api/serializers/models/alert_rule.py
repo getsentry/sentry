@@ -110,9 +110,9 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             for action in serialized.get("actions", []):
-                install = sentry_app_installations_by_sentry_app_id.get(
-                    str(action.get("sentryAppId")), {}
-                )
+                sentry_app_id = str(action.get("sentryAppId"))
+                if sentry_app_id:
+                    install = sentry_app_installations_by_sentry_app_id.get(sentry_app_id)
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = install.get("sentry_app_installation")
