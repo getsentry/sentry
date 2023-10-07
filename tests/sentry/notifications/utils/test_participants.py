@@ -1113,6 +1113,7 @@ class GetSendToTeamTestV2(GetSendToTeamTest):
                 type="alerts",
                 value="never",
             )
+            NotificationSettingOption.objects.all().delete()
 
     @with_feature("organizations:notification-settings-v2")
     def test_invalid_team(self):
@@ -1146,7 +1147,7 @@ class GetSendToTeamTestV2(GetSendToTeamTest):
                 value="always",
             )
         assert self.get_send_to_team() == {
-            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
+            ExternalProviders.EMAIL: {RpcActor.from_orm_user(self.user)},
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):

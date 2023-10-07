@@ -224,6 +224,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: List[int],
         type: NotificationSettingEnum,
     ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        """
+        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
+        """
         user = user_service.get_user(user_id)
         if not user:
             return {}
