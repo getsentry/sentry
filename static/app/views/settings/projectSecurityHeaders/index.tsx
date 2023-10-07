@@ -1,76 +1,74 @@
-import {RouteComponentProps} from 'react-router';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, ProjectKey} from 'sentry/types';
+import {ProjectKey} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{projectId: string}, {}>;
+function ProjectSecurityHeaders() {
+  const organization = useOrganization();
+  const router = useRouter();
+  const {projectId} = useParams();
 
-type State = {
-  keyList: null | ProjectKey[];
-} & DeprecatedAsyncView['state'];
+  const {
+    data: keyList,
+    isLoading,
+    error,
+    refetch,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
+    staleTime: 0,
+  });
 
-class ProjectSecurityHeaders extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-
-    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
-  }
-
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Security Headers'), projectId, false);
-  }
-
-  getReports() {
-    return [
+  const reports = useMemo(
+    () => [
       {
         name: 'Content Security Policy (CSP)',
-        url: recreateRoute('csp/', this.props),
+        url: recreateRoute('csp/', router),
       },
       {
         name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', this.props),
+        url: recreateRoute('expect-ct/', router),
       },
       {
         name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', this.props),
+        url: recreateRoute('hpkp/', router),
       },
-    ];
+    ],
+    [router]
+  );
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  renderBody() {
-    const {organization, params} = this.props;
-    const {keyList} = this.state;
-    if (keyList === null) {
-      return null;
-    }
+  if (error) {
+    return <LoadingError onRetry={refetch} />;
+  }
 
-    return (
+  return (
+    <SentryDocumentTitle title={routeTitleGen(t('Security Headers'), projectId, false)}>
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <ReportUri
-          keyList={keyList}
-          projectId={params.projectId}
-          orgId={organization.slug}
-        />
+        <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
 
         <Panel>
           <PanelHeader>{t('Additional Configuration')}</PanelHeader>
@@ -99,19 +97,19 @@ class ProjectSecurityHeaders extends DeprecatedAsyncView<Props, State> {
         <Panel>
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
-            {this.getReports().map(({name, url}) => (
+            {reports.map(({name, url}) => (
               <ReportItem key={url}>
                 <HeaderName>{name}</HeaderName>
-                <Button to={url} priority="primary">
+                <LinkButton to={url} priority="primary">
                   {t('Instructions')}
-                </Button>
+                </LinkButton>
               </ReportItem>
             ))}
           </PanelBody>
         </Panel>
       </div>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 export default withOrganization(ProjectSecurityHeaders);
