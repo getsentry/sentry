@@ -34,27 +34,24 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    Commit,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupEnvironment,
-    GroupLink,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    Team,
-    User,
-)
 from sentry.models.apitoken import is_api_token_auth
+from sentry.models.commit import Commit
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -679,7 +676,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models import PlatformExternalIssue
+        from sentry.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (

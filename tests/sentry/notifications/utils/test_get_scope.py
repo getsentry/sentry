@@ -1,4 +1,6 @@
-from sentry.models import Organization, Project, Team
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.notifications.helpers import get_scope
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils.cases import TestCase

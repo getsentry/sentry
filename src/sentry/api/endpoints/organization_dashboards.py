@@ -14,7 +14,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard
+from sentry.models.dashboard import Dashboard
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"

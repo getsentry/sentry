@@ -9,13 +9,11 @@ import responses
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.models import (
-    Identity,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-    Repository,
-)
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

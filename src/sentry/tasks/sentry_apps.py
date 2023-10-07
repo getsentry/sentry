@@ -22,19 +22,15 @@ from sentry import analytics, features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.models import (
-    Activity,
-    Group,
-    Organization,
-    Project,
-    SentryApp,
-    SentryAppInstallation,
-    SentryFunction,
-    ServiceHook,
-    ServiceHookProject,
-    User,
-)
-from sentry.models.integrations.sentry_app import VALID_EVENTS
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.integrations.sentry_app import VALID_EVENTS, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics

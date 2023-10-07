@@ -8,7 +8,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
-from sentry.models import Relay
+from sentry.models.relay import Relay
 
 
 @region_silo_endpoint

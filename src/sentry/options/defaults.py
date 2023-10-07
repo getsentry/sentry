@@ -1,17 +1,18 @@
 import os
 
 from sentry.logging import LoggingFormat
-from sentry.options import (
+from sentry.options import register
+from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -1125,6 +1126,11 @@ register(
 register(
     "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.10s-granularity",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

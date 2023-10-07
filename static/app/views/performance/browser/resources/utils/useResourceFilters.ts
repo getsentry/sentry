@@ -12,7 +12,7 @@ export enum BrowserStarfishFields {
 
 export type ModuleFilters = {
   [BrowserStarfishFields.DOMAIN]?: string;
-  [BrowserStarfishFields.RESOURCE_TYPE]?: string;
+  [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
   [BrowserStarfishFields.PAGE]?: string;
 };
 

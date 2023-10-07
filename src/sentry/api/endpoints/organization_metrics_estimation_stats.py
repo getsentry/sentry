@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events import fields
 from sentry.snuba import discover, metrics_performance
 from sentry.snuba.metrics.extraction import to_standard_metrics_query

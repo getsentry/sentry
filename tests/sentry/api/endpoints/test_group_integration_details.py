@@ -2,7 +2,9 @@ import copy
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.models.activity import Activity
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase

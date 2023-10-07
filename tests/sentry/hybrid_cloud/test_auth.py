@@ -1,4 +1,5 @@
-from sentry.models import ApiKey, AuthProvider
+from sentry.models.apikey import ApiKey
+from sentry.models.authprovider import AuthProvider
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,

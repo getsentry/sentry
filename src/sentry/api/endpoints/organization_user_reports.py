@@ -9,7 +9,7 @@ from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
-from sentry.models import UserReport
+from sentry.models.userreport import UserReport
 
 
 @region_silo_endpoint

@@ -38,7 +38,7 @@ def build_project_config(public_key=None, **kwargs):
     sentry_sdk.set_tag("public_key", public_key)
 
     try:
-        from sentry.models import ProjectKey
+        from sentry.models.projectkey import ProjectKey
 
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -111,7 +111,8 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     :returns: A dict mapping all affected public keys to their config.  The dict will not
        contain keys which should be retained in the cache unchanged.
     """
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
@@ -183,7 +184,7 @@ def compute_projectkey_config(key):
 
     :returns: A dict with the project config.
     """
-    from sentry.models import ProjectKeyStatus
+    from sentry.models.projectkey import ProjectKeyStatus
     from sentry.relay.config import get_project_config
 
     if key.status != ProjectKeyStatus.ACTIVE:
@@ -289,7 +290,7 @@ def schedule_invalidate_project_config(
         This directs the on_commit handler for the task to the correct transaction.
     """
 
-    from sentry.models import Project
+    from sentry.models.project import Project
 
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
@@ -323,7 +324,8 @@ def _schedule_invalidate_project_config(
     countdown=5,
 ):
     """For param docs, see :func:`schedule_invalidate_project_config`."""
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
 

@@ -9,7 +9,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 

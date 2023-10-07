@@ -17,24 +17,22 @@ from typing import (
 from django.db.models import Q
 
 from sentry import features
-from sentry.models import (
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupSubscription,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
     should_use_notifications_v2,

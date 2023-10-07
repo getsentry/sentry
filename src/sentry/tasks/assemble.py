@@ -13,7 +13,7 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, features, options
+from sentry import features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
@@ -23,7 +23,6 @@ from sentry.debug_files.artifact_bundle_indexing import (
     update_artifact_bundle_index,
 )
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
-from sentry.models import File, Organization, Project, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
     NULL_STRING,
@@ -34,7 +33,11 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
-from sentry.models.releasefile import ReleaseArchive, update_artifact_index
+from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -83,7 +86,8 @@ def assemble_file(
 
     Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
     """
-    from sentry.models import AssembleChecksumMismatch, FileBlob
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.utils import AssembleChecksumMismatch
 
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization
@@ -141,10 +145,8 @@ def assemble_file(
             detail="Reported checksum mismatch",
         )
         return None
-    else:
-        file.save()
 
-        return AssembleResult(bundle=file, bundle_temp_file=temp_file)
+    return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
 def _get_cache_key(task, scope, checksum):
@@ -211,7 +213,9 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models import BadDif, Project, debugfile
+    from sentry.models import debugfile
+    from sentry.models.debugfile import BadDif
+    from sentry.models.project import Project
     from sentry.reprocessing import bump_reprocessing_revision
 
     with configure_scope() as scope:
@@ -542,13 +546,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
         # formatted with `-` to 36 chars.
         bundle_id = bundle_id[:36] if bundle_id else uuid.uuid4().hex
-
-        analytics.record(
-            "artifactbundle.manifest_extracted",
-            organization_id=self.organization.id,
-            project_ids=self.project_ids,
-            has_debug_ids=len(debug_ids_with_types) > 0,
-        )
 
         # We don't allow the creation of a bundle if no debug ids and release are present, since we are not able to
         # efficiently index
