@@ -1,62 +1,58 @@
-import {RouteComponentProps} from 'react-router';
-
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, ProjectKey} from 'sentry/types';
+import {ProjectKey} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
-};
+function getInstructions(keyList: ProjectKey[]) {
+  return `Expect-CT: report-uri="${getSecurityDsn(keyList)}"`;
+}
 
-type State = {
-  keyList: null | ProjectKey[];
-} & DeprecatedAsyncView['state'];
+function ProjectExpectCtReports() {
+  const organization = useOrganization();
+  const {projectId} = useParams();
 
-class ProjectExpectCtReports extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
+  const {
+    data: keyList,
+    isLoading,
+    error,
+    refetch,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
+    staleTime: 0,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false);
+  if (error) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  getInstructions(keyList: ProjectKey[]) {
-    return `Expect-CT: report-uri="${getSecurityDsn(keyList)}"`;
-  }
-
-  renderBody() {
-    const {organization, params} = this.props;
-    const {keyList} = this.state;
-    if (!keyList) {
-      return null;
-    }
-
-    return (
+  return (
+    <SentryDocumentTitle
+      title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
+    >
       <div>
         <SettingsPageHeader title={t('Certificate Transparency')} />
 
         <PreviewFeature />
 
-        <ReportUri
-          keyList={keyList}
-          orgId={organization.slug}
-          projectId={params.projectId}
-        />
+        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
@@ -81,7 +77,7 @@ class ProjectExpectCtReports extends DeprecatedAsyncView<Props, State> {
               )}
             </p>
 
-            <pre>{this.getInstructions(keyList)}</pre>
+            <pre>{getInstructions(keyList)}</pre>
 
             <p>
               {tct('For more information, see [link:the article on MDN].', {
@@ -93,8 +89,8 @@ class ProjectExpectCtReports extends DeprecatedAsyncView<Props, State> {
           </PanelBody>
         </Panel>
       </div>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 export default withOrganization(ProjectExpectCtReports);
