@@ -7,13 +7,13 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
-    Organization,
     OrganizationOnboardingTask,
-    Project,
 )
+from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2

@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.project_key import (
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
     def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
-        from sentry.models import ProjectKey
+        from sentry.models.projectkey import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
             project=project_id, roles=F("roles").bitor(role.as_orm_role())

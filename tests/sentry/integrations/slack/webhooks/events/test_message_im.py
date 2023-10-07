@@ -1,6 +1,6 @@
 import responses
 
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.silo import SiloMode
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

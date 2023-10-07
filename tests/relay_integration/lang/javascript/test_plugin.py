@@ -13,18 +13,17 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
     ProjectArtifactBundle,
-    Release,
     ReleaseArtifactBundle,
-    ReleaseFile,
     SourceFileType,
 )
+from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.models.releasefile import update_artifact_index
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature

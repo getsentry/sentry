@@ -4,7 +4,10 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Organization, Project
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
@@ -109,7 +112,7 @@ def sync_group_assignee_inbound(
 
 
 def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool = True) -> None:
-    from sentry.models import GroupLink
+    from sentry.models.grouplink import GroupLink
 
     external_issue_ids = GroupLink.objects.filter(
         project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue

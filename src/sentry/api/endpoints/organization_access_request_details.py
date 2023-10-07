@@ -9,7 +9,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationAccessRequest, OrganizationMemberTeam
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 
 class AccessRequestPermission(OrganizationPermission):

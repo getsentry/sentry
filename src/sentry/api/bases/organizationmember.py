@@ -7,7 +7,8 @@ from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
-from sentry.models import InviteStatus, Organization, OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 
 from .organization import OrganizationEndpoint
 

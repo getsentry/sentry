@@ -7,7 +7,10 @@ import pytest
 from django.db.models import F
 from django.utils import timezone
 
-from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend

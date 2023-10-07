@@ -7,7 +7,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import Commit, Repository
+from sentry.models.commit import Commit
+from sentry.models.repository import Repository
 
 
 @region_silo_endpoint

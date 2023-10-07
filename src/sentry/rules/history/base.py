@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Optional, Sequence
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Rule
+    from sentry.models.group import Group
+    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor, CursorResult
 
 

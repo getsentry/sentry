@@ -11,7 +11,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.utils import json
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 
 # max number of custom rules that can be created per organization
@@ -162,7 +162,7 @@ class CustomDynamicSamplingRule(Model):
         sample_rate: float,
     ) -> "CustomDynamicSamplingRule":
 
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         with transaction.atomic(router.db_for_write(CustomDynamicSamplingRule)):
             # check if rule already exists for this organization

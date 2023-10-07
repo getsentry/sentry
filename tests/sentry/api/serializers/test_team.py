@@ -5,7 +5,7 @@ from django.conf import settings
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
-from sentry.models import InviteStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test

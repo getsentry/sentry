@@ -3,8 +3,9 @@ import unittest
 import pytest
 from django.urls import reverse
 
-from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase

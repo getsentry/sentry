@@ -2,14 +2,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 
 from sentry import audit_log
-from sentry.models import (
-    AuditLogEntry,
-    DeletedOrganization,
-    DeletedProject,
-    DeletedTeam,
-    Organization,
-    OrganizationStatus,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner

@@ -18,23 +18,19 @@ from sentry.api.event_search import SearchFilter
 from sentry.db.models import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import ErrorGroupType
-from sentry.models import (
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupEnvironment,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupLink,
-    GroupOwner,
-    GroupStatus,
-    GroupSubscription,
-    PlatformExternalIssue,
-    Project,
-    Release,
-    Team,
-    User,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupowner import GroupOwner
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (

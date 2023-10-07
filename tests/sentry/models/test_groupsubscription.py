@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from sentry.models import Group, GroupSubscription, NotificationSetting, User
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,

@@ -5,7 +5,8 @@ from typing import List, Optional
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba

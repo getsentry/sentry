@@ -8,7 +8,8 @@ from typing import Any, Dict
 from sentry import features, http, options
 from sentry.datascrubbing import scrub_data
 from sentry.event_manager import EventManager
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json

@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.snuba.outcomes import (
     QueryDefinition,
     massage_outcomes_result,

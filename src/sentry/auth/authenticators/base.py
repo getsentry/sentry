@@ -14,7 +14,7 @@ from sentry.utils.otp import TOTP, generate_secret_key
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
-    from sentry.models import Authenticator
+    from sentry.models.authenticator import Authenticator
 
 
 class ActivationResult:
@@ -143,7 +143,7 @@ class AuthenticatorInterface:
 
         If `disallow_new_enrollment` is `True`, raises exception: `NewEnrollmentDisallowed`.
         """
-        from sentry.models import Authenticator
+        from sentry.models.authenticator import Authenticator
 
         if self.disallow_new_enrollment:
             raise NewEnrollmentDisallowed

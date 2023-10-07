@@ -1,7 +1,7 @@
 from typing import MutableMapping
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import SentryAppAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.utils.json import JSONData
 
 

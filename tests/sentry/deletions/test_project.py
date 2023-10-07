@@ -1,25 +1,22 @@
 from sentry import eventstore
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    EnvironmentProject,
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    Project,
-    ProjectDebugFile,
-    Release,
-    ReleaseCommit,
-    Repository,
-    ServiceHook,
-)
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.servicehook import ServiceHook
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

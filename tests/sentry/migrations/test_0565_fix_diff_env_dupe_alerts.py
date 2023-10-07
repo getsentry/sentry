@@ -1,5 +1,5 @@
 from sentry.constants import ObjectStatus
-from sentry.models import outbox_context
+from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 

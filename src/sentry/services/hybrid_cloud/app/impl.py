@@ -7,14 +7,14 @@ from django.db.models import QuerySet
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.mediators import alert_rule_actions
-from sentry.models import (
-    SentryApp,
-    SentryAppComponent,
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
-    SentryAppInstallationToken,
-    User,
+    prepare_sentry_app_components,
 )
-from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app import (
     AppService,

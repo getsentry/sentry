@@ -6,7 +6,9 @@ import pytest
 from django.db import router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (

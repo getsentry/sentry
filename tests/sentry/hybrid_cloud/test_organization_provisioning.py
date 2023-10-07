@@ -1,16 +1,12 @@
 from typing import Optional
 
 from sentry import roles
-from sentry.models import (
-    Organization,
-    OrganizationMapping,
-    OrganizationMember,
-    OrganizationSlugReservation,
-    OutboxCategory,
-    RegionOutbox,
-    User,
-    outbox_context,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.outbox import OutboxCategory, RegionOutbox, outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization_provisioning import organization_provisioning_service
 from sentry.services.organization import (

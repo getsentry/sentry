@@ -1,4 +1,5 @@
-from sentry.models import Environment, Project
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

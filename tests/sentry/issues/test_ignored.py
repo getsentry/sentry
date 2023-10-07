@@ -2,14 +2,9 @@ from unittest.mock import MagicMock, patch
 
 from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.models import (
-    Group,
-    GroupInbox,
-    GroupInboxReason,
-    GroupSnooze,
-    GroupStatus,
-    add_group_to_inbox,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba

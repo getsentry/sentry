@@ -4,14 +4,12 @@ from django.core import mail
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
-from sentry.models import (
-    Commit,
-    Integration,
-    OrganizationOption,
-    ProjectCodeOwners,
-    Repository,
-    RepositoryProjectPathConfig,
-)
+from sentry.models.commit import Commit
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase

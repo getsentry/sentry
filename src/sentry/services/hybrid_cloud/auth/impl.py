@@ -13,17 +13,15 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import (
-    ApiKey,
-    ApiToken,
-    AuthIdentity,
-    AuthProvider,
-    OrganizationMemberMapping,
-    OrgAuthToken,
-    User,
-    outbox_context,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
     AuthenticationContext,

@@ -10,7 +10,7 @@ from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase

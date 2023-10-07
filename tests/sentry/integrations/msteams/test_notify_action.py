@@ -5,7 +5,7 @@ from unittest import mock
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.skips import requires_snuba

@@ -8,7 +8,7 @@ from django.http import HttpRequest
 from jwt import InvalidSignatureError
 from rest_framework.request import Request
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function

@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models import RelayUsage
+from sentry.models.relay import RelayUsage
 
 
 @region_silo_endpoint

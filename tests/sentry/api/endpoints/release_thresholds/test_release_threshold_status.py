@@ -4,9 +4,12 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     EnrichedThreshold,
     is_error_count_healthy,
 )
-from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
+from sentry.models.environment import Environment
+from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import APITestCase, TestCase
 
 

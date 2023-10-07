@@ -16,7 +16,7 @@ from sentry.event_manager import (
     _save_grouphash_and_group,
     severity_connection_pool,
 )
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.silo import region_silo_test

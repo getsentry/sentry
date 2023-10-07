@@ -1,6 +1,6 @@
 from base64 import b64encode
 
-from sentry.models import OrganizationAvatar
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

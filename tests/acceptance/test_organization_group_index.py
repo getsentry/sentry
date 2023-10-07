@@ -4,8 +4,9 @@ from unittest.mock import patch
 from django.utils import timezone as django_timezone
 
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.assistant import AssistantActivity
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test

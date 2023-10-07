@@ -1,13 +1,11 @@
 from sentry.hybridcloud.models import ApiKeyReplica
-from sentry.models import (
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    OrganizationMemberTeamReplica,
-    TeamReplica,
-    outbox_context,
-)
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.outbox import outbox_context
+from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.replica import region_replica_service
 from sentry.silo import SiloMode

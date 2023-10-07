@@ -18,7 +18,7 @@ from sentry.issues.occurrence_consumer import (
     _get_kwargs,
     _process_message,
 )
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

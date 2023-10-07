@@ -24,7 +24,7 @@ class NewsletterSubscription:
         unsubscribed_date=None,
         **kwargs,
     ):
-        from sentry.models import UserEmail
+        from sentry.models.useremail import UserEmail
 
         self.email = user.email or email
         self.list_id = list_id

@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
-from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleFlatFileIndex,
@@ -17,7 +16,10 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,

@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models import Organization, OrganizationStatus, RegionScheduledDeletion
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import PermissionTestCase, TestCase

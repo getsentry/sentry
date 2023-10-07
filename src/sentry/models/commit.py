@@ -20,7 +20,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
-    from sentry.models import Release
+    from sentry.models.release import Release
 
 
 class CommitManager(BaseManager):

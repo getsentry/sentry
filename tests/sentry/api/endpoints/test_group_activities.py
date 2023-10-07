@@ -1,4 +1,5 @@
-from sentry.models import Activity, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType

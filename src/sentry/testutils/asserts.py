@@ -2,7 +2,7 @@ from typing import Optional
 
 from django.http import StreamingHttpResponse
 
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode

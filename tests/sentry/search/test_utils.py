@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus, Release, Team
+from sentry.models.eventuser import EventUser
+from sentry.models.group import GroupStatus
+from sentry.models.release import Release
+from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,

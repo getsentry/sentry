@@ -4,7 +4,7 @@ import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .processors import IngestMessage, process_event

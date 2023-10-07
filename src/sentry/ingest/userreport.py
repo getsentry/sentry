@@ -4,7 +4,8 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore
-from sentry.models import EventUser, UserReport
+from sentry.models.eventuser import EventUser
+from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils.db import atomic_transaction
 

@@ -15,7 +15,7 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry.lang.native.sources import APP_STORE_CONNECT_SCHEMA, secret_fields
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 

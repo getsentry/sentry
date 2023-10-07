@@ -15,14 +15,12 @@ from sentry.api.serializers import (
 )
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    OrganizationMapping,
-    OrganizationMemberMapping,
-    OrganizationStatus,
-    UserEmail,
-)
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,

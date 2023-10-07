@@ -10,7 +10,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.models import Rule
+from sentry.models.rule import Rule
 
 
 @region_silo_endpoint

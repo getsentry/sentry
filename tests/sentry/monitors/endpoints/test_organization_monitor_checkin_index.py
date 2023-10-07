@@ -3,7 +3,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time

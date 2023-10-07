@@ -1,4 +1,5 @@
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.signals import buffer_incr_complete
 
 

@@ -11,7 +11,8 @@ from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ObjectStatus
-from sentry.models import Project, ProjectRedirect
+from sentry.models.project import Project
+from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 from .organization import OrganizationPermission

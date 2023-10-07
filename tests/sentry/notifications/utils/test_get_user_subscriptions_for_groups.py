@@ -1,4 +1,6 @@
-from sentry.models import Group, GroupSubscription, Project
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.project import Project
 from sentry.notifications.helpers import get_user_subscriptions_for_groups
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.testutils.cases import TestCase

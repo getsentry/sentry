@@ -5,7 +5,8 @@ from typing import Any, Mapping, Sequence
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils.http import absolute_uri
 

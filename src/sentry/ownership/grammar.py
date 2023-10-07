@@ -22,7 +22,9 @@ from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models import ActorTuple, OrganizationMember, RepositoryProjectPathConfig
+from sentry.models.actor import ActorTuple
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
@@ -525,7 +527,9 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models import ActorTuple, Team, User
+    from sentry.models.actor import ActorTuple
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if not owners:
         return {}

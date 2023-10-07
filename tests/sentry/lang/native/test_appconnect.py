@@ -13,7 +13,7 @@ from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 
 class TestAppStoreConnectConfig:

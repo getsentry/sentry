@@ -1,4 +1,4 @@
-from sentry.models import GroupSubscription
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

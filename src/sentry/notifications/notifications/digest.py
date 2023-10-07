@@ -35,7 +35,8 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 

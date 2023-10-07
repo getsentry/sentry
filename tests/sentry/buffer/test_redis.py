@@ -7,7 +7,8 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.buffer.redis import RedisBuffer
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json

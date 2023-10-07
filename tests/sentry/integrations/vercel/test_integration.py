@@ -7,17 +7,16 @@ from rest_framework.serializers import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    Project,
-    ProjectKey,
-    ProjectKeyStatus,
-    ScheduledDeletion,
-    SentryAppInstallation,
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
 )
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

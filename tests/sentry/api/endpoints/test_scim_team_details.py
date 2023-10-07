@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test

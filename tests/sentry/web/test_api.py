@@ -6,7 +6,9 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth import superuser
-from sentry.models import ApiToken, Organization, OrganizationMember, OrganizationStatus
+from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion

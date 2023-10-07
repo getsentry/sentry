@@ -5,11 +5,10 @@ from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, Typ
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.incidents.models import AlertRule, AlertRuleStatus
-from sentry.models import (
-    DashboardWidgetQuery,
-    DashboardWidgetTypes,
-    Organization,
-    Project,
+from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,

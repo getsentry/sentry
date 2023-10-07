@@ -20,7 +20,8 @@ from sentry.api.paginator import (
     reverse_bisect_left,
 )
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import Rule, User
+from sentry.models.rule import Rule
+from sentry.models.user import User
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursors import Cursor

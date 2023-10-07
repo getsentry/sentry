@@ -16,7 +16,9 @@ from sentry.api.helpers.actionable_items_helper import (
     errors_to_hide,
     priority_ranking,
 )
-from sentry.models import EventError, Organization, Project
+from sentry.models.eventerror import EventError
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 
 class ActionableItemResponse(TypedDict):

@@ -1,5 +1,5 @@
 from sentry.db.models.utils import slugify_instance
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 

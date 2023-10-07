@@ -194,7 +194,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        from sentry.models import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
             organization_id=organization.id,
@@ -212,7 +212,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return set(self.scope_list).issubset(encoded_scopes)
 
     def delete(self):
-        from sentry.models import SentryAppAvatar
+        from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()

@@ -4,8 +4,10 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
-from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase

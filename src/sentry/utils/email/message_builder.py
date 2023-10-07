@@ -16,7 +16,10 @@ from django.utils.encoding import force_str
 from sentry import options
 from sentry.db.models import Model
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Group, GroupEmailThread, Project
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.project import Project
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string

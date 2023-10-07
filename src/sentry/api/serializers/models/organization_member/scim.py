@@ -1,7 +1,7 @@
 from typing import Any, Mapping, Optional, Sequence
 
 from sentry.api.serializers import Serializer
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER
 
 from .response import OrganizationMemberSCIMSerializerResponse

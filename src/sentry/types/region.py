@@ -257,7 +257,7 @@ def get_local_region() -> Region:
 
 @control_silo_function
 def _find_orgs_for_user(user_id: int) -> Set[int]:
-    from sentry.models import OrganizationMemberMapping
+    from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
     return {
         m["organization_id"]

@@ -5,8 +5,8 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
-from sentry.models import FileBlob
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleIndex
+from sentry.models.files.fileblob import FileBlob
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
 from sentry.utils import json

@@ -3,7 +3,7 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import RelayUsage
+from sentry.models.relay import RelayUsage
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test

@@ -9,7 +9,10 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics
-from sentry.models import ExternalActor, Integration, OrganizationMember, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service

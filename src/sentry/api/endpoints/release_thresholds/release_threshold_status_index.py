@@ -20,7 +20,7 @@ from sentry.api.endpoints.release_thresholds.utils import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Release
+from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 

@@ -7,7 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.models import PlatformExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 
 
 @region_silo_endpoint

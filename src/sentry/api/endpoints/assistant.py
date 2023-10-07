@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.assistant import manager
-from sentry.models import AssistantActivity
+from sentry.models.assistant import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
 

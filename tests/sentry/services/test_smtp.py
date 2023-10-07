@@ -1,6 +1,6 @@
 import os.path
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.services.smtp import STATUS, SentrySMTPServer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba

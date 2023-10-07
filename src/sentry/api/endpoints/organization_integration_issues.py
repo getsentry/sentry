@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.integrations.mixins import IssueSyncMixin
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 
 @region_silo_endpoint

@@ -5,7 +5,8 @@ from uuid import uuid4
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import Environment, UserReport
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 

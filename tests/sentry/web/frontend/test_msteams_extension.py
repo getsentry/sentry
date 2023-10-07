@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.core.signing import SignatureExpired
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

@@ -10,7 +10,12 @@ from unittest.mock import patch
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
-from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (

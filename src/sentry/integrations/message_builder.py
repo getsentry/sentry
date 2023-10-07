@@ -7,7 +7,10 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group, Project, Rule, Team
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser

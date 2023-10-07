@@ -1,4 +1,4 @@
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

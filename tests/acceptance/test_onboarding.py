@@ -2,7 +2,7 @@ from unittest import mock
 
 from selenium.common.exceptions import TimeoutException
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.retries import TimedRetryPolicy

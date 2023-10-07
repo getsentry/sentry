@@ -1,4 +1,4 @@
-from sentry.models import InviteStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner

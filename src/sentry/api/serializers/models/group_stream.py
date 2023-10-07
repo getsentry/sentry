@@ -18,7 +18,8 @@ from sentry.api.serializers.models.group import (
 )
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.snuba.dataset import Dataset

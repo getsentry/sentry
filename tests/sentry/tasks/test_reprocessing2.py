@@ -13,15 +13,13 @@ from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.models import (
-    Activity,
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupRedirect,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished

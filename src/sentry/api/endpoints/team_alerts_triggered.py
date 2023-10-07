@@ -20,7 +20,7 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentStatus,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 @region_silo_endpoint

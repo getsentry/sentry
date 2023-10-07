@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import EventUser
+from sentry.models.eventuser import EventUser
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

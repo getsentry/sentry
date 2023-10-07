@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.serializers.base import serialize
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test

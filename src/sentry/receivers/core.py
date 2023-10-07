@@ -11,7 +11,11 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.signals import post_upgrade, project_created

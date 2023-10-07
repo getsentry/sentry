@@ -11,7 +11,8 @@ import sys
 from pprint import pprint
 
 from sentry.lang.native.appconnect import SYMBOL_SOURCES_PROP_NAME
-from sentry.models import AppConnectBuild, Project
+from sentry.models.appconnectbuilds import AppConnectBuild
+from sentry.models.project import Project
 from sentry.tasks import app_store_connect
 from sentry.utils import json
 

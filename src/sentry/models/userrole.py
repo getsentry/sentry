@@ -11,7 +11,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.outboxes import ControlOutboxProducingModel
-from sentry.models import ControlOutboxBase, OutboxCategory
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
 from sentry.types.region import find_all_region_names

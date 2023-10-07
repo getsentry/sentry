@@ -14,7 +14,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"

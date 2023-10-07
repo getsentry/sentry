@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from sentry.exceptions import PluginError
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import WebHooksOptionsForm, WebHooksPlugin, validate_urls
 from sentry.testutils.cases import TestCase

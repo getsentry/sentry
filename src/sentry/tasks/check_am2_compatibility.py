@@ -9,7 +9,9 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
-from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.models.dashboard_widget import DashboardWidgetQuery
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode

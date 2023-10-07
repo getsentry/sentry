@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test

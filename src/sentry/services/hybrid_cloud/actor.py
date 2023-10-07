@@ -13,7 +13,9 @@ from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import Actor, Team, User
+    from sentry.models.actor import Actor
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 
 class ActorType(str, Enum):
@@ -105,7 +107,9 @@ class RpcActor(RpcModel):
         fetch_actor: whether to make an extra query or call to fetch the actor id
                      Without the actor_id the RpcActor acts as a tuple of id and type.
         """
-        from sentry.models import Actor, Team, User
+        from sentry.models.actor import Actor
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         if isinstance(obj, cls):
             return obj

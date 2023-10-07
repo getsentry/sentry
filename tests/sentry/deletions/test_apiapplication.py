@@ -1,6 +1,8 @@
-from sentry.models import ApiApplication, ApiGrant, ApiToken, ServiceHook
-from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.models.servicehook import ServiceHook
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control

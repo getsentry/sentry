@@ -2,7 +2,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
-from sentry.models import ApiKey, ApiToken
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 
 
 @receiver(pre_save, sender=ApiKey, dispatch_uid="enforce_scope_hierarchy_api_key")

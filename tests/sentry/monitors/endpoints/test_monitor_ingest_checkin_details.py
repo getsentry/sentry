@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,

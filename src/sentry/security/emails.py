@@ -10,7 +10,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models.user import User
 
 
 def generate_security_email(

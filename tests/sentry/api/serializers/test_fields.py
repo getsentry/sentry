@@ -5,7 +5,8 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ListField
 
 from sentry.api.fields.actor import ActorField
-from sentry.models import Team, User
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 
 

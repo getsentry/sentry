@@ -9,7 +9,9 @@ from typing import Any
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import DifMeta, File, ProjectDebugFile, debugfile
+from sentry.models import debugfile
+from sentry.models.debugfile import DifMeta, ProjectDebugFile
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 

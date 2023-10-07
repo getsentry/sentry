@@ -12,16 +12,11 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
 from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
     RegionOrganizationProvisioningRpcService,
 )
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationSlugReservationType,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationslugreservation import OrganizationSlugReservationType
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.organization import OrganizationProvisioningOptions
 
 

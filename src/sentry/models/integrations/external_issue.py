@@ -47,7 +47,7 @@ class ExternalIssueManager(BaseManager):
     def get_linked_issues(
         self, event: Event, integration: RpcIntegration
     ) -> QuerySet[ExternalIssue]:
-        from sentry.models import GroupLink
+        from sentry.models.grouplink import GroupLink
 
         assert event.group is not None
         return self.filter(

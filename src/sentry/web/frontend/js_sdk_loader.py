@@ -9,7 +9,8 @@ from rest_framework.request import Request
 from sentry import analytics
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response

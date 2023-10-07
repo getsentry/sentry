@@ -31,14 +31,15 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
-from sentry.models import Environment, Rule, RuleSource
+from sentry.models.environment import Environment
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 MONITOR_CONFIG = {
     "type": "object",

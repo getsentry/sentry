@@ -24,8 +24,9 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
+from sentry.models.group import Group
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service

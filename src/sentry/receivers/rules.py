@@ -1,4 +1,4 @@
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import project_created
 

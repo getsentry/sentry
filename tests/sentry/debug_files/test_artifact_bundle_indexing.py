@@ -19,12 +19,12 @@ from sentry.debug_files.artifact_bundle_indexing import (
     update_artifact_bundle_index,
 )
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
-from sentry.models import File
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleFlatFileIndex,
 )
+from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json

@@ -28,8 +28,10 @@ from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import Organization, OrganizationStatus, Project, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,

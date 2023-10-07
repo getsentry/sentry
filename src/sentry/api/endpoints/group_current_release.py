@@ -8,7 +8,9 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
-from sentry.models import GroupRelease, ReleaseEnvironment, ReleaseProject
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
 
 
 @region_silo_endpoint

@@ -16,7 +16,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.grouping.variants import ComponentVariant
-from sentry.models import Group, GroupHash
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.utils import snuba
 
 

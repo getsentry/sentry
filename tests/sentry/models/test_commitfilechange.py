@@ -1,5 +1,6 @@
-from sentry.models import Commit, Repository
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

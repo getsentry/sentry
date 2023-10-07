@@ -5,8 +5,12 @@ from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
-from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+from sentry.models.activity import Activity
+from sentry.models.files.file import File
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType

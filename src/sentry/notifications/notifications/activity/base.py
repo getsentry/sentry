@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Activity
+    from sentry.models.activity import Activity
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):

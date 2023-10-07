@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

@@ -1,4 +1,4 @@
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

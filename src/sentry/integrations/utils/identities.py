@@ -3,8 +3,10 @@ from typing import Iterable, Mapping, Optional, Tuple
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, User
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import control_silo_function

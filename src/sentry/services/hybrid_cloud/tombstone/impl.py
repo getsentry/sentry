@@ -1,4 +1,4 @@
-from sentry.models import ControlTombstone, RegionTombstone
+from sentry.models.tombstone import ControlTombstone, RegionTombstone
 from sentry.services.hybrid_cloud.tombstone import (
     ControlTombstoneService,
     RegionTombstoneService,

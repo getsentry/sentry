@@ -7,16 +7,9 @@ from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    ACTOR_TYPES,
-    Environment,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    actor_type_to_string,
-)
-from sentry.models.actor import Actor
-from sentry.models.rule import NeglectedRule
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.environment import Environment
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service

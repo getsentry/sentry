@@ -7,7 +7,11 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase

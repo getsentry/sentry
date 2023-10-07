@@ -1,7 +1,8 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 
 from .mail import MailPreview
 

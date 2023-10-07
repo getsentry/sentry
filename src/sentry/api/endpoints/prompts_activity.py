@@ -11,7 +11,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models import Organization, Project, PromptsActivity
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))

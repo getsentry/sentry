@@ -26,10 +26,14 @@ from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.team import Team
+from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service

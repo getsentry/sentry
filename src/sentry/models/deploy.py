@@ -48,7 +48,10 @@ class Deploy(Model):
         create activity and send deploy notifications
         if they haven't been sent
         """
-        from sentry.models import Activity, Environment, ReleaseCommit, ReleaseHeadCommit
+        from sentry.models.activity import Activity
+        from sentry.models.environment import Environment
+        from sentry.models.releasecommit import ReleaseCommit
+        from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
         lock_key = cls.get_lock_key(deploy_id)
         lock = locks.get(lock_key, duration=30, name="deploy_notify")

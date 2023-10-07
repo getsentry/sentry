@@ -1,7 +1,7 @@
 from typing import Union
 
 from sentry import analytics
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils.email import MessageBuilder
 
 provider_types = {

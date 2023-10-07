@@ -5,7 +5,9 @@ from unittest import mock
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.models import GroupRelease, Project, Release
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (

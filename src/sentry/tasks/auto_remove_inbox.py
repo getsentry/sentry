@@ -1,5 +1,5 @@
 from sentry.db.deletion import BulkDeleteQuery
-from sentry.models import GroupInbox
+from sentry.models.groupinbox import GroupInbox
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 

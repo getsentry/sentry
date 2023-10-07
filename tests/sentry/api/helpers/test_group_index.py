@@ -14,20 +14,16 @@ from sentry.api.helpers.group_index.update import (
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
-from sentry.models import (
-    Activity,
-    GroupBookmark,
-    GroupInbox,
-    GroupInboxReason,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    add_group_to_inbox,
-)
+from sentry.models.activity import Activity
 from sentry.models.actor import ActorTuple
+from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba

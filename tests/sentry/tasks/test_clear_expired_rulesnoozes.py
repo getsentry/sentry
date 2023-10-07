@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.tasks.clear_expired_rulesnoozes import clear_expired_rulesnoozes
 from sentry.testutils.cases import APITestCase

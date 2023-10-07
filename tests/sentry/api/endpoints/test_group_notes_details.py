@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

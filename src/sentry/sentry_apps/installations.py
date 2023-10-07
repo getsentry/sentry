@@ -10,15 +10,13 @@ from django.http.request import HttpRequest
 from sentry import analytics, audit_log
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
-from sentry.models import (
-    ApiApplication,
-    ApiGrant,
-    ApiToken,
-    SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationToken,
-    User,
-)
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
 

@@ -9,7 +9,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import GroupSerializer, serialize
-from sentry.models import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus
 
 
 @region_silo_endpoint

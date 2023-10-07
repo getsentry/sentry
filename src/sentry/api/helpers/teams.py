@@ -2,7 +2,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.utils import InvalidParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Team, TeamStatus
+from sentry.models.team import Team, TeamStatus
 
 
 def get_teams(request, organization, teams=None):

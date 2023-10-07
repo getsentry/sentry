@@ -6,7 +6,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.tsdb.base import TSDBModel
 
 

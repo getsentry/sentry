@@ -221,7 +221,8 @@ def default_organization(factories, default_user):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_team(factories, default_organization):
-    from sentry.models import OrganizationMember, OrganizationMemberTeam
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
     team = factories.create_team(organization=default_organization, name="foo", slug="foo")
     # XXX: handle legacy team fixture
@@ -268,7 +269,7 @@ def default_event(factories, default_group):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_activity(default_group, default_project, default_user):
-    from sentry.models import Activity
+    from sentry.models.activity import Activity
 
     return Activity.objects.create(
         group=default_group,

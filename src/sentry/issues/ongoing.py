@@ -3,7 +3,8 @@ from typing import Any, List, Mapping, Optional
 import sentry_sdk
 from django.db.models.signals import post_save
 
-from sentry.models import Group, GroupStatus, bulk_remove_groups_from_inbox
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 

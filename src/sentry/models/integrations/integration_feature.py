@@ -207,7 +207,8 @@ class IntegrationFeature(Model):
 
     @property
     def description(self):
-        from sentry.models import DocIntegration, SentryApp
+        from sentry.models.integrations.doc_integration import DocIntegration
+        from sentry.models.integrations.sentry_app import SentryApp
 
         if self.user_description:
             return self.user_description

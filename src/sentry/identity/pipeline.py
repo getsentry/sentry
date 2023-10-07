@@ -5,7 +5,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry.models import Identity, IdentityProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.pipeline import Pipeline
 from sentry.utils import metrics
 

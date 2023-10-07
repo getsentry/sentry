@@ -177,7 +177,7 @@ class OrganizationService(RpcService):
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:

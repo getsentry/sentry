@@ -115,7 +115,7 @@ class Integration(DefaultFieldsModel):
 
         Returns False if the OrganizationIntegration was not created
         """
-        from sentry.models import OrganizationIntegration
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
 
         if not isinstance(organization_id, int):
             organization_id = organization_id.id

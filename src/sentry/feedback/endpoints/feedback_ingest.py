@@ -23,8 +23,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
 from sentry.feedback.usecases.create_feedback import create_feedback_issue
-from sentry.models import Environment, Organization, ProjectKey
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 

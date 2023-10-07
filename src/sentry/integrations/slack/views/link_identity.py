@@ -5,7 +5,9 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, Integration, NotificationSetting
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders

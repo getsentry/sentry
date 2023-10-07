@@ -2,7 +2,7 @@ from functools import cached_property
 
 import responses
 
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.bitbucket.repository_provider import BitbucketRepositoryProvider

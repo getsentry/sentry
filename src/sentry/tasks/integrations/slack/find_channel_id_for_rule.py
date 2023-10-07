@@ -9,7 +9,8 @@ from sentry.integrations.slack.utils import (
     strip_channel_name,
 )
 from sentry.mediators import project_rules
-from sentry.models import Project, Rule, RuleActivity, RuleActivityType
+from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo import SiloMode

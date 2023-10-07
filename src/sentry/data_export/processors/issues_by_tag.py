@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sentry import tagstore
-from sentry.models import EventUser, Group, Project, get_group_with_redirect
+from sentry.models.eventuser import EventUser
+from sentry.models.group import Group, get_group_with_redirect
+from sentry.models.project import Project
 
 from ..base import ExportError
 

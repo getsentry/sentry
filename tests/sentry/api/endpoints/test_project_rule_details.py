@@ -9,15 +9,10 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import (
-    Environment,
-    Integration,
-    NeglectedRule,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-)
 from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.environment import Environment
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase

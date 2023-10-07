@@ -5,7 +5,8 @@ from unittest import mock
 
 from sentry import tsdb
 from sentry.event_manager import EventManager
-from sentry.models import Group, GroupHash
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test

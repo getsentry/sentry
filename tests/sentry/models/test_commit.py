@@ -1,7 +1,8 @@
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models import Commit, Repository
+from sentry.models.commit import Commit
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

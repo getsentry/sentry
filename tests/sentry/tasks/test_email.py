@@ -1,4 +1,4 @@
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba

@@ -14,13 +14,11 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
-from sentry.models import (
-    AppConnectBuild,
-    LatestAppConnectBuildsCheck,
-    Project,
-    ProjectOption,
-    debugfile,
-)
+from sentry.models import debugfile
+from sentry.models.appconnectbuilds import AppConnectBuild
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, sdk
 from sentry.utils.appleconnect import appstore_connect as appstoreconnect_api

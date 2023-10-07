@@ -27,17 +27,16 @@ from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_chunks
-from sentry.models import (
-    File,
-    OrganizationMember,
+from sentry.models.debugfile import (
+    ProguardArtifactRelease,
     ProjectDebugFile,
-    Release,
-    ReleaseFile,
     create_files_from_dif_zip,
 )
-from sentry.models.debugfile import ProguardArtifactRelease
+from sentry.models.files.file import File
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.release import get_artifact_counts
+from sentry.models.release import Release, get_artifact_counts
+from sentry.models.releasefile import ReleaseFile
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,

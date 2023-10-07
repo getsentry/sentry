@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.models import UserEmail
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

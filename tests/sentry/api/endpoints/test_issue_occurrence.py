@@ -4,7 +4,7 @@ from unittest import mock
 from django.db import router
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import OrganizationMemberTeam
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test

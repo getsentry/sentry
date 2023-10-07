@@ -11,17 +11,14 @@ from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Project,
-    PullRequest,
-    Repository,
-    RepositoryProjectPathConfig,
-)
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.pullrequest import PullRequestCommit
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestCommit
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task

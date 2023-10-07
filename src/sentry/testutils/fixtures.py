@@ -7,15 +7,13 @@ from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import (
-    Activity,
-    Integration,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    User,
-)
+from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories

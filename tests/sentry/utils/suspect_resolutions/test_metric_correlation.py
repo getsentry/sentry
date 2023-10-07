@@ -4,7 +4,7 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.models import GroupStatus
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions.metric_correlation import (

@@ -5,7 +5,10 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 from sentry import options
-from sentry.models import GroupEmailThread, User, UserEmail, UserOption
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.options.user_option import UserOption
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder

@@ -1,4 +1,4 @@
-from sentry.models import User
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_highest_notification_setting_value,
     get_most_specific_notification_setting_value,

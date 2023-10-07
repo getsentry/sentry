@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Un
 from django.conf import settings
 from typing_extensions import NotRequired
 
-from sentry.models import CUSTOM_RULE_START
+from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10

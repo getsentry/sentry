@@ -8,7 +8,8 @@ from django.urls import reverse
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json

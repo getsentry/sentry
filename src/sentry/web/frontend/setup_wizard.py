@@ -14,15 +14,11 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
 from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    ApiToken,
-    Organization,
-    OrganizationStatus,
-    Project,
-    ProjectKey,
-    ProjectKeyStatus,
-)
+from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.user import User
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (

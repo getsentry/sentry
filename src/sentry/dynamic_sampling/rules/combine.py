@@ -14,7 +14,7 @@ from sentry.dynamic_sampling.rules.biases.recalibration_bias import Recalibratio
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
 from sentry.dynamic_sampling.rules.utils import RuleType
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 
 def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:

@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 
 
 @region_silo_endpoint

@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
 
 

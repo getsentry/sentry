@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
 
-from sentry.models import Team
+from sentry.models.team import Team
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 

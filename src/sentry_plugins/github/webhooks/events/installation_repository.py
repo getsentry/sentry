@@ -1,4 +1,5 @@
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Webhook

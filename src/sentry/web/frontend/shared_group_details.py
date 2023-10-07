@@ -1,6 +1,6 @@
 from rest_framework.request import Request
 
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.web.frontend.react_page import GenericReactPageView
 
 

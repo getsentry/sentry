@@ -6,7 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
-from sentry.models import ProcessingIssue
+from sentry.models.processingissue import ProcessingIssue
 from sentry.reprocessing import trigger_reprocessing
 
 

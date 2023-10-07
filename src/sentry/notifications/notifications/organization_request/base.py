@@ -14,7 +14,8 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 

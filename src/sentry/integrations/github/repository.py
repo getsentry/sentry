@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Organization, PullRequest, Repository
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization

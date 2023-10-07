@@ -1,8 +1,11 @@
 from unittest.mock import patch
 
-from sentry.models import Commit, ExternalActor, ProjectCodeOwners, Repository
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils.cases import TestCase
 

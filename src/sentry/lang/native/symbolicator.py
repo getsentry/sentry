@@ -21,7 +21,7 @@ from sentry.lang.native.sources import (
     get_scraping_config,
     sources_for_symbolication,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.utils import json, metrics
 

@@ -4,7 +4,7 @@ from functools import partial
 import pytest
 from django.urls import reverse
 
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode

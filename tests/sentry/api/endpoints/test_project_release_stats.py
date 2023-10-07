@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.urls import reverse
 
-from sentry.models import Release
+from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba

@@ -4,16 +4,15 @@ from unittest.mock import ANY
 import pytest
 
 from sentry.incidents.models import AlertRule
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
-    Project,
-    ProjectTransactionThreshold,
-    TransactionMetric,
 )
+from sentry.models.project import Project
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery

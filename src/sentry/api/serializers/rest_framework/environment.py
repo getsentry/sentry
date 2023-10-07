@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 ValidationError = serializers.ValidationError
 

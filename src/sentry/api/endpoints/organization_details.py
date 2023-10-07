@@ -34,14 +34,11 @@ from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_MAX,
     convert_crashreport_count,
 )
-from sentry.models import (
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
-    RegionScheduledDeletion,
-    UserEmail,
-)
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service

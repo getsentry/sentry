@@ -6,7 +6,7 @@ from django.db.models import QuerySet
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, control_silo_only_model
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
@@ -39,7 +39,7 @@ class SentryAppInstallationTokenManager(BaseManager):
         return None
 
     def get_projects(self, token: ApiToken) -> QuerySet:
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         install_token = self._get_token(token)
         if not install_token:

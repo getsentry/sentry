@@ -13,20 +13,20 @@ from django.test import RequestFactory
 from pytest import raises
 from rest_framework import status
 
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.outbox import (
     ControlOutbox,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationMemberTeamReplica,
     OutboxCategory,
     OutboxFlushError,
     OutboxScope,
     RegionOutbox,
-    User,
     WebhookProviderIdentifier,
     outbox_context,
 )
+from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase

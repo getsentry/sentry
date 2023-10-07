@@ -3,7 +3,8 @@ from unittest.mock import patch
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase

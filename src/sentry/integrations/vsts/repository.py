@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping, Sequence
 
-from sentry.models import Commit, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 

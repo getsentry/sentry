@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplication, ApiApplicationStatus
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
 @control_silo_endpoint

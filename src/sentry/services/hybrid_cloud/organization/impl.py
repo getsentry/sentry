@@ -9,23 +9,16 @@ from django.dispatch import Signal
 from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.models import (
-    Activity,
-    ControlOutbox,
-    GroupAssignee,
-    GroupBookmark,
-    GroupSeen,
-    GroupShare,
-    GroupSubscription,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    OutboxCategory,
-    OutboxScope,
-    outbox_context,
-)
-from sentry.models.organizationmember import InviteStatus
+from sentry.models.activity import Activity
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service

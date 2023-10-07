@@ -8,7 +8,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import User
+from sentry.models.user import User
 from sentry.search.utils import tokenize_query
 
 

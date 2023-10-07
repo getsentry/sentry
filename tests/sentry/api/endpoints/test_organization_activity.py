@@ -1,4 +1,4 @@
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

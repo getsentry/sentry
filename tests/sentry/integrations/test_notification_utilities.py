@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Mapping
 
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
-from sentry.models import Integration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration

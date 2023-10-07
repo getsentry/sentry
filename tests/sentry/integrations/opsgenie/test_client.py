@@ -1,6 +1,7 @@
 import responses
 
-from sentry.models import Integration, Rule
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json

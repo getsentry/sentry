@@ -4,7 +4,9 @@ import responses
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
+from sentry.models.apigrant import ApiGrant
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase

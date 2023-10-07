@@ -17,7 +17,8 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import ValidationError, parse_and_convert_issue_search_query
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Environment, User
+from sentry.models.environment import Environment
+from sentry.models.user import User
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory

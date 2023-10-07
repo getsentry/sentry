@@ -62,7 +62,8 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
-    from sentry.models import FileBlob, FileBlobIndex
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
     delete_unreferenced_blobs(FileBlob, FileBlobIndex, blob_ids)
 
@@ -76,7 +77,8 @@ def delete_unreferenced_blobs_region(blob_ids):
 )
 @retry
 def delete_unreferenced_blobs_control(blob_ids):
-    from sentry.models import ControlFileBlob, ControlFileBlobIndex
+    from sentry.models.files.control_fileblob import ControlFileBlob
+    from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 
     delete_unreferenced_blobs(ControlFileBlob, ControlFileBlobIndex, blob_ids)
 

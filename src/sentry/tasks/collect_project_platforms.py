@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.constants import VALID_PLATFORMS
-from sentry.models import Group, Project, ProjectPlatform
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 

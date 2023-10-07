@@ -5,7 +5,7 @@ from typing import Any, Generator, Mapping, Optional, Sequence
 from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture

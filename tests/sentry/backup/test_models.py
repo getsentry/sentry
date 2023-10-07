@@ -25,7 +25,6 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models import CustomDynamicSamplingRule, CustomDynamicSamplingRuleProject
 from sentry.models.actor import Actor
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
@@ -41,6 +40,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
+)
+from sentry.models.dynamicsampling import (
+    CustomDynamicSamplingRule,
+    CustomDynamicSamplingRuleProject,
 )
 from sentry.models.email import Email
 from sentry.models.environment import Environment, EnvironmentProject

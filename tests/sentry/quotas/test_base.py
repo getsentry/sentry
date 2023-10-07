@@ -1,7 +1,8 @@
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import OrganizationOption, ProjectKey
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase

@@ -3,7 +3,7 @@ from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.http import get_origins

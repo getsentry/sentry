@@ -31,7 +31,7 @@ class ReplayRecordingSegment(Model):
     __repr__ = sane_repr("replay_id", "segment_id", "file_id")
 
     def delete(self, *args, **kwargs):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         try:
             file = File.objects.get(id=self.file_id)

@@ -8,7 +8,8 @@ from typing import Any, Callable, ClassVar, Dict, Mapping, Sequence, Type
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture

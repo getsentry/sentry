@@ -2,8 +2,8 @@ from typing import Any, Dict, List, Optional
 
 from django.db import router
 
-from sentry.models import OrganizationSlugReservation
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,

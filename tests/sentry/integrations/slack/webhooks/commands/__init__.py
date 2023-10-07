@@ -9,7 +9,8 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
-from sentry.models import Identity, IdentityProvider, Team
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user

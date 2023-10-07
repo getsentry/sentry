@@ -1,6 +1,11 @@
-from sentry.models import ActorTuple, GroupAssignee, Repository, Team, User, UserAvatar
+from sentry.models.actor import ActorTuple
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase

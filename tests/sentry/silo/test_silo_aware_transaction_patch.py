@@ -2,7 +2,8 @@ import pytest
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import Organization, OrganizationMapping
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo import SiloMode
 from sentry.silo.patches.silo_aware_transaction_patch import (
     MismatchedSiloTransactionError,

@@ -53,7 +53,7 @@ class Command(BaseCommand):
         from django.conf import settings
 
         from sentry.app import client
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         if not options["project"]:
             project = Project.objects.get(id=settings.SENTRY_PROJECT)

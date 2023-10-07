@@ -1,7 +1,7 @@
 import zlib
 
 from sentry import features, options
-from sentry.models import MAX_FILE_SIZE
+from sentry.models.files.utils import MAX_FILE_SIZE
 
 
 def compress_file(fp, level=6):

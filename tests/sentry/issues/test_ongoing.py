@@ -1,5 +1,7 @@
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Activity, GroupHistory, GroupHistoryStatus, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus

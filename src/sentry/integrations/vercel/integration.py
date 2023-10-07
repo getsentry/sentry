@@ -17,16 +17,16 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import (
-    Integration,
-    Organization,
-    Project,
-    ProjectKey,
-    SentryAppInstallation,
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
-    User,
 )
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.user import User
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary

@@ -7,8 +7,8 @@ from typing import Optional
 
 from django.db import IntegrityError, router, transaction
 
-from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,

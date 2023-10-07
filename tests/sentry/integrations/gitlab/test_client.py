@@ -6,7 +6,7 @@ import responses
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import Identity
+from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json

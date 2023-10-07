@@ -14,7 +14,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import (

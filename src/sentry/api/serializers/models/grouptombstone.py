@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
 from sentry.constants import LOG_LEVELS
-from sentry.models import GroupTombstone
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.services.hybrid_cloud.user.service import user_service
 
 

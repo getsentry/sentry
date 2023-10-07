@@ -2,7 +2,7 @@ import uuid
 from uuid import uuid4
 
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import GroupStatus
+from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, SnubaTestCase

@@ -2,7 +2,8 @@ from unittest import mock
 
 import pytest
 
-from sentry.models import Integration, ProjectCodeOwners
+from sentry.models.integrations.integration import Integration
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.silo import SiloMode
 from sentry.tasks.codeowners import update_code_owners_schema
 from sentry.testutils.cases import TestCase

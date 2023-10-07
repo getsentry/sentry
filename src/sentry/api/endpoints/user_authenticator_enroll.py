@@ -18,7 +18,8 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
-from sentry.models import Authenticator, User
+from sentry.models.authenticator import Authenticator
+from sentry.models.user import User
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.organization import organization_service
 

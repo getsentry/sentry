@@ -10,7 +10,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalActor, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
 

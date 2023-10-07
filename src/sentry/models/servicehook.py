@@ -107,7 +107,7 @@ class ServiceHook(Model):
         """
         Add a project to the service hook.
         """
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         ServiceHookProject.objects.create(
             project_id=project_or_project_id.id

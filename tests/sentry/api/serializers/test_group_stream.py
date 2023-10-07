@@ -8,7 +8,7 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
 )
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test

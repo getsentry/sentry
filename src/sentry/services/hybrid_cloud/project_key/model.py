@@ -14,7 +14,7 @@ class ProjectKeyRole(Enum):
     api = "api"
 
     def as_orm_role(self) -> Any:
-        from sentry.models import ProjectKey
+        from sentry.models.projectkey import ProjectKey
 
         if self == ProjectKeyRole.store:
             return ProjectKey.roles.store

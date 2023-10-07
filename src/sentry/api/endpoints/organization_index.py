@@ -15,7 +15,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, ProjectPlatform
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.user.service import user_service

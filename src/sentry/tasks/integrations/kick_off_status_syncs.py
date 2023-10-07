@@ -1,4 +1,4 @@
-from sentry.models import GroupLink
+from sentry.models.grouplink import GroupLink
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 

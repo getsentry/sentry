@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
-from sentry.models import File
+from sentry.models.files.file import File
 
 from .base import MonitorEndpoint, ProjectMonitorPermission
 

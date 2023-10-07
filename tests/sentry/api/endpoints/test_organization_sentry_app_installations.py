@@ -1,4 +1,4 @@
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

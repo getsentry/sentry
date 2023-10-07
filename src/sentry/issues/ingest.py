@@ -23,7 +23,8 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
-from sentry.models import GroupHash, Release
+from sentry.models.grouphash import GroupHash
+from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
 

@@ -3,7 +3,7 @@
 from django.db import connection, migrations
 from psycopg2.extras import execute_values
 
-from sentry.models import GroupStatus
+from sentry.models.group import GroupStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper

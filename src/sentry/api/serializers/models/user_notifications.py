@@ -2,7 +2,8 @@ from collections import defaultdict
 from typing import Iterable
 
 from sentry.api.serializers import Serializer
-from sentry.models import NotificationSetting, UserOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import FineTuningAPIKey, NotificationScopeType
 from sentry.notifications.utils.legacy_mappings import (
     get_type_from_fine_tuning_key,

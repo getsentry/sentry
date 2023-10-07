@@ -7,7 +7,10 @@ from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 

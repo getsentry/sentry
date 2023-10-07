@@ -2,7 +2,9 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.models import Organization, Project, Rule
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
 from sentry.utils import json
 

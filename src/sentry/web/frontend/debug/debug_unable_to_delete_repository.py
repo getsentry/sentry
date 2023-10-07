@@ -1,7 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
 from .mail import MailPreview

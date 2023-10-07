@@ -3,7 +3,8 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.html import escape
 
-from sentry.models import User, UserAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar

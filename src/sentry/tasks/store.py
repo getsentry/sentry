@@ -16,7 +16,10 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
-from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.models.activity import Activity
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
@@ -540,7 +543,8 @@ def delete_raw_event(
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
 
-    from sentry.models import RawEvent, ReprocessingReport
+    from sentry.models.rawevent import RawEvent
+    from sentry.models.reprocessingreport import ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
     ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -633,7 +637,8 @@ def create_failed_event(
         return True
 
     data = CanonicalKeyDict(data)
-    from sentry.models import ProcessingIssue, RawEvent
+    from sentry.models.processingissue import ProcessingIssue
+    from sentry.models.rawevent import RawEvent
 
     raw_event = RawEvent.objects.create(
         project_id=project_id,

@@ -21,7 +21,10 @@ from sentry.integrations.github import (
     client,
 )
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models import Integration, OrganizationIntegration, Project, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError

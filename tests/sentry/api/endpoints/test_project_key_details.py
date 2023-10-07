@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

@@ -8,7 +8,7 @@ import pytest
 from django.utils.timezone import now
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyPercentCondition,

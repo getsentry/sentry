@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, Mapping, MutableSet, Optional, Sequence
 if TYPE_CHECKING:
     from sentry.features.base import Feature
     from sentry.features.manager import FeatureCheckBatch
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
 
 
 class FeatureHandler:

@@ -23,7 +23,6 @@ from sentry.debug_files.artifact_bundle_indexing import (
     update_artifact_bundle_index,
 )
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
-from sentry.models import File, Organization, Project, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
     NULL_STRING,
@@ -34,7 +33,11 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
-from sentry.models.releasefile import ReleaseArchive, update_artifact_index
+from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -83,7 +86,8 @@ def assemble_file(
 
     Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
     """
-    from sentry.models import AssembleChecksumMismatch, FileBlob
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.utils import AssembleChecksumMismatch
 
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization
@@ -209,7 +213,9 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models import BadDif, Project, debugfile
+    from sentry.models import debugfile
+    from sentry.models.debugfile import BadDif
+    from sentry.models.project import Project
     from sentry.reprocessing import bump_reprocessing_revision
 
     with configure_scope() as scope:

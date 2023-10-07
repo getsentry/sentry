@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 import responses
 
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode

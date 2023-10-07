@@ -12,7 +12,8 @@ from sentry import analytics
 from sentry.api.exceptions import SentryAPIException, status
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization

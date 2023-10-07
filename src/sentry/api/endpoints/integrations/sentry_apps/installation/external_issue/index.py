@@ -10,7 +10,8 @@ from sentry.api.bases import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import URLField
 from sentry.mediators.external_issues import Creator
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
