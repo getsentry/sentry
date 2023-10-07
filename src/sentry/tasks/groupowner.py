@@ -1,8 +1,10 @@
 import logging
+import typing
 from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.locks import locks
 from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -58,16 +60,16 @@ def _process_suspect_commits(
                 committers = get_event_file_committers(
                     project, group_id, event_frames, event_platform, sdk_name=sdk_name
                 )
-            owner_scores = {}
+            owner_scores: typing.Dict[str, int] = {}
             for committer in committers:
-                if committer["author"] and "id" in committer["author"]:
+                if type(committer["author"]) is UserSerializerResponse:
                     author_id = committer["author"]["id"]
                     for commit, score in committer["commits"]:
                         if score >= MIN_COMMIT_SCORE:
                             owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
 
             if owner_scores:
-                for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
+                for owner_id in sorted(owner_scores.items(), reverse=True, key=lambda x: x[0])[
                     :PREFERRED_GROUP_OWNERS
                 ]:
                     try:
