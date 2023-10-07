@@ -12,8 +12,16 @@ type Decoder = typeof decodeList | typeof decodeScalar | typeof decodeInteger;
  * updated. The object will remain stable otherwise, avoiding re-renders.
  */
 export default function useLocationQuery<
-  Fields extends Record<string, Scalar | Scalar[]>,
->({fields}: {fields: Record<keyof Fields, Fields[string] | Decoder>}): Fields {
+  Requested extends Record<string, Scalar | Scalar[] | Decoder>,
+>({
+  fields,
+}: {
+  fields: Requested;
+}): {
+  readonly [Property in keyof Requested]: Requested[Property] extends Decoder
+    ? ReturnType<Requested[Property]>
+    : Requested[Property];
+} {
   const location = useLocation();
 
   const locationFields = {};
