@@ -11,6 +11,7 @@ import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHe
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -46,15 +47,23 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-function getTableCell(
+function getTableCell({
   key,
   replay,
   showDropdownFilters,
   organization,
   referrer,
   eventView,
-  noPadding = true
-) {
+  noPadding = true,
+}: {
+  eventView: EventView;
+  key: string;
+  organization: Organization;
+  referrer: string;
+  replay: ReplayListRecord | ReplayListRecordWithTx;
+  noPadding?: boolean;
+  showDropdownFilters?: boolean;
+}) {
   switch (key) {
     case ReplayColumn.ACTIVITY:
       return (
@@ -217,11 +226,11 @@ function ReplayTable({
   fetchError,
   isFetching,
   replays,
-  visibleColumns,
   sort,
+  visibleColumns,
   emptyMessage,
-  gridRows,
   saveLocation,
+  gridRows,
   showDropdownFilters,
   isOldDeadRageCard,
 }: Props) {
@@ -272,14 +281,14 @@ function ReplayTable({
   const renderBodyCell = useCallback(
     (column, dataRow) => {
       const replay = dataRow;
-      return getTableCell(
-        column.key,
+      return getTableCell({
+        key: column.key,
         replay,
         showDropdownFilters,
         organization,
         referrer,
-        eventView
-      );
+        eventView,
+      });
     },
     [organization, showDropdownFilters, eventView, referrer]
   );
@@ -305,15 +314,15 @@ function ReplayTable({
         return (
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
-              return getTableCell(
-                column,
+              return getTableCell({
+                key: column,
                 replay,
                 showDropdownFilters,
                 organization,
                 referrer,
                 eventView,
-                false // should have padding
-              );
+                noPadding: false, // old card should have padding
+              });
             })}
           </Fragment>
         );

@@ -28,7 +28,7 @@ export const colToHeader = {
 };
 
 // GridEditable headers only allow strings, not ReactNodes, so we can't have tooltips anymore.
-// If we convert to GridEditable, we can delete the following function since
+// If we fully convert to GridEditable, we can delete the following function since
 // we'll only need to use the enum to string mapping above.
 function HeaderCell({column, sort}: Props) {
   switch (column) {
