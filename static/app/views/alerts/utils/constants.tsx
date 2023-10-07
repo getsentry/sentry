@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 export const CHANGE_ALERT_CONDITION_IDS = [
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
@@ -5,12 +7,15 @@ export const CHANGE_ALERT_CONDITION_IDS = [
 ];
 
 export const CHANGE_ALERT_PLACEHOLDERS_LABELS = {
-  'sentry.rules.conditions.event_frequency.EventFrequencyCondition':
-    'Number of events in an issue is...',
-  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition':
-    'Number of users affected by an issue is...',
-  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition':
-    'Percent of sessions affected by an issue is...',
+  'sentry.rules.conditions.event_frequency.EventFrequencyCondition': t(
+    'Number of events in an issue is'
+  ),
+  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition': t(
+    'Number of users affected by an issue is'
+  ),
+  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition': t(
+    'Percent of sessions affected by an issue is'
+  ),
 };
 
 export const COMPARISON_TYPE_CHOICE_VALUES = {
