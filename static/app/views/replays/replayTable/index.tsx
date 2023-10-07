@@ -258,12 +258,12 @@ function ReplayTable({
   // Using handleResizeColumn causes refetching of replay data every time you resize
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridCols,
-    location: newLocation,
+    location,
   });
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: gridCols[0].key, kind: 'desc'},
-    location: newLocation,
+    location,
   });
 
   const renderHeadCell = useMemo(
@@ -341,7 +341,7 @@ function ReplayTable({
         </StyledAlert>
       }
       isLoading={isFetching}
-      data-test-id="replay-table"
+      customTestId="replay-table"
       data={replays ?? []}
       columnOrder={columns}
       emptyMessage={

@@ -93,21 +93,22 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  customTestId?: string;
   emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
   errorMessage?: ReactNode;
+
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-
   height?: string | number;
+
   isLoading?: boolean;
 
   scrollable?: boolean;
-
   stickyHeader?: boolean;
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -433,7 +434,7 @@ class GridEditable<
   }
 
   render() {
-    const {title, headerButtons, scrollable, height} = this.props;
+    const {title, headerButtons, scrollable, height, customTestId} = this.props;
     const showHeader = title || headerButtons;
     return (
       <Fragment>
@@ -448,7 +449,7 @@ class GridEditable<
           )}
           <Body>
             <Grid
-              data-test-id="grid-editable"
+              data-test-id={customTestId ?? 'grid-editable'}
               scrollable={scrollable}
               height={height}
               ref={this.refGrid}
