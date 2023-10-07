@@ -95,19 +95,20 @@ type GridEditableProps<DataRow, ColumnKey> = {
   location: Location;
   emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
+  errorMessage?: ReactNode;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: string | number;
 
+  height?: string | number;
   isLoading?: boolean;
+
   scrollable?: boolean;
 
   stickyHeader?: boolean;
-
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
    * parent component to tell it how/what to render and will mutate the view
@@ -394,11 +395,14 @@ class GridEditable<
   };
 
   renderError() {
+    const {errorMessage} = this.props;
     return (
       <GridRow>
-        <GridBodyCellStatus>
-          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-        </GridBodyCellStatus>
+        {errorMessage ?? (
+          <GridBodyCellStatus>
+            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          </GridBodyCellStatus>
+        )}
       </GridRow>
     );
   }

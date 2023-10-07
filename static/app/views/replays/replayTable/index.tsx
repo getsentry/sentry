@@ -1,6 +1,8 @@
 import {ReactNode, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Alert from 'sentry/components/alert';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -258,15 +260,20 @@ function ReplayTable({
   return (
     <GridEditable
       error={fetchError}
+      errorMessage={
+        <StyledAlert type="error" showIcon>
+          {typeof fetchError === 'string'
+            ? fetchError
+            : t(
+                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+              )}
+        </StyledAlert>
+      }
       isLoading={isFetching}
+      data-test-id="replay-table"
       data={replays ?? []}
       columnOrder={columns}
-      emptyMessage={
-        emptyMessage ??
-        t(
-          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-        )
-      }
+      emptyMessage={emptyMessage}
       columnSortBy={[]}
       stickyHeader
       grid={{
@@ -279,4 +286,10 @@ function ReplayTable({
   );
 }
 
+const StyledAlert = styled(Alert)`
+  border-radius: 0;
+  border-width: 1px 0 0 0;
+  grid-column: 1/-1;
+  margin-bottom: 0;
+`;
 export default ReplayTable;
