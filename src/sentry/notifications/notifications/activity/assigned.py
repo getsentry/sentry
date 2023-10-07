@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from sentry.models import Activity, NotificationSetting, Organization, Team
+from sentry.models.activity import Activity
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (

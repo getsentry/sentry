@@ -9,8 +9,10 @@ from rest_framework.request import Request
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.mediators import project_rules
-from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSource, User
+from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
+from sentry.models.user import User
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 from .constants import MAX_TIMEOUT, TIMEOUT

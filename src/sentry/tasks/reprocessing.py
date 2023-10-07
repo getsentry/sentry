@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def reprocess_events(project_id, **kwargs):
     from sentry.coreapi import insert_data_to_database_legacy
     from sentry.locks import locks
-    from sentry.models import ProcessingIssue
+    from sentry.models.processingissue import ProcessingIssue
 
     lock_key = "events:reprocess_events:%s" % project_id
     have_more = False
@@ -45,7 +45,7 @@ def reprocess_events(project_id, **kwargs):
 
 
 def create_reprocessing_report(project_id, event_id):
-    from sentry.models import ReprocessingReport
+    from sentry.models.reprocessingreport import ReprocessingReport
 
     return ReprocessingReport.objects.create(project_id=project_id, event_id=event_id)
 
@@ -57,7 +57,9 @@ def create_reprocessing_report(project_id, event_id):
     silo_mode=SiloMode.REGION,
 )
 def clear_expired_raw_events():
-    from sentry.models import ProcessingIssue, RawEvent, ReprocessingReport
+    from sentry.models.processingissue import ProcessingIssue
+    from sentry.models.rawevent import RawEvent
+    from sentry.models.reprocessingreport import ReprocessingReport
 
     def batched_delete(model_cls, **filter):
         # Django 1.6's `Queryset.delete` runs in this order:

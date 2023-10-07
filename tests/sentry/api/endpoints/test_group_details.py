@@ -6,23 +6,20 @@ from django.utils import timezone
 
 from sentry import tsdb
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    Activity,
-    ApiKey,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Release,
-)
+from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode

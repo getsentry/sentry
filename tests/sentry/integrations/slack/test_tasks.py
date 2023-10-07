@@ -7,7 +7,7 @@ import responses
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.tasks.integrations.slack import (

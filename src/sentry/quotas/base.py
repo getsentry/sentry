@@ -12,7 +12,7 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
     from sentry.monitors.models import Monitor
 
 
@@ -416,7 +416,8 @@ class Quota(Service):
                 )
 
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
+        from sentry.models.organization import Organization
 
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
@@ -439,7 +440,7 @@ class Quota(Service):
         return (quota, window)
 
     def get_organization_quota(self, organization):
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         account_limit = _limit_from_settings(
             OrganizationOption.objects.get_value(

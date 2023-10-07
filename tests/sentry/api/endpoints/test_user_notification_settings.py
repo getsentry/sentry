@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes

@@ -6,7 +6,8 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack

@@ -5,7 +5,10 @@ import datetime
 from django.db import IntegrityError, router, transaction
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.models import AuditLogEntry, OutboxCategory, OutboxScope, RegionOutbox, User, UserIP
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.user import User
+from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.silo import unguarded_write
 

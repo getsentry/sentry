@@ -7,7 +7,7 @@ from snuba_sdk import Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Release, SemverFilter
+from sentry.models.release import Release, SemverFilter
 from sentry.search.events import builder, constants
 from sentry.search.events.filter import (
     _flip_field_sort,

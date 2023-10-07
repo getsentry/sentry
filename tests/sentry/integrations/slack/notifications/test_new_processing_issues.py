@@ -2,7 +2,7 @@ from unittest import mock
 
 import responses
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.new_processing_issues import (
     NewProcessingIssuesActivityNotification,
 )

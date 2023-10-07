@@ -6,7 +6,8 @@ from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional,
 
 import sentry_sdk
 
-from sentry.models import Project, Release
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values

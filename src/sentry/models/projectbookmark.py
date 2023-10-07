@@ -11,7 +11,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 @region_silo_only_model

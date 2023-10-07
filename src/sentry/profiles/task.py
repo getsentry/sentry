@@ -14,7 +14,10 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
-from sentry.models import EventError, Organization, Project, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.eventerror import EventError
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature
 from sentry.profiles.utils import get_from_profiling_service
