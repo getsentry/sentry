@@ -8,7 +8,8 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models import NotificationSetting, User
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.user import User
 
 
 @control_silo_endpoint

@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models import OrganizationAccessRequest, OrganizationMemberTeam
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

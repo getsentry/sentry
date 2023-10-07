@@ -16,8 +16,11 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration, OrganizationIntegration
-from sentry.models.integrations.organization_integration import PagerDutyServiceDict
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
+)
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError

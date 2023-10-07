@@ -7,7 +7,9 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Release, ReleaseCommit, Repository
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 
 
 @region_silo_endpoint

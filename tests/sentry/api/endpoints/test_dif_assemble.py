@@ -4,8 +4,12 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
-from sentry.models import ApiToken, File, FileBlob, FileBlobIndex, FileBlobOwner
+from sentry.models.apitoken import ApiToken
 from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.silo import SiloMode
 from sentry.tasks.assemble import (
     AssembleTask,

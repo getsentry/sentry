@@ -2,7 +2,7 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 from .mail import MailPreview
 

@@ -4,7 +4,7 @@ import enum
 import logging
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data

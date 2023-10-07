@@ -7,7 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment, EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 
 
 class ProjectEnvironmentSerializer(serializers.Serializer):

@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 # from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
     get_profile_ids,
     get_profile_ids_for_span_op,

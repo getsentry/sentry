@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import audit_log
-from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.silo import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase

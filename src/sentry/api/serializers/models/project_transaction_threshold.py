@@ -1,7 +1,7 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 

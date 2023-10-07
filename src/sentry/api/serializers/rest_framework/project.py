@@ -1,7 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import Project
+from sentry.models.project import Project
 
 ValidationError = serializers.ValidationError
 
