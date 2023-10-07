@@ -346,7 +346,7 @@ function ReplayTable({
       columnOrder={columns}
       emptyMessage={
         <EmptyStateWarning>
-          <p>{emptyMessage}</p>
+          <p>{emptyMessage ?? t('There are no items to display')}</p>
         </EmptyStateWarning>
       }
       columnSortBy={[]}
