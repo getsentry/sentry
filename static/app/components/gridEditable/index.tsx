@@ -96,7 +96,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
   customTestId?: string;
   emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
-  errorMessage?: ReactNode;
 
   /**
    * Inject a set of buttons into the top of the grid table.
@@ -396,14 +395,11 @@ class GridEditable<
   };
 
   renderError() {
-    const {errorMessage} = this.props;
     return (
       <GridRow>
-        {errorMessage ?? (
-          <GridBodyCellStatus>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-          </GridBodyCellStatus>
-        )}
+        <GridBodyCellStatus>
+          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+        </GridBodyCellStatus>
       </GridRow>
     );
   }
@@ -463,5 +459,4 @@ class GridEditable<
     );
   }
 }
-
 export default GridEditable;

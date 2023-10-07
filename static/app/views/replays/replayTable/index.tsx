@@ -11,6 +11,7 @@ import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHe
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -293,12 +294,30 @@ function ReplayTable({
     [organization, showDropdownFilters, eventView, referrer]
   );
 
-  // Old replay table code, still used for the old dead rage cards
+  // For StyledPanelTable
   const tableHeaders = visibleColumns
     .filter(Boolean)
     .map(column => <HeaderCell key={column} column={column} sort={sort} />);
 
-  return isOldDeadRageCard ? (
+  // Separate case for error because GridEditable doesn't like custom alert inside the table
+  return fetchError && !isFetching ? (
+    <ErrorStyledPanelTable
+      headers={tableHeaders}
+      isLoading={false}
+      visibleColumns={visibleColumns}
+      data-test-id="replay-table"
+      gridRows={undefined}
+    >
+      <StyledAlert type="error" showIcon>
+        {typeof fetchError === 'string'
+          ? fetchError
+          : t(
+              'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+            )}
+      </StyledAlert>
+    </ErrorStyledPanelTable>
+  ) : // Old replay table code, still used for the old dead rage cards
+  isOldDeadRageCard ? (
     <StyledPanelTable
       headers={tableHeaders}
       isEmpty={replays?.length === 0}
@@ -330,16 +349,7 @@ function ReplayTable({
     </StyledPanelTable>
   ) : (
     <GridEditable
-      error={fetchError}
-      errorMessage={
-        <StyledAlert type="error" showIcon>
-          {typeof fetchError === 'string'
-            ? fetchError
-            : t(
-                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-              )}
-        </StyledAlert>
-      }
+      error={false}
       isLoading={isFetching}
       customTestId="replay-table"
       data={replays ?? []}
@@ -398,6 +408,10 @@ const StyledAlert = styled(Alert)`
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
+`;
+
+const ErrorStyledPanelTable = styled(StyledPanelTable)`
+  margin-bottom: ${space(2)};
 `;
 
 export default ReplayTable;
