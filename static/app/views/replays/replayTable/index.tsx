@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -273,7 +274,13 @@ function ReplayTable({
       data-test-id="replay-table"
       data={replays ?? []}
       columnOrder={columns}
-      emptyMessage={emptyMessage}
+      emptyMessage={
+        emptyMessage ?? (
+          <EmptyStateWarning>
+            <p>{t('There are no items to display')}</p>
+          </EmptyStateWarning>
+        )
+      }
       columnSortBy={[]}
       stickyHeader
       grid={{
