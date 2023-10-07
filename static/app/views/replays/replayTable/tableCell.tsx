@@ -292,12 +292,14 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  noPadding,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
   isWidget?: boolean;
+  noPadding?: boolean;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -353,7 +355,7 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item noPadding isArchived={replay.is_archived}>
+      <Item noPadding={noPadding} isArchived={replay.is_archived}>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
@@ -386,7 +388,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item noPadding isWidget={isWidget}>
+    <Item noPadding={noPadding} isWidget={isWidget}>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -431,16 +433,17 @@ const MainLink = styled(Link)`
 export function TransactionCell({
   organization,
   replay,
+  noPadding,
 }: Props & {organization: Organization}) {
   const location = useLocation();
 
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
   return hasTxEvent ? (
-    <Item noPadding>
+    <Item noPadding={noPadding}>
       <SpanOperationBreakdown>
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
@@ -453,16 +456,16 @@ export function TransactionCell({
   ) : null;
 }
 
-export function OSCell({replay, showDropdownFilters}: Props) {
+export function OSCell({replay, showDropdownFilters, noPadding}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding>
+    <Item noPadding={noPadding}>
       <Container>
         <Tooltip title={`${name} ${version}`}>
           <ContextIcon
@@ -480,16 +483,16 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function BrowserCell({replay, showDropdownFilters}: Props) {
+export function BrowserCell({replay, showDropdownFilters, noPadding}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding>
+    <Item noPadding={noPadding}>
       <Container>
         <Tooltip title={`${name} ${version}`}>
           <ContextIcon
@@ -507,12 +510,12 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function DurationCell({replay, showDropdownFilters}: Props) {
+export function DurationCell({replay, showDropdownFilters, noPadding}: Props) {
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding>
+    <Item noPadding={noPadding}>
       <Container>
         <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
         {showDropdownFilters ? (
@@ -523,12 +526,12 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function RageClickCountCell({replay, showDropdownFilters}: Props) {
+export function RageClickCountCell({replay, showDropdownFilters, noPadding}: Props) {
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding data-test-id="replay-table-count-rage-clicks">
+    <Item noPadding={noPadding} data-test-id="replay-table-count-rage-clicks">
       <Container>
         {replay.count_rage_clicks ? (
           <RageClickCount>
@@ -549,12 +552,12 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
+export function DeadClickCountCell({replay, showDropdownFilters, noPadding}: Props) {
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding data-test-id="replay-table-count-dead-clicks">
+    <Item noPadding={noPadding} data-test-id="replay-table-count-dead-clicks">
       <Container>
         {replay.count_dead_clicks ? (
           <DeadClickCount>
@@ -575,12 +578,12 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function ErrorCountCell({replay, showDropdownFilters}: Props) {
+export function ErrorCountCell({replay, showDropdownFilters, noPadding}: Props) {
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   return (
-    <Item noPadding data-test-id="replay-table-count-errors">
+    <Item noPadding={noPadding} data-test-id="replay-table-count-errors">
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
@@ -598,13 +601,13 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function ActivityCell({replay, showDropdownFilters}: Props) {
+export function ActivityCell({replay, showDropdownFilters, noPadding}: Props) {
   if (replay.is_archived) {
-    return <Item noPadding isArchived />;
+    return <Item noPadding={noPadding} isArchived />;
   }
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
-    <Item noPadding>
+    <Item noPadding={noPadding}>
       <Container>
         <ScoreBar
           size={20}

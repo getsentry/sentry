@@ -185,6 +185,7 @@ function CardTable({
         saveLocation
         gridRows={`auto repeat(${rows}, 1fr)`}
         showDropdownFilters={false}
+        isOldDeadRageCard
       />
       {children}
     </Fragment>
