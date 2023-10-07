@@ -5,6 +5,7 @@ import GridEditable from 'sentry/components/gridEditable';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
+import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -31,10 +32,10 @@ type Props = {
   fetchError: undefined | Error;
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
-  sort: Sort | undefined;
+  sort: Sort | undefined; // unused
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
-  gridRows?: string;
+  gridRows?: string; // unused
   saveLocation?: boolean;
   showDropdownFilters?: boolean;
 };
@@ -63,20 +64,23 @@ function ReplayTable({
         key: '',
       }
     : newLocation;
-
   const eventView = EventView.fromLocation(location);
 
-  const gridCols = visibleColumns.map(c => {
-    return {key: c, name: colToHeader[c]};
+  const gridCols = visibleColumns.map(col => {
+    return {key: col, name: colToHeader[col]};
   });
-  const {columns} = useQueryBasedColumnResize({
+
+  // Using handleResizeColumn causes refetching of replay data every time you resize
+  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: gridCols,
     location: newLocation,
   });
+
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: gridCols[0].key, kind: 'desc'},
     location: newLocation,
   });
+
   const renderHeadCell = useMemo(
     () =>
       renderSortableHeaderCell({
@@ -251,37 +255,22 @@ function ReplayTable({
     [organization, showDropdownFilters, eventView, referrer]
   );
 
-  if (fetchError && !isFetching) {
-    return (
-      <GridEditable
-        error={fetchError}
-        isLoading={false}
-        data={[]}
-        columnOrder={columns}
-        emptyMessage={emptyMessage}
-        columnSortBy={[]}
-        stickyHeader
-        grid={{
-          onResizeColumn: () => {},
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location as Location<any>}
-      />
-    );
-  }
-
   return (
     <GridEditable
       error={fetchError}
       isLoading={isFetching}
       data={replays ?? []}
       columnOrder={columns}
-      emptyMessage={emptyMessage}
+      emptyMessage={
+        emptyMessage ??
+        t(
+          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+        )
+      }
       columnSortBy={[]}
       stickyHeader
       grid={{
-        onResizeColumn: () => {},
+        onResizeColumn: handleResizeColumn, // will cause refetching of replay data
         renderHeadCell,
         renderBodyCell,
       }}

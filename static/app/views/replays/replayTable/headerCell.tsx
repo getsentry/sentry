@@ -27,6 +27,9 @@ export const colToHeader = {
   [ReplayColumn.MOST_ERRONEOUS_REPLAYS]: t('Most Erroneous Replays'),
 };
 
+// GridEditable headers only allow strings, not ReactNodes, so we can't have tooltips anymore.
+// If we convert to GridEditable, we can delete the following function since
+// we'll only need to use the enum to string mapping above.
 function HeaderCell({column, sort}: Props) {
   switch (column) {
     case ReplayColumn.ACTIVITY:
