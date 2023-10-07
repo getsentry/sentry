@@ -382,7 +382,9 @@ class NotificationController:
         return recipients
 
     def get_settings_for_user_by_projects(
-        self, user: Recipient
+        self,
+        user: Recipient,
+        type: NotificationSettingEnum | None = None,
     ) -> MutableMapping[
         int,
         MutableMapping[
@@ -391,7 +393,8 @@ class NotificationController:
         ],
     ]:
         """
-        Returns a mapping of project IDs to enabled notification settings for the given user.
+        Returns a mapping of project IDs to enabled notification settings for the given user
+        with an optional type filter
         """
         if not self.project_ids:
             raise Exception("Must specify project_ids")
@@ -413,7 +416,7 @@ class NotificationController:
             if not isinstance(project_id, int):
                 raise Exception("project_ids must be a list of integers")
 
-            combined_settings = self.get_combined_settings(project_id=project_id)
+            combined_settings = self.get_combined_settings(type=type, project_id=project_id)
 
             # take the settings for this user and apply it to the projct
             settings_for_user = combined_settings[user]
@@ -435,7 +438,7 @@ class NotificationController:
         if not setting_type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_settings_for_user_by_projects(user)
+        enabled_settings = self.get_settings_for_user_by_projects(user, type=type)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
             has_setting = False
