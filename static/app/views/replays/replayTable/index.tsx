@@ -361,13 +361,6 @@ function ReplayTable({
   );
 }
 
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
-  border-width: 1px 0 0 0;
-  grid-column: 1/-1;
-  margin-bottom: 0;
-`;
-
 const flexibleColumns = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_RAGE_CLICKS,
@@ -398,6 +391,13 @@ const StyledPanelTable = styled(PanelTable)<{
     props.gridRows
       ? `grid-template-rows: ${props.gridRows};`
       : `grid-template-rows: 44px max-content;`}
+`;
+
+const StyledAlert = styled(Alert)`
+  border-radius: 0;
+  border-width: 1px 0 0 0;
+  grid-column: 1/-1;
+  margin-bottom: 0;
 `;
 
 export default ReplayTable;
