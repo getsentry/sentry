@@ -1,82 +1,78 @@
-import {RouteComponentProps} from 'react-router';
-
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, ProjectKey} from 'sentry/types';
+import {ProjectKey} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
-};
+function getInstructions(keyList: ProjectKey[]) {
+  return (
+    'def middleware(request, response):\n' +
+    "    response['Public-Key-Pins'] = \\\n" +
+    '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
+    '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
+    "        'max-age=5184000; includeSubDomains; ' \\\n" +
+    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    '    return response\n'
+  );
+}
 
-type State = {
-  keyList: null | ProjectKey[];
-} & DeprecatedAsyncView['state'];
+function getReportOnlyInstructions(keyList: ProjectKey[]) {
+  return (
+    'def middleware(request, response):\n' +
+    "    response['Public-Key-Pins-Report-Only'] = \\\n" +
+    '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
+    '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
+    "        'max-age=5184000; includeSubDomains; ' \\\n" +
+    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    '    return response\n'
+  );
+}
 
-class ProjectHpkpReports extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
+function ProjectHpkpReports() {
+  const organization = useOrganization();
+  const {projectId} = useParams();
+
+  const {
+    data: keyList,
+    isLoading,
+    error,
+    refetch,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
+    staleTime: 0,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false);
+  if (error) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  getInstructions(keyList: ProjectKey[]) {
-    return (
-      'def middleware(request, response):\n' +
-      "    response['Public-Key-Pins'] = \\\n" +
-      '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
-      '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
-      "        'max-age=5184000; includeSubDomains; ' \\\n" +
-      `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
-      '    return response\n'
-    );
-  }
-
-  getReportOnlyInstructions(keyList: ProjectKey[]) {
-    return (
-      'def middleware(request, response):\n' +
-      "    response['Public-Key-Pins-Report-Only'] = \\\n" +
-      '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
-      '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
-      "        'max-age=5184000; includeSubDomains; ' \\\n" +
-      `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
-      '    return response\n'
-    );
-  }
-
-  renderBody() {
-    const {organization, params} = this.props;
-    const {keyList} = this.state;
-    if (!keyList) {
-      return null;
-    }
-
-    return (
+  return (
+    <SentryDocumentTitle
+      title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
+    >
       <div>
         <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
 
         <PreviewFeature />
 
-        <ReportUri
-          keyList={keyList}
-          orgId={organization.slug}
-          projectId={params.projectId}
-        />
+        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
@@ -110,13 +106,13 @@ class ProjectHpkpReports extends DeprecatedAsyncView<Props, State> {
                 'For example, in Python you might achieve this via a simple web middleware'
               )}
             </p>
-            <pre>{this.getInstructions(keyList)}</pre>
+            <pre>{getInstructions(keyList)}</pre>
 
             <p>
               {t(`Alternatively you can setup HPKP reports to simply send reports rather than
               actually enforcing the policy`)}
             </p>
-            <pre>{this.getReportOnlyInstructions(keyList)}</pre>
+            <pre>{getReportOnlyInstructions(keyList)}</pre>
 
             <p>
               {tct(
@@ -133,8 +129,8 @@ class ProjectHpkpReports extends DeprecatedAsyncView<Props, State> {
           </PanelBody>
         </Panel>
       </div>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 export default withOrganization(ProjectHpkpReports);
