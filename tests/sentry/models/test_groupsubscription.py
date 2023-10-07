@@ -398,6 +398,7 @@ class GetParticipantsTest(TestCase):
             slack={self.user: GroupSubscriptionReason.comment},
         )
 
+    @with_feature("organizations:notification-settings-v2")
     def test_simple_v2(self):
         self.test_simple()
 
@@ -480,7 +481,10 @@ class GetParticipantsTest(TestCase):
     def test_no_conversations_v2(self):
         # Implicit subscription, ensure the project setting overrides the
         # default global option.
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
@@ -499,7 +503,10 @@ class GetParticipantsTest(TestCase):
 
         self.update_user_settings_always()
 
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         self.update_project_setting_never()
         self._assert_subscribers_are()
 

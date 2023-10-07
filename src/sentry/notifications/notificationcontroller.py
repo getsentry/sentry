@@ -336,9 +336,12 @@ class NotificationController:
             )
         )
         for recipient, recipient_options_map in setting_options_map.items():
-            actor = RpcActor.from_object(recipient)
-            if actor_type and actor.actor_type != actor_type:
-                continue
+            # check actor type against recipient type
+            if actor_type:
+                if actor_type == ActorType.USER and recipient_is_team(recipient):
+                    continue
+                if actor_type == ActorType.TEAM and recipient_is_user(recipient):
+                    continue
 
             for type in types_to_search:
                 option_value = recipient_options_map[type]

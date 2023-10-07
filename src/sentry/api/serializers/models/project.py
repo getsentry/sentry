@@ -59,7 +59,11 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -318,7 +322,7 @@ class ProjectSerializer(Serializer):
                     subscriptions = notifications_service.get_subscriptions_for_projects(
                         user_id=user.id,
                         project_ids=project_ids,
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                        type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
