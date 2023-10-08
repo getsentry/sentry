@@ -24,6 +24,7 @@ from typing import (
 
 import sentry_sdk
 from django import db
+from django.conf import settings
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max, Min
 from django.db.transaction import Atomic
@@ -53,6 +54,7 @@ from sentry.db.postgres.transactions import (
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
+from sentry.utils.env import in_test_environment
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -106,6 +108,8 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
+
+    ADMIN_AUDIT_LOG_CREATE = 30
 
     @classmethod
     def as_choices(cls):
@@ -305,7 +309,9 @@ class OutboxScope(IntEnum):
         },
     )
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
-    AUDIT_LOG_SCOPE = scope_categories(3, {OutboxCategory.AUDIT_LOG_EVENT})
+    AUDIT_LOG_SCOPE = scope_categories(
+        3, {OutboxCategory.AUDIT_LOG_EVENT, OutboxCategory.ADMIN_AUDIT_LOG_CREATE}
+    )
     USER_IP_SCOPE = scope_categories(
         4,
         {
@@ -406,6 +412,39 @@ class OutboxBase(Model):
         outbox_model = apps.get_model(app_name, model_name)
         assert issubclass(outbox_model, cls)
         return outbox_model
+
+    @classmethod
+    def infer_outbox_type(cls) -> Type[Self]:
+        """
+        Using SENTRY_OUTBOX_MODELS, searches for the first outbox type that is a subclass of cls that matches any
+        open transaction, or returns cls.
+        """
+        for outbox_names in settings.SENTRY_OUTBOX_MODELS.values():
+            for outbox_name in outbox_names:
+                ob = cls.from_outbox_name(outbox_name)
+                if not issubclass(ob, cls):
+                    continue
+
+                if in_test_environment():
+                    from sentry.testutils.hybrid_cloud import (  # NOQA:S007
+                        simulated_transaction_watermarks,
+                    )
+
+                    open_transaction = (
+                        simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+                            using=router.db_for_write(ob)
+                        )
+                        > 0
+                    )
+                else:
+                    open_transaction = transaction.get_connection(
+                        router.db_for_write(ob)
+                    ).in_atomic_block
+
+                if open_transaction:
+                    return ob
+
+        return cls
 
     @classmethod
     def next_object_identifier(cls):
@@ -830,21 +869,3 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
-
-
-# Add this in after we successfully deploy, the job.
-# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-# def schedule_backfill_outboxes(app_config, using, **kwargs):
-#     from sentry.tasks.backfill_outboxes import (
-#         schedule_backfill_outbox_jobs,
-#         schedule_backfill_outbox_jobs_control,
-#     )
-#     from sentry.utils.env import in_test_environment
-#
-#     if in_test_environment():
-#         return
-#
-#     if SiloMode.get_current_mode() != SiloMode.REGION:
-#         schedule_backfill_outbox_jobs_control.delay()
-#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
-#         schedule_backfill_outbox_jobs.delay()

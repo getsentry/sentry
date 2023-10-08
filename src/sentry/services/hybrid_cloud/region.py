@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict
-from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
+from sentry.services.hybrid_cloud.rpc import HybridCloudServiceUnimplementedException
 from sentry.types.region import (
     Region,
     RegionMappingNotFound,
@@ -123,7 +123,7 @@ class UnimplementedRegionResolution(RegionResolutionStrategy):
     """Indicate that a method's region resolution logic has not been implemented yet.
 
     A remote call to the method will be interrupted and will default to the
-    monolithic fallback implementation. See the RpcServiceUnimplementedException
+    monolithic fallback implementation. See the HybridCloudServiceUnimplementedException
     documentation for details.
     """
 
@@ -132,6 +132,6 @@ class UnimplementedRegionResolution(RegionResolutionStrategy):
         self.method_name = method_name
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        raise RpcServiceUnimplementedException(
+        raise HybridCloudServiceUnimplementedException(
             self.service_name, self.method_name, "Need to resolve to remote region silo"
         )

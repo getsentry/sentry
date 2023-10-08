@@ -11,7 +11,7 @@ from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.rpc import (
-    RpcArgumentException,
+    HybridCloudArgumentException,
     RpcResolutionException,
     dispatch_to_local_service,
 )
@@ -64,7 +64,7 @@ class RpcServiceEndpoint(Endpoint):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcResolutionException as e:
             raise NotFound from e
-        except RpcArgumentException as e:
+        except HybridCloudArgumentException as e:
             raise ParseError from e
         except Exception as e:
             # Produce more detailed log

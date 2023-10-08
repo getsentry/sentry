@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     Mapping,
     NoReturn,
+    Optional,
     Tuple,
     Type,
     TypeVar,
@@ -43,32 +44,36 @@ logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
+
+def is_rpc_method(cb: Callable[..., Any]) -> bool:
+    return hasattr(cb, _IS_RPC_METHOD_ATTR)
+
+
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 _REGION_RESOLUTION_ATTR = "__region_resolution"
 _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
 
 
-class RpcException(Exception):
-    def __init__(self, service_name: str, method_name: str | None, message: str) -> None:
-        name = f"{service_name}.{method_name}" if method_name else service_name
-        super().__init__(f"{name}: {message}")
+class HybridCloudException(Exception):
+    def __init__(self, target_name: str, message: str) -> None:
+        super().__init__(f"{target_name}: {message}")
 
 
-class RpcServiceSetupException(RpcException):
-    """Indicates an error in declaring the properties of RPC services."""
+class HybridCloudServiceSetupException(HybridCloudException):
+    """Indicates an error in declaring the properties of HybridCloud services."""
 
 
-class RpcServiceUnimplementedException(RpcException):
-    """Indicates that an RPC service is not yet able to complete a remote call.
+class HybridCloudServiceUnimplementedException(HybridCloudException):
+    """Indicates that an HybridCloud service is not yet able to complete a remote call.
 
-    This is a temporary measure while the RPC services are being developed. It
+    This is a temporary measure while the HybridCloud services are being developed. It
     signals that a remote call in a testing or development environment should fall
     back to a monolithic implementation. When RPC services are production-ready,
     these should become hard failures.
     """
 
 
-class RpcMethodSignature:
+class HybridCloudMethodSignature:
     """Represent the set of parameters expected for one RPC method.
 
     This class is responsible for serializing and deserializing arguments. If the
@@ -76,7 +81,9 @@ class RpcMethodSignature:
     resolving the arguments to the correct region for a remote call.
     """
 
-    def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
+    def __init__(
+        self, base_service_cls: Optional[Type[RpcService]], base_method: Callable[..., Any]
+    ) -> None:
         super().__init__()
         self._base_service_cls = base_service_cls
         self._base_method = base_method
@@ -85,12 +92,19 @@ class RpcMethodSignature:
         self._region_resolution = self._extract_region_resolution()
 
     @property
-    def service_name(self) -> str:
-        return self._base_service_cls.__name__
+    def service_name(self) -> Optional[str]:
+        if self._base_service_cls:
+            return self._base_service_cls.__name__
+        return None
 
     @property
     def method_name(self) -> str:
         return self._base_method.__name__
+
+    def target_name(self, sep: str = ".") -> str:
+        if sn := self.service_name:
+            return f"{sn}{sep}{self.method_name}"
+        return self.method_name
 
     @staticmethod
     def _validate_type_token(token: Any) -> None:
@@ -110,26 +124,26 @@ class RpcMethodSignature:
                 "Type annotations on RPC methods must be actual type tokens, not strings"
             )
 
-    def _setup_exception(self, message: str) -> RpcServiceSetupException:
-        return RpcServiceSetupException(self.service_name, self.method_name, message)
-
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise self._setup_exception("Type annotations are required on RPC methods")
+                raise HybridCloudServiceSetupException(
+                    self.target_name(), "Type annotations are required on RPC methods"
+                )
             try:
                 self._validate_type_token(param.annotation)
             except ValueError as e:
-                raise self._setup_exception(
-                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}"
+                raise HybridCloudServiceSetupException(
+                    self.target_name(),
+                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}",
                 ) from e
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
 
-        name = f"{self.service_name}__{self.method_name}__ParameterModel"
+        name = f"{self.target_name('__')}__ParameterModel"
         parameters = list(inspect.signature(self._base_method).parameters.values())
         parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
@@ -145,7 +159,7 @@ class RpcMethodSignature:
         return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
         where we can't directly access an RpcModel class on which to call `parse_obj`.
         """
-        name = f"{self.service_name}__{self.method_name}__ReturnModel"
+        name = f"{self.target_name('__')}__ReturnModel"
         return_type = inspect.signature(self._base_method).return_annotation
         if return_type is None:
             return None
@@ -173,8 +187,8 @@ class RpcMethodSignature:
         try:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:
-            raise RpcArgumentException(
-                self.service_name, self.method_name, "Could not serialize arguments"
+            raise HybridCloudArgumentException(
+                self.target_name(), "Could not serialize arguments"
             ) from e
         return model_instance.dict()
 
@@ -184,15 +198,15 @@ class RpcMethodSignature:
         except Exception as e:
             # TODO: Parse Pydantic's exception object(s) and produce more useful
             #  error messages that can be put into the body of the HTTP 400 response
-            raise RpcArgumentException(
-                self.service_name, self.method_name, "Could not deserialize arguments"
+            raise HybridCloudArgumentException(
+                self.target_name(), "Could not deserialize arguments"
             ) from e
 
     def deserialize_return_value(self, value: Any) -> Any:
         if self._return_model is None:
             if value is not None:
-                raise RpcResponseException(
-                    self.service_name, self.method_name, f"Expected None but got {type(value)}"
+                raise HybridCloudResponseException(
+                    self.target_name(), f"Expected None but got {type(value)}"
                 )
             return None
 
@@ -213,8 +227,8 @@ class RpcMethodSignature:
                 else:
                     raise
         except Exception as e:
-            raise RpcServiceUnimplementedException(
-                self.service_name, self.method_name, "Error while resolving region"
+            raise HybridCloudServiceUnimplementedException(
+                self.target_name(), "Error while resolving region"
             ) from e
 
 
@@ -233,7 +247,7 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
         self,
         base_service_cls: Type[RpcService],
         constructors: Mapping[SiloMode, Callable[[], RpcService]],
-        signatures: Mapping[str, RpcMethodSignature],
+        signatures: Mapping[str, HybridCloudMethodSignature],
     ) -> None:
         super().__init__(constructors)
         self._base_service_cls = base_service_cls
@@ -305,7 +319,7 @@ class RpcService(abc.ABC):
     key: str
     local_mode: SiloMode
 
-    _signatures: Mapping[str, RpcMethodSignature]
+    _signatures: Mapping[str, HybridCloudMethodSignature]
 
     def __init_subclass__(cls) -> None:
         if cls._has_rpc_methods():
@@ -313,11 +327,11 @@ class RpcService(abc.ABC):
             # at least one method decorated by `@rpc_method`. (They can be left off
             # if and when we make an intermediate abstract class.)
             if not isinstance(getattr(cls, "key", None), str):
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     cls.__name__, None, "`key` class attribute (str) is required"
                 )
             if not isinstance(getattr(cls, "local_mode", None), SiloMode):
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     cls.key, None, "`local_mode` class attribute (SiloMode) is required"
                 )
         cls._signatures = cls._create_signatures()
@@ -356,13 +370,13 @@ class RpcService(abc.ABC):
         raise NotImplementedError
 
     @classmethod
-    def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
+    def _create_signatures(cls) -> Mapping[str, HybridCloudMethodSignature]:
         model_table = {}
         for base_method in cls._get_all_rpc_methods():
             try:
-                signature = RpcMethodSignature(cls, base_method)
+                signature = HybridCloudMethodSignature(cls, base_method)
             except Exception as e:
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     cls.key, base_method.__name__, "Error on parameter model"
                 ) from e
             else:
@@ -390,7 +404,7 @@ class RpcService(abc.ABC):
             method_impl = getattr(impl, method_sig.__name__)
 
             if getattr(method_impl, "__isabstractmethod__", False):
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     cls.key,
                     method_sig.__name__,
                     f"{type(impl).__name__} must provide a concrete implementation",
@@ -399,7 +413,7 @@ class RpcService(abc.ABC):
             sig_params = get_parameters(method_sig)
             impl_params = get_parameters(method_impl)
             if not sig_params == impl_params:
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     cls.key,
                     method_sig.__name__,
                     "Does not match specified parameters "
@@ -425,7 +439,7 @@ class RpcService(abc.ABC):
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if signature is None:
-                    raise RpcServiceUnimplementedException(
+                    raise HybridCloudServiceUnimplementedException(
                         cls.key,
                         method_name,
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
@@ -473,15 +487,15 @@ class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
 
 
-class RpcArgumentException(RpcException):
+class HybridCloudArgumentException(HybridCloudException):
     """Indicate that the serial arguments to an RPC service were invalid."""
 
 
-class RpcRemoteException(RpcException):
+class HybridCloudRemoteException(HybridCloudException):
     """Indicate that an RPC service returned an error status code."""
 
 
-class RpcResponseException(RpcException):
+class HybridCloudResponseException(HybridCloudException):
     """Indicate that the response from a remote RPC service violated expectations."""
 
 
@@ -551,13 +565,13 @@ class _RemoteSiloCall:
     def address(self) -> str:
         if self.region is None:
             if not settings.SENTRY_CONTROL_ADDRESS:
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     self.service_name, self.method_name, "Control silo address is not configured"
                 )
             return settings.SENTRY_CONTROL_ADDRESS
         else:
             if not self.region.address:
-                raise RpcServiceSetupException(
+                raise HybridCloudServiceSetupException(
                     self.service_name,
                     self.method_name,
                     f"Address for region {self.region.name!r} is not configured",
@@ -632,8 +646,8 @@ class _RemoteSiloCall:
         with span, timer, record:
             yield
 
-    def _remote_exception(self, message: str) -> RpcRemoteException:
-        return RpcRemoteException(self.service_name, self.method_name, message)
+    def _remote_exception(self, message: str) -> HybridCloudRemoteException:
+        return HybridCloudRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         if in_test_environment():

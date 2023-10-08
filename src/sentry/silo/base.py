@@ -28,6 +28,13 @@ class SiloMode(Enum):
     CONTROL = "CONTROL"
     REGION = "REGION"
 
+    def __neg__(self) -> SiloMode:
+        if self == SiloMode.MONOLITH:
+            return self
+        if self == SiloMode.CONTROL:
+            return SiloMode.REGION
+        return SiloMode.CONTROL
+
     @classmethod
     def resolve(cls, mode: str | SiloMode | None, default: SiloMode | None = None) -> SiloMode:
         if not mode:

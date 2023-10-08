@@ -18,7 +18,7 @@ from sentry.models import (
     OrganizationSlugReservationType,
     outbox_context,
 )
-from sentry.services.hybrid_cloud.rpc import RpcRemoteException
+from sentry.services.hybrid_cloud.rpc import HybridCloudRemoteException
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -113,7 +113,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             )
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            with pytest.raises(RpcRemoteException):
+            with pytest.raises(HybridCloudRemoteException):
                 self.provision_organization()
         else:
             with pytest.raises(OrganizationSlugReservation.DoesNotExist):
@@ -227,7 +227,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         org_with_conflicting_slug = self.provision_organization()
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            with pytest.raises(RpcRemoteException):
+            with pytest.raises(HybridCloudRemoteException):
                 control_organization_provisioning_rpc_service.update_organization_slug(
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
@@ -267,7 +267,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            with pytest.raises(RpcRemoteException):
+            with pytest.raises(HybridCloudRemoteException):
                 control_organization_provisioning_rpc_service.update_organization_slug(
                     organization_id=test_org_slug_reservation.organization_id,
                     desired_slug=conflicting_slug,
