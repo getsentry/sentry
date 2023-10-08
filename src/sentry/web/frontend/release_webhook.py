@@ -10,7 +10,9 @@ from django.views.generic import View
 
 from sentry.api import client
 from sentry.exceptions import HookValidationError
-from sentry.models import ApiKey, Project, ProjectOption
+from sentry.models.apikey import ApiKey
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.utils import json
 

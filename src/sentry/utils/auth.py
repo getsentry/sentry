@@ -15,7 +15,8 @@ from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from sentry import options
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode

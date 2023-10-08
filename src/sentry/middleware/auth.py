@@ -14,7 +14,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models import UserIP
+from sentry.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 

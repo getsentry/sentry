@@ -23,7 +23,8 @@ from snuba_sdk import Column, Condition, Op
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (

@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test

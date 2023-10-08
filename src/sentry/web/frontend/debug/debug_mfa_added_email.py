@@ -3,7 +3,7 @@ import datetime
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.security.emails import generate_security_email
 
 from .mail import MailPreview

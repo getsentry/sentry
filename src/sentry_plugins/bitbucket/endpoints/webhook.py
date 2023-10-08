@@ -11,7 +11,10 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
-from sentry.models import Commit, CommitAuthor, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email

@@ -48,7 +48,7 @@ class CommitAuthor(Model):
         return self.users
 
     def find_users(self) -> List[RpcUser]:
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if self.users is not None:

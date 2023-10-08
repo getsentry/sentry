@@ -14,7 +14,8 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import ApiToken, outbox_context
+from sentry.models.apitoken import ApiToken
+from sentry.models.outbox import outbox_context
 from sentry.security import capture_security_activity
 
 

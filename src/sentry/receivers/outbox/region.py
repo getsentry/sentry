@@ -11,13 +11,10 @@ from typing import Any
 
 from django.dispatch import receiver
 
-from sentry.models import (
-    AuthProviderReplica,
-    Organization,
-    OutboxCategory,
-    Project,
-    process_region_outbox,
-)
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organization import Organization
+from sentry.models.outbox import OutboxCategory, process_region_outbox
+from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service

@@ -4,13 +4,15 @@ from typing import Any, Dict, List
 
 from sentry import features
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Group, GroupStatus, Project, User
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import (
     GroupInboxReason,
     GroupInboxRemoveAction,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
 

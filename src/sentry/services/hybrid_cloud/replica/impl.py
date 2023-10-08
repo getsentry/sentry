@@ -11,23 +11,21 @@ from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTok
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.models import (
-    ApiKey,
-    ApiToken,
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    Organization,
-    OrganizationMemberTeam,
-    OrganizationMemberTeamReplica,
-    OrganizationSlugReservationReplica,
-    OrgAuthToken,
-    OutboxCategory,
-    Team,
-    User,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import OutboxCategory
+from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcApiToken,
