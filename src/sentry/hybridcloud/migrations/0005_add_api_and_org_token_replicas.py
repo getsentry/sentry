@@ -71,6 +71,12 @@ class Migration(CheckedMigration):
                         "sentry.ApiApplication", db_index=True, null=True, on_delete="CASCADE"
                     ),
                 ),
+                (
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization", db_index=True, null=True, on_delete="SET_NULL"
+                    ),
+                ),
                 ("application_is_active", models.BooleanField(default=False)),
                 (
                     "user_id",

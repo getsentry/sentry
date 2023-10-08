@@ -1,3 +1,7 @@
+from django.db import router
+
+from ...models import ApiGrant
+from ...silo import unguarded_write
 from ..base import ModelDeletionTask
 
 
@@ -11,3 +15,7 @@ class ModelApiGrantDeletionTask(ModelDeletionTask):
     def mark_deletion_in_progress(self, instance_list):
         # no status to track
         pass
+
+    def delete_instance(self, instance):
+        with unguarded_write(router.db_for_write(ApiGrant)):
+            super().delete_instance(instance)

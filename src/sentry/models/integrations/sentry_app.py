@@ -19,6 +19,7 @@ from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    Model,
     ParanoidManager,
     ParanoidModel,
     control_silo_only_model,
@@ -107,7 +108,7 @@ class SentryAppManager(ParanoidManager):
 
 
 @control_silo_only_model
-class SentryApp(ParanoidModel, HasApiScopes):
+class SentryApp(ParanoidModel, HasApiScopes, Model):
     __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(

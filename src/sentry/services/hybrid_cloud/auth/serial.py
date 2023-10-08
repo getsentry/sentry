@@ -84,6 +84,7 @@ def serialize_api_token(at: ApiToken) -> RpcApiToken:
         id=at.id,
         user_id=at.user_id,
         application_id=at.application_id,
+        organization_id=at.organization_id,
         application_is_active=at.application_id is None or at.application.is_active,
         token=at.token,
         expires_at=at.expires_at,

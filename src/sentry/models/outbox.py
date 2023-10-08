@@ -233,6 +233,7 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None,
         shard_identifier: int | None,
     ) -> Tuple[int, int]:
+        from sentry.models.apiapplication import ApiApplication
         from sentry.models.organization import Organization
         from sentry.models.user import User
 
@@ -249,13 +250,18 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "organization_id"):
                     shard_identifier = model.organization_id
-                elif hasattr(model, "auth_provider_id"):
-                    shard_identifier = model.auth_provider_id
+                elif hasattr(model, "auth_provider"):
+                    shard_identifier = model.auth_provider.organization_id
             if scope == OutboxScope.USER_SCOPE:
                 if isinstance(model, User):
                     shard_identifier = model.id
                 elif hasattr(model, "user_id"):
                     shard_identifier = model.user_id
+            if scope == OutboxScope.APP_SCOPE:
+                if isinstance(model, ApiApplication):
+                    shard_identifier = model.id
+                elif hasattr(model, "api_application_id"):
+                    shard_identifier = model.api_application_id
 
         assert (
             model is not None

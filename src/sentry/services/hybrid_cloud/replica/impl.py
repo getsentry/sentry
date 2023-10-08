@@ -134,6 +134,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
         destination = ApiTokenReplica(
             application_id=api_token.application_id,  # type: ignore
+            organization_id=api_token.organization_id,  # type: ignore
             application_is_active=api_token.application_is_active,
             token=api_token.token,
             expires_at=api_token.expires_at,

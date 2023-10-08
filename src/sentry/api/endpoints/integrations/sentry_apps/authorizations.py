@@ -10,6 +10,7 @@ from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger, GrantTypes, Refresher
+from sentry.services.hybrid_cloud.auth.impl import promote_request_api_user
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +33,14 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                         install=installation,
                         code=request.json_body.get("code"),
                         client_id=request.json_body.get("client_id"),
-                        user=request.user,
+                        user=promote_request_api_user(request),
                     )
                 elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
                     token = Refresher.run(
                         install=installation,
                         refresh_token=request.json_body.get("refresh_token"),
                         client_id=request.json_body.get("client_id"),
-                        user=request.user,
+                        user=promote_request_api_user(request),
                     )
                 else:
                     return Response({"error": "Invalid grant_type"}, status=403)
@@ -49,6 +50,6 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
             attrs = {"state": request.json_body.get("state"), "application": None}
 
-            body = ApiTokenSerializer().serialize(token, attrs, request.user)
+            body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 
             return Response(body, status=201)

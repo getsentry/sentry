@@ -13,6 +13,7 @@ class ApiTokenReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 
     application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="set_null")
     application_is_active = models.BooleanField(default=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="cascade")
     apitoken_id = HybridCloudForeignKey("sentry.ApiToken", null=False, on_delete="cascade")
