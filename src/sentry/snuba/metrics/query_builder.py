@@ -500,7 +500,7 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=bool(query_params.get("allowPrivate", False)),
+                allow_private=query_params.get("allowPrivate") == "true",
             )
             for key in query_params.getlist("field", [])
         ]
