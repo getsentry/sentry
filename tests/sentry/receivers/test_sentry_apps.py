@@ -6,7 +6,12 @@ from unittest.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouplink import GroupLink
+from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature

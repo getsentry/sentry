@@ -10,7 +10,9 @@ from sentry.lang.java.utils import (
     has_proguard_file,
 )
 from sentry.lang.javascript.processor import get_source_context, trim_line
-from sentry.models import ArtifactBundleArchive, EventError, ProjectDebugFile
+from sentry.models.artifactbundle import ArtifactBundleArchive
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.eventerror import EventError
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor

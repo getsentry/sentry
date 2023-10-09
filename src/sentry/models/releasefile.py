@@ -97,7 +97,7 @@ class ReleaseFile(Model):
         db_table = "sentry_releasefile"
 
     def save(self, *args, **kwargs):
-        from sentry.models import Distribution
+        from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
             dist = None

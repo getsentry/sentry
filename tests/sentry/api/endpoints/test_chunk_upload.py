@@ -15,7 +15,10 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
-from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
+from sentry.models.apitoken import ApiToken
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

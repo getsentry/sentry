@@ -25,7 +25,9 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration, OrganizationMemberTeam
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode

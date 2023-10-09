@@ -24,7 +24,9 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service

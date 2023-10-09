@@ -10,7 +10,8 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Group, GroupHistoryStatus, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry

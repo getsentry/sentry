@@ -15,13 +15,10 @@ from fixtures.vsts import (
 )
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models import (
-    ExternalIssue,
-    Identity,
-    IdentityProvider,
-    Integration,
-    IntegrationExternalProject,
-)
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError

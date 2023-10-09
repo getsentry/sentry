@@ -1,17 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from sentry.models import (
-    Activity,
-    Group,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupInbox,
-    GroupInboxReason,
-    GroupStatus,
-    add_group_to_inbox,
-    record_group_history,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.tasks.auto_ongoing_issues import (
     TRANSITION_AFTER_DAYS,
     schedule_auto_transition_to_ongoing,
