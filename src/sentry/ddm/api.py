@@ -176,11 +176,10 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     end_seconds = end.timestamp()
 
     current_time = start_seconds
-    intervals = [datetime.fromtimestamp(current_time, timezone.utc)]
-    while current_time + interval < end_seconds:
-        next_time = current_time + interval
-        intervals.append(datetime.fromtimestamp(next_time, timezone.utc))
-        current_time = next_time
+    intervals = []
+    while current_time < end_seconds:
+        intervals.append(datetime.fromtimestamp(current_time, timezone.utc))
+        current_time = current_time + interval
 
     return intervals
 
@@ -298,7 +297,6 @@ def _translate_query_results(
         "intervals": intervals,
         "groups": translated_groups,
         "meta": translated_meta,
-        "query": "",
         "start": start,
         "end": end,
     }

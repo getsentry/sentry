@@ -18,13 +18,9 @@ MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
 
 @freeze_time(MOCK_DATETIME)
 class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
-    def now(self):
-        return MOCK_DATETIME
+    def setUp(self):
+        super().setUp()
 
-    def ts(self, dt: datetime) -> int:
-        return int(dt.timestamp())
-
-    def test_with_transactions(self) -> None:
         for value, transaction, platform, time in (
             (1, "/hello", "android", self.now()),
             (3, "/hello", "ios", self.now()),
@@ -44,6 +40,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.TRANSACTIONS,
             )
 
+    def now(self):
+        return MOCK_DATETIME
+
+    def ts(self, dt: datetime) -> int:
+        return int(dt.timestamp())
+
+    def test_query_with_one_aggregation(self) -> None:
         # Query with just one aggregation.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -63,6 +66,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [None, 9.0, 8.0]}
         assert groups[0]["totals"] == {field: 17.0}
 
+    def test_query_with_group_by(self) -> None:
         # Query with one aggregation and two group by.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -88,6 +92,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [None, 5.0, 3.0]}
         assert groups[2]["totals"] == {field: 8.0}
 
+    def test_query_with_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -107,6 +112,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [None, 3.0, 3.0]}
         assert groups[0]["totals"] == {field: 6.0}
 
+    def test_query_with_multiple_aggregations(self) -> None:
         # Query with two aggregations.
         field_1 = f"min({TransactionMRI.DURATION.value})"
         field_2 = f"max({TransactionMRI.DURATION.value})"
