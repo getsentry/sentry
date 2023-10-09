@@ -262,7 +262,6 @@ def _get_condition(query: Optional[str]) -> RuleCondition:
             scope.set_extra("error", ex)
             message = "Could not convert query to custom dynamic sampling rule"
             sentry_sdk.capture_message(message, level="warning")
-            sentry_sdk.capture_exception(ex)
         raise
 
 
