@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {generateBaseControlSiloUrl} from 'sentry/utils';
+import {generateBaseControlSiloUrl, generateIntegrationInstallLink} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -33,18 +33,6 @@ type State = DeprecatedAsyncView['state'] & {
   provider?: IntegrationProvider;
   selectedOrgSlug?: string;
 };
-
-function getInstallLink(org_slug) {
-  const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
-  return (
-    window.location.protocol +
-    '//' +
-    org_slug +
-    '.' +
-    sentryDomain +
-    window.location.pathname
-  );
-}
 
 export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   Props,
@@ -246,7 +234,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 {organization: <strong>{organization.slug}</strong>}
               )}
             </p>
-            <InstallLink>{getInstallLink(selectedOrgSlug)}</InstallLink>
+            <InstallLink>{generateIntegrationInstallLink(selectedOrgSlug)}</InstallLink>
           </Alert>
         )}
 
