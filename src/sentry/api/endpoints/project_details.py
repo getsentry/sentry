@@ -43,14 +43,11 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
-from sentry.models import (
-    Group,
-    GroupStatus,
-    Project,
-    ProjectBookmark,
-    ProjectRedirect,
-    RegionScheduledDeletion,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
@@ -810,6 +807,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "filters:react-hydration-errors",
                     bool(options["filters:react-hydration-errors"]),
+                )
+            if "filters:chunk-load-error" in options:
+                project.update_option(
+                    "filters:chunk-load-error",
+                    "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(

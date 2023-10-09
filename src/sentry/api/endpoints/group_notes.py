@@ -13,7 +13,8 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
-from sentry.models import Activity, GroupSubscription
+from sentry.models.activity import Activity
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType

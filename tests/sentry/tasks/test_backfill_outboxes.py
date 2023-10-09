@@ -6,17 +6,13 @@ from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
 from sentry.db.models.outboxes import run_outbox_replications_for_self_hosted
-from sentry.models import (
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    ControlOutbox,
-    Organization,
-    OrganizationMapping,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.silo import SiloMode
 from sentry.tasks.backfill_outboxes import (
     backfill_outboxes_for,

@@ -1,6 +1,10 @@
 import datetime
 
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupSubscription
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups

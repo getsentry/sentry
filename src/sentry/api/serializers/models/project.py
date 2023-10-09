@@ -39,21 +39,18 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    EnvironmentProject,
-    OrganizationMemberTeam,
-    Project,
-    ProjectAvatar,
-    ProjectBookmark,
-    ProjectOption,
-    ProjectPlatform,
-    Release,
-    Team,
-    User,
-    UserReport,
-)
-from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.avatars.project_avatar import ProjectAvatar
+from sentry.models.environment import EnvironmentProject
+from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     should_use_notifications_v2,
@@ -216,6 +213,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -379,7 +377,7 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    (_, has_enabled_subscriptions, _) = subscriptions[project.id]
                     is_subscribed = has_enabled_subscriptions
                 else:
                     value = get_most_specific_notification_setting_value(

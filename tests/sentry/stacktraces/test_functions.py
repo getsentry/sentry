@@ -1,6 +1,8 @@
 import pytest
 
+from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.functions import (
+    get_source_link_for_frame,
     replace_enclosed_string,
     split_func_tokens,
     trim_function_name,
@@ -202,3 +204,38 @@ def test_trim_function_name_cocoa():
         == "(anonymous namespace)::foo"
     )
     assert trim_function_name("foo::bar::foo(int)", "native") == "foo::bar::foo"
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    [
+        [
+            {
+                "source_link": "https://raw.githubusercontent.com/author/repo/abc123456789/foo/bar/baz.js",
+                "lineno": "200",
+            },
+            "https://www.github.com/author/repo/blob/abc123456789/foo/bar/baz.js#L200",
+        ],
+        [
+            {
+                "source_link": "https://raw.githubusercontent.com/author/repo/abc123456789/foo/bar/baz.js"
+            },
+            "https://www.github.com/author/repo/blob/abc123456789/foo/bar/baz.js",
+        ],
+        [
+            {"source_link": "https://raw.githubusercontent.com/author/repo"},
+            "https://raw.githubusercontent.com/author/repo",
+        ],
+        [
+            {
+                "source_link": "https://notraw.githubusercontent.com/notauthor/notrepo/notfile/foo/bar/baz.js",
+                "lineno": "122",
+            },
+            "https://notraw.githubusercontent.com/notauthor/notrepo/notfile/foo/bar/baz.js",
+        ],
+        [{"lineno": "543"}, None],
+        [{"source_link": "woejfdsiwjidsoi", "lineNo": "7"}, None],
+    ],
+)
+def test_get_source_link_for_frame(input, output):
+    assert get_source_link_for_frame(Frame.to_python(input)) == output

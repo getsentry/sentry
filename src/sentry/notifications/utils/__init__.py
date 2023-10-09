@@ -34,21 +34,19 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.models import (
-    Activity,
-    Commit,
-    Deploy,
-    Environment,
-    EventError,
-    Group,
-    GroupLink,
-    Organization,
-    Project,
-    Release,
-    ReleaseCommit,
-    Repository,
-    Rule,
-)
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.eventerror import EventError
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.notifications.notify import notify
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -284,7 +282,7 @@ def has_integrations(organization: Organization, project: Project) -> bool:
     return bool(project_plugins or organization_integrations)
 
 
-def is_alert_rule_integration(provider: type[IntegrationProvider]) -> bool:
+def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
     return any(
         feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
         for feature in provider.features

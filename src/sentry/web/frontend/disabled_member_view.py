@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.request import Request
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 
 from .react_page import ReactPageView

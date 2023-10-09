@@ -1,6 +1,7 @@
 from django.urls import reverse
 
-from sentry.models import GroupHash, GroupTombstone
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

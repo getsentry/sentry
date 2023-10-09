@@ -4,7 +4,8 @@ from typing import Any, Mapping, MutableMapping
 from urllib.parse import urlencode
 
 from sentry import features
-from sentry.models import Activity, NotificationSetting
+from sentry.models.activity import Activity
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues

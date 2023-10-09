@@ -37,7 +37,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Group, Organization, Project
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
     from sentry.utils.cache import cache
 

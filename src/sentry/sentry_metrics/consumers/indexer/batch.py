@@ -1,6 +1,5 @@
 import logging
 import random
-import re
 from collections import defaultdict
 from typing import (
     Any,
@@ -35,7 +34,7 @@ from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageB
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -45,7 +44,6 @@ logger = logging.getLogger(__name__)
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
-MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -68,18 +66,6 @@ def valid_metric_name(name: Optional[str]) -> bool:
 def _should_sample_debug_log() -> bool:
     rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
     return (rate > 0) and random.random() <= rate
-
-
-# TODO: Move this to where we do use case registration
-def extract_use_case_id(mri: str) -> UseCaseID:
-    """
-    Returns the use case ID given the MRI, returns None if MRI is invalid.
-    """
-    if matched := MRI_RE_PATTERN.match(mri):
-        use_case_str = matched.group(2)
-        if use_case_str in {id.value for id in UseCaseID}:
-            return UseCaseID(use_case_str)
-    raise ValidationError(f"Invalid mri: {mri}")
 
 
 class IndexerBatch:

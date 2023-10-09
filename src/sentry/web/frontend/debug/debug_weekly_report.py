@@ -4,7 +4,9 @@ from random import Random
 
 from django.utils.text import slugify
 
-from sentry.models import Group, Organization, Project
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,

@@ -15,8 +15,10 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models import AuditLogEntry, Integration, outbox_context
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode

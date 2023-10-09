@@ -1,4 +1,4 @@
-from sentry.models import ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import ArtifactBundleFlatFileIndex
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json

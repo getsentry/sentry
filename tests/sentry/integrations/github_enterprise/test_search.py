@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 
 from ..github import test_search
 

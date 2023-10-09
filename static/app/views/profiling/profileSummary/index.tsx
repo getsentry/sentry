@@ -6,7 +6,9 @@ import type {Location} from 'history';
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import Count from 'sentry/components/count';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import DateTime from 'sentry/components/dateTime';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -14,7 +16,9 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
   ProfilingBreadcrumbs,
@@ -28,6 +32,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
+import {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
@@ -36,15 +41,18 @@ import {
   CanvasScheduler,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -53,12 +61,18 @@ import {
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
 
+const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
+  preferences: {
+    sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
+  },
+};
 interface ProfileSummaryHeaderProps {
   location: Location;
   organization: Organization;
@@ -97,24 +111,26 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
     });
 
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
+    <ProfilingHeader>
+      <ProfilingHeaderContent>
         <ProfilingBreadcrumbs
           organization={props.organization}
           trails={breadcrumbTrails}
         />
         <Layout.Title>
-          {props.project ? (
-            <IdBadge
-              hideName
-              project={props.project}
-              avatarSize={28}
-              avatarProps={{hasTooltip: true, tooltip: props.project.slug}}
-            />
-          ) : null}
-          {props.transaction}
+          <ProfilingTitleContainer>
+            {props.project ? (
+              <IdBadge
+                hideName
+                project={props.project}
+                avatarSize={22}
+                avatarProps={{hasTooltip: true, tooltip: props.project.slug}}
+              />
+            ) : null}
+            {props.transaction}
+          </ProfilingTitleContainer>
         </Layout.Title>
-      </Layout.HeaderContent>
+      </ProfilingHeaderContent>
       {transactionSummaryTarget && (
         <Layout.HeaderActions>
           <LinkButton to={transactionSummaryTarget} size="sm">
@@ -122,9 +138,25 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
           </LinkButton>
         </Layout.HeaderActions>
       )}
-    </Layout.Header>
+    </ProfilingHeader>
   );
 }
+
+const ProfilingHeader = styled(Layout.Header)`
+  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+`;
+
+const ProfilingHeaderContent = styled(Layout.HeaderContent)`
+  h1 {
+    line-height: normal;
+  }
+`;
+const ProfilingTitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
 
 interface ProfileFiltersProps {
   location: Location;
@@ -352,46 +384,65 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 traceID=""
                 frameFilter={flamegraphFrameFilter}
               >
-                <FlamegraphStateProvider
-                  initialState={{
-                    preferences: {
-                      sorting: 'alphabetical',
-                    },
-                  }}
-                >
+                <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
                   <FlamegraphThemeProvider>
                     <FlamegraphProvider>
-                      <AggregateFlamegraphToolbar
-                        scheduler={scheduler}
-                        canvasPoolManager={canvasPoolManager}
-                        visualization={visualization}
-                        onVisualizationChange={onVisualizationChange}
-                        frameFilter={frameFilter}
-                        onFrameFilterChange={onFrameFilterChange}
-                        hideSystemFrames={false}
-                        setHideSystemFrames={() => void 0}
-                      />
-                      {visualization === 'flamegraph' ? (
-                        <AggregateFlamegraph
-                          canvasPoolManager={canvasPoolManager}
+                      <AggregateFlamegraphContainer>
+                        <AggregateFlamegraphToolbar
                           scheduler={scheduler}
+                          canvasPoolManager={canvasPoolManager}
+                          visualization={visualization}
+                          onVisualizationChange={onVisualizationChange}
+                          frameFilter={frameFilter}
+                          onFrameFilterChange={onFrameFilterChange}
+                          hideSystemFrames={false}
+                          setHideSystemFrames={() => void 0}
                         />
-                      ) : null}
+                        {visualization === 'flamegraph' ? (
+                          <AggregateFlamegraph
+                            canvasPoolManager={canvasPoolManager}
+                            scheduler={scheduler}
+                          />
+                        ) : (
+                          <AggregateFlamegraphTreeTable
+                            recursion={null}
+                            expanded={false}
+                            frameFilter={frameFilter}
+                            canvasScheduler={scheduler}
+                            canvasPoolManager={canvasPoolManager}
+                          />
+                        )}
+                      </AggregateFlamegraphContainer>
                     </FlamegraphProvider>
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
               </ProfileGroupProvider>
             </ProfileVisualization>
-            <ProfileDigest>
-              <MostRegressedProfileFunctions transaction={transaction} />
-              <SlowestProfileFunctions transaction={transaction} />
-            </ProfileDigest>
+            <ProfileDigestContainer>
+              <ProfileDigestScrollContainer>
+                <ProfileDigest />
+                <MostRegressedProfileFunctions transaction={transaction} />
+                <SlowestProfileFunctions transaction={transaction} />
+              </ProfileDigestScrollContainer>
+            </ProfileDigestContainer>
           </ProfileVisualizationContainer>
         </PageFiltersContainer>
       </ProfileSummaryContainer>
     </SentryDocumentTitle>
   );
 }
+
+const AggregateFlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+`;
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
@@ -430,15 +481,19 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   return (
     <AggregateFlamegraphToolbarContainer>
-      <SegmentedControl
-        aria-label={t('View')}
-        size="xs"
-        value={props.visualization}
-        onChange={props.onVisualizationChange}
-      >
-        <SegmentedControl.Item key="flamegraph">{t('Flamegraph')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
-      </SegmentedControl>
+      <ViewSelectContainer>
+        <SegmentedControl
+          aria-label={t('View')}
+          size="xs"
+          value={props.visualization}
+          onChange={props.onVisualizationChange}
+        >
+          <SegmentedControl.Item key="flamegraph">
+            {t('Flamegraph')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ViewSelectContainer>
       <AggregateFlamegraphSearch
         spans={spans}
         canvasPoolManager={props.canvasPoolManager}
@@ -457,12 +512,16 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   );
 }
 
+const ViewSelectContainer = styled('div')`
+  min-width: 140px;
+`;
+
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(0.5)};
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.background};
 `;
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
@@ -471,15 +530,36 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 
 const ProfileVisualization = styled('div')`
   grid-area: visualization;
+  position: relative;
+  height: 100%;
 `;
 
-const ProfileDigest = styled('div')`
+const ProfileDigestContainer = styled('div')`
   grid-area: digest;
+  border-left: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.background};
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+`;
+
+const ProfileDigestScrollContainer = styled('div')`
+  padding: ${space(0.5)};
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
   display: grid;
   grid-template-areas: 'visualization digest';
+  grid-template-columns: 60% 40%;
   flex: 1 1 100%;
 `;
 
@@ -496,6 +576,92 @@ const ProfileSummaryContainer = styled('div')`
   ~ footer {
     display: none;
   }
+`;
+
+const PROFILE_DIGEST_FIELDS = [
+  'last_seen()',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+] satisfies ProfilingFieldType[];
+
+const percentiles = ['p75()', 'p95()', 'p99()'] as const;
+
+function ProfileDigest() {
+  const location = useLocation();
+  const profilesCursor = useMemo(
+    () => decodeScalar(location.query.cursor),
+    [location.query.cursor]
+  );
+
+  const profiles = useProfileEvents<ProfilingFieldType>({
+    cursor: profilesCursor,
+    fields: PROFILE_DIGEST_FIELDS,
+    query: '',
+    sort: {key: 'last_seen()', order: 'desc'},
+    referrer: 'api.profiling.profile-summary-table',
+  });
+
+  const data = profiles.data?.data?.[0];
+
+  return (
+    <ProfileDigestHeader>
+      <div>
+        <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
+        <div>
+          {profiles.isLoading ? (
+            ''
+          ) : profiles.isError ? (
+            ''
+          ) : (
+            <DateTime date={new Date(data?.['last_seen()'] as string)} />
+          )}
+        </div>
+      </div>
+
+      {percentiles.map(p => {
+        return (
+          <div key={p}>
+            <ProfileDigestLabel>{p}</ProfileDigestLabel>
+            <div>
+              {profiles.isLoading ? (
+                ''
+              ) : profiles.isError ? (
+                ''
+              ) : (
+                <PerformanceDuration nanoseconds={data?.[p] as number} abbreviation />
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <div>
+        <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
+        <div>
+          {profiles.isLoading ? (
+            ''
+          ) : profiles.isError ? (
+            ''
+          ) : (
+            <Count value={data?.['count()'] as number} />
+          )}
+        </div>
+      </div>
+    </ProfileDigestHeader>
+  );
+}
+
+const ProfileDigestHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const ProfileDigestLabel = styled('span')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  text-transform: uppercase;
 `;
 
 export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {

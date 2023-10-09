@@ -1,5 +1,5 @@
 from sentry.db.models.manager.base import flush_manager_local_cache
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
