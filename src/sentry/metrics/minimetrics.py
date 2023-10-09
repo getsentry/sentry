@@ -2,12 +2,13 @@
 
 import random
 from functools import wraps
+from threading import local
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
 
 try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop  # type: ignore
+    from sentry_sdk.metrics import Metric, MetricsAggregator  # type: ignore
 
     have_minimetrics = True
 except ImportError:
@@ -17,6 +18,25 @@ from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
+_thread_local = local()
+
+
+def metrics_noop(func: Any) -> Any:
+    @wraps(func)
+    def new_func(*args: Any, **kwargs: Any) -> Any:
+        try:
+            in_metrics = _thread_local.in_metrics
+        except AttributeError:
+            in_metrics = False
+        _thread_local.in_metrics = True
+        try:
+            if not in_metrics:
+                return func(*args, **kwargs)
+        finally:
+            _thread_local.in_metrics = in_metrics
+
+    return new_func
+
 
 def patch_sentry_sdk():
     if not have_minimetrics:
@@ -25,19 +45,16 @@ def patch_sentry_sdk():
     real_add = MetricsAggregator.add
     real_emit = MetricsAggregator._emit
 
+    @wraps(real_add)
     @metrics_noop
-    def report_tracked_add(ty):
+    def tracked_add(self, ty, *args, **kwargs):
+        real_add(self, ty, *args, **kwargs)
         metrics.incr(
             key="minimetrics.add",
             amount=1,
             tags={"metric_type": ty},
             sample_rate=1.0,
         )
-
-    @wraps(real_add)
-    def tracked_add(self, ty, *args, **kwargs):
-        real_add(self, ty, *args, **kwargs)
-        report_tracked_add(ty)
 
     @wraps(real_emit)
     @metrics_noop
