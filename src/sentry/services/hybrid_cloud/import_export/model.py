@@ -119,7 +119,6 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
-    InvalidJSON = "InvalidJSON"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"
     UnspecifiedScope = "UnspecifiedScope"
@@ -144,7 +143,7 @@ class RpcImportError(RpcModel, Finding):
         return RpcImportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcImportError(\n\tkind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcImportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
 
 
 class RpcImportOk(RpcModel):
@@ -222,7 +221,7 @@ class RpcExportError(RpcModel, Finding):
         return RpcExportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcExportError(\n\tkind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcExportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
 
 
 RpcExportResult = Annotated[Union[RpcExportOk, RpcExportError], Field(discriminator="is_err")]

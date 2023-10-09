@@ -170,7 +170,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self):
         # First import should succeed.
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH] + [])
+        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
         assert rv.exit_code == 0, rv.output
 
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.
@@ -185,6 +185,30 @@ class BadImportExportDomainErrorTests(TransactionTestCase):
 
 
 class BadImportExportCommandTests(TestCase):
+    def test_import_invalid_json(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_invalid_json = Path(tmp_dir).joinpath(f"{self._testMethodName}.invalid.json")
+            with open(get_fixture_path("backup", "single-option.json")) as backup_file:
+                models = json.load(backup_file)
+                models[0]["fields"]["invalid_field"] = "invalid_data"
+                with open(tmp_invalid_json, "w") as invalid_input_file:
+                    json.dump(models, invalid_input_file)
+
+            for scope in {"users", "organizations", "config", "global"}:
+                tmp_findings = Path(tmp_dir).joinpath(
+                    f"{self._testMethodName}.{scope}.findings.json"
+                )
+                rv = CliRunner().invoke(
+                    import_, [scope, str(tmp_invalid_json), "--findings_file", str(tmp_findings)]
+                )
+                assert rv.exit_code == 1, rv.output
+
+                with open(tmp_findings) as findings_file:
+                    findings = json.load(findings_file)
+                    assert len(findings) == 1
+                    assert findings[0]["finding"] == "RpcImportError"
+                    assert findings[0]["kind"] == "DeserializationFailed"
+
     def test_import_file_read_error_exit_code(self):
         rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH])
         assert not isinstance(rv.exception, ImportingError)
