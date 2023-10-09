@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
+import isEmpty from 'lodash/isEmpty';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -16,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import {clearQuery, updateQuery} from 'sentry/utils/metrics';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -30,20 +32,42 @@ type ScratchpadState = {
   scratchpads: Record<string, Scratchpad>;
 };
 
+function makeLocalStorageKey(orgSlug: string) {
+  return `ddm-scratchpads:${orgSlug}`;
+}
+
 export function useScratchpads() {
-  const [state, setState] = useLocalStorageState<ScratchpadState>('ddm-scratchpads', {
-    default: null,
-    scratchpads: {},
-  });
-  const [selected, setSelected] = useState<string | null | undefined>(state.default); // scratchpad id
+  const {slug} = useOrganization();
+  const [state, setState] = useLocalStorageState<ScratchpadState>(
+    makeLocalStorageKey(slug),
+    {
+      default: null,
+      scratchpads: {},
+    }
+  );
+  const [selected, setSelected] = useState<string | null | undefined>(undefined); // scratchpad id
   const router = useRouter();
   const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
+
+  useEffect(() => {
+    if (state.default && selected === undefined) {
+      setSelected(state.default);
+    }
+  }, [state.default, selected]);
 
   // changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
     if (selected) {
       const selectedQuery = state.scratchpads[selected].query;
-      updateQuery(router, selectedQuery);
+
+      const queryToUpdate = selectedQuery;
+
+      // if the selected scratchpad has a start and end date, override the statsPeriod
+      if (selectedQuery.start && selectedQuery.end) {
+        updateQuery(router, {...selectedQuery, statsPeriod: null});
+      } else {
+        updateQuery(router, queryToUpdate);
+      }
     } else if (selected === null) {
       clearQuery(router);
     }
@@ -52,7 +76,7 @@ export function useScratchpads() {
 
   // saves all changes to the selected scratchpad to local storage
   useEffect(() => {
-    if (selected) {
+    if (selected && !isEmpty(routerQuery)) {
       update(selected, routerQuery);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,7 +103,10 @@ export function useScratchpads() {
   const add = useCallback(
     (name: string) => {
       const id = uuid4();
-      const newScratchpads = {...state.scratchpads, [id]: {name, id, query: routerQuery}};
+      const newScratchpads = {
+        ...state.scratchpads,
+        [id]: {name, id, query: {environment: null, statsPeriod: null, ...routerQuery}},
+      };
       setState({...state, scratchpads: newScratchpads});
       toggleSelected(id);
     },
@@ -89,7 +116,11 @@ export function useScratchpads() {
   const update = useCallback(
     (id: string, query: Scratchpad['query']) => {
       const oldScratchpad = state.scratchpads[id];
-      const newScratchpads = {...state.scratchpads, [id]: {...oldScratchpad, query}};
+      const newQuery = {environment: null, statsPeriod: null, ...query};
+      const newScratchpads = {
+        ...state.scratchpads,
+        [id]: {...oldScratchpad, query: newQuery},
+      };
       setState({...state, scratchpads: newScratchpads});
     },
     [state, setState]
@@ -133,40 +164,46 @@ export function ScratchpadSelector() {
         label: s.name,
         trailingItems: (
           <Fragment>
-            <StyledDropdownIcon>
-              <IconDelete
-                onClick={() => {
-                  openConfirmModal({
-                    onConfirm: () => scratchpads.remove(s.id),
-                    message: t('Are you sure you want to delete this scratchpad?'),
-                    confirmText: t('Delete'),
-                  });
-                }}
-              />
-            </StyledDropdownIcon>
+            <Button
+              size="zero"
+              borderless
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => {
+                if (scratchpads.default === s.id) {
+                  scratchpads.setDefault(null);
+                } else {
+                  scratchpads.setDefault(s.id ?? null);
+                }
+              }}
+            >
+              <StyledDropdownIcon>
+                <IconBookmark isSolid={scratchpads.default === s.id} />
+              </StyledDropdownIcon>
+            </Button>
+            <Button
+              size="zero"
+              borderless
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => {
+                openConfirmModal({
+                  onConfirm: () => scratchpads.remove(s.id),
+                  message: t('Are you sure you want to delete this scratchpad?'),
+                  confirmText: t('Delete'),
+                });
+              }}
+            >
+              <StyledDropdownIcon danger>
+                <IconDelete size="sm" />
+              </StyledDropdownIcon>
+            </Button>
           </Fragment>
         ),
       })),
     [scratchpads]
   );
 
-  const isDefaultSelected = scratchpads.default === scratchpads.selected;
-
   return (
     <ScratchpadGroup>
-      <Button
-        disabled={!scratchpads.selected}
-        onClick={() => {
-          if (isDefaultSelected) {
-            scratchpads.setDefault(null);
-          } else {
-            scratchpads.setDefault(scratchpads.selected ?? null);
-          }
-        }}
-        icon={<IconBookmark isSolid={isDefaultSelected} />}
-      >
-        {isDefaultSelected ? t('Remove default') : t('Set as default')}
-      </Button>
       <SaveAsDropdown
         onSave={name => {
           scratchpads.add(name);
@@ -174,6 +211,7 @@ export function ScratchpadSelector() {
         mode={scratchpads.selected ? 'fork' : 'save'}
       />
       <CompactSelect
+        grid
         options={scratchpadOptions}
         value={scratchpads.selected ?? `None`}
         closeOnSelect={false}
@@ -219,10 +257,12 @@ function SaveAsDropdown({
     }
   }, [enterKeyPressed, isOpen, name, save]);
 
+  const isFork = mode === 'fork';
+
   return (
     <div>
-      <Button icon={<IconStar />} {...triggerProps}>
-        {mode === 'fork' ? t('Fork as ...') : t('Save as ...')}
+      <Button icon={<IconStar isSolid={isFork} />} {...triggerProps}>
+        {isFork ? t('Fork as ...') : t('Save as ...')}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -272,12 +312,12 @@ const SaveAsInput = styled(InputControl)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledDropdownIcon = styled('span')`
-  padding-top: ${space(0.5)};
-  opacity: 0.6;
+const StyledDropdownIcon = styled('span')<{danger?: boolean}>`
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
+  opacity: 0.5;
 
   :hover {
     opacity: 0.9;
-    color: ${p => p.theme.red300};
+    color: ${p => (p.danger ? p.theme.red300 : p.theme.gray300)};
   }
 `;

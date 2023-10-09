@@ -279,7 +279,7 @@ function MetricWidgetBodyInner({
         .string(),
       hidden: focusedSeries && focusedSeries !== item.name,
       data: item.values.map((value, index) => ({
-        name: dataToBeRendered.intervals[index],
+        name: moment(dataToBeRendered.intervals[index]).valueOf(),
         value,
       })),
       transaction: item.transaction as string | undefined,
@@ -361,7 +361,7 @@ function normalizeChartTimeParams(data: MetricsData) {
 
 export type Series = {
   color: string;
-  data: {name: string; value: number}[];
+  data: {name: number; value: number}[];
   seriesName: string;
   unit: string;
   hidden?: boolean;
@@ -393,6 +393,8 @@ function MetricChart({
   environments,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
+  const router = useRouter();
+
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
     const echartsInstance = chartRef?.current?.getEchartsInstance();
@@ -404,11 +406,16 @@ function MetricChart({
   const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
 
+  // TODO(ddm): This assumes that all series have the same bucket size
+  const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+
   const formatters = {
-    valueFormatter: (value: number) => {
-      return formatMetricsUsingUnitAndOp(value, unit, operation);
-    },
+    valueFormatter: (value: number) =>
+      formatMetricsUsingUnitAndOp(value, unit, operation),
     nameFormatter: mri => getNameFromMRI(mri),
+    isGroupedByDate: true,
+    bucketSize,
+    showTimeInTooltip: true,
   };
   const displayFogOfWar =
     operation &&
@@ -450,7 +457,7 @@ function MetricChart({
 
   return (
     <ChartWrapper>
-      <ChartZoom period={period} start={start} end={end} utc={utc}>
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <ReleaseSeries
             utc={utc}
