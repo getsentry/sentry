@@ -1,6 +1,5 @@
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 
 type GeneratorFunction<T, Params> = (params: Params) => T;
@@ -38,12 +37,14 @@ export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
   dsn: string;
+  hasPerformance: boolean;
+  hasProfiling: boolean;
+  hasReplay: boolean;
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
   projectId: Project['id'];
   projectSlug: Project['slug'];
-  selectedProducts: Partial<Record<ProductSolution, boolean>>;
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   newOrg?: boolean;
 }
@@ -70,5 +71,4 @@ export interface OnboardingConfig<
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
-  supportedProducts?: ProductSolution[];
 }
