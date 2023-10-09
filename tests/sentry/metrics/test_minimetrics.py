@@ -13,6 +13,15 @@ from sentry.metrics.minimetrics import (
 from sentry.testutils.helpers import override_options
 
 
+def full_flush(hub):
+    # first flush flushes the metrics
+    hub.client.flush()
+
+    # second flush should really not do anything unless the first
+    # flush accidentally created more metrics
+    hub.client.flush()
+
+
 def parse_metrics(bytes: bytes):
     rv = []
     for line in bytes.splitlines():
@@ -79,14 +88,9 @@ def hub():
 
 @pytest.fixture(scope="function")
 def backend():
-    return MiniMetricsMetricsBackend(prefix="sentrytest.")
-
-
-@pytest.fixture(scope="function")
-def composite_backend():
-    return CompositeExperimentalMetricsBackend(
-        primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
-    )
+    rv = MiniMetricsMetricsBackend(prefix="sentrytest.")
+    with mock.patch("sentry.utils.metrics.backend", new=rv):
+        yield rv
 
 
 @pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
@@ -98,7 +102,7 @@ def composite_backend():
 )
 def test_incr_called_with_no_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -122,7 +126,7 @@ def test_incr_called_with_no_tags(backend, hub):
 )
 def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -147,7 +151,7 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
 def test_incr_called_with_tag_value_as_list(backend, hub):
     # The minimetrics backend supports the list type.
     backend.incr(key="foo", tags={"x": ["bar", "baz"]})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -168,7 +172,7 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
 def test_gauge_as_counter(backend, hub):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -191,7 +195,10 @@ def test_gauge_as_counter(backend, hub):
         "delightful_metrics.allow_all_gauge": True,
     }
 )
-def test_composite_backend_does_not_recurse(composite_backend, hub):
+def test_composite_backend_does_not_recurse(hub):
+    composite_backend = CompositeExperimentalMetricsBackend(
+        primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
+    )
     accessed = set()
 
     class TrackingCompositeBackend:
@@ -202,11 +209,7 @@ def test_composite_backend_does_not_recurse(composite_backend, hub):
     # make sure the backend feeds back to itself
     with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()):
         composite_backend.incr(key="sentrytest.composite", tags={"x": ["bar", "baz"]})
-        hub.client.flush()
-
-        # flush a second time to ensure that if we were to emit metrics
-        # while emitting metrics, we were to flush them out fully
-        hub.client.flush()
+        full_flush(hub)
 
     # make sure that we did actually internally forward to the composite
     # backend so the test does not accidentally succeed.
