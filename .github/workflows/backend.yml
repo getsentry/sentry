@@ -102,6 +102,9 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        # The coverage json command creates a different format of coverage report
+        # That is used to power Codecov Automated Test Selection
+        # (see .github/workflows/codecov_ats.yml)
         run: |
           make test-python-ci
           coverage json -o .artifacts/python.coverage.json --show-contexts
