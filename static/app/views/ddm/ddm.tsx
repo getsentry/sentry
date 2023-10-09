@@ -22,7 +22,7 @@ function DDM() {
 
   return (
     <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
