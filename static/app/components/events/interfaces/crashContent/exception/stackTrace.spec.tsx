@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
-import {StackView} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 const frames = [
   {
@@ -58,6 +58,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   expandFirstFrame: true,
   newestFirst: true,
   chainedException: false,
+  stackType: StackType.ORIGINAL,
   event: {
     ...TestStubs.Event(),
     entries: [],
