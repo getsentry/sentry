@@ -54,9 +54,9 @@ class MetricField:
             object.__setattr__(self, "alias", key)
 
     @property
-    def _metric_name(self):
+    def _metric_name(self) -> str:
         if self.allow_private:
-            return {self.metric_mri}
+            return self.metric_mri
 
         return get_public_name_from_mri(self.metric_mri)
 
