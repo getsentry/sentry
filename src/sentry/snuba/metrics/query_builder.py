@@ -111,7 +111,6 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
 
 
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
-
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
