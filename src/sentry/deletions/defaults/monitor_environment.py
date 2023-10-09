@@ -1,4 +1,4 @@
-from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
+from ..base import ModelDeletionTask, ModelRelation
 
 
 class MonitorEnvironmentDeletionTask(ModelDeletionTask):
@@ -9,6 +9,6 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask):
             ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
-                BulkModelDeletionTask,
+                ModelDeletionTask,
             ),
         ]
