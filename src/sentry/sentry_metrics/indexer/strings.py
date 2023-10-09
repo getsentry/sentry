@@ -90,6 +90,7 @@ TRANSACTION_METRICS_NAMES = {
     "g:transactions/alert@none": PREFIX + 135,
     "d:transactions/duration_light@millisecond": PREFIX + 136,
     "c:transactions/usage@none": PREFIX + 137,
+    # Last possible index: 199
 }
 
 # 200 - 399
