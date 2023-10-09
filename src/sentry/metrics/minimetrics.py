@@ -1,6 +1,7 @@
 # mypy: ignore-errors
 
 import random
+import threading
 from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
@@ -17,6 +18,41 @@ from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
+# The thread local instance must be initialized globally in order to correctly use the state.
+thread_local = threading.local()
+
+
+def _is_in_minimetrics():
+    try:
+        return thread_local.in_minimetrics
+    except AttributeError:
+        return False
+
+
+def enter_minimetrics(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        old_state = _is_in_minimetrics()
+
+        thread_local.in_minimetrics = True
+        return_value = func(*args, **kwargs)
+        thread_local.in_minimetrics = old_state
+
+        return return_value
+
+    return _wrapper
+
+
+def minimetrics_noop(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        if _is_in_minimetrics():
+            return
+
+        return func(*args, **kwargs)
+
+    return _wrapper
+
 
 def patch_sentry_sdk():
     if not have_minimetrics:
@@ -26,6 +62,7 @@ def patch_sentry_sdk():
     real_emit = MetricsAggregator._emit
 
     @wraps(real_add)
+    @enter_minimetrics
     def tracked_add(self, ty, *args, **kwargs):
         real_add(self, ty, *args, **kwargs)
         metrics.incr(
@@ -36,6 +73,7 @@ def patch_sentry_sdk():
         )
 
     @wraps(real_emit)
+    @enter_minimetrics
     def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):
         flushable_metrics = []
         stats_by_type: Any = {}
@@ -105,6 +143,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
 
+    @minimetrics_noop
     def incr(
         self,
         key: str,
@@ -120,6 +159,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 tags=tags,
             )
 
+    @minimetrics_noop
     def timing(
         self,
         key: str,
@@ -133,6 +173,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 key=self._get_key(key), value=value, tags=tags, unit="second"
             )
 
+    @minimetrics_noop
     def gauge(
         self,
         key: str,
