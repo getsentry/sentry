@@ -113,7 +113,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        if self._keep_metric(sample_rate):
+        if self._keep_metric(sample_rate) or options.get("delightful_metrics.allow_all_incr"):
             sentry_sdk.metrics.incr(
                 key=self._get_key(key),
                 value=amount,
@@ -128,7 +128,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        if self._keep_metric(sample_rate):
+        if self._keep_metric(sample_rate) or options.get("delightful_metrics.allow_all_timing"):
             sentry_sdk.metrics.distribution(
                 key=self._get_key(key), value=value, tags=tags, unit="second"
             )
@@ -141,6 +141,6 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        if self._keep_metric(sample_rate):
+        if self._keep_metric(sample_rate) or options.get("delightful_metrics.allow_all_gauge"):
             # XXX: make this into a gauge later
             sentry_sdk.metrics.incr(key=self._get_key(key), value=value, tags=tags)
