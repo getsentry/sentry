@@ -25,11 +25,11 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
-  organization: Organization;
-  platformKey: PlatformKey;
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
   projectId?: Project['id'];
   sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
