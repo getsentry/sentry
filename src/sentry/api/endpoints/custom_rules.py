@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, cast
 
+import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
 from rest_framework.permissions import BasePermission
@@ -246,14 +247,22 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
 
 
 def _get_condition(query: Optional[str]) -> RuleCondition:
-    if not query:
-        # True condition when query not specified
-        condition: RuleCondition = {"op": "and", "inner": []}
-    else:
-        tokens = parse_search_query(query)
-        converter = SearchQueryConverter(tokens)
-        condition = converter.convert()
-    return condition
+    try:
+        if not query:
+            # True condition when query not specified
+            condition: RuleCondition = {"op": "and", "inner": []}
+        else:
+            tokens = parse_search_query(query)
+            converter = SearchQueryConverter(tokens)
+            condition = converter.convert()
+        return condition
+    except Exception as ex:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", ex)
+            message = "Could not convert query to custom dynamic sampling rule"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
 
 
 def _clean_project_list(project_ids: List[int]) -> List[int]:
