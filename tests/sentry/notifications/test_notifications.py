@@ -13,17 +13,12 @@ from sentry_relay.processing import parse_release
 
 from sentry.digests.notifications import Notification
 from sentry.event_manager import EventManager
-from sentry.models import (
-    Group,
-    GroupAssignee,
-    GroupStatus,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Rule,
-    UserOption,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.user_option import UserOption
+from sentry.models.rule import Rule
 from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase

@@ -1,4 +1,5 @@
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

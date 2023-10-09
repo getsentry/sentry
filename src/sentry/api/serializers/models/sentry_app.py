@@ -4,10 +4,11 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user.service import user_service
 

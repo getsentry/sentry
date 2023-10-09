@@ -5,7 +5,7 @@ from sentry_sdk import start_span
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.datasource import get_custom_measurements

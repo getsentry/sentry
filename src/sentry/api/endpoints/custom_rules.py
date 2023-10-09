@@ -14,8 +14,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import CustomDynamicSamplingRule, TooManyRules
-from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
+from sentry.models.dynamicsampling import (
+    CUSTOM_RULE_DATE_FORMAT,
+    CustomDynamicSamplingRule,
+    TooManyRules,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter

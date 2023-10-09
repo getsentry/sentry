@@ -135,7 +135,7 @@ class ExportedData(Model):
         self.delete()
 
     def _get_file(self):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         if self.file_id:
             try:

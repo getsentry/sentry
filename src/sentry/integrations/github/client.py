@@ -15,7 +15,8 @@ from sentry.integrations.utils.code_mapping import (
     RepoTree,
     filter_source_code_files,
 )
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX

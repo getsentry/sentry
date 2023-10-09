@@ -2,7 +2,9 @@ from time import time
 from typing import Any
 
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
-from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

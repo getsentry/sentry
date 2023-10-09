@@ -1,5 +1,5 @@
-from sentry.models import (
-    Activity,
+from sentry.models.activity import Activity
+from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
     GroupInboxRemoveAction,
