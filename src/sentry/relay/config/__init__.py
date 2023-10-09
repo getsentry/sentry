@@ -136,9 +136,10 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    # TODO: refactor the system to allow management of error messages filtering via the inbound filters, since right
-    #  now the system maps an option to a single top-level filter like "ignoreTransactions".
-    enable_react = project.get_option("filters:react-hydration-errors")
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either "1" or True.
+    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
         # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
