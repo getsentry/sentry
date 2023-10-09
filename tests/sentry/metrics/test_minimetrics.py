@@ -88,6 +88,10 @@ def hub():
 
 @pytest.fixture(scope="function")
 def backend():
+    # Make sure we also patch the global metrics backend as the backend
+    # will forward internal metrics to it (back into itself).  If we don't
+    # set this up correctly, we might accidentally break our recursion
+    # protection and not see these tests fail.
     rv = MiniMetricsMetricsBackend(prefix="sentrytest.")
     with mock.patch("sentry.utils.metrics.backend", new=rv):
         yield rv
