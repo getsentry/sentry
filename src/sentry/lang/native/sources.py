@@ -6,7 +6,7 @@ import os
 import random
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -130,74 +130,31 @@ HIDDEN_SECRET_SCHEMA = {
     "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
 }
 
-REDACTED_APP_STORE_CONNECT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string", "enum": ["appStoreConnect"]},
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string"},
-        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
-        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": HIDDEN_SECRET_SCHEMA,
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
-        "bundleId": {"type": "string", "minLength": 1},
-    },
-    "required": [
-        "type",
-        "id",
-        "name",
-        "appconnectIssuer",
-        "appconnectKey",
-        "appconnectPrivateKey",
-        "appName",
-        "appId",
-        "bundleId",
-    ],
-    "additionalProperties": False,
-}
 
-REDACTED_HTTP_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        type={"type": "string", "enum": ["http"]},
-        url={"type": "string"},
-        username={"type": "string"},
-        password=HIDDEN_SECRET_SCHEMA,
-        **COMMON_SOURCE_PROPERTIES,
-    ),
-    "required": ["type", "id", "url", "layout"],
-    "additionalProperties": False,
-}
+def _redact_schema(schema: Dict, keys_to_redact: List[str]) -> Dict:
+    """
+    Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
+    with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
+    """
 
-REDACTED_S3_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        type={"type": "string", "enum": ["s3"]},
-        bucket={"type": "string"},
-        region={"type": "string"},
-        access_key={"type": "string"},
-        secret_key=HIDDEN_SECRET_SCHEMA,
-        prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
-    ),
-    "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
-    "additionalProperties": False,
-}
+    def override_key(schema: Dict, keys_to_redact: List[str]) -> None:
+        for key, value in schema.items():
+            if key in keys_to_redact:
+                schema[key] = HIDDEN_SECRET_SCHEMA
+            elif isinstance(value, dict):
+                override_key(value, keys_to_redact)
 
-REDACTED_GCS_SOURCE_SCHEMA = {
-    "type": "object",
-    "properties": dict(
-        type={"type": "string", "enum": ["gcs"]},
-        bucket={"type": "string"},
-        client_email={"type": "string"},
-        private_key=HIDDEN_SECRET_SCHEMA,
-        prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
-    ),
-    "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
-    "additionalProperties": False,
-}
+    copy = deepcopy(schema)
+    override_key(copy, keys_to_redact)
+    return copy
+
+
+REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
+    APP_STORE_CONNECT_SCHEMA, ["appConnectPrivateKey"]
+)
+REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
+REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
+REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
 
 REDACTED_SOURCE_SCHEMA = {
     "oneOf": [
