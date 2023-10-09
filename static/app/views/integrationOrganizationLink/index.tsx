@@ -34,6 +34,18 @@ type State = DeprecatedAsyncView['state'] & {
   selectedOrgSlug?: string;
 };
 
+function getInstallLink(org_slug) {
+  const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
+  return (
+    window.location.protocol +
+    '//' +
+    org_slug +
+    '.' +
+    sentryDomain +
+    window.location.pathname
+  );
+}
+
 export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   Props,
   State
@@ -234,7 +246,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 {organization: <strong>{organization.slug}</strong>}
               )}
             </p>
-            <InstallLink>{window.location.href}</InstallLink>
+            <InstallLink>{getInstallLink(selectedOrgSlug)}</InstallLink>
           </Alert>
         )}
 
