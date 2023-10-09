@@ -7,7 +7,9 @@ import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry import options
-from sentry.models import Project, ProjectOption, Team
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor

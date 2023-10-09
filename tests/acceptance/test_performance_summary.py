@@ -3,7 +3,7 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
-from sentry.models import AssistantActivity
+from sentry.models.assistant import AssistantActivity
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test

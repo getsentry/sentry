@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,

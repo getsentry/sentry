@@ -171,7 +171,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'span.description');
           mutableSearch.addFilterValue('span.module', 'db');
-          mutableSearch.addFilterValue('transaction.op', 'http.server');
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
@@ -292,10 +291,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             // Update search query
             eventView.additionalConditions.removeFilter('event.type');
             eventView.additionalConditions.removeFilter('transaction');
-            eventView.additionalConditions.addFilterValue(
-              'transaction.op',
-              'http.server'
-            );
             eventView.additionalConditions.addFilterValue(
               SpanMetricsField.SPAN_GROUP,
               provided.widgetData.list.data[selectedListIndex][
@@ -473,7 +468,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       />
                     </StyledTextOverflow>
                     <RightAlignedCell>
-                      <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
+                      <TimeSpentCell
+                        percentage={timeSpentPercentage}
+                        total={totalTime}
+                        op="db"
+                      />
                     </RightAlignedCell>
                     {!props.withStaticFilters && (
                       <ListClose

@@ -26,7 +26,7 @@ class OrganizationAccessRequest(Model):
     __repr__ = sane_repr("team_id", "member_id")
 
     def send_request_email(self):
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
         from sentry.utils.email import MessageBuilder
 
         organization = self.team.organization

@@ -5,7 +5,8 @@ from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -266,7 +267,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
 
     __slots__ = (
         "stored_problems",

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession

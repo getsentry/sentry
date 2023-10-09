@@ -14,23 +14,21 @@ from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models import (
-    ApiToken,
-    AuditLogEntry,
-    DeletedProject,
-    EnvironmentProject,
-    Integration,
-    NotificationSetting,
-    OrganizationMember,
-    OrganizationOption,
-    Project,
-    ProjectBookmark,
-    ProjectRedirect,
-    RegionScheduledDeletion,
-    Rule,
-)
+from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.environment import EnvironmentProject
+from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.rule import Rule
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase

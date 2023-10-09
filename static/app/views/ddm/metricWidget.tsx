@@ -1,8 +1,9 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
+import * as echarts from 'echarts/core';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
@@ -14,6 +15,7 @@ import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -23,6 +25,7 @@ import {IconAdd, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
+import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
@@ -41,6 +44,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {QueryBuilder} from 'sentry/views/ddm/metricQueryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+
+import {getFormatter} from '../../components/charts/components/tooltip';
+
+const DDM_CHART_GROUP = 'ddm_chart_group';
 
 const emptyWidget = {
   mri: '',
@@ -107,21 +114,14 @@ function useMetricWidgets() {
   };
 }
 
-// function useMetricWidget(position: number) {
-//   const {widgets, onChange} = useMetricWidgets();
-
-//   return {
-//     widget: widgets[position],
-//     onChange: (data: Partial<MetricWidgetProps>) => onChange(position, data),
-//   };
-// }
-
 function MetricDashboard() {
   const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
+
+  echarts.connect(DDM_CHART_GROUP);
 
   return (
     <Wrapper>
@@ -407,21 +407,50 @@ function MetricChart({
   projects,
   environments,
 }: ChartProps) {
-  const unit = series[0]?.unit;
+  const chartRef = useRef<ReactEchartsRef>(null);
 
+  useEffect(() => {
+    const echartsInstance = chartRef?.current?.getEchartsInstance();
+    if (echartsInstance && !echartsInstance.group) {
+      echartsInstance.group = DDM_CHART_GROUP;
+    }
+  }, []);
+
+  const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
 
+  const formatters = {
+    valueFormatter: (value: number) => {
+      return formatMetricsUsingUnitAndOp(value, unit, operation);
+    },
+    nameFormatter: mri => getNameFromMRI(mri),
+  };
+
   const chartProps = {
+    forwardedRef: chartRef,
     isGroupedByDate: true,
     height: 300,
     colors: seriesToShow.map(s => s.color),
-    grid: {top: 20, bottom: 20, left: 20, right: 20},
+    grid: {top: 20, bottom: 20, left: 15, right: 25},
     tooltip: {
-      valueFormatter: (value: number) => {
-        return formatMetricsUsingUnitAndOp(value, unit, operation);
+      formatter: (params, asyncTicket) => {
+        const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+          element => {
+            return element.classList.contains('echarts-for-react');
+          }
+        );
+
+        if (hoveredEchartElement === chartRef?.current?.ele) {
+          return getFormatter(formatters)(params, asyncTicket);
+        }
+        return '';
       },
-      nameFormatter: mri => getNameFromMRI(mri),
+      axisPointer: {
+        label: {show: true},
+      },
+      ...formatters,
     },
+
     yAxis: {
       axisLabel: {
         formatter: (value: number) => {
@@ -445,37 +474,37 @@ function MetricChart({
             preserveQueryParams
           >
             {({releaseSeries}) => {
-              const legend = releaseSeries[0]?.markLine?.data?.length
+              const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
+
+              const selected =
+                releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
+                  ? {[t('Releases')]: false}
+                  : {};
+
+              const legend = releaseSeriesData?.length
                 ? Legend({
                     itemGap: 20,
                     top: 0,
                     right: 20,
                     data: releaseSeries.map(s => s.seriesName),
                     theme: theme as Theme,
+                    selected,
                   })
                 : undefined;
+
+              const allProps = {
+                series: [...seriesToShow, ...releaseSeries],
+                legend,
+                ...chartProps,
+                ...zoomRenderProps,
+              };
+
               return displayType === MetricDisplayType.LINE ? (
-                <LineChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <LineChart {...allProps} />
               ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <AreaChart {...allProps} />
               ) : (
-                <BarChart
-                  stacked
-                  series={[...seriesToShow, ...releaseSeries]}
-                  legend={legend}
-                  {...chartProps}
-                  {...zoomRenderProps}
-                />
+                <BarChart stacked {...allProps} />
               );
             }}
           </ReleaseSeries>

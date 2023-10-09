@@ -19,10 +19,10 @@ from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.experiments import manager as expt_manager
-from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.signals import project_created, team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError

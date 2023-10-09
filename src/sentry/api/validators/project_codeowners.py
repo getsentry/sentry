@@ -4,7 +4,11 @@ from typing import Any, Collection, Mapping
 
 from django.db.models import Subquery
 
-from sentry.models import ExternalActor, OrganizationMember, OrganizationMemberTeam, Project, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.ownership.grammar import parse_code_owners
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders

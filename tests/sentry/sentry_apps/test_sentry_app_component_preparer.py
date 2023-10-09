@@ -1,6 +1,6 @@
 from unittest.mock import call, patch
 
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
