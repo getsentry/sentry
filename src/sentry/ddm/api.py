@@ -148,7 +148,6 @@ def _group_bys_to_snql(
         return None
 
     columns = []
-
     for group_by in group_bys:
         columns.append(Column(name=group_by.key))
 
@@ -156,6 +155,9 @@ def _group_bys_to_snql(
 
 
 def _get_granularity(time_seconds: int) -> int:
+    """
+    Determines the optimal granularity to resolve a query over an interval of time_seconds.
+    """
     best_granularity: Optional[int] = None
 
     for granularity in sorted(GRANULARITIES):
@@ -190,13 +192,13 @@ def _generate_full_series(
     """
     Computes a full series over the entire requested interval with None set where there are no data points.
     """
-    zerofilled_series = [None] * num_intervals
+    full_series = [None] * num_intervals
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
-        zerofill_index = int((time_seconds - start_seconds) / interval)
-        zerofilled_series[zerofill_index] = value
+        index = int((time_seconds - start_seconds) / interval)
+        full_series[index] = value
 
-    return zerofilled_series
+    return full_series
 
 
 def _translate_query_results(
@@ -267,8 +269,7 @@ def _translate_query_results(
     translated_groups = []
     for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
         # This case should never happen, since if we have start and intervals not None
-        if start is None or intervals is None:
-            continue
+        assert start is not None and end is not None and intervals is not None
 
         start_seconds = int(start.timestamp())
         num_intervals = len(intervals)
