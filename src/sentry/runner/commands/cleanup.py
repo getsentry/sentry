@@ -17,7 +17,7 @@ from sentry.runner.decorators import log_options
 
 
 def get_project(value):
-    from sentry.models import Project
+    from sentry.models.project import Project
 
     try:
         if value.isdigit():
@@ -406,7 +406,9 @@ def cleanup_unused_files(quiet=False):
     any blobs which are brand new and potentially in the process of being
     referenced.
     """
-    from sentry.models import File, FileBlob, FileBlobIndex
+    from sentry.models.files.file import File
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
     if quiet:
         from sentry.utils.query import RangeQuerySetWrapper

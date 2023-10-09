@@ -8,7 +8,8 @@ from symbolic.proguard import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.models import Project, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path

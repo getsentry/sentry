@@ -26,7 +26,7 @@ class RegionResolutionStrategy(ABC):
 
     @staticmethod
     def _get_from_mapping(**query: Any) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         try:
             mapping = OrganizationMapping.objects.get(**query)
@@ -102,7 +102,7 @@ class RequireSingleOrganization(RegionResolutionStrategy):
     """
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         if not settings.SENTRY_SINGLE_ORGANIZATION:
             raise RegionResolutionError("Method is available only in single-org environment")

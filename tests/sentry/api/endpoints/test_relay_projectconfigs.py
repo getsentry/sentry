@@ -10,7 +10,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all

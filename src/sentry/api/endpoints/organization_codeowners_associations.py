@@ -9,7 +9,9 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, Project, ProjectCodeOwners
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.services.hybrid_cloud.integration import integration_service
 
 

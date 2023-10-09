@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

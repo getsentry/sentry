@@ -15,7 +15,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
@@ -202,7 +202,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
 def create_legacy_event(failed_checkin: MonitorCheckIn):
     from sentry.coreapi import insert_data_to_database_legacy
     from sentry.event_manager import EventManager
-    from sentry.models import Project
+    from sentry.models.project import Project
 
     monitor_env = failed_checkin.monitor_environment
     context = get_monitor_environment_context(monitor_env)

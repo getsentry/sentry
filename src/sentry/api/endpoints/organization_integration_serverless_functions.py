@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]

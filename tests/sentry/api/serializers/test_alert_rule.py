@@ -5,7 +5,7 @@ from sentry.api.serializers.models.alert_rule import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase

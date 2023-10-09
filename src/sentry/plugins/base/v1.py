@@ -10,7 +10,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth import access
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response

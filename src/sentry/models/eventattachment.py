@@ -53,7 +53,7 @@ class EventAttachment(Model):
 
     @cached_property
     def mimetype(self):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         file = File.objects.get(id=self.file_id)
         rv = file.headers.get("Content-Type")
@@ -62,7 +62,7 @@ class EventAttachment(Model):
         return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
     def delete(self, *args, **kwargs):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         rv = super().delete(*args, **kwargs)
 
