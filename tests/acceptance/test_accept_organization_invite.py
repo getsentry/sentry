@@ -1,6 +1,7 @@
 from django.db.models import F
 
-from sentry.models import AuthProvider, Organization
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 

@@ -12,12 +12,12 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl import (
     InvalidOrganizationProvisioningException,
 )
-from sentry.models import (
-    Organization,
+from sentry.models.organization import Organization
+from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
-    outbox_context,
 )
+from sentry.models.outbox import outbox_context
 from sentry.services.hybrid_cloud.rpc import RpcRemoteException
 from sentry.services.organization import (
     OrganizationOptions,

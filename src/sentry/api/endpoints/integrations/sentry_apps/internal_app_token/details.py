@@ -8,7 +8,8 @@ from sentry import analytics, deletions
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.models import ApiToken, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 
 
 @control_silo_endpoint

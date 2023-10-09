@@ -11,7 +11,7 @@ from rest_framework.test import APIRequestFactory
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.client import AwsLambdaProxyClient, gen_aws_client
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.client.proxy import get_proxy_url
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (

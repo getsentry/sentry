@@ -12,13 +12,10 @@ from typing import Any, Mapping
 
 from django.dispatch import receiver
 
-from sentry.models import (
-    ApiApplication,
-    Integration,
-    OutboxCategory,
-    SentryAppInstallation,
-    process_control_outbox,
-)
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 from sentry.silo.base import SiloMode

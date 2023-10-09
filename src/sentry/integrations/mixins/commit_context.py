@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, Mapping, Protocol, Sequence
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import Identity, Repository
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 
 

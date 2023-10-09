@@ -11,19 +11,19 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
-from sentry.models import (
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
+from sentry.models.outbox import (
     ControlOutbox,
-    OrganizationMapping,
-    OrganizationMember,
-    OrganizationMemberMapping,
     OutboxCategory,
     OutboxScope,
     RegionOutbox,
     outbox_context,
-)
-from sentry.models.organizationslugreservation import (
-    OrganizationSlugReservation,
-    OrganizationSlugReservationType,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions

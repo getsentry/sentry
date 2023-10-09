@@ -14,7 +14,7 @@ from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 OPTION_KEYS = frozenset(
     [

@@ -7,7 +7,8 @@ from django import forms
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import OrganizationStatus, Rule
+from sentry.models.organization import OrganizationStatus
+from sentry.models.rule import Rule
 from sentry.rules.actions import EventAction
 from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,

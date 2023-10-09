@@ -1,5 +1,7 @@
 from sentry import analytics
-from sentry.models import Activity, ExternalIssue, Integration
+from sentry.models.activity import Activity
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import should_comment_sync

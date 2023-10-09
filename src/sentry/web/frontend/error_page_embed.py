@@ -8,7 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry import eventstore
-from sentry.models import Project, ProjectKey, ProjectOption, UserReport
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
