@@ -806,7 +806,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
-                    bool(options["filters:react-hydration-errors"]),
+                    "1" if bool(options["filters:react-hydration-errors"]) else "0",
                 )
             if "filters:chunk-load-error" in options:
                 project.update_option(
