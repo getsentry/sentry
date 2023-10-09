@@ -1,8 +1,10 @@
 from typing import Any, Dict
+from unittest import mock
 
 import pytest
 from sentry_sdk import Client, Hub, Transport
 
+from sentry.metrics.composite_experimental import CompositeExperimentalMetricsBackend
 from sentry.metrics.minimetrics import (
     MiniMetricsMetricsBackend,
     before_emit_metric,
@@ -78,6 +80,13 @@ def hub():
 @pytest.fixture(scope="function")
 def backend():
     return MiniMetricsMetricsBackend(prefix="sentrytest.")
+
+
+@pytest.fixture(scope="function")
+def composite_backend():
+    return CompositeExperimentalMetricsBackend(
+        primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
+    )
 
 
 @pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
@@ -167,6 +176,49 @@ def test_gauge_as_counter(backend, hub):
     assert metrics[0][1] == "sentrytest.foo@none"
     assert metrics[0][2] == "c"
     assert metrics[0][3] == ["42.0"]
+
+    assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.allow_all_incr": True,
+        "delightful_metrics.allow_all_timing": True,
+        "delightful_metrics.allow_all_gauge": True,
+    }
+)
+def test_composite_backend_does_not_recurse(composite_backend, hub):
+    accessed = set()
+
+    class TrackingCompositeBackend:
+        def __getattr__(self, name):
+            accessed.add(name)
+            return getattr(composite_backend, name)
+
+    # make sure the backend feeds back to itself
+    with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()):
+        composite_backend.incr(key="sentrytest.composite", tags={"x": ["bar", "baz"]})
+        hub.client.flush()
+
+        # flush a second time to ensure that if we were to emit metrics
+        # while emitting metrics, we were to flush them out fully
+        hub.client.flush()
+
+    # make sure that we did actually internally forward to the composite
+    # backend so the test does not accidentally succeed.
+    assert "incr" in accessed
+    assert "timing" in accessed
+
+    metrics = hub.client.transport.get_metrics()
+
+    # the minimetrics.add metric must not show up
+    assert len(metrics) == 1
+    assert metrics[0][1] == "sentry.sentrytest.composite@none"
+    assert metrics[0][4]["x"] == ["bar", "baz"]
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
