@@ -549,6 +549,7 @@ const AddWidgetPanel = styled(MetricWidgetPanel)`
   display: flex;
   justify-content: center;
   align-items: center;
+  border: 1px dashed ${p => p.theme.border};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
