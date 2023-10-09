@@ -40,11 +40,15 @@ jobs:
         runs-on: ubuntu-latest
         # Map a step output to a job output
         outputs:
-          ATS_TESTS_TO_RUN: ${{ steps.label_analysis.outputs.ATS_TESTS_TO_RUN }}
-          ATS_TESTS_TO_SKIP: ${{ steps.label_analysis.outputs.ATS_TESTS_TO_SKIP }}
+          ATS_TESTS_TO_RUN: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_RUN }}
+          ATS_TESTS_TO_SKIP: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_SKIP }}
         steps:
         - uses: actions/checkout@v3
           with:
+            # fetch-depth: 0 - Use if the BASE_COMMIT on codecov_automated_test_selection is at unknown depth
+            #                   (i.e. git merge-base ${{ github.sha }}^ origin/main)
+            # fetch-depth: 2 - Use if the BASE_COMMIT on codecov_automated_test_selection is at known depth
+            #                   (i.e. git rev-parse ${{ github.sha }}^)
             fetch-depth: 2
         - name: Set up Python 3.10.10
           uses: actions/setup-python@v4
@@ -83,10 +87,10 @@ jobs:
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-        # Run label analysis in dry mode to get the list of tests to run
+        # Run Automated Test Selection in dry mode to get the list of tests to run
         # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
-        - name: Label Analysis
-          id: label_analysis
+        - name: Codecov Automated Test Selection
+          id: codecov_automated_test_selection
           continue-on-error: true
           run: |
             BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
