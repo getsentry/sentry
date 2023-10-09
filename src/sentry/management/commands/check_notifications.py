@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from sentry.mail import mail_adapter
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.email import get_email_addresses
 
 

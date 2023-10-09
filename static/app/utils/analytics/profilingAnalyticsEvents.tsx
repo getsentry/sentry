@@ -11,6 +11,7 @@ type ProfilingEventSource =
   | 'profiling.function_trends.improvement'
   | 'profiling.function_trends.regression'
   | 'profiling.global_suspect_functions'
+  | 'profiling.issue.function_regression'
   | 'profiling_transaction.suspect_functions_table'
   | 'slowest_transaction_panel'
   | 'transaction_details'

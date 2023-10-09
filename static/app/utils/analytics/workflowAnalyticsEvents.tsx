@@ -37,6 +37,7 @@ export type BaseEventAnalyticsParams = {
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
   event_errors?: string;
+  event_mechanism?: string;
   event_platform?: string;
   event_runtime?: string;
   event_type?: string;

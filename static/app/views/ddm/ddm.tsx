@@ -14,7 +14,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import MetricDashboard from 'sentry/views/ddm/metricWidget';
+import {ScratchpadSelector} from 'sentry/views/ddm/metricScratchpad';
+import MetricScratchpad from 'sentry/views/ddm/metricWidget';
 
 function DDM() {
   const organization = useOrganization();
@@ -48,8 +49,9 @@ function DDM() {
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
+                <ScratchpadSelector />
               </PaddedContainer>
-              <MetricDashboard />
+              <MetricScratchpad />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

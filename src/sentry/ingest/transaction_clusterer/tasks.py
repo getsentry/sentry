@@ -6,7 +6,7 @@ import sentry_sdk
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 

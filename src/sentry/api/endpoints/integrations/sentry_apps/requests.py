@@ -10,7 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RequestSerializer
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 
 INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."

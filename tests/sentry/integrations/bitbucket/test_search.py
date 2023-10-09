@@ -1,7 +1,7 @@
 import responses
 from django.urls import reverse
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

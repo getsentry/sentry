@@ -3,7 +3,7 @@ import copy
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
-from sentry.models import ExternalIssue
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA

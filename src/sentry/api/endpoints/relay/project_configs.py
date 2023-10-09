@@ -12,7 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
 from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_build_project_config

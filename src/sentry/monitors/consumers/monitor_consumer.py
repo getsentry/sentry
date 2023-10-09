@@ -20,7 +20,7 @@ from sentry_sdk.tracing import Span, Transaction
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (

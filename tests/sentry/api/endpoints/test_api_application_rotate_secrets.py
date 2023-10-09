@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ApiApplication
+from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

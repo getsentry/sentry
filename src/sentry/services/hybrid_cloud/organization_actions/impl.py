@@ -8,13 +8,10 @@ from django.utils.text import slugify
 from typing_extensions import TypedDict
 
 from sentry import roles
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    outbox_context,
-)
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.outbox import outbox_context
 from sentry.services.hybrid_cloud.organization_actions.model import (
     OrganizationAndMemberCreationResult,
 )

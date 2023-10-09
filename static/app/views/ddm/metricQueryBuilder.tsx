@@ -5,6 +5,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
+import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
@@ -96,7 +97,7 @@ export function QueryBuilder({
             }}
           />
           <CompactSelect
-            triggerProps={{prefix: t('Operation'), size: 'sm'}}
+            triggerProps={{prefix: t('Op'), size: 'sm'}}
             options={
               meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
@@ -117,6 +118,12 @@ export function QueryBuilder({
             options={tags.map(tag => ({
               label: tag.key,
               value: tag.key,
+              trailingItems: (
+                <Fragment>
+                  {tag.key === 'release' && <IconReleases size="xs" />}
+                  {tag.key === 'transaction' && <IconLightning size="xs" />}
+                </Fragment>
+              ),
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}

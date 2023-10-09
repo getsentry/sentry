@@ -74,56 +74,54 @@ export function SummaryTable({
       <HeaderCell right>{t('Sum')}</HeaderCell>
       {hasActions && <HeaderCell right>{t('Actions')}</HeaderCell>}
 
-      {series
-        .sort((a, b) => a.seriesName.localeCompare(b.seriesName))
-        .map(({seriesName, color, hidden, unit, data, transaction, release}) => {
-          const {avg, min, max, sum} = getValues(data);
+      {series.map(({seriesName, color, hidden, unit, data, transaction, release}) => {
+        const {avg, min, max, sum} = getValues(data);
 
-          return (
-            <Fragment key={seriesName}>
-              <CellWrapper
-                onClick={() => onClick(seriesName)}
-                onMouseEnter={() => setHoveredLegend?.(seriesName)}
-                onMouseLeave={() => setHoveredLegend?.('')}
-              >
-                <Cell>
-                  <ColorDot color={color} isHidden={!!hidden} />
-                </Cell>
-                <TextOverflowCell>{getNameFromMRI(seriesName)}</TextOverflowCell>
-                {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-              </CellWrapper>
-              {hasActions && (
-                <Cell right>
-                  <ButtonBar gap={0.5}>
-                    {transaction && (
-                      <div>
-                        <Tooltip title={t('Open Transaction Summary')}>
-                          <LinkButton to={transactionTo(transaction)} size="xs">
-                            <IconLightning size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
+        return (
+          <Fragment key={seriesName}>
+            <CellWrapper
+              onClick={() => onClick(seriesName)}
+              onMouseEnter={() => setHoveredLegend?.(seriesName)}
+              onMouseLeave={() => setHoveredLegend?.('')}
+            >
+              <Cell>
+                <ColorDot color={color} isHidden={!!hidden} />
+              </Cell>
+              <TextOverflowCell>{getNameFromMRI(seriesName)}</TextOverflowCell>
+              {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
+              <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+              <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+              <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+              <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+            </CellWrapper>
+            {hasActions && (
+              <Cell right>
+                <ButtonBar gap={0.5}>
+                  {transaction && (
+                    <div>
+                      <Tooltip title={t('Open Transaction Summary')}>
+                        <LinkButton to={transactionTo(transaction)} size="xs">
+                          <IconLightning size="xs" />
+                        </LinkButton>
+                      </Tooltip>
+                    </div>
+                  )}
 
-                    {release && (
-                      <div>
-                        <Tooltip title={t('Open Release Details')}>
-                          <LinkButton to={releaseTo(release)} size="xs">
-                            <IconReleases size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
-                  </ButtonBar>
-                </Cell>
-              )}
-            </Fragment>
-          );
-        })}
+                  {release && (
+                    <div>
+                      <Tooltip title={t('Open Release Details')}>
+                        <LinkButton to={releaseTo(release)} size="xs">
+                          <IconReleases size="xs" />
+                        </LinkButton>
+                      </Tooltip>
+                    </div>
+                  )}
+                </ButtonBar>
+              </Cell>
+            )}
+          </Fragment>
+        );
+      })}
     </SummaryTableWrapper>
   );
 }
@@ -156,7 +154,10 @@ function getValues(seriesData: Series['data']) {
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr 1fr 1fr 1fr 1fr 1fr' : '24px 8fr 1fr 1fr 1fr 1fr'};
+    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 `;
 
 // TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it

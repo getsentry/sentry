@@ -11,7 +11,7 @@ from sentry.api.serializers.models.project import ProjectWithTeamSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models import Team
+from sentry.models.team import Team
 
 
 class ProjectTeamsPermission(ProjectPermission):

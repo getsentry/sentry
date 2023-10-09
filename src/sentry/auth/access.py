@@ -24,17 +24,14 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
-from sentry.models import (
-    ApiKey,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    SentryApp,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.access.service import access_service

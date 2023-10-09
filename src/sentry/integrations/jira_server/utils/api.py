@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from sentry.integrations.utils import sync_group_assignee_inbound
 
 if TYPE_CHECKING:
-    from sentry.models import Integration
+    from sentry.models.integrations.integration import Integration
 
 logger = logging.getLogger(__name__)
 

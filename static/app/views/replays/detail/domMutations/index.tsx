@@ -8,6 +8,7 @@ import {
 import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -81,6 +82,9 @@ function DomMutations() {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
       <FilterLoadingIndicator isLoading={isFetching}>
@@ -113,6 +117,11 @@ function DomMutations() {
             )}
           </AutoSizer>
         )}
+        <JumpButtons
+          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+          onClick={() => {}}
+          tableHeaderHeight={0}
+        />
       </TabItemContainer>
     </FluidHeight>
   );
