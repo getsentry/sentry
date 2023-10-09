@@ -11,6 +11,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {openConfirmModal} from 'sentry/components/confirm';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -157,6 +158,11 @@ export function useScratchpads() {
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
 
+  const isDefault = useCallback(
+    scratchpad => scratchpads.default === scratchpad.id,
+    [scratchpads]
+  );
+
   const scratchpadOptions = useMemo(
     () =>
       Object.values(scratchpads.all).map((s: any) => ({
@@ -164,42 +170,52 @@ export function ScratchpadSelector() {
         label: s.name,
         trailingItems: (
           <Fragment>
-            <Button
-              size="zero"
-              borderless
-              onPointerDown={e => e.stopPropagation()}
-              onClick={() => {
-                if (scratchpads.default === s.id) {
-                  scratchpads.setDefault(null);
-                } else {
-                  scratchpads.setDefault(s.id ?? null);
-                }
-              }}
+            <Tooltip
+              title={
+                isDefault(s)
+                  ? t('Remove as default scratchpad')
+                  : t('Set as default scratchpad')
+              }
             >
-              <StyledDropdownIcon>
-                <IconBookmark isSolid={scratchpads.default === s.id} />
-              </StyledDropdownIcon>
-            </Button>
-            <Button
-              size="zero"
-              borderless
-              onPointerDown={e => e.stopPropagation()}
-              onClick={() => {
-                openConfirmModal({
-                  onConfirm: () => scratchpads.remove(s.id),
-                  message: t('Are you sure you want to delete this scratchpad?'),
-                  confirmText: t('Delete'),
-                });
-              }}
-            >
-              <StyledDropdownIcon danger>
-                <IconDelete size="sm" />
-              </StyledDropdownIcon>
-            </Button>
+              <Button
+                size="zero"
+                borderless
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => {
+                  if (isDefault(s)) {
+                    scratchpads.setDefault(null);
+                  } else {
+                    scratchpads.setDefault(s.id ?? null);
+                  }
+                }}
+              >
+                <StyledDropdownIcon>
+                  <IconBookmark isSolid={isDefault(s)} />
+                </StyledDropdownIcon>
+              </Button>
+            </Tooltip>
+            <Tooltip title={t('Remove scratchpad')}>
+              <Button
+                size="zero"
+                borderless
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => {
+                  openConfirmModal({
+                    onConfirm: () => scratchpads.remove(s.id),
+                    message: t('Are you sure you want to delete this scratchpad?'),
+                    confirmText: t('Delete'),
+                  });
+                }}
+              >
+                <StyledDropdownIcon danger>
+                  <IconDelete size="sm" />
+                </StyledDropdownIcon>
+              </Button>
+            </Tooltip>
           </Fragment>
         ),
       })),
-    [scratchpads]
+    [scratchpads, isDefault]
   );
 
   return (
