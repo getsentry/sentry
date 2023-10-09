@@ -49,8 +49,10 @@ class MetricField:
         if parsed_mri is None:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
+        # We compute the metric name before the alias, since we want to make sure it's a public facing metric.
+        metric_name = self._metric_name
         if not self.alias:
-            key = f"{self.op}({self._metric_name})" if self.op is not None else self._metric_name
+            key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
 
     @property
