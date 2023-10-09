@@ -87,12 +87,11 @@ class MetricsBucket(TypedDict):
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     """A metrics consumer that generates a billing outcome for each processed
     transaction, processing a bucket at a time. The transaction count is
-    computed from the amount of values from `d:transactions/duration@millisecond`
-    buckets.
+    directly taken from the `c:transactions/usage@none` counter metric.
     """
 
     #: The ID of the metric used to count transactions
-    metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    metric_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
     profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(
@@ -127,7 +126,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return {}
         value = bucket_payload["value"]
         try:
-            quantity = len(value)
+            quantity = max(int(value), 0)
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return {}
