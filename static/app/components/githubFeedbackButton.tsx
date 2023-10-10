@@ -3,14 +3,27 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type GithubFeedbackButtonProps = LinkButtonProps & {href: string};
+type GithubFeedbackButtonProps = Omit<LinkButtonProps, 'children' | 'aria-label'> & {
+  href: string;
+  ['aria-label']?: string;
+  label?: string;
+};
 
-const title = t('Give us feedback on GitHub');
-
-export function GithubFeedbackButton(props: GithubFeedbackButtonProps) {
+export function GithubFeedbackButton({
+  label = t('Give Feedback'),
+  ...props
+}: GithubFeedbackButtonProps) {
   return (
-    <Tooltip title={title}>
-      <LinkButton size="sm" external icon={<IconGithub />} {...props} />
+    <Tooltip title={t('Give us feedback on GitHub')}>
+      <LinkButton
+        aria-label={label ?? t('Give Feedback')}
+        size="sm"
+        external
+        icon={<IconGithub />}
+        {...props}
+      >
+        {label}
+      </LinkButton>
     </Tooltip>
   );
 }
