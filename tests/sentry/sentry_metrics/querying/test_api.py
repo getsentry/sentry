@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.ddm.api import run_metrics_query
+from sentry.sentry_metrics.querying.api import run_metrics_query
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
