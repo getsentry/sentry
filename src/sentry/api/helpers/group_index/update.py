@@ -736,7 +736,8 @@ def handle_is_bookmarked(
         ).delete()
         if features.has("organizations:participants-purge", group_list[0].organization):
             GroupSubscription.objects.filter(
-                user_id=acting_user.id, group__in=group_ids, reason=GroupSubscriptionReason.bookmark
+                user_id=acting_user.id,
+                group__in=group_ids,
             ).delete()
 
 

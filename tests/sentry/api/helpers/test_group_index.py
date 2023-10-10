@@ -419,7 +419,6 @@ class TestHandleIsBookmarked(TestCase):
             project=self.group.project,
             group=self.group,
             user_id=self.user.id,
-            reason=GroupSubscriptionReason.bookmark,
         ).exists()
 
         # test with feature flag
@@ -433,9 +432,7 @@ class TestHandleIsBookmarked(TestCase):
             )
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group, user_id=self.user.id, reason=GroupSubscriptionReason.bookmark
-        ).exists()
+        assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
 class TestHandleHasSeen(TestCase):
