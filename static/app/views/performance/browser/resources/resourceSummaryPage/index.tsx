@@ -84,7 +84,7 @@ function ResourceSummary() {
               <Block title={getThroughputTitle('http')}>
                 <ThroughputCell
                   rate={spanMetrics?.[`${SpanFunction.SPM}()`] * 60}
-                  unit={RateUnits.PER_MINUTE}
+                  unit={RateUnits.PER_SECOND}
                 />
               </Block>
             </BlockContainer>
