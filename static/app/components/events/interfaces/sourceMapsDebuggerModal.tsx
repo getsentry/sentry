@@ -1122,7 +1122,7 @@ function ScrapingSourceMapAvailableChecklistItem({
           <h6>{t('Fetching Was Not Attempted')}</h6>
           <p>
             {t(
-              'The source map was either already located via Debug IDs or Releases, or there was information missing on the event to attempt fetching the source map. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
+              'The source map was either already located via Debug IDs or Releases, there was no source map reference on the source file. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
             )}
           </p>
         </CheckListInstruction>
