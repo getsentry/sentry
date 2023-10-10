@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models.activity import Activity
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 
@@ -66,7 +67,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # if the user left more than one comment, we want to keep the subscription
             if len(notes_by_user) == 1:
                 GroupSubscription.objects.filter(
-                    user_id=request.user.id, group=group, project=group.project
+                    user_id=request.user.id,
+                    group=group,
+                    project=group.project,
+                    reason=GroupSubscriptionReason.comment,
                 ).delete()
 
         return Response(status=204)
