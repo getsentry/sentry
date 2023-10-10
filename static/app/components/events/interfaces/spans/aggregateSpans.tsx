@@ -170,7 +170,7 @@ export function AggregateSpans({transaction}: Props) {
           trailingItems={<StyledCloseButton onClick={() => setIsBannerOpen(false)} />}
         >
           {tct(
-            'This is an aggregate view across [x] events. You can see how frequent each span appears in the aggregate and identify and outliers.',
+            'This is an aggregate view across [x] events. You can see how frequent each span appears in the aggregate and identify any outliers.',
             {x: event.count}
           )}
         </StyledAlert>
