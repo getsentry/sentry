@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 

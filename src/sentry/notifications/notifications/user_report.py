@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from django.utils.encoding import force_str
 
 from sentry.db.models import Model
-from sentry.models import Group, GroupSubscription
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
@@ -15,7 +16,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

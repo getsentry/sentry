@@ -1,5 +1,7 @@
-from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature

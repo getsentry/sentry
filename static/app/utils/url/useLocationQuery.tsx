@@ -6,6 +6,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 type Scalar = string | boolean | number | undefined;
 type Decoder = typeof decodeList | typeof decodeScalar | typeof decodeInteger;
 
+/**
+ * Select and memoize query params from location.
+ * This returns a new object only when one of the specified query fields is
+ * updated. The object will remain stable otherwise, avoiding re-renders.
+ */
 export default function useLocationQuery<
   Fields extends Record<string, Scalar | Scalar[]>,
 >({fields}: {fields: Record<keyof Fields, Fields[string] | Decoder>}): Fields {

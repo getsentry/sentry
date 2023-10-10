@@ -8,6 +8,7 @@ from unittest.mock import patch
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -22,15 +23,12 @@ from sentry.issues.ingest import (
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
-from sentry.models import (
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupRelease,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
@@ -335,6 +333,24 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+        }
+
+    def test_populates_feedback_metadata(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={"contact_email": "test@test.com", "message": "test"},
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
         }
 
 

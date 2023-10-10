@@ -21,9 +21,10 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
-from sentry.issues.grouptype import should_create_group
+from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
-from sentry.models import GroupHash, Release
+from sentry.models.grouphash import GroupHash
+from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
 
@@ -128,6 +129,13 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+
+    if occurrence.type == FeedbackGroup:
+        # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
+        # could populate this instead?
+        # Or potentially, could add a method to GroupType called get_metadata
+        event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")
+        event_metadata["message"] = occurrence.evidence_data.get("message")
 
     return {
         "type": event_type.key,

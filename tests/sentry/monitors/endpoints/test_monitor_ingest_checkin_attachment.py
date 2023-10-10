@@ -5,7 +5,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import Environment, File
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

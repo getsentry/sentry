@@ -1,5 +1,7 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -164,6 +166,10 @@ function renderBodyCell({
     const strippedLabel = Math.abs(percentDelta).toFixed(2);
     const isPositive = percentDelta > 0;
 
+    const labelContent =
+      row[`${prefix}_before`] !== 0
+        ? `${isPositive ? '+' : '-'}${strippedLabel}%`
+        : t('Added');
     return (
       <Tooltip
         title={tct('From [before] to [after]', {
@@ -171,9 +177,7 @@ function renderBodyCell({
           after: `${row[`${prefix}_after`].toFixed(2)}${unitSuffix}`,
         })}
       >
-        <ChangeLabel isPositive={isPositive}>{`${
-          isPositive ? '+' : '-'
-        }${strippedLabel}%`}</ChangeLabel>
+        <ChangeLabel isPositive={isPositive}>{labelContent}</ChangeLabel>
       </Tooltip>
     );
   }
@@ -193,11 +197,12 @@ function renderBodyCell({
 function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  const {transaction, requestStart, requestEnd, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
+  const now = useMemo(() => Date.now(), []);
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
+  const {transaction, dataStart, breakpoint} = event?.occurrence?.evidenceData ?? {};
 
-  const start = new Date(requestStart * 1000).toISOString();
-  const end = new Date(requestEnd * 1000).toISOString();
+  const start = new Date(Math.max(dataStart * 1000, retentionPeriodMs)).toISOString();
+  const end = new Date(now).toISOString();
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,

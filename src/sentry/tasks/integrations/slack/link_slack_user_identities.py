@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from sentry.integrations.slack.utils import get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
-from sentry.models import Identity, IdentityProvider, IdentityStatus, UserEmail
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode

@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import AuthProvider
+from sentry.models.authprovider import AuthProvider
 from sentry.tasks.auth import email_missing_links
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")

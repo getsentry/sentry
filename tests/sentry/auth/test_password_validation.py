@@ -4,7 +4,7 @@ from pytest import raises
 
 from sentry.auth.password_validation import validate_password
 from sentry.conf.server import AUTH_PASSWORD_VALIDATORS
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 
 

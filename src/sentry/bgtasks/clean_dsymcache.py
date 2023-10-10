@@ -1,5 +1,5 @@
 from sentry.bgtasks.api import bgtask
-from sentry.models import ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
 
 
 @bgtask()

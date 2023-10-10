@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Union
 import sentry_sdk
 
 try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator  # type: ignore
+    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop  # type: ignore
 
     have_minimetrics = True
 except ImportError:
@@ -25,15 +25,19 @@ def patch_sentry_sdk():
     real_add = MetricsAggregator.add
     real_emit = MetricsAggregator._emit
 
-    @wraps(real_add)
-    def tracked_add(self, ty, *args, **kwargs):
-        real_add(self, ty, *args, **kwargs)
+    @metrics_noop
+    def report_tracked_add(ty):
         metrics.incr(
             key="minimetrics.add",
             amount=1,
             tags={"metric_type": ty},
             sample_rate=1.0,
         )
+
+    @wraps(real_add)
+    def tracked_add(self, ty, *args, **kwargs):
+        real_add(self, ty, *args, **kwargs)
+        report_tracked_add(ty)
 
     @wraps(real_emit)
     def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):

@@ -1,5 +1,7 @@
 from sentry import roles
-from sentry.models import OrganizationMember, User, manage_default_super_admin_role
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
 from sentry.services.hybrid_cloud.user.service import user_service

@@ -19,6 +19,7 @@ from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.metrics.fields.base import _get_entity_of_metric_mri, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.utils import to_intervals
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
 FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
@@ -58,6 +59,9 @@ def run_query(request: Request) -> Mapping[str, Any]:
     resolved_metrics_query = resolve_metrics_query(metrics_query)
     request.query = resolved_metrics_query
 
+    metrics.incr(
+        "metrics_layer.query", tags={"referrer": request.tenant_ids["referrer"] or "unknown"}
+    )
     return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
 
 

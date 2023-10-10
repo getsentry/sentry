@@ -5,19 +5,25 @@ import * as Sentry from '@sentry/react';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
+const SLOWEST_FUNCTIONS_LIMIT = 15;
+const SLOWEST_FUNCTIONS_CURSOR = 'functionsCursor';
 
 const functionsFields = [
   'package',
@@ -34,12 +40,14 @@ interface SlowestProfileFunctionsProps {
 }
 
 export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
+  const organization = useOrganization();
+  const project = useCurrentProjectFromRouteParam();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
   );
   const location = useLocation();
   const functionsCursor = useMemo(
-    () => decodeScalar(location.query[FUNCTIONS_CURSOR_NAME]),
+    () => decodeScalar(location.query[SLOWEST_FUNCTIONS_CURSOR]),
     [location.query]
   );
   const functionsSort = useMemo(
@@ -58,7 +66,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [FUNCTIONS_CURSOR_NAME]: cursor},
+      query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
     });
   }, []);
 
@@ -78,7 +86,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     referrer: 'api.profiling.profile-summary-functions-table',
     sort: functionsSort,
     query,
-    limit: 5,
+    limit: SLOWEST_FUNCTIONS_LIMIT,
     cursor: functionsCursor,
   });
 
@@ -96,6 +104,13 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
   const functions = functionsQuery.data?.data ?? [];
 
+  const onSlowestFunctionClick = useCallback(() => {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
+      organization,
+      source: `profiling_transaction.suspect_functions_table`,
+    });
+  }, [organization]);
+
   return (
     <SlowestFunctionsContainer>
       <SlowestFunctionsTitleContainer>
@@ -112,7 +127,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           size="xs"
         />
       </SlowestFunctionsTitleContainer>
-      <div>
+      <SlowestFunctionsList>
         {functionsQuery.isLoading ? (
           <SlowestFunctionsQueryState>
             <LoadingIndicator size={36} />
@@ -126,36 +141,68 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
             {t('Yikes, you have no slow functions? This should not happen.')}
           </SlowestFunctionsQueryState>
         ) : (
-          functions.map((fn, i) => (
-            <SlowestFunctionRow key={i}>
-              <SlowestFunctionMainRow>
-                <div>
-                  <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
-                </div>
-                <div>
-                  <PerformanceDuration nanoseconds={fn['sum()'] as number} abbreviation />
-                </div>
-              </SlowestFunctionMainRow>
-              <SlowestFunctionMetricsRow>
-                <div>
-                  <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
-                </div>
-                <div>
-                  <Count value={fn['count()'] as number} />
-                  <PerformanceDuration nanoseconds={fn['p75()'] as number} abbreviation />
-                </div>
-              </SlowestFunctionMetricsRow>
-            </SlowestFunctionRow>
-          ))
+          functions.map((fn, i) => {
+            return (
+              <SlowestFunctionRow key={i}>
+                <SlowestFunctionMainRow>
+                  <div>
+                    <Link
+                      onClick={onSlowestFunctionClick}
+                      to={generateProfileFlamechartRouteWithQuery({
+                        orgSlug: organization.slug,
+                        projectSlug: project?.slug ?? '',
+                        profileId: (fn['examples()']?.[0] as string) ?? '',
+                        query: {
+                          // specify the frame to focus, the flamegraph will switch
+                          // to the appropriate thread when these are specified
+                          frameName: fn.function as string,
+                          framePackage: fn.package as string,
+                        },
+                      })}
+                    >
+                      <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
+                    </Link>
+                  </div>
+                  <div>
+                    <PerformanceDuration
+                      nanoseconds={fn['sum()'] as number}
+                      abbreviation
+                    />
+                  </div>
+                </SlowestFunctionMainRow>
+                <SlowestFunctionMetricsRow>
+                  <div>
+                    <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
+                  </div>
+                  <div>
+                    <Count value={fn['count()'] as number} />
+                    {', '}
+                    <PerformanceDuration
+                      nanoseconds={fn['p75()'] as number}
+                      abbreviation
+                    />
+                  </div>
+                </SlowestFunctionMetricsRow>
+              </SlowestFunctionRow>
+            );
+          })
         )}
-      </div>
+      </SlowestFunctionsList>
     </SlowestFunctionsContainer>
   );
 }
 
+const SlowestFunctionsList = styled('div')`
+  flex-basis: 100%;
+  overflow: auto;
+  min-height: 0;
+`;
+
 const SlowestFunctionsContainer = styled('div')`
   margin-top: ${space(0.5)};
-  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const SlowestFunctionsPagination = styled(Pagination)`
@@ -166,7 +213,7 @@ const SlowestFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 const SlowestFunctionsTypeSelect = styled(CompactSelect)`
@@ -183,7 +230,7 @@ const SlowestFunctionsQueryState = styled('div')`
 `;
 
 const SlowestFunctionRow = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 const SlowestFunctionMainRow = styled('div')`
@@ -197,12 +244,14 @@ const SlowestFunctionMetricsRow = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(0.25)};
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const SLOWEST_FUNCTION_OPTIONS: SelectOption<'application' | 'system' | 'all'>[] = [
   {
-    label: t('Slowest Application Function'),
+    label: t('Slowest Application Functions'),
     value: 'application' as const,
   },
   {

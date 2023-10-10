@@ -19,8 +19,8 @@ from sentry.integrations.utils.code_mapping import (
     Repo,
     create_code_mapping,
 )
-from sentry.models import Project
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.tasks.derive_code_mappings import get_installation
 
 

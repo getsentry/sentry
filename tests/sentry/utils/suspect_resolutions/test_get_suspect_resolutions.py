@@ -3,7 +3,8 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.models import Activity, Group, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
