@@ -30,16 +30,16 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     raw = serializers.CharField(
         required=False,
         allow_blank=True,
-        help_text="Raw input for ownership configuration. Check out [Ownership Rules Documentation](/product/issues/ownership-rules/) to learn more.",
+        help_text="Raw input for ownership configuration. Check out the [Ownership Rules Documentation](/product/issues/ownership-rules/) to learn more.",
     )
     fallthrough = serializers.BooleanField(
         required=False,
-        help_text="Set to `True` to make everyone an implicit owner if there is no match on explicit rules.",
+        help_text="A boolean determining who to assign ownership to when an ownership rule has no match. If set to `True`, all project members are made owners. Otherwise, no owners are set.",
     )
     autoAssignment = serializers.CharField(
         required=False,
         allow_blank=False,
-        help_text="""Auto-assignment settings. Here are the available options:
+        help_text="""Auto-assignment settings. The available options are:
 - Auto Assign to Issue Owner
 - Auto Assign to Suspect Commits
 - Turn off Auto-Assignment""",
