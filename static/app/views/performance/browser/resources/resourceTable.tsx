@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
-import * as qs from 'query-string';
 
 import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
@@ -12,7 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {BrowserStarfishFields} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -75,7 +73,6 @@ function ResourceTable({sort}: Props) {
         'http.response_content_length': Math.floor(Math.random() * (500 - 50) + 50),
         'resource.render_blocking_status':
           Math.random() > 0.5 ? 'blocking' : 'non-blocking',
-        'span.group': 'group123',
         domain: 's1.sentry-cdn.com',
       }))
     : [];
@@ -83,18 +80,14 @@ function ResourceTable({sort}: Props) {
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
     if (key === 'span.description') {
-      const query = {
-        ...location.query,
-        [BrowserStarfishFields.DESCRIPTION]: row[key],
-      };
       return (
-        <Link to={`/performance/browser/resources/?${qs.stringify(query)}`}>
+        <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
           {row[key]}
         </Link>
       );
     }
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key]} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
     }
     if (key === 'http.response_content_length') {
       return <FileSize bytes={row[key]} />;
