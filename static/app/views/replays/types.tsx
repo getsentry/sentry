@@ -170,7 +170,7 @@ export interface ReplayError {
 
 export type DeadRageSelectorItem = {
   aria_label: string;
-  dom_element: string;
+  dom_element: {fullSelector: string; projectId: number; selector: string};
   element: string;
   project_id: number;
   count_dead_clicks?: number;
@@ -178,7 +178,24 @@ export type DeadRageSelectorItem = {
 };
 
 export type DeadRageSelectorListResponse = {
-  data: {count_dead_clicks: number; count_rage_clicks: number; dom_element: string}[];
+  data: {
+    count_dead_clicks: number;
+    count_rage_clicks: number;
+    dom_element: string;
+    element: ReplayClickElement;
+    project_id: number;
+  }[];
+};
+
+export type ReplayClickElement = {
+  alt: string;
+  aria_label: string;
+  class: string[];
+  id: string;
+  role: string;
+  tag: string;
+  testid: string;
+  title: string;
 };
 
 export interface DeadRageSelectorQueryParams {

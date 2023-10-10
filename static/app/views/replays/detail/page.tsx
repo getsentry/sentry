@@ -51,7 +51,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.display_name || t('Anonymous')}
+              {replayRecord.user.display_name || t('Anonymous User')}
             </Layout.Title>
           }
           user={{
@@ -67,7 +67,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
               {replayRecord ? (
                 <TimeContainer>
                   <IconCalendar color="gray300" size="xs" />
-                  <TimeSince date={replayRecord.started_at} unitStyle="regular" />
+                  <StyledTimeSince date={replayRecord.started_at} unitStyle="regular" />
                 </TimeContainer>
               ) : (
                 <HeaderPlaceholder width="80px" height="16px" />
@@ -116,6 +116,10 @@ const TimeContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default Page;
