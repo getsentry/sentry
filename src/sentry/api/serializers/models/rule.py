@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Optional
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
 from typing_extensions import TypedDict
 
@@ -13,20 +13,6 @@ from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityTy
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.request_cache import request_cache
-
-
-@request_cache
-def get_neglected_rule(obj):
-    return NeglectedRule.objects.get(
-        rule=obj,
-        organization=obj.project.organization_id,
-    )
-
-
-@request_cache
-def get_rule_snooze(obj, user_id):
-    return RuleSnooze.objects.filter(rule=obj)
 
 
 def _generate_rule_label(project, rule, data):
@@ -179,6 +165,18 @@ class RuleSerializer(Serializer):
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
+        neglected_rule = NeglectedRule.objects.filter(
+            rule__in=item_list,
+            opted_out=False,
+            sent_initial_email_date__isnull=False,
+        )
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=user.id) | Q(user_id=None), rule__in=[item.id for item in item_list]
+        )
+        for rule in item_list:
+            result[rule]["neglected_rule"] = neglected_rule
+            result[rule]["snooze"] = rule_snooze
+
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
@@ -224,8 +222,8 @@ class RuleSerializer(Serializer):
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
 
-        rule_snooze = get_rule_snooze(obj, user.id)
-        if rule_snooze.exists():
+        rule_snooze = attrs.get("snooze")
+        if rule_snooze:
             snooze = rule_snooze[0]
             if snooze.user_id == user.id or not snooze.user_id:
                 d["snooze"] = True
@@ -244,13 +242,11 @@ class RuleSerializer(Serializer):
         else:
             d["snooze"] = False
 
-        try:
-            neglected_rule = get_neglected_rule(obj)
-        except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
-            pass
-        else:
-            if neglected_rule.opted_out is False and neglected_rule.sent_initial_email_date:
+        neglected_rule = attrs.get("neglected_rule")
+        if neglected_rule:
+            neglected = neglected_rule[0]
+            if neglected.opted_out is False and neglected.sent_initial_email_date:
                 d["disableReason"] = "noisy"
-                d["disableDate"] = neglected_rule.disable_date
+                d["disableDate"] = neglected.disable_date
 
         return d
