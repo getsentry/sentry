@@ -4,9 +4,9 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.utils import InvalidParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.team import Team, TeamStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 
 
 def is_team_admin(org_member: OrganizationMember, team: Optional[Team] = None) -> bool:
