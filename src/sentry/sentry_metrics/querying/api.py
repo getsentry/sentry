@@ -1,19 +1,10 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
-from snuba_sdk import (
-    AliasedExpression,
-    Column,
-    Metric,
-    MetricsQuery,
-    MetricsScope,
-    Request,
-    Rollup,
-    Timeseries,
-)
-from snuba_sdk.conditions import Condition, ConditionGroup, Op
+from snuba_sdk import Column, Metric, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
+from snuba_sdk.conditions import Condition, Op
 
 from sentry.models import Organization, Project
 from sentry.search.utils import parse_datetime_string
@@ -40,26 +31,13 @@ class InvalidMetricsQuery(Exception):
 
 
 @dataclass(frozen=True)
-class Field:
-    aggregate: str
-    metric_name: str
-
-    def refers_to_mri(self) -> bool:
-        return is_mri(self.metric_name)
+class QueryResult:
+    name: str
+    grouped_by: Sequence[str]
+    result: Mapping[str, Any]
 
 
-@dataclass(frozen=True)
-class Filter:
-    key: str
-    value: Union[str, int, float]
-
-
-@dataclass(frozen=True)
-class GroupBy:
-    key: str
-
-
-def _parse_fields(fields: Sequence[str]) -> Sequence[Field]:
+def _parse_fields(fields: Sequence[str]) -> Generator[Timeseries, None, None]:
     """
     This function supports parsing in the form:
     aggregate(metric_name)
@@ -67,19 +45,23 @@ def _parse_fields(fields: Sequence[str]) -> Sequence[Field]:
     if not fields:
         raise InvalidMetricsQuery("You must query at least one field.")
 
-    # We use a set, since we don't want duplicate fields.
-    parsed_fields = set()
     for field in fields:
         match = FIELD_REGEX.match(field)
         if match is None:
             raise InvalidMetricsQuery(f"The field {field} can't be parsed.")
 
-        parsed_fields.add(Field(aggregate=match.group(1), metric_name=match.group(2)))
+        aggregate = match.group(1)
+        metric_name = match.group(2)
 
-    return list(parsed_fields)
+        if is_mri(metric_name):
+            metric = Metric(mri=metric_name)
+        else:
+            metric = Metric(public_name=metric_name)
+
+        yield Timeseries(metric=metric, aggregate=aggregate)
 
 
-def _parse_query(query: Optional[str]) -> Optional[Sequence[Filter]]:
+def _parse_filters(query: Optional[str]) -> Optional[Sequence[Condition]]:
     """
     This function supports parsing in the form:
     key:value (_ key:value)?
@@ -91,67 +73,12 @@ def _parse_query(query: Optional[str]) -> Optional[Sequence[Filter]]:
     filters = []
     matches = QUERY_REGEX.findall(query)
     for key, value in matches:
-        filters.append(Filter(key=key, value=value))
+        filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
 
     if not query:
         raise InvalidMetricsQuery("Error while parsing the query.")
 
     return filters
-
-
-def _parse_group_by(group_bys: Optional[Sequence[str]]) -> Optional[Sequence[GroupBy]]:
-    """
-    This function supports parsing in the form:
-    value (_ value)?
-    """
-    if group_bys is None:
-        return None
-
-    # For uniformity, we also convert the group bys to internal dataclasses.
-    return [GroupBy(key=group_by) for group_by in group_bys]
-
-
-def _build_snql_query(
-    field: Field,
-    snql_filters: Optional[ConditionGroup],
-    snql_group_bys: Optional[List[Union[Column, AliasedExpression]]],
-) -> Timeseries:
-    if field.refers_to_mri():
-        metric = Metric(mri=field.metric_name)
-    else:
-        metric = Metric(public_name=field.metric_name)
-
-    return Timeseries(
-        metric=metric,
-        aggregate=field.aggregate,
-        filters=snql_filters,
-        groupby=snql_group_bys,
-    )
-
-
-def _filters_to_snql(filters: Optional[Sequence[Filter]]) -> Optional[ConditionGroup]:
-    if filters is None:
-        return None
-
-    conditions = []
-    for _filter in filters:
-        condition = Condition(lhs=Column(name=_filter.key), op=Op.EQ, rhs=_filter.value)
-        conditions.append(condition)
-
-    return conditions
-
-
-def _group_bys_to_snql(
-    group_bys: Optional[Sequence[GroupBy]],
-) -> Optional[List[Union[Column, AliasedExpression]]]:
-    if group_bys is None:
-        return None
-
-    columns = []
-    for group_by in group_bys:
-        columns.append(Column(name=group_by.key))
-
-    return columns
 
 
 def _get_granularity(time_seconds: int) -> int:
@@ -203,7 +130,7 @@ def _generate_full_series(
 
 def _translate_query_results(
     interval: int,
-    query_results: Sequence[Tuple[str, Optional[Sequence[GroupBy]], int, Mapping[str, Any]]],
+    query_results: Sequence[QueryResult],
 ) -> Mapping[str, Any]:
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
@@ -217,44 +144,44 @@ def _translate_query_results(
         Tuple[Tuple[str, str], ...], Dict[str, List[Union[Any, List[Tuple[str, Any]]]]]
     ] = {}
     intermediate_meta: Dict[str, str] = {}
-    for metric_name, group_bys, interval, snuba_result in query_results:
+    for query_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
         # the same params. This would be solved once this code is embedded within the layer itself.
         if start is None:
-            start = snuba_result["start"]
+            start = query_result.result["start"]
         if end is None:
-            end = snuba_result["end"]
+            end = query_result.result["end"]
         if intervals is None:
             intervals = _build_intervals(start, end, interval)
 
-        data = snuba_result["data"]
+        data = query_result.result["data"]
         for data_item in data:
             grouped_values = []
-            for group_by in group_bys or ():
+            for group_by in query_result.grouped_by or ():
                 grouped_values.append((group_by.key, data_item.get(group_by.key)))
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
             group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(metric_name, [[], 0])
+            metric_values = group_metrics.setdefault(query_result.name, [[], 0])
             # The item at position 0 is the "series".
             metric_values[0].append((data_item.get("time"), data_item.get("aggregate_value")))
 
         # TODO: reduce duplication.
-        totals = snuba_result["totals"]
+        totals = query_result.result["totals"]
         for totals_item in totals:
             grouped_values = []
-            for group_by in group_bys or ():
+            for group_by in query_result.grouped_by or ():
                 grouped_values.append((group_by.key, totals_item.get(group_by.key)))
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
             group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(metric_name, [[], 0])
+            metric_values = group_metrics.setdefault(query_result.name, [[], 0])
             # The item at position 1 is the "totals".
             metric_values[1] = totals_item.get("aggregate_value")
 
-        meta = snuba_result["meta"]
+        meta = query_result.result["meta"]
         for meta_item in meta:
             meta_name = meta_item.get("name")
             meta_type = meta_item.get("type")
@@ -262,7 +189,7 @@ def _translate_query_results(
             # Since we have to handle multiple time series, we map the aggregate value to the actual
             # metric name that was queried.
             if meta_name == "aggregate_value":
-                intermediate_meta[metric_name] = meta_type
+                intermediate_meta[query_result.name] = meta_type
             else:
                 intermediate_meta[meta_name] = meta_type
 
@@ -303,19 +230,24 @@ def _translate_query_results(
     }
 
 
-def _execute_series_and_totals_query(
-    organization: Organization, use_case_id: UseCaseID, interval: int, base_query: MetricsQuery
-) -> Mapping[str, Any]:
+def _build_request(
+    organization: Organization, use_case_id: UseCaseID, query: MetricsQuery
+) -> Request:
+    # TODO(layer): Handle dataset selection automatically.
     dataset = Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
-    request = Request(
+    return Request(
         dataset=dataset.value,
-        query=base_query,
+        query=query,
         app_id="default",
         tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
     )
 
-    base_query.rollup = Rollup(interval=interval, granularity=_get_granularity(interval))
-    series_result = run_query(request=request)
+
+def _execute_series_and_totals_query(
+    organization: Organization, use_case_id: UseCaseID, interval: int, base_query: MetricsQuery
+) -> Mapping[str, Any]:
+    query = base_query.set_rollup(Rollup(interval=interval, granularity=_get_granularity(interval)))
+    series_result = run_query(request=_build_request(organization, use_case_id, query))
 
     # This is a hack, to make sure that we choose the right granularity for the totals query.
     # This is done since for example if we query 24 hours with 1 hour interval:
@@ -325,9 +257,10 @@ def _execute_series_and_totals_query(
     series_end_seconds = series_result["end"].timestamp()
     totals_interval_seconds = int(series_end_seconds - series_start_seconds)
 
-    base_query.rollup = Rollup(totals=True, granularity=_get_granularity(totals_interval_seconds))
-    request.query = base_query
-    totals_result = run_query(request=request)
+    query = base_query.set_rollup(
+        Rollup(totals=True, granularity=_get_granularity(totals_interval_seconds))
+    )
+    totals_result = run_query(request=_build_request(organization, use_case_id, query))
 
     return {**series_result, "totals": totals_result["data"]}
 
@@ -345,6 +278,8 @@ def run_metrics_query(
 ):
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
+        filters=_parse_filters(query) if query else None,
+        groupby=[Column(group_by) for group_by in group_bys] if group_bys else None,
         start=start,
         end=end,
         scope=MetricsScope(
@@ -354,33 +289,20 @@ def run_metrics_query(
         ),
     )
 
-    # Parse all the strings and convert them to an intermediate format.
-    parsed_fields = _parse_fields(fields)
-    parsed_filters = _parse_query(query)
-    parsed_group_bys = _parse_group_by(group_bys)
-
-    # Build the filters and group bys ready to be injected into each query generated by a field.
-    snql_filters = _filters_to_snql(parsed_filters)
-    snql_group_bys = _group_bys_to_snql(parsed_group_bys)
-
     # For each field generate the query.
     query_results = []
-    for field in parsed_fields:
-        base_query.query = _build_snql_query(field, snql_filters, snql_group_bys)
-        snuba_result = _execute_series_and_totals_query(
-            organization, use_case_id, interval, base_query
-        )
+    for timeseries in _parse_fields(fields):
+        query = base_query.set_query(timeseries)
+        result = _execute_series_and_totals_query(organization, use_case_id, interval, query)
         query_results.append(
-            (
-                f"{field.aggregate}({field.metric_name})",
-                parsed_group_bys,
-                interval,
-                snuba_result,
+            QueryResult(
+                name=f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})",
+                # We pass the group bys since its more efficient for the transformation.
+                grouped_by=group_bys,
+                result=result,
             )
         )
 
-    translated_results = _translate_query_results(
+    return _translate_query_results(
         interval=base_query.rollup.interval, query_results=query_results
     )
-
-    return translated_results
