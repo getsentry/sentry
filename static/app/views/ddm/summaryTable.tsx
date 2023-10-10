@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
@@ -21,6 +21,11 @@ type SortState = {
   order: 'asc' | 'desc';
 };
 
+const DEFAULT_SORT_STATE: SortState = {
+  name: 'name',
+  order: 'asc',
+};
+
 export function SummaryTable({
   series,
   operation,
@@ -34,26 +39,38 @@ export function SummaryTable({
 }) {
   const {selection} = usePageFilters();
   const {slug} = useOrganization();
-  const [sortState, setSortState] = useState<SortState>({name: 'name', order: 'asc'});
+  const [sortState, setSortState] = useState<SortState>(DEFAULT_SORT_STATE);
 
   const hasActions = series.some(s => s.release || s.transaction);
 
   const router = useRouter();
   const {start, end, statsPeriod, project, environment} = router.location.query;
 
-  const sort = (name: SortState['name']) => {
-    if (sortState.name === name) {
-      setSortState({
-        name,
-        order: sortState.order === 'asc' ? 'desc' : 'asc',
-      });
-    } else {
-      setSortState({
-        name,
-        order: 'asc',
-      });
-    }
-  };
+  const sort = useCallback(
+    (name: SortState['name']) => {
+      if (sortState.name === name) {
+        if (sortState.order === 'desc') {
+          setSortState(DEFAULT_SORT_STATE);
+        } else if (sortState.order === 'asc') {
+          setSortState({
+            name,
+            order: 'desc',
+          });
+        } else {
+          setSortState({
+            name,
+            order: 'asc',
+          });
+        }
+      } else {
+        setSortState({
+          name,
+          order: 'asc',
+        });
+      }
+    },
+    [sortState]
+  );
 
   const releaseTo = (release: string) => {
     return {
@@ -110,7 +127,7 @@ export function SummaryTable({
 
   return (
     <SummaryTableWrapper hasActions={hasActions}>
-      <HeaderCell />
+      <HeaderCell disabled />
       <SortableHeaderCell onClick={sort} sortState={sortState} name="name">
         {t('Name')}
       </SortableHeaderCell>
@@ -126,7 +143,11 @@ export function SummaryTable({
       <SortableHeaderCell onClick={sort} sortState={sortState} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
-      {hasActions && <HeaderCell right>{t('Actions')}</HeaderCell>}
+      {hasActions && (
+        <HeaderCell disabled right>
+          {t('Actions')}
+        </HeaderCell>
+      )}
 
       {rows.map(
         ({
@@ -259,7 +280,7 @@ const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
 `;
 
 // TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
-const HeaderCell = styled('div')<{right?: boolean}>`
+const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -271,10 +292,11 @@ const HeaderCell = styled('div')<{right?: boolean}>`
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
   padding: ${space(0.5)} ${space(1)};
   gap: ${space(0.5)};
+  user-select: none;
 
   :hover {
-    cursor: pointer;
-    background-color: ${p => p.theme.bodyBackground};
+    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
+    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
   }
 `;
 
