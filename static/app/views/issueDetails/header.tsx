@@ -312,7 +312,7 @@ function GroupHeader({
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
-          <EnvironmentPageFilter alignDropdown="right" />
+          <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>

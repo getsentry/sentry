@@ -205,7 +205,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
       </PageFilterBar>
       {props.usingTransactions ? (
         <SearchBar

@@ -468,7 +468,7 @@ export function Actions(props: Props) {
         size="sm"
       />
       <div className="hidden-xs">
-        <EnvironmentPageFilter alignDropdown="right" size="sm" />
+        <EnvironmentPageFilter position="bottom-end" size="sm" />
       </div>
       <Feature
         hookName="feature-disabled:open-in-discover"

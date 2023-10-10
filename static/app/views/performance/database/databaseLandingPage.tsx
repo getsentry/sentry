@@ -63,7 +63,7 @@ function DatabaseLandingPage() {
             <PageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
 

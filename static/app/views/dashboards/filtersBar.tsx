@@ -53,7 +53,7 @@ export default function FiltersBar({
       <PageFilterBar condensed>
         <ProjectPageFilter disabled={isEditingDashboard} />
         <EnvironmentPageFilter disabled={isEditingDashboard} />
-        <DatePageFilter alignDropdown="left" disabled={isEditingDashboard} />
+        <DatePageFilter disabled={isEditingDashboard} />
       </PageFilterBar>
       <Fragment>
         <FilterButtons>

@@ -605,7 +605,7 @@ export class Results extends Component<Props, State> {
                 <StyledPageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
+                  <DatePageFilter />
                 </StyledPageFilterBar>
                 <CustomMeasurementsContext.Consumer>
                   {contextValue => (

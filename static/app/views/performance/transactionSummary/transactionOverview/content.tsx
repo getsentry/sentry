@@ -345,7 +345,7 @@ function SummaryContent({
           />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
+            <DatePageFilter />
           </PageFilterBar>
           <StyledSearchBar
             searchSource="transaction_summary"

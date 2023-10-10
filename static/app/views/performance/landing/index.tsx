@@ -135,7 +135,7 @@ export function PerformanceLanding(props: Props) {
     <PageFilterBar condensed>
       <ProjectPageFilter />
       <EnvironmentPageFilter />
-      <DatePageFilter alignDropdown="left" />
+      <DatePageFilter />
     </PageFilterBar>
   );
 

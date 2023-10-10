@@ -151,7 +151,7 @@ function SpanSummaryPage({params}: Props) {
             <PaddedContainer>
               <PageFilterBar condensed>
                 <EnvironmentPageFilter />
-                <DatePageFilter alignDropdown="left" />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
 

@@ -92,7 +92,7 @@ export default function WebVitalsLandingPage() {
             )}
             <PageFilterBar condensed>
               <ProjectPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
           <PerformanceScoreChart projectScore={projectScore} transaction={transaction} />

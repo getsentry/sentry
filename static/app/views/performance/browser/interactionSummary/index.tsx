@@ -60,7 +60,7 @@ function InteractionSummary() {
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
           <InteractionBreakdownChart

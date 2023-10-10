@@ -90,7 +90,7 @@ function VitalsContent(props: Props) {
                   <FilterActions>
                     <PageFilterBar condensed>
                       <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
+                      <DatePageFilter />
                     </PageFilterBar>
                     <StyledSearchBar
                       organization={organization}

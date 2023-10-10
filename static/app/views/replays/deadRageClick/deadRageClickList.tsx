@@ -68,7 +68,7 @@ export default function DeadRageClickList() {
             <PageFilterBar condensed>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+              <DatePageFilter resetParamsOnChange={['cursor']} />
             </PageFilterBar>
             <LayoutGap>
               <SelectorTable

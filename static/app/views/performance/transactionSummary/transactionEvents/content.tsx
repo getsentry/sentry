@@ -186,7 +186,7 @@ function Search(props: Props) {
       />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
       </PageFilterBar>
       <StyledSearchBar
         organization={organization}

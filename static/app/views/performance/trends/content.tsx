@@ -256,7 +256,7 @@ class TrendsContent extends Component<Props, State> {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
+                  <DatePageFilter />
                 </PageFilterBar>
                 {organization.features.includes('performance-new-trends') ? (
                   <StyledTransactionNameSearchBar

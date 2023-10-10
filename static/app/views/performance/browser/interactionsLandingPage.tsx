@@ -66,7 +66,7 @@ function InteractionsLandingPage() {
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
 
