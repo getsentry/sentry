@@ -17,7 +17,7 @@ interface SourceMapDebugBlueThunderResponseFrame {
     source_map_lookup_result: 'found' | 'wrong-dist' | 'unsuccessful';
     source_map_reference: string | null;
   } | null;
-  scraping_process: {
+  scraping_process?: {
     source_file:
       | {status: 'success'; url: string}
       | {reason: string; status: 'failure'; url: string; details?: string}
@@ -37,13 +37,13 @@ interface SourceMapDebugBlueThunderResponse {
     frames: SourceMapDebugBlueThunderResponseFrame[];
   }[];
   has_debug_ids: boolean;
-  has_scraping_data: boolean;
   has_uploaded_some_artifact_with_a_debug_id: boolean;
   project_has_some_artifact_bundle: boolean;
   release: string | null;
   release_has_some_artifact: boolean;
   sdk_debug_id_support: 'not-supported' | 'unofficial-sdk' | 'needs-upgrade' | 'full';
   sdk_version: string | null;
+  has_scraping_data?: boolean;
 }
 
 export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
@@ -112,11 +112,11 @@ function getReleaseProgress(
 function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFrame) {
   let scrapingProgress = 0;
 
-  if (debuggerFrame.scraping_process.source_file?.status === 'success') {
+  if (debuggerFrame.scraping_process?.source_file?.status === 'success') {
     scrapingProgress++;
   }
 
-  if (debuggerFrame.scraping_process.source_map?.status === 'success') {
+  if (debuggerFrame.scraping_process?.source_map?.status === 'success') {
     // We give this step a relative weight of 4/5ths because this is actually way
     // harder than step 1 and we want do deprioritize this tab over the others
     // because the scraping process comes with a few downsides that aren't immediately
@@ -158,10 +158,10 @@ export function prepareSourceMapDebuggerFrameInformation(
     sdkDebugIdSupport: sourceMapDebuggerData.sdk_debug_id_support,
     sourceFileReleaseNameFetchingResult:
       debuggerFrame.release_process?.source_file_lookup_result ?? 'unsuccessful',
-    sourceFileScrapingStatus: debuggerFrame.scraping_process.source_file,
+    sourceFileScrapingStatus: debuggerFrame.scraping_process?.source_file ?? null,
     sourceMapReleaseNameFetchingResult:
       debuggerFrame.release_process?.source_map_lookup_result ?? 'unsuccessful',
-    sourceMapScrapingStatus: debuggerFrame.scraping_process.source_map,
+    sourceMapScrapingStatus: debuggerFrame.scraping_process?.source_map ?? null,
     stackFrameDebugId: debuggerFrame.debug_id_process.debug_id,
     stackFramePath: debuggerFrame.release_process?.abs_path ?? null,
     uploadedSomeArtifactWithDebugId:
@@ -180,6 +180,6 @@ export function prepareSourceMapDebuggerFrameInformation(
     scrapingProgressPercent,
     scrapingProgress,
     frameIsResolved,
-    hasScrapingData: sourceMapDebuggerData.has_scraping_data,
+    hasScrapingData: sourceMapDebuggerData.has_scraping_data ?? false,
   } satisfies FrameSourceMapDebuggerData;
 }
