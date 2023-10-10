@@ -62,7 +62,8 @@ class GroupNotesDetailsTest(APITestCase):
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
-        group = event.group
+        assert event.group is not None
+        group: Group = event.group
 
         # create a comment
         comment_url = f"/api/0/issues/{group.id}/comments/"
@@ -94,7 +95,8 @@ class GroupNotesDetailsTest(APITestCase):
         """Test that if a user has commented multiple times on an issue and deletes one, we don't remove the subscription"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
-        group = event.group
+        assert event.group is not None
+        group: Group = event.group
 
         # create a comment
         comment_url = f"/api/0/issues/{group.id}/comments/"
