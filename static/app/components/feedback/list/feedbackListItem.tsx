@@ -13,10 +13,7 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  FeedbackItemLoaderQueryParams,
-  HydratedFeedbackItem,
-} from 'sentry/utils/feedback/item/types';
+import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,10 +42,10 @@ function UnreadBadge() {
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
-  const {feedbackSlug} = useLocationQuery<FeedbackItemLoaderQueryParams>({
+  const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
-  const [, feedbackId] = feedbackSlug?.split(':') ?? [];
+  const [, feedbackId] = feedbackSlug.split(':') ?? [];
   return feedbackId === feedbackItem.feedback_id;
 }
 
