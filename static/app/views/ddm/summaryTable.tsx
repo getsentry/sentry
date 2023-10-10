@@ -72,8 +72,8 @@ export function SummaryTable({
     return {
       pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
       query: {
-        start,
-        end,
+        pageStart: start,
+        pageEnd: end,
         pageStatsPeriod: statsPeriod,
         project,
         environment,
