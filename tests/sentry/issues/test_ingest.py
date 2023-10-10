@@ -7,6 +7,7 @@ from unittest.mock import patch
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -321,6 +322,24 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+        }
+
+    def test_populates_feedback_metadata(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={"contact_email": "test@test.com", "message": "test"},
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
         }
 
 
