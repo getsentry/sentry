@@ -107,7 +107,7 @@ export function SampleList({
             />
           )}
           <TitleContainer>
-            {spanDescription && <span>{spanDescription}</span>}
+            {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
             <Title>
               <Link to={link}>{label}</Link>
             </Title>
@@ -169,4 +169,11 @@ const Title = styled('h4')`
   position: absolute;
   bottom: 0;
   margin-bottom: 0;
+`;
+
+const SpanDescription = styled('span')`
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
