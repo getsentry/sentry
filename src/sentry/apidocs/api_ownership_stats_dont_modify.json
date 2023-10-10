@@ -28,14 +28,15 @@
             "SourceMapDebugEndpoint::GET"
         ],
         "private": [
-            "NotificationDefaultsEndpoints::GET",
             "UserNotificationSettingsOptionsDetailEndpoint::DELETE",
             "UserNotificationSettingsOptionsEndpoint::GET",
             "UserNotificationSettingsOptionsEndpoint::PUT",
             "UserNotificationSettingsProvidersEndpoint::GET",
             "UserNotificationSettingsProvidersEndpoint::PUT"
         ],
-        "experimental": [],
+        "experimental": [
+            "NotificationDefaultsEndpoints::GET"
+        ],
         "unknown": [
             "ActionableItemsEndpoint::GET",
             "GroupActivitiesEndpoint::GET",
@@ -93,7 +94,7 @@
         ]
     },
     "unowned": {
-        "block_start": 95,
+        "block_start": 96,
         "public": [
             "MonitorIngestCheckInDetailsEndpoint::PUT",
             "MonitorIngestCheckInIndexEndpoint::POST",
@@ -552,7 +553,7 @@
         ]
     },
     "owners-native": {
-        "block_start": 554,
+        "block_start": 555,
         "public": [],
         "private": [],
         "experimental": [],
@@ -567,7 +568,7 @@
         ]
     },
     "performance": {
-        "block_start": 569,
+        "block_start": 570,
         "public": [
             "OrganizationEventsEndpoint::GET"
         ],
@@ -622,7 +623,7 @@
         ]
     },
     "discover-n-dashboards": {
-        "block_start": 624,
+        "block_start": 625,
         "public": [],
         "private": [],
         "experimental": [],
@@ -637,7 +638,7 @@
         ]
     },
     "enterprise": {
-        "block_start": 639,
+        "block_start": 640,
         "public": [
             "NotificationActionsDetailsEndpoint::DELETE",
             "NotificationActionsDetailsEndpoint::GET",
@@ -708,7 +709,7 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 710,
+        "block_start": 711,
         "public": [],
         "private": [],
         "experimental": [
@@ -727,7 +728,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 729,
+        "block_start": 730,
         "public": [],
         "private": [],
         "experimental": [],
@@ -737,7 +738,7 @@
         ]
     },
     "growth": {
-        "block_start": 739,
+        "block_start": 740,
         "public": [],
         "private": [],
         "experimental": [],
@@ -746,7 +747,7 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 748,
+        "block_start": 749,
         "public": [],
         "private": [],
         "experimental": [
@@ -758,7 +759,7 @@
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 760,
+        "block_start": 761,
         "public": [],
         "private": [],
         "experimental": [],
@@ -767,7 +768,7 @@
         ]
     },
     "profiling": {
-        "block_start": 769,
+        "block_start": 770,
         "public": [],
         "private": [],
         "experimental": [],
@@ -783,7 +784,7 @@
         ]
     },
     "team-web-sdk-frontend": {
-        "block_start": 785,
+        "block_start": 786,
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -792,7 +793,7 @@
         "unknown": []
     },
     "hybrid-cloud": {
-        "block_start": 794,
+        "block_start": 795,
         "public": [],
         "private": [],
         "experimental": [],
