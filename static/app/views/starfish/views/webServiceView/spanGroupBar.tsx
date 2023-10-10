@@ -53,6 +53,7 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
         selection
       ),
       referrer: 'api.starfish-web-service.span-category-breakdown',
+      cursor: '',
       limit: 4,
     }
   );
