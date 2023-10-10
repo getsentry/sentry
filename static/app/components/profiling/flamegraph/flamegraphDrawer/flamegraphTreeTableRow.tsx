@@ -75,6 +75,7 @@ export function FrameCallersFunctionRow(
       style={{paddingLeft: props.node.depth * 14 + 8, width: '100%'}}
     >
       <FrameNameContainer>
+        {/* @TODO FIX COLOR */}
         <FrameColorIndicator style={{backgroundColor: props.frameColor}} />
         <FrameChildrenIndicator
           tabIndex={-1}
@@ -189,6 +190,7 @@ const BackgroundWeightBar = styled('div')`
 
 export const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
+  width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 24px;

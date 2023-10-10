@@ -26,13 +26,12 @@ import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-import {VirtualizedTree} from '../../../utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 
 import {FlamegraphTreeContextMenu} from './flamegraphDrawer/flamegraphTreeContextMenu';
 
@@ -278,8 +277,8 @@ export function AggregateFlamegraphTreeTable({
             ref={n => {
               r.ref = n;
             }}
-            isSelected={selectedNodeIndex === r.key}
             style={r.styles}
+            isSelected={selectedNodeIndex === r.key}
           >
             <FrameCallersFunctionRow
               node={r.item}
@@ -342,6 +341,14 @@ export function AggregateFlamegraphTreeTable({
     return VirtualizedTree.fromRoots(tree ?? []);
   }, [tree]);
 
+  const dynamicScrollContainers = useMemo(() => {
+    return dynamicScrollContainerRef ? [dynamicScrollContainerRef] : [];
+  }, [dynamicScrollContainerRef]);
+
+  const fixedScrollContainers = useMemo(() => {
+    return fixedScrollContainerRef ? [fixedScrollContainerRef] : [];
+  }, [fixedScrollContainerRef]);
+
   const {
     renderedItems: fixedColumnRenderedItems,
     scrollContainerStyles: fixedScrollContainerStyles,
@@ -360,6 +367,7 @@ export function AggregateFlamegraphTreeTable({
     rowHeight: 24,
     tree,
     virtualizedTree,
+    syncScrollContainers: dynamicScrollContainers,
   });
 
   const {
@@ -380,6 +388,7 @@ export function AggregateFlamegraphTreeTable({
     rowHeight: 24,
     tree,
     virtualizedTree,
+    syncScrollContainers: fixedScrollContainers,
   });
 
   const onSortChange = useCallback(

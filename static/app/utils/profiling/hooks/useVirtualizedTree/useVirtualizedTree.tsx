@@ -51,6 +51,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
+  syncScrollContainers?: HTMLElement[];
   virtualizedTree?: VirtualizedTree<T>;
 }
 
@@ -177,6 +178,12 @@ export function useVirtualizedTree<T extends TreeLike>(
       const scrollTop = Math.max(0, evt.target.scrollTop);
       dispatch({type: 'set scroll top', payload: scrollTop});
 
+      if (props.syncScrollContainers) {
+        for (let i = 0; i < props.syncScrollContainers.length; i++) {
+          props.syncScrollContainers[i].scrollTop = scrollTop;
+        }
+      }
+
       if (scrollEndTimeoutId.current !== undefined) {
         cancelAnimationTimeout(scrollEndTimeoutId.current);
       }
@@ -215,7 +222,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll, scrollListenerOptions);
     };
-  }, [props.scrollContainer, props.rowHeight, theme]);
+  }, [props.scrollContainer, props.rowHeight, props.syncScrollContainers, theme]);
 
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
