@@ -164,7 +164,7 @@ export function MetricChart({
               ) : displayType === MetricDisplayType.AREA ? (
                 <AreaChart {...allProps} />
               ) : (
-                <BarChart stacked {...allProps} />
+                <BarChart stacked animation={false} {...allProps} />
               );
             }}
           </ReleaseSeries>
