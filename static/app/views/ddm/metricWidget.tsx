@@ -395,7 +395,6 @@ function MetricChart({
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const router = useRouter();
-  const {statsPeriod} = router.location.query;
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
@@ -420,11 +419,7 @@ function MetricChart({
     bucketSize,
     showTimeInTooltip: true,
   };
-  const displayFogOfWar =
-    operation &&
-    statsPeriod &&
-    displayType === MetricDisplayType.LINE &&
-    ['sum', 'count'].includes(operation);
+  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
   const chartProps = {
     forwardedRef: chartRef,
@@ -596,15 +591,16 @@ const ChartWrapper = styled('div')`
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: 238px;
+  height: 244px;
   width: ${p => p.width}%;
   position: absolute;
-  right: 24px;
+  right: 21px;
   top: 18px;
+  pointer-events: none;
   background: linear-gradient(
     90deg,
     ${p => p.theme.background}00 0%,
-    ${p => p.theme.background}FF 50%,
+    ${p => p.theme.background}AA 50%,
     ${p => p.theme.background}FF 100%
   );
 `;
