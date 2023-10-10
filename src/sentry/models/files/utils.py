@@ -12,10 +12,12 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.locks import locks
+from sentry.utils import redis
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
+HALF_DAY = timedelta(hours=12)
 
 UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
 
@@ -61,17 +63,34 @@ def lock_blob(checksum: str, name: str, metric_instance: str | None = None):
         yield
 
 
-def TODO_get_cached_blob_id(file_blob_model, checksum):
+def _get_redis_for_blobs():
+    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)
+
+
+def _redis_key_for_blob(file_blob_model, checksum):
+    return f"fileblob:{file_blob_model.__name__}:{checksum}"
+
+
+def _get_cached_blob_id(file_blob_model, checksum):
+    if not options.get("fileblob.upload.use_blobid_cache"):
+        return None
+    redis = _get_redis_for_blobs()
+    if id := redis.get(_redis_key_for_blob(file_blob_model, checksum)):
+        return int(id)
     return None
 
 
-def TODO_cache_blob_id(file_blob_model, checksum, id):
-    pass
+def cache_blob_id(file_blob_model, checksum, id):
+    if not options.get("fileblob.upload.use_blobid_cache"):
+        return
+    redis = _get_redis_for_blobs()
+    redis.set(_redis_key_for_blob(file_blob_model, checksum), str(id), ex=HALF_DAY.seconds)
 
 
 @contextmanager
 def locked_blob(file_blob_model, size, checksum, logger=nooplogger):
-    if cached_id := TODO_get_cached_blob_id(file_blob_model, checksum):
+    if cached_id := _get_cached_blob_id(file_blob_model, checksum):
         yield file_blob_model(id=cached_id, size=size, checksum=checksum)
         return
 
@@ -82,10 +101,10 @@ def locked_blob(file_blob_model, size, checksum, logger=nooplogger):
         # test for presence
         try:
             existing = file_blob_model.objects.get(checksum=checksum)
-            TODO_cache_blob_id(file_blob_model, checksum, existing.id)
+            cache_blob_id(file_blob_model, checksum, existing.id)
 
             now = timezone.now()
-            threshold = now - timedelta(hours=12)
+            threshold = now - HALF_DAY
             if existing.timestamp <= threshold:
                 existing.update(timestamp=now)
         except file_blob_model.DoesNotExist:
