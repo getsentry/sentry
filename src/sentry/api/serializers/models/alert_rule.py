@@ -111,6 +111,7 @@ class AlertRuleSerializer(Serializer):
             )
             for action in serialized.get("actions", []):
                 sentry_app_id = str(action.get("sentryAppId"))
+                install = None
                 if sentry_app_id:
                     install = sentry_app_installations_by_sentry_app_id.get(sentry_app_id)
                 if install:
