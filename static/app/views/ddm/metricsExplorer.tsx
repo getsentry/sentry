@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {MetricDisplayType} from 'sentry/utils/metrics';
-import {MetricWidget, MetricWidgetProps} from 'sentry/views/ddm/metricWidget';
+import {MetricWidget, MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 // TODO(ddm): move this to admin
 export default function MetricsExplorer() {

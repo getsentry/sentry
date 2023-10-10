@@ -14,8 +14,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ScratchpadSelector} from 'sentry/views/ddm/metricScratchpad';
-import MetricScratchpad from 'sentry/views/ddm/metricWidget';
+import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
+import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 
 function DDM() {
   const organization = useOrganization();
