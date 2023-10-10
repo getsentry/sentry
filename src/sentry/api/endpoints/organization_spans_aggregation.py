@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, TypedDict
+from typing import Any, Dict, List, Mapping, Set, Tuple, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -60,6 +60,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
+        "samples": Set[Tuple[str, str]],
     },
 )
 
