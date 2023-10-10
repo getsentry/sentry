@@ -45,7 +45,7 @@ function UnreadBadge() {
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
-  const {feedbackSlug} = useLocationQuery<FeedbackItemLoaderQueryParams>({
+  const {feedbackSlug}: FeedbackItemLoaderQueryParams = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug?.split(':') ?? [];

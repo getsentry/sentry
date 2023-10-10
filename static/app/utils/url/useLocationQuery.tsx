@@ -10,18 +10,26 @@ type Decoder = typeof decodeList | typeof decodeScalar | typeof decodeInteger;
  * Select and memoize query params from location.
  * This returns a new object only when one of the specified query fields is
  * updated. The object will remain stable otherwise, avoiding re-renders.
+ *
+ * You shouldn't need to manually set the `InferredRequestShape` or `InferredResponseShape`
+ * generics, instead type the left side of the statement.
+ *
+ * For example:
+ * ```
+ * type QueryFields = {statsPeriod: string};
+ * const query: QueryFields = useLocationQuery({
+ *   fields: {statsPeriod: decodeScalar}
+ * });
+ * ```
  */
 export default function useLocationQuery<
-  Requested extends Record<string, Scalar | Scalar[] | Decoder>,
->({
-  fields,
-}: {
-  fields: Requested;
-}): {
-  readonly [Property in keyof Requested]: Requested[Property] extends Decoder
-    ? ReturnType<Requested[Property]>
-    : Requested[Property];
-} {
+  InferredRequestShape extends Record<string, Scalar | Scalar[] | Decoder>,
+  InferredResponseShape extends {
+    readonly [Property in keyof InferredRequestShape]: InferredRequestShape[Property] extends Decoder
+      ? ReturnType<InferredRequestShape[Property]>
+      : InferredRequestShape[Property];
+  },
+>({fields}: {fields: InferredRequestShape}): InferredResponseShape {
   const location = useLocation();
 
   const locationFields = {};
