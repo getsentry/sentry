@@ -5,10 +5,13 @@ from django.db import migrations
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-# These two filetypes have not been created ever since
-# <https://github.com/getsentry/sentry/commit/c14c8f0e3a30fb5c2221fdefa4c0f5167bdc8986#diff-08e824e030b14e7936ffeda41ccf81d8feed2cdcdfbc522d0c46d0064f3640c9L750>
-# But there seems to be quite some leftover `File` objects sticking around we want to remove.
-TYPES_TO_DELETE = ("project.symcache", "project.cficache", "global.dsym")
+# There is a bunch of orphaned `File`s still being stored that will be cleaned up.
+# They have the following `type`s:
+# - `project.symcache` and `project.cficache` have not been created ever since
+#   <https://github.com/getsentry/sentry/commit/c14c8f0e3a30fb5c2221fdefa4c0f5167bdc8986#diff-08e824e030b14e7936ffeda41ccf81d8feed2cdcdfbc522d0c46d0064f3640c9L750>
+# - `global.dsym` seems to be leftover from 2016
+# - `replay.recording` were moved to a different backing store.
+TYPES_TO_DELETE = ("project.symcache", "project.cficache", "global.dsym", "replay.recording")
 
 
 def rm_cficache_symcache(apps, schema_editor):
