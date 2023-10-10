@@ -139,7 +139,7 @@ class MetricAlertParams:
         location="path",
         required=True,
         type=int,
-        description="The id of the rule you'd like to query.",
+        description="The ID of the rule you'd like to query.",
     )
 
 
