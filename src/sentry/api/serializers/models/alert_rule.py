@@ -110,6 +110,9 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             for action in serialized.get("actions", []):
+                if action is None:
+                    continue
+
                 sentry_app_id = str(action.get("sentryAppId"))
                 install = None
                 if sentry_app_id:
