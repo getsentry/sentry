@@ -47,6 +47,29 @@ describe('useLocationQuery', () => {
     });
   });
 
+  it('should return undefined if the url does not contain a requested field', () => {
+    jest.mocked(useLocation).mockReturnValue({
+      ...mockLocation,
+      query: {},
+    } as Location);
+
+    const {result} = reactHooks.renderHook(useLocationQuery, {
+      initialProps: {
+        fields: {
+          name: decodeScalar,
+          age: decodeInteger,
+          titles: decodeList,
+        },
+      },
+    });
+
+    expect(result.current).toStrictEqual({
+      name: '',
+      age: 0,
+      titles: [],
+    });
+  });
+
   it('should pass-through static values along with decoded ones', () => {
     jest.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
@@ -60,7 +83,6 @@ describe('useLocationQuery', () => {
       initialProps: {
         fields: {
           name: decodeScalar,
-          age: decodeInteger,
           stringy: 'bar',
           list: ['biz', 'baz'],
           num: 12,
@@ -70,7 +92,6 @@ describe('useLocationQuery', () => {
 
     expect(result.current).toStrictEqual({
       name: 'Adam',
-      age: 12,
       stringy: 'bar',
       list: ['biz', 'baz'],
       num: 12,

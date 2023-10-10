@@ -36,7 +36,13 @@ export default function useLocationQuery<
   const forwardedFields = {};
   Object.entries(fields).forEach(([field, decoderOrValue]) => {
     if (typeof decoderOrValue === 'function') {
-      locationFields[field] = decoderOrValue(location.query[field]);
+      if (decoderOrValue === decodeScalar) {
+        locationFields[field] = decoderOrValue(location.query[field], '');
+      } else if (decoderOrValue === decodeInteger) {
+        locationFields[field] = decoderOrValue(location.query[field], 0);
+      } else {
+        locationFields[field] = decoderOrValue(location.query[field]);
+      }
     } else {
       forwardedFields[field] = decoderOrValue;
     }
@@ -47,9 +53,9 @@ export default function useLocationQuery<
 
   return useMemo(
     () => ({
-      ...JSON.parse(stringyForwardedFields),
-      ...JSON.parse(stringyLocationFields),
+      ...(forwardedFields as any),
+      ...(locationFields as any),
     }),
-    [stringyForwardedFields, stringyLocationFields]
+    [stringyForwardedFields, stringyLocationFields] // eslint-disable-line
   );
 }
