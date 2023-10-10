@@ -537,6 +537,7 @@ function FogOfWar({
   if (!fogOfWarWidth || !seriesWidth) {
     return null;
   }
+
   const width = (fogOfWarWidth / seriesWidth) * 100;
 
   return <FogOfWarOverlay width={width ?? 0} />;
