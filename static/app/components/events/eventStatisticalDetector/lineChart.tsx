@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import VisualMap from 'sentry/components/charts/components/visualMap';
 import {
   LineChart as EchartsLineChart,
   LineChartProps,
@@ -15,14 +16,8 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-} from 'sentry/views/performance/trends/types';
-import {
-  transformEventStatsSmoothed,
-  trendToColor,
-} from 'sentry/views/performance/trends/utils';
+import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {transformEventStatsSmoothed} from 'sentry/views/performance/trends/utils';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
@@ -58,7 +53,6 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: trendToColor[TrendChangeType.REGRESSION].default,
           lineStyle: {
             opacity: 1,
           },
@@ -119,6 +113,26 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
               right: '10px',
               top: '40px',
               bottom: '0px',
+            }}
+            visualMap={VisualMap({
+              show: false,
+              type: 'piecewise',
+              selectedMode: false,
+              dimension: 0,
+              pieces: [
+                {
+                  gte: 0,
+                  lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                  color: theme.gray500,
+                },
+                {
+                  gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                  color: theme.red300,
+                },
+              ],
+            })}
+            xAxis={{
+              type: 'time',
             }}
           />
         );
