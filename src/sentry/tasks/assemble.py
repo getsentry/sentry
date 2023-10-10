@@ -213,8 +213,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models import debugfile
-    from sentry.models.debugfile import BadDif
+    from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -245,9 +244,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                result = debugfile.detect_dif_from_path(
-                    temp_file.name, name=name, debug_id=debug_id
-                )
+                result = detect_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
@@ -261,7 +258,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            dif, created = debugfile.create_dif_from_id(project, result[0], file=file)
+            dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
 
             if created:

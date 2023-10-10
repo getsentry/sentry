@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import VisualMap from 'sentry/components/charts/components/visualMap';
 import {
   LineChart as EchartsLineChart,
   LineChartProps,
@@ -93,6 +94,26 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
               right: '10px',
               top: '40px',
               bottom: '0px',
+            }}
+            visualMap={VisualMap({
+              show: false,
+              type: 'piecewise',
+              selectedMode: false,
+              dimension: 0,
+              pieces: [
+                {
+                  gte: 0,
+                  lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                  color: theme.gray500,
+                },
+                {
+                  gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                  color: theme.red300,
+                },
+              ],
+            })}
+            xAxis={{
+              type: 'time',
             }}
           />
         );
