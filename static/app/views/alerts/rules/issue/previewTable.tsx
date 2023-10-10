@@ -101,7 +101,7 @@ function PreviewTable({
       <Panel>
         <GroupListHeader
           withChart={false}
-          withColumns={['event', 'lastTriggered', 'users']}
+          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
