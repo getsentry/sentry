@@ -1126,6 +1126,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <Fragment>
+        {subSpans}
         <RowRectangle
           spanBarType={spanBarType}
           style={{
@@ -1144,7 +1145,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             {this.renderWarningText()}
           </DurationPill>
         </RowRectangle>
-        {subSpans}
       </Fragment>
     );
   }
