@@ -49,6 +49,9 @@ const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can 
 export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
+const DEFAULT_CHART_HEIGHT = 200;
+const X_AXIS_MARGIN_OFFSET = 23;
+
 export enum DiscoverQueryPageSource {
   PERFORMANCE = 'performance',
   DISCOVER = 'discover',
@@ -594,9 +597,11 @@ export function getIntervalLine(
           },
           lineStyle: {color: theme.green400, type: 'solid', width: 4},
           data: [
+            // The line needs to be hard-coded to a pixel coordinate because
+            // the lowest y-value is dynamic and 'min' doesn't work here
             [
-              {xAxis: 'min', y: 177},
-              {xAxis: breakpoint, y: 177},
+              {xAxis: 'min', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
             ],
           ],
         }) ?? {},
