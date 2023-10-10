@@ -33,23 +33,23 @@ export default function useLocationQuery<
   const location = useLocation();
 
   const locationFields = {};
-  const staticFields = {};
+  const forwardedFields = {};
   Object.entries(fields).forEach(([field, decoderOrValue]) => {
     if (typeof decoderOrValue === 'function') {
       locationFields[field] = decoderOrValue(location.query[field]);
     } else {
-      staticFields[field] = decoderOrValue;
+      forwardedFields[field] = decoderOrValue;
     }
   }, {});
 
-  const stringyFields = JSON.stringify(locationFields);
-  const objFields = useMemo(() => JSON.parse(stringyFields), [stringyFields]);
+  const stringyForwardedFields = JSON.stringify(forwardedFields);
+  const stringyLocationFields = JSON.stringify(locationFields);
 
   return useMemo(
     () => ({
-      ...objFields,
-      ...staticFields,
+      ...JSON.parse(stringyForwardedFields),
+      ...JSON.parse(stringyLocationFields),
     }),
-    [objFields] // eslint-disable-line react-hooks/exhaustive-deps
+    [stringyForwardedFields, stringyLocationFields]
   );
 }
