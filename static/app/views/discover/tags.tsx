@@ -1,23 +1,23 @@
-import { Component, Fragment } from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import { Location, LocationDescriptor } from 'history';
+import {Location, LocationDescriptor} from 'history';
 
-import { fetchTagFacets, Tag, TagSegment } from 'sentry/actionCreators/events';
-import { Client } from 'sentry/api';
-import { Button } from 'sentry/components/button';
+import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import { SectionHeading } from 'sentry/components/charts/styles';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import { TagFacetsList } from 'sentry/components/group/tagFacets';
+import {TagFacetsList} from 'sentry/components/group/tagFacets';
 import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
 import Placeholder from 'sentry/components/placeholder';
-import { IconWarning } from 'sentry/icons';
-import { t } from 'sentry/locale';
-import { space } from 'sentry/styles/space';
-import { Organization } from 'sentry/types';
-import { trackAnalytics } from 'sentry/utils/analytics';
-import EventView, { isAPIPayloadSimilar } from 'sentry/utils/discover/eventView';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
 
@@ -77,11 +77,11 @@ class Tags extends Component<Props, State> {
     nextCursor?: string,
     appendTags?: boolean
   ) => {
-    const { api, organization, eventView, location, confirmedQuery } = this.props;
+    const {api, organization, eventView, location, confirmedQuery} = this.props;
 
-    this.setState({ loading: true, error: '' });
+    this.setState({loading: true, error: ''});
     if (!appendTags) {
-      this.setState({ hasLoaded: false, tags: [] });
+      this.setState({hasLoaded: false, tags: []});
     }
 
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
@@ -113,27 +113,27 @@ class Tags extends Component<Props, State> {
       if (appendTags) {
         tags = [...this.state.tags, ...tags];
       }
-      this.setState({ loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor });
+      this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
     } catch (err) {
       if (
         err.status !== 400 &&
         err.responseJSON?.detail !==
-        'Invalid date range. Please try a more recent date range.'
+          'Invalid date range. Please try a more recent date range.'
       ) {
         Sentry.captureException(err);
       }
-      this.setState({ loading: false, error: err });
+      this.setState({loading: false, error: err});
     }
   };
 
   handleTagClick = (tag: string) => {
-    const { organization } = this.props;
+    const {organization} = this.props;
     // metrics
-    trackAnalytics('discover_v2.facet_map.clicked', { organization, tag });
+    trackAnalytics('discover_v2.facet_map.clicked', {organization, tag});
   };
 
   renderTag(tag: Tag, index: number) {
-    const { generateUrl, totalValues } = this.props;
+    const {generateUrl, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       segment.url = generateUrl(tag.key, segment.value);
@@ -172,7 +172,7 @@ class Tags extends Component<Props, State> {
   }
 
   renderBody = () => {
-    const { loading, hasLoaded, error, tags, hasMore, nextCursor } = this.state;
+    const {loading, hasLoaded, error, tags, hasMore, nextCursor} = this.state;
     if (loading && !hasLoaded) {
       return this.renderPlaceholders();
     }
@@ -254,5 +254,5 @@ const ButtonWrapper = styled('div')`
   align-items: center;
 `;
 
-export { Tags };
+export {Tags};
 export default withApi(Tags);
