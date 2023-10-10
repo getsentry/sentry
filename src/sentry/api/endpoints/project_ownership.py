@@ -30,7 +30,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     raw = serializers.CharField(
         required=False,
         allow_blank=True,
-        help_text="Raw input for ownership configuration. Check out the [Ownership Rules Documentation](/product/issues/ownership-rules/) to learn more.",
+        help_text="Raw input for ownership configuration. See the [Ownership Rules Documentation](/product/issues/ownership-rules/) to learn more.",
     )
     fallthrough = serializers.BooleanField(
         required=False,

@@ -6,7 +6,7 @@ from sentry.api.serializers import Serializer, register
 from sentry.models.projectownership import ProjectOwnership
 
 
-# JSON object representing optioanl part of API response
+# JSON object representing optional part of API response
 class ProjectOwnershipResponseOptional(TypedDict, total=False):
     schema: dict
 
