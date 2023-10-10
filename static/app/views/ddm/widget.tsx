@@ -22,7 +22,7 @@ import {
   MetricsData,
   MetricsQuery,
   updateQuery,
-  useMetricsData,
+  useMetricsDataZoom,
 } from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
@@ -170,7 +170,7 @@ function MetricWidgetBody({
 }: MetricWidgetProps & PageFilters) {
   const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-  const {data, isLoading, isError, error} = useMetricsData({
+  const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom({
     mri,
     op,
     query,
@@ -231,6 +231,7 @@ function MetricWidgetBody({
         projects={metricsQuery.projects}
         environments={metricsQuery.environments}
         {...normalizeChartTimeParams(dataToBeRendered)}
+        onZoom={onZoom}
       />
       {metricsQuery.showSummaryTable && (
         <SummaryTable
