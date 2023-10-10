@@ -91,11 +91,11 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
 
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField(
-        help_text="Enables starring the project within the projects tab. Can get updated with `project:read` permission.",
+        help_text="Enables starring the project within the projects tab. Can get updated with **`project:read`** permission.",
         required=False,
     )
     isSubscribed = serializers.BooleanField(
-        help_text="Subscribes the member for notifications related to the project. Can get updated with `project:read` permission.",
+        help_text="Subscribes the member for notifications related to the project. Can get updated with **`project:read`** permission.",
         required=False,
     )
 
@@ -133,14 +133,14 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
 - `$shortID`
 - `$projectID`
 - `$orgID`
-- `${tag:key}` - For example, `${tag:environment}` or `${tag:release}`.""",
+- `${tag:key}` - such as `${tag:environment}` or `${tag:release}`.""",
         max_length=200,
         required=False,
     )
     resolveAge = EmptyIntegerField(
         required=False,
         allow_null=True,
-        help_text="Automatically resolve an issue if it hasn't been seen for this amount of time. Set to 0 to turn the auto-resolve feature off.",
+        help_text="Automatically resolve an issue if it hasn't been seen for this amount of time in {unit}. Set to `0` to disable auto-resolve.",
     )
 
     # TODO: Add help_text to all the fields for public documentation
