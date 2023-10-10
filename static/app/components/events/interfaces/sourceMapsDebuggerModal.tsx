@@ -27,6 +27,76 @@ import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 
+const SOURCE_MAP_SCRAPING_REASON_MAP = {
+  not_found: {
+    shortName: t('Not Found'),
+    explanation: t('The source map could not be found at its defined location.'),
+  },
+  disabled: {
+    shortName: t('Disabled'),
+    explanation: t('JavaScript source fetching is disabled in your project settings.'),
+  },
+  invalid_host: {
+    shortName: t('Invalid Host'),
+    explanation: t(
+      'The source map location was not in the list of allowed domains in your project settings, or the URL was malformed.'
+    ),
+  },
+  permission_denied: {
+    shortName: t('Permission Denied'),
+    explanation: t(
+      'Permission to access the source map was denied by the server hosting the source map.'
+    ),
+  },
+  timeout: {
+    shortName: t('Timeout'),
+    explanation: t('The request to download the source map timed out.'),
+  },
+  download_error: {
+    shortName: t('Download Error'),
+    explanation: t('There was an error while downloading the source map.'),
+  },
+  other: {
+    shortName: t('Unknown'),
+    explanation: t('Fetching the source map failed for an unknown reason.'),
+  },
+} as const;
+
+const SOURCE_FILE_SCRAPING_REASON_MAP = {
+  not_found: {
+    shortName: t('Not Found'),
+    explanation: t('The source file could not be found at its defined location.'),
+  },
+  disabled: {
+    shortName: t('Disabled'),
+    explanation: t('JavaScript source fetching is disabled in your project settings.'),
+  },
+  invalid_host: {
+    shortName: t('Invalid Host'),
+    explanation: t(
+      'The source file location was not in the list of allowed domains in your project settings, or the URL was malformed.'
+    ),
+  },
+  permission_denied: {
+    shortName: t('Permission Denied'),
+    explanation: t(
+      'Permission to access the source file was denied by the server hosting it.'
+    ),
+  },
+  timeout: {
+    shortName: t('Timeout'),
+    explanation: t('The request to download the source file timed out.'),
+  },
+  download_error: {
+    shortName: t('Download Error'),
+    explanation: t('There was an error while downloading the source file.'),
+  },
+  other: {
+    shortName: t('Unknown'),
+    explanation: t('Fetching the source file failed for an unknown reason.'),
+  },
+} as const;
+
 export interface FrameSourceMapDebuggerData {
   debugIdProgress: number;
   debugIdProgressPercent: number;
@@ -46,14 +116,16 @@ export interface FrameSourceMapDebuggerData {
   sdkVersion: string | null;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
-    | {status: 'found'}
-    | {error: string; status: 'error'}
-    | {status: 'none'};
+    | {status: 'success'; url: string}
+    | {reason: string; status: 'failure'; url: string; details?: string}
+    | {status: 'not_attempted'; url: string}
+    | null;
   sourceMapReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceMapScrapingStatus:
-    | {status: 'found'}
-    | {error: string; status: 'error'}
-    | {status: 'none'};
+    | {status: 'success'; url: string}
+    | {reason: string; status: 'failure'; url: string; details?: string}
+    | {status: 'not_attempted'; url: string}
+    | null;
   stackFrameDebugId: string | null;
   stackFramePath: string | null;
   uploadedSomeArtifactWithDebugId: boolean;
@@ -178,13 +250,13 @@ export function SourceMapsDebuggerModal({
             </TabList.Item>
             <TabList.Item
               key="fetching"
-              // TODO: Remove "coming soon" when we add data crawling from symbolicator
-              textValue={`${t('Hosting Publicly')} (${t('coming soon')}) (${
+              textValue={`${t('Hosting Publicly')} (${
                 sourceResolutionResults.scrapingProgress
               }/4)`}
-              // TODO: enable when we add crawling data from symbolicator
-              disabled
-              hidden
+              hidden={
+                sourceResolutionResults.sourceMapScrapingStatus === null &&
+                sourceResolutionResults.sourceFileScrapingStatus === null
+              }
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
@@ -292,9 +364,6 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ScrapingSourceMapAvailableChecklistItem
-                  shouldValidate={
-                    sourceResolutionResults.sourceFileScrapingStatus.status === 'found'
-                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
@@ -988,25 +1057,17 @@ function ScrapingSourceFileAvailableChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const successMessage = t('Source file available to Sentry');
-  const errorMessage = t('Source file is not available to Sentry');
-
-  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
-    return <CheckListItem status="checked" title={successMessage} />;
-  }
-
   if (
-    sourceResolutionResults.uploadedSourceFileWithCorrectDebugId ||
-    sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found' ||
-    sourceResolutionResults.sourceFileScrapingStatus.status === 'none'
+    sourceResolutionResults.sourceFileScrapingStatus === null ||
+    sourceResolutionResults.sourceFileScrapingStatus.status === 'not_attempted'
   ) {
     return (
-      <CheckListItem status="alert" title={errorMessage}>
+      <CheckListItem status="alert" title={t('Source file was not fetched')}>
         <CheckListInstruction type="muted">
-          <h6>{t('Fetching Not Attempted')}</h6>
+          <h6>{t('Fetching Was Not Attempted')}</h6>
           <p>
             {t(
-              'The source file was already locaded via Debug IDs or Releases. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+              'The source file was either already located via Debug IDs or Releases, or there was information missing on the event to attempt fetching the source file. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
             )}
           </p>
         </CheckListInstruction>
@@ -1015,14 +1076,34 @@ function ScrapingSourceFileAvailableChecklistItem({
     );
   }
 
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'success') {
+    return (
+      <CheckListItem status="checked" title={t('Source file available to Sentry')} />
+    );
+  }
+
+  const failureReasonTexts =
+    SOURCE_FILE_SCRAPING_REASON_MAP[
+      sourceResolutionResults.sourceFileScrapingStatus.reason
+    ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
+
   return (
-    <CheckListItem status="alert" title={errorMessage}>
+    <CheckListItem status="alert" title={t('Source file is not available to Sentry')}>
       <CheckListInstruction type="muted">
-        <h6>{t('Error While Fetching')}</h6>
-        <p>{t('Sentry encountered an error while fetching your source file.')}</p>
+        <h6>
+          {t('Error While Fetching The Source File:')} {failureReasonTexts.shortName}
+        </h6>
+        <p>{failureReasonTexts.explanation}</p>
         <p>
-          {t('Error message')}: "{sourceResolutionResults.sourceFileScrapingStatus.error}"
+          {t('Sentry looked for the source file at this location:')}{' '}
+          <MonoBlock>{sourceResolutionResults.sourceFileScrapingStatus.url}</MonoBlock>
         </p>
+        {sourceResolutionResults.sourceFileScrapingStatus.details && (
+          <p>
+            {t('Error message')}: "
+            {sourceResolutionResults.sourceFileScrapingStatus.details}"
+          </p>
+        )}
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -1030,36 +1111,55 @@ function ScrapingSourceFileAvailableChecklistItem({
 
 function ScrapingSourceMapAvailableChecklistItem({
   sourceResolutionResults,
-  shouldValidate,
 }: {
-  shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const successMessage = t('Source map available to Sentry');
-  const errorMessage = t('Source map is not available to Sentry');
-
-  if (!shouldValidate) {
-    return <CheckListItem status="none" title={successMessage} />;
+  if (
+    sourceResolutionResults.sourceMapScrapingStatus === null ||
+    sourceResolutionResults.sourceMapScrapingStatus.status === 'not_attempted'
+  ) {
+    return (
+      <CheckListItem status="alert" title={t('Source map was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <p>
+            {t(
+              'The source map was either already located via Debug IDs or Releases, or there was information missing on the event to attempt fetching the source map. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
+            )}
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
   }
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
-    return <CheckListItem status="checked" title={successMessage} />;
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'success') {
+    return <CheckListItem status="checked" title={t('Source map available to Sentry')} />;
   }
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'none') {
-    return <CheckListItem status="none" title={successMessage} />;
-  }
+  const failureReasonTexts =
+    SOURCE_MAP_SCRAPING_REASON_MAP[
+      sourceResolutionResults.sourceMapScrapingStatus.reason
+    ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;
 
   return (
-    <CheckListItem status="alert" title={errorMessage}>
+    <CheckListItem status="alert" title={t('Source map is not available to Sentry')}>
       <CheckListInstruction type="muted">
-        <h6>{t('Error While Fetching')}</h6>
-        <p>{t('Sentry encountered an error while fetching your source map.')}</p>
+        <h6>
+          {t('Error While Fetching The Source Map:')} {failureReasonTexts.shortName}
+        </h6>
+        <p>{failureReasonTexts.explanation}</p>
         <p>
-          {t('Error message')}: "{sourceResolutionResults.sourceMapScrapingStatus.error}"
+          {t('Sentry looked for the source map at this location:')}{' '}
+          <MonoBlock>{sourceResolutionResults.sourceMapScrapingStatus.url}</MonoBlock>
         </p>
+        {sourceResolutionResults.sourceMapScrapingStatus.details && (
+          <p>
+            {t('Error message')}: "
+            {sourceResolutionResults.sourceMapScrapingStatus.details}"
+          </p>
+        )}
       </CheckListInstruction>
-      <SourceMapStepNotRequiredNote />
     </CheckListItem>
   );
 }
