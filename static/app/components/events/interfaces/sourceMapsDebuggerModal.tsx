@@ -263,8 +263,7 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
-              {/* TODO: Remove "coming soon" when we add data crawling from symbolicator */}
-              {`${t('Hosting Publicly')} (${t('coming soon')})`}
+              {t('Hosting Publicly')}
             </TabList.Item>
           </TabList>
           <StyledTabPanels>
@@ -1055,17 +1054,14 @@ function ScrapingSourceFileAvailableChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  if (
-    sourceResolutionResults.sourceFileScrapingStatus === null ||
-    sourceResolutionResults.sourceFileScrapingStatus.status === 'not_attempted'
-  ) {
+  if (sourceResolutionResults.sourceFileScrapingStatus === null) {
     return (
       <CheckListItem status="alert" title={t('Source file was not fetched')}>
         <CheckListInstruction type="muted">
-          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <h6>{t('Missing Information')}</h6>
           <p>
             {t(
-              'The source file was either already located via Debug IDs or Releases, or there was information missing on the event to attempt fetching the source file. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+              'This stack frame is missing information to attempt fetching the source file.'
             )}
           </p>
         </CheckListInstruction>
@@ -1077,6 +1073,22 @@ function ScrapingSourceFileAvailableChecklistItem({
   if (sourceResolutionResults.sourceFileScrapingStatus.status === 'success') {
     return (
       <CheckListItem status="checked" title={t('Source file available to Sentry')} />
+    );
+  }
+
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'not_attempted') {
+    return (
+      <CheckListItem status="alert" title={t('Source file was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <p>
+            {t(
+              'The source file was already located via Debug IDs or Releases. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+            )}
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
     );
   }
 
@@ -1097,10 +1109,12 @@ function ScrapingSourceFileAvailableChecklistItem({
           <MonoBlock>{sourceResolutionResults.sourceFileScrapingStatus.url}</MonoBlock>
         </p>
         {sourceResolutionResults.sourceFileScrapingStatus.details && (
-          <p>
-            {t('Error message')}: "
-            {sourceResolutionResults.sourceFileScrapingStatus.details}"
-          </p>
+          <Fragment>
+            <p>{t('Sentry symbolification error message:')}</p>
+            <ScrapingSymbolificationErrorMessage>
+              "{sourceResolutionResults.sourceFileScrapingStatus.details}"
+            </ScrapingSymbolificationErrorMessage>
+          </Fragment>
         )}
       </CheckListInstruction>
     </CheckListItem>
@@ -1112,27 +1126,40 @@ function ScrapingSourceMapAvailableChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  if (
-    sourceResolutionResults.sourceMapScrapingStatus === null ||
-    sourceResolutionResults.sourceMapScrapingStatus.status === 'not_attempted'
-  ) {
+  if (sourceResolutionResults.sourceMapScrapingStatus?.status === 'success') {
+    return <CheckListItem status="checked" title={t('Source map available to Sentry')} />;
+  }
+
+  if (sourceResolutionResults.sourceFileScrapingStatus?.status !== 'success') {
+    return <CheckListItem status="none" title={t('Source map available to Sentry')} />;
+  }
+
+  if (sourceResolutionResults.sourceMapScrapingStatus === null) {
     return (
-      <CheckListItem status="alert" title={t('Source map was not fetched')}>
+      <CheckListItem status="none" title={t('Source map was not fetched')}>
         <CheckListInstruction type="muted">
-          <h6>{t('Fetching Was Not Attempted')}</h6>
-          <p>
-            {t(
-              'The source map was either already located via Debug IDs or Releases, there was no source map reference on the source file. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
-            )}
-          </p>
+          <h6>{t('No Source Map Reference')}</h6>
+          <p>{t('There was no source map reference on the source file.')}</p>
         </CheckListInstruction>
         <SourceMapStepNotRequiredNote />
       </CheckListItem>
     );
   }
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'success') {
-    return <CheckListItem status="checked" title={t('Source map available to Sentry')} />;
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'not_attempted') {
+    return (
+      <CheckListItem status="alert" title={t('Source map was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <p>
+            {t(
+              'The source map was already located via Debug IDs or Releases. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
+            )}
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
   }
 
   const failureReasonTexts =
@@ -1152,10 +1179,12 @@ function ScrapingSourceMapAvailableChecklistItem({
           <MonoBlock>{sourceResolutionResults.sourceMapScrapingStatus.url}</MonoBlock>
         </p>
         {sourceResolutionResults.sourceMapScrapingStatus.details && (
-          <p>
-            {t('Error message')}: "
-            {sourceResolutionResults.sourceMapScrapingStatus.details}"
-          </p>
+          <Fragment>
+            <p>{t('Sentry symbolification error message:')}</p>
+            <ScrapingSymbolificationErrorMessage>
+              "{sourceResolutionResults.sourceMapScrapingStatus.details}"
+            </ScrapingSymbolificationErrorMessage>
+          </Fragment>
         )}
       </CheckListInstruction>
     </CheckListItem>
@@ -1337,4 +1366,11 @@ const InstructionList = styled('ul')`
 const ModalHeadingContainer = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const ScrapingSymbolificationErrorMessage = styled('p')`
+  color: ${p => p.theme.gray300};
+  border-left: 2px solid ${p => p.theme.gray200};
+  padding-left: ${space(1)};
+  margin-top: -${space(1)};
 `;
