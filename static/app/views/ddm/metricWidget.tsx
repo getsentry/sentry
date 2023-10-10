@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
@@ -114,7 +114,7 @@ function useMetricWidgets() {
   };
 }
 
-function MetricDashboard() {
+function MetricScratchpad() {
   const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
 
@@ -230,12 +230,15 @@ function MetricWidgetBodyInner({
     }
   }, [data]);
 
-  const toggleSeriesVisibility = (seriesName: string) => {
-    setHoveredLegend('');
-    onChange({
-      focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
-    });
-  };
+  const toggleSeriesVisibility = useCallback(
+    (seriesName: string) => {
+      setHoveredLegend('');
+      onChange({
+        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+      });
+    },
+    [focusedSeries, onChange]
+  );
 
   if (!dataToBeRendered || isError) {
     return (
@@ -250,11 +253,9 @@ function MetricWidgetBodyInner({
     );
   }
 
-  // TODO(ddm): we should move this into the useMetricsData hook
-  const sorted = sortData(dataToBeRendered);
   const unit = getUnitFromMRI(Object.keys(dataToBeRendered.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
-  const series = sorted.groups.map(g => {
+  const series = dataToBeRendered.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
       name: getSeriesName(
@@ -266,26 +267,27 @@ function MetricWidgetBodyInner({
       release: g.by.release,
     };
   });
-
   const colors = theme.charts.getColorPalette(series.length);
 
-  const chartSeries = series.map((item, i) => ({
-    seriesName: item.name,
-    unit,
-    color: colorFn(colors[i])
-      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
-      .string(),
-    hidden: focusedSeries && focusedSeries !== item.name,
-    data: item.values.map((value, index) => ({
-      name: sorted.intervals[index],
-      value,
-    })),
-    transaction: item.transaction as string | undefined,
-    release: item.release as string | undefined,
-    emphasis: {
-      focus: 'series',
-    } as LineSeriesOption['emphasis'],
-  })) as Series[];
+  const chartSeries = series
+    .sort((a, b) => a.name?.localeCompare(b.name))
+    .map((item, i) => ({
+      seriesName: item.name,
+      unit,
+      color: colorFn(colors[i])
+        .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+        .string(),
+      hidden: focusedSeries && focusedSeries !== item.name,
+      data: item.values.map((value, index) => ({
+        name: moment(dataToBeRendered.intervals[index]).valueOf(),
+        value,
+      })),
+      transaction: item.transaction as string | undefined,
+      release: item.release as string | undefined,
+      emphasis: {
+        focus: 'series',
+      } as LineSeriesOption['emphasis'],
+    })) as Series[];
 
   return (
     <StyledMetricWidgetBody>
@@ -296,7 +298,7 @@ function MetricWidgetBodyInner({
         operation={metricsDataProps.op}
         projects={metricsDataProps.projects}
         environments={metricsDataProps.environments}
-        {...normalizeChartTimeParams(sorted)}
+        {...normalizeChartTimeParams(dataToBeRendered)}
       />
       {metricsDataProps.showSummaryTable && (
         <SummaryTable
@@ -322,23 +324,6 @@ function getSeriesName(
   return Object.entries(group.by)
     .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
     .join(', ');
-}
-
-function sortData(data: MetricsData): MetricsData {
-  if (!data.groups.length) {
-    return data;
-  }
-
-  const key = Object.keys(data.groups[0].totals)[0];
-
-  const sortedGroups = data.groups.sort((a, b) =>
-    a.totals[key] < b.totals[key] ? 1 : -1
-  );
-
-  return {
-    ...data,
-    groups: sortedGroups,
-  };
 }
 
 function normalizeChartTimeParams(data: MetricsData) {
@@ -376,7 +361,7 @@ function normalizeChartTimeParams(data: MetricsData) {
 
 export type Series = {
   color: string;
-  data: {name: string; value: number}[];
+  data: {name: number; value: number}[];
   seriesName: string;
   unit: string;
   hidden?: boolean;
@@ -408,23 +393,34 @@ function MetricChart({
   environments,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
+  const router = useRouter();
 
+  // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
     const echartsInstance = chartRef?.current?.getEchartsInstance();
     if (echartsInstance && !echartsInstance.group) {
       echartsInstance.group = DDM_CHART_GROUP;
     }
-  }, []);
+  });
 
   const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
 
+  // TODO(ddm): This assumes that all series have the same bucket size
+  const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+
   const formatters = {
-    valueFormatter: (value: number) => {
-      return formatMetricsUsingUnitAndOp(value, unit, operation);
-    },
+    valueFormatter: (value: number) =>
+      formatMetricsUsingUnitAndOp(value, unit, operation),
     nameFormatter: mri => getNameFromMRI(mri),
+    isGroupedByDate: true,
+    bucketSize,
+    showTimeInTooltip: true,
   };
+  const displayFogOfWar =
+    operation &&
+    displayType === MetricDisplayType.LINE &&
+    ['sum', 'count'].includes(operation);
 
   const chartProps = {
     forwardedRef: chartRef,
@@ -448,7 +444,6 @@ function MetricChart({
       axisPointer: {
         label: {show: true},
       },
-      ...formatters,
     },
 
     yAxis: {
@@ -461,8 +456,8 @@ function MetricChart({
   };
 
   return (
-    <Fragment>
-      <ChartZoom period={period} start={start} end={end} utc={utc}>
+    <ChartWrapper>
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <ReleaseSeries
             utc={utc}
@@ -493,10 +488,10 @@ function MetricChart({
                 : undefined;
 
               const allProps = {
-                series: [...seriesToShow, ...releaseSeries],
-                legend,
                 ...chartProps,
                 ...zoomRenderProps,
+                series: [...seriesToShow, ...releaseSeries],
+                legend,
               };
 
               return displayType === MetricDisplayType.LINE ? (
@@ -510,7 +505,8 @@ function MetricChart({
           </ReleaseSeries>
         )}
       </ChartZoom>
-    </Fragment>
+      {displayFogOfWar && <FogOfWarOverlay />}
+    </ChartWrapper>
   );
 }
 
@@ -553,6 +549,7 @@ const AddWidgetPanel = styled(MetricWidgetPanel)`
   display: flex;
   justify-content: center;
   align-items: center;
+  border: 1px dashed ${p => p.theme.border};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -560,4 +557,24 @@ const AddWidgetPanel = styled(MetricWidgetPanel)`
   }
 `;
 
-export default MetricDashboard;
+const ChartWrapper = styled('div')`
+  position: relative;
+  height: 300px;
+`;
+
+const FogOfWarOverlay = styled('div')`
+  height: 239px;
+  width: 10%;
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.background}00 0%,
+    ${p => p.theme.background}FF 70%,
+    ${p => p.theme.background}FF 100%
+  );
+`;
+
+export default MetricScratchpad;

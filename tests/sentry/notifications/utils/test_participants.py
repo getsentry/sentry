@@ -8,12 +8,16 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import GroupAssignee, NotificationSetting, Project, Team, User
 from sentry.models.commit import Commit
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,

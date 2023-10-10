@@ -18,8 +18,7 @@ from sentry.issues.escalating import (
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
-from sentry.models import Group
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

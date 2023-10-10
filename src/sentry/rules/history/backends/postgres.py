@@ -7,13 +7,13 @@ from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import CursorResult
 
 if TYPE_CHECKING:
-    from sentry.models import Rule
+    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor
 
 

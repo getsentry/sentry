@@ -11,7 +11,10 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
