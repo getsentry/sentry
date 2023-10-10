@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Set, Tuple, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -60,7 +60,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
-        "samples": Set[Tuple[str, str]],
+        "samples": Set[Tuple[Optional[str], str]],
     },
 )
 
@@ -70,7 +70,7 @@ NULL_GROUP = "00"
 class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
-        self.current_transaction = None
+        self.current_transaction: Optional[str] = None
 
     def fingerprint_nodes(
         self,
