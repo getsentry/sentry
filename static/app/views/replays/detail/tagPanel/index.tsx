@@ -66,7 +66,7 @@ function TagPanel() {
 
   return (
     <FluidHeight>
-      <TagFilters tagFrames={tags} {...filterProps} />
+      <TagFilters tagFrames={tagFrames} {...filterProps} />
       <TabItemContainer>
         <FluidPanel>
           {tags.length ? (
