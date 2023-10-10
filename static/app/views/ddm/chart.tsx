@@ -64,6 +64,7 @@ export function MetricChart({
 
   // TODO(ddm): This assumes that all series have the same bucket size
   const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+  const seriesLength = seriesToShow[0]?.data.length;
 
   const formatters = {
     valueFormatter: (value: number) =>
@@ -158,9 +159,38 @@ export function MetricChart({
           </ReleaseSeries>
         )}
       </ChartZoom>
-      {displayFogOfWar && <FogOfWarOverlay />}
+      {displayFogOfWar && (
+        <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
+      )}
     </ChartWrapper>
   );
+}
+
+function FogOfWar({
+  bucketSize,
+  seriesLength,
+}: {
+  bucketSize?: number;
+  seriesLength?: number;
+}) {
+  if (!bucketSize || !seriesLength) {
+    return null;
+  }
+
+  // For smaller time frames we want to show a wider fog of war
+  const widthFactor = bucketSize > 30 * 60_000 ? 1 : 2;
+  const fogOfWarWidth = widthFactor * bucketSize + 30_000;
+
+  const seriesWidth = bucketSize * seriesLength;
+
+  // If either of these are undefiend, NaN or 0 the result will be invalid
+  if (!fogOfWarWidth || !seriesWidth) {
+    return null;
+  }
+
+  const width = (fogOfWarWidth / seriesWidth) * 100;
+
+  return <FogOfWarOverlay width={width ?? 0} />;
 }
 
 const ChartWrapper = styled('div')`
@@ -168,11 +198,11 @@ const ChartWrapper = styled('div')`
   height: 300px;
 `;
 
-const FogOfWarOverlay = styled('div')`
-  height: 238px;
-  width: 10%;
+const FogOfWarOverlay = styled('div')<{width?: number}>`
+  height: 244px;
+  width: ${p => p.width}%;
   position: absolute;
-  right: 10px;
+  right: 21px;
   top: 18px;
   pointer-events: none;
   background: linear-gradient(
