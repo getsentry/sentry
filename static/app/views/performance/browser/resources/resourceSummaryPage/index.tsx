@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PaddedContainer} from 'sentry/views/performance/browser/resources';
+import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
@@ -92,6 +93,7 @@ function ResourceSummary() {
           <DescriptionContainer>
             <SpanDescription span={spanMetrics} />
           </DescriptionContainer>
+          <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
         </Layout.Main>
       </Layout.Body>
