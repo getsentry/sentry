@@ -22,6 +22,7 @@ GRANULARITIES = [
 
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
+# TODO(layer): The layer should implement a grammar which parses queries using a custom DSL.
 FIELD_REGEX = re.compile(r"^(\w+)\(([^\s)]+)\)$")
 QUERY_REGEX = re.compile(r"(\w+):([^\s]+)")
 
@@ -85,6 +86,7 @@ def _get_granularity(time_seconds: int) -> int:
     """
     Determines the optimal granularity to resolve a query over an interval of time_seconds.
     """
+    # TODO(layer): The layer should be responsible of determining the best granularity for the query.
     best_granularity: Optional[int] = None
 
     for granularity in sorted(GRANULARITIES):
@@ -101,6 +103,8 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     """
     Builds a list of all the intervals that are queried by the metrics layer.
     """
+    # TODO(layer): The layer should not only return the intervals with data but also an array of intervals that were
+    #  considered by the query (e.g., all the intervals between start and end).
     start_seconds = start.timestamp()
     end_seconds = end.timestamp()
 
@@ -233,7 +237,7 @@ def _translate_query_results(
 def _build_request(
     organization: Organization, use_case_id: UseCaseID, query: MetricsQuery
 ) -> Request:
-    # TODO(layer): Handle dataset selection automatically.
+    # TODO(layer): The layer should handle the dataset selection automatically.
     dataset = Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
     return Request(
         dataset=dataset.value,
@@ -249,6 +253,7 @@ def _execute_series_and_totals_query(
     query = base_query.set_rollup(Rollup(interval=interval, granularity=_get_granularity(interval)))
     series_result = run_query(request=_build_request(organization, use_case_id, query))
 
+    # TODO(layer): The layer should be able to make the totals query and the series query in one.
     # This is a hack, to make sure that we choose the right granularity for the totals query.
     # This is done since for example if we query 24 hours with 1 hour interval:
     # * For series the granularity is 1 hour since we want to aggregate on 1 hour
@@ -256,7 +261,6 @@ def _execute_series_and_totals_query(
     series_start_seconds = series_result["start"].timestamp()
     series_end_seconds = series_result["end"].timestamp()
     totals_interval_seconds = int(series_end_seconds - series_start_seconds)
-
     query = base_query.set_rollup(
         Rollup(totals=True, granularity=_get_granularity(totals_interval_seconds))
     )
@@ -272,27 +276,28 @@ def run_metrics_query(
     interval: int,
     start: datetime,
     end: datetime,
-    use_case_id: UseCaseID,
     organization: Organization,
     projects: Sequence[Project],
 ):
+    base_scope = MetricsScope(
+        org_ids=[organization.id],
+        project_ids=[project.id for project in projects],
+    )
+
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
         filters=_parse_filters(query) if query else None,
         groupby=[Column(group_by) for group_by in group_bys] if group_bys else None,
         start=start,
         end=end,
-        scope=MetricsScope(
-            org_ids=[organization.id],
-            project_ids=[project.id for project in projects],
-            use_case_id=use_case_id.value,
-        ),
     )
 
     # For each field generate the query.
     query_results = []
     for timeseries in _parse_fields(fields):
-        query = base_query.set_query(timeseries)
+        # TODO(layer): The layer should automatically infer the use case id from the passed metrics.
+        use_case_id = UseCaseID.SESSIONS
+        query = base_query.set_query(timeseries).set_scope(base_scope.set_use_case_id(use_case_id))
         result = _execute_series_and_totals_query(organization, use_case_id, interval, query)
         query_results.append(
             QueryResult(
@@ -303,6 +308,7 @@ def run_metrics_query(
             )
         )
 
+    # We translate the result back to the pre-existing format.
     return _translate_query_results(
         interval=base_query.rollup.interval, query_results=query_results
     )

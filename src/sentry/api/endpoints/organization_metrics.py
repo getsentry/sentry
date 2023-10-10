@@ -174,7 +174,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             interval=interval,
             start=start,
             end=end,
-            use_case_id=get_use_case_id(request),
             organization=organization,
             projects=projects,
         )

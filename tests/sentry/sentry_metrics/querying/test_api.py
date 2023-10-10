@@ -56,7 +56,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
-            use_case_id=UseCaseID.TRANSACTIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
@@ -76,7 +75,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
-            use_case_id=UseCaseID.TRANSACTIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
@@ -102,7 +100,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
-            use_case_id=UseCaseID.TRANSACTIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
@@ -123,7 +120,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
             interval=3600,
-            use_case_id=UseCaseID.TRANSACTIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
@@ -153,7 +149,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             start=self.now(),
             end=self.now() + timedelta(hours=1),
             interval=3600,
-            use_case_id=UseCaseID.SESSIONS,
             organization=self.project.organization,
             projects=[self.project],
         )
