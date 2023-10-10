@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Optional
 
-from django.db.models import Max, Q, prefetch_related_objects
+from django.db.models import Max, prefetch_related_objects
 from rest_framework import serializers
 from typing_extensions import TypedDict
 
@@ -21,14 +21,12 @@ def get_neglected_rule(obj):
     return NeglectedRule.objects.get(
         rule=obj,
         organization=obj.project.organization_id,
-        opted_out=False,
-        sent_initial_email_date__isnull=False,
     )
 
 
 @request_cache
 def get_rule_snooze(obj, user_id):
-    return RuleSnooze.objects.filter(Q(user_id=user_id) | Q(user_id=None), rule=obj)
+    return RuleSnooze.objects.filter(rule=obj)
 
 
 def _generate_rule_label(project, rule, data):
@@ -228,28 +226,31 @@ class RuleSerializer(Serializer):
 
         rule_snooze = get_rule_snooze(obj, user.id)
         if rule_snooze.exists():
-            d["snooze"] = True
             snooze = rule_snooze[0]
-            created_by = None
-            if user.id == snooze.owner_id:
-                created_by = "You"
-            else:
-                creator = user_service.get_user(snooze.owner_id)
-                if creator:
-                    creator_name = creator.get_display_name()
-                    created_by = creator_name
+            if snooze.user_id == user.id or not snooze.user_id:
+                d["snooze"] = True
+                created_by = None
+                if user.id == snooze.owner_id:
+                    created_by = "You"
+                else:
+                    creator = user_service.get_user(snooze.owner_id)
+                    if creator:
+                        creator_name = creator.get_display_name()
+                        created_by = creator_name
 
-            if created_by is not None:
-                d["snoozeCreatedBy"] = created_by
-                d["snoozeForEveryone"] = snooze.user_id is None
+                if created_by is not None:
+                    d["snoozeCreatedBy"] = created_by
+                    d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
 
         try:
             neglected_rule = get_neglected_rule(obj)
-            d["disableReason"] = "noisy"
-            d["disableDate"] = neglected_rule.disable_date
         except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
             pass
+        else:
+            if neglected_rule.opted_out is False and neglected_rule.sent_initial_email_date:
+                d["disableReason"] = "noisy"
+                d["disableDate"] = neglected_rule.disable_date
 
         return d
