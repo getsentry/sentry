@@ -23,7 +23,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
-            models.EventAttachment,
             models.EventUser,
             models.GroupAssignee,
             models.GroupBookmark,
@@ -47,6 +46,9 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.ServiceHook,
             models.UserReport,
             models.ProjectTransactionThreshold,
+            # NOTE: Removing the project relation from `ProjectArtifactBundle` may
+            # leave behind orphaned `ArtifactBundle`s. Though thats not a big problem
+            # as those are being automatically cleaned up on their own.
             models.ProjectArtifactBundle,
             models.ProguardArtifactRelease,
             DiscoverSavedQueryProject,
@@ -68,6 +70,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         for m in (
             models.ReleaseProject,
             models.ReleaseProjectEnvironment,
+            models.EventAttachment,
             models.ProjectDebugFile,
         ):
             relations.append(ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask))
