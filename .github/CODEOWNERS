@@ -165,7 +165,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
 /src/sentry/api/helpers/group_index.py                    @getsentry/issues
 /src/sentry/api/helpers/events.py                         @getsentry/issues
-/src/sentry/api/helpers/group_index/update.py              @getsentry/issues
+/src/sentry/api/helpers/group_index/update.py             @getsentry/issues
 
 /src/sentry/snuba/models.py                               @getsentry/issues
 /src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues
