@@ -128,6 +128,8 @@ class DiscordRequest:
 
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
+        else:
+            logger.info("discord.verify.signature.failure")
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
