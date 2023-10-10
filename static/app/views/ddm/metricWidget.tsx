@@ -21,7 +21,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -506,7 +505,6 @@ function MetricChart({
       {displayFogOfWar && (
         <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
       )}
-      <Tooltip title={t('foo bar')} />
     </ChartWrapper>
   );
 }
