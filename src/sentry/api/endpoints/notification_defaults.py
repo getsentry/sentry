@@ -10,7 +10,7 @@ from sentry.notifications.helpers import PROVIDER_DEFAULTS, TYPE_DEFAULTS
 @control_silo_endpoint
 class NotificationDefaultsEndpoints(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = ()
