@@ -37,6 +37,7 @@ interface SourceMapDebugBlueThunderResponse {
     frames: SourceMapDebugBlueThunderResponseFrame[];
   }[];
   has_debug_ids: boolean;
+  has_scraping_data: boolean;
   has_uploaded_some_artifact_with_a_debug_id: boolean;
   project_has_some_artifact_bundle: boolean;
   release: string | null;
@@ -179,5 +180,6 @@ export function prepareSourceMapDebuggerFrameInformation(
     scrapingProgressPercent,
     scrapingProgress,
     frameIsResolved,
+    hasScrapingData: sourceMapDebuggerData.has_scraping_data,
   } satisfies FrameSourceMapDebuggerData;
 }

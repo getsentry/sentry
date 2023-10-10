@@ -103,6 +103,7 @@ export interface FrameSourceMapDebuggerData {
   dist: string | null;
   eventHasDebugIds: boolean;
   frameIsResolved: boolean;
+  hasScrapingData: boolean;
   matchingSourceFileNames: string[];
   matchingSourceMapName: string | null;
   release: string | null;
@@ -253,10 +254,7 @@ export function SourceMapsDebuggerModal({
               textValue={`${t('Hosting Publicly')} (${
                 sourceResolutionResults.scrapingProgress
               }/4)`}
-              hidden={
-                sourceResolutionResults.sourceMapScrapingStatus === null &&
-                sourceResolutionResults.sourceFileScrapingStatus === null
-              }
+              hidden={!sourceResolutionResults.hasScrapingData}
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
