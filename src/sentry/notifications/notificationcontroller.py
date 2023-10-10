@@ -555,10 +555,7 @@ class NotificationController:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
         setting_providers = self._get_layered_setting_providers(type=type.value)
-        recipient_mapping = setting_providers[recipient]
-        type_mapping = recipient_mapping[type]
-        value = type_mapping[provider]
-        return value
+        return setting_providers[recipient][type][provider]
 
     def get_users_for_weekly_reports(self) -> list[int]:
         if not self.organization_id:
