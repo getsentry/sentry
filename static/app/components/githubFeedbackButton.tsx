@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 type GithubFeedbackButtonProps = Omit<LinkButtonProps, 'children' | 'aria-label'> & {
   href: string;
   ['aria-label']?: string;
-  label?: string;
+  label?: string | null;
 };
 
 export function GithubFeedbackButton({
