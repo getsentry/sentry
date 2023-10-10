@@ -402,7 +402,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo("Clean up took %s second(s)." % duration)
 
     if transaction:
-        transaction.__exit__()
+        transaction.__exit__(None, None, None)
 
 
 def cleanup_unused_files(quiet=False):
