@@ -10,10 +10,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.apikey import ApiKeyStatus
+from sentry.models.apiscopes import HasApiScopes
 
 
 @region_silo_only_model
-class ApiKeyReplica(Model):
+class ApiKeyReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 
     apikey_id = HybridCloudForeignKey("sentry.ApiKey", on_delete="cascade")
@@ -30,3 +32,20 @@ class ApiKeyReplica(Model):
         db_table = "hybridcloud_apikeyreplica"
 
     __repr__ = sane_repr("organization_id", "key")
+
+    @property
+    def is_active(self):
+        return self.status == ApiKeyStatus.ACTIVE
+
+    def get_allowed_origins(self):
+        if not self.allowed_origins:
+            return []
+        return list(filter(bool, self.allowed_origins.split("\n")))
+
+    def get_audit_log_data(self):
+        return {
+            "label": self.label,
+            "key": self.key,
+            "scopes": self.get_scopes(),
+            "status": self.status,
+        }

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +9,7 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project({
     teams: [TestStubs.Team()],
   });
@@ -23,7 +24,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
+      const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const jsProjectWithSimilarityView = TestStubs.Project({
@@ -65,7 +66,7 @@ describe('groupDetails', () => {
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
 
-      await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
@@ -91,7 +92,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
+      const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const mobileProjectWithSimilarityView = TestStubs.Project({
@@ -135,7 +136,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
+      const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 

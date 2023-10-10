@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Iterable, List, Mapping
 
-from sentry.models import Project, UserEmail
+from sentry.models.project import Project
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 

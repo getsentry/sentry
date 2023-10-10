@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
@@ -99,9 +101,7 @@ describe('resolveHostname', function () {
     configstate = ConfigStore.getState();
     devUi = window.__SENTRY_DEV_UI;
 
-    OrganizationStore.onUpdate(
-      TestStubs.Organization({features: ['frontend-domainsplit']})
-    );
+    OrganizationStore.onUpdate(Organization({features: ['frontend-domainsplit']}));
     ConfigStore.loadInitialData({
       ...configstate,
       links: {
@@ -120,7 +120,7 @@ describe('resolveHostname', function () {
 
   it('does nothing without feature', function () {
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(TestStubs.Organization());
+    OrganizationStore.onUpdate(Organization());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);
@@ -139,6 +139,15 @@ describe('resolveHostname', function () {
 
     result = resolveHostname(controlPath);
     expect(result).toBe('https://sentry.io/api/0/broadcasts/');
+  });
+
+  it('matches if querystrings are in path', function () {
+    const result = resolveHostname(
+      '/api/0/organizations/acme/sentry-app-components/?projectId=123'
+    );
+    expect(result).toBe(
+      'https://sentry.io/api/0/organizations/acme/sentry-app-components/?projectId=123'
+    );
   });
 
   it('uses paths for region silo in dev-ui', function () {
@@ -164,7 +173,7 @@ describe('resolveHostname', function () {
   it('removes sentryUrl from dev-ui mode requests when feature is off', function () {
     window.__SENTRY_DEV_UI = true;
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(TestStubs.Organization());
+    OrganizationStore.onUpdate(Organization());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);
@@ -204,10 +213,12 @@ describe('isSimilarOrigin', function () {
     ['https://sentry.io/api/0/broadcasts/', 'https://woof.sentry.io', true],
     ['https://sentry.io/api/0/users/', 'https://sentry.sentry.io', true],
     ['https://sentry.io/api/0/users/', 'https://io.sentry.io', true],
+    // request to subdomain from parent
+    ['https://us.sentry.io/api/0/users/', 'https://sentry.io', true],
 
     // Not siblings
     ['https://sentry.io/api/0/broadcasts/', 'https://sentry.example.io', false],
-    ['https://woof.example.sentry.io', 'https://example.sentry.io', false],
+    ['https://acme.sentry.io', 'https://acme.sent.ryio', false],
     ['https://woof.example.io', 'https://woof.sentry.io', false],
     ['https://woof.sentry.io', 'https://sentry.woof.io', false],
   ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {

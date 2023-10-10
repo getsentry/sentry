@@ -36,6 +36,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                     "message": "I really like this user-feedback feature!",
                     "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
                     "url": "https://docs.sentry.io/platforms/javascript/",
+                    "name": "Colton Allen",
                 },
                 "platform": "javascript",
                 "release": "version@1.3",
@@ -68,6 +69,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                     "message": "I also really like this user-feedback feature!",
                     "replay_id": "zc3b5xy8b79f417596f7a1tt4fffa5d2",
                     "url": "https://docs.sentry.io/platforms/electron/",
+                    "name": "Michelle Zhang",
                 },
                 "platform": "electron",
                 "release": "version@1.3",
@@ -106,6 +108,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             response = self.client.get(path)
             assert response.status_code == 200
 
+            # We should get a count of everything in the database
+            assert response.headers["X-Hits"] == "2"
+
             # Should get what we have in the database
             assert len(response.data) == 2
             # Test sorting by `date_added`
@@ -114,7 +119,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert feedback["environment"] == "dev"
             assert feedback["url"] == "https://docs.sentry.io/platforms/electron/"
             assert feedback["message"] == "I also really like this user-feedback feature!"
-            assert feedback["feedback_id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            assert feedback["feedback_id"] == str(
+                uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            ).replace("-", "")
             assert feedback["platform"] == "electron"
             assert feedback["sdk"]["name"] == "sentry.javascript.react"
             assert feedback["sdk"]["version"] == "5.18.1"
@@ -124,11 +131,14 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert feedback["dist"] == "abc123"
             assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
             assert feedback["message"] == "I really like this user-feedback feature!"
-            assert feedback["feedback_id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            assert feedback["feedback_id"] == str(
+                uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            ).replace("-", "")
             assert feedback["platform"] == "javascript"
             assert feedback["sdk"]["name"] == "sentry.javascript.react"
             assert feedback["tags"]["key"] == "value"
             assert feedback["contact_email"] == "colton.allen@sentry.io"
+            assert feedback["name"] == "Colton Allen"
 
             # Test `per_page`
             response = self.client.get(
@@ -137,6 +147,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                 content_type="application/json",
             )
             assert response.status_code == 200
+            assert response.headers["X-Hits"] == "2"
             assert len(response.data) == 1
 
     def test_no_feature_enabled(self):
@@ -166,7 +177,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             # Should get item that matches the project
             assert len(response.data) == 1
             feedback = response.data[0]
-            assert feedback["feedback_id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            assert feedback["feedback_id"] == str(
+                uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            ).replace("-", "")
 
     def test_stats_period_filter(self):
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -187,7 +200,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             # Should get item that matches the time period
             assert len(response.data) == 1
             feedback = response.data[0]
-            assert feedback["feedback_id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            assert feedback["feedback_id"] == str(
+                uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            ).replace("-", "")
 
     def test_env_filter(self):
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -204,7 +219,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             # Should get item that matches the environment
             assert len(response.data) == 1
             feedback = response.data[0]
-            assert feedback["feedback_id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            assert feedback["feedback_id"] == str(
+                uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            ).replace("-", "")
             assert feedback["environment"] == self.environment_1.name
 
     def test_invalid_env_filter(self):

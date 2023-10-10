@@ -1,6 +1,9 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
+import {MetricRule} from 'sentry-fixture/metricRule';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -118,11 +121,11 @@ describe('IssueRuleEditor', function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
@@ -155,7 +158,7 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Viewing the rule', () => {
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
 
     it('is visible without org-level alerts:write', () => {
       createWrapper({
@@ -198,12 +201,12 @@ describe('IssueRuleEditor', function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
     });
 
     it('gets correct rule name', function () {
-      const rule = TestStubs.ProjectAlertRule();
+      const rule = ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
@@ -347,9 +350,9 @@ describe('IssueRuleEditor', function () {
     it('opts out of the alert being disabled', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
-        body: TestStubs.ProjectAlertRule({
+        body: ProjectAlertRule({
           status: 'disabled',
-          disabledDate: moment().add(1, 'day').toISOString(),
+          disableDate: moment().add(1, 'day').toISOString(),
         }),
       });
       createWrapper();
@@ -381,7 +384,7 @@ describe('IssueRuleEditor', function () {
     it('success status updates the rule', async function () {
       const mockSuccess = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
-        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+        body: {status: 'success', rule: ProjectAlertRule({name: 'Slack Rule'})},
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
@@ -450,7 +453,7 @@ describe('IssueRuleEditor', function () {
 
   describe('Duplicate Rule', function () {
     let mock;
-    const rule = TestStubs.ProjectAlertRule();
+    const rule = ProjectAlertRule();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
     beforeEach(function () {

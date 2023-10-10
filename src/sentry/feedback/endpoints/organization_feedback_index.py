@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.feedback.models import Feedback
 from sentry.feedback.serializers import FeedbackSerializer
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
@@ -52,4 +52,5 @@ class OrganizationFeedbackIndexEndpoint(OrganizationEndpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, FeedbackSerializer()),
             paginator_cls=OffsetPaginator,
+            count_hits=True,
         )

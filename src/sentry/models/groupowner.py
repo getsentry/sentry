@@ -67,7 +67,7 @@ class GroupOwner(Model):
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
-    context = JSONField(null=True)
+    context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -94,7 +94,7 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models import ActorTuple
+        from sentry.models.actor import ActorTuple
 
         if not self.owner_id():
             return None

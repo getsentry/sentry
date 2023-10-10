@@ -7,16 +7,9 @@ from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    ACTOR_TYPES,
-    Environment,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    actor_type_to_string,
-)
-from sentry.models.actor import Actor
-from sentry.models.rule import NeglectedRule
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.environment import Environment
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -221,13 +214,18 @@ class RuleSerializer(Serializer):
         if rule_snooze.exists():
             d["snooze"] = True
             snooze = rule_snooze[0]
+            created_by = None
             if user.id == snooze.owner_id:
                 created_by = "You"
             else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
-            d["snoozeCreatedBy"] = created_by
-            d["snoozeForEveryone"] = snooze.user_id is None
+                creator = user_service.get_user(snooze.owner_id)
+                if creator:
+                    creator_name = creator.get_display_name()
+                    created_by = creator_name
+
+            if created_by is not None:
+                d["snoozeCreatedBy"] = created_by
+                d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
 

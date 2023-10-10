@@ -58,13 +58,15 @@ from sentry.types.integrations import (
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.models import NotificationSetting, Organization, Project  # noqa: F401
+    from sentry.models.notificationsetting import NotificationSetting  # noqa: F401
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 logger = logging.getLogger(__name__)
 
 
-class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
+class NotificationsManager(BaseManager["NotificationSetting"]):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """

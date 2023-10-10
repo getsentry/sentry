@@ -1,6 +1,9 @@
 from rest_framework.exceptions import NotFound
 
-from sentry.models import Commit, Organization, ProjectCodeOwners, RepositoryProjectPathConfig
+from sentry.models.commit import Commit
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organization import Organization
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.silo import SiloMode

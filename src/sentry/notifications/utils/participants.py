@@ -17,24 +17,22 @@ from typing import (
 from django.db.models import Q
 
 from sentry import features
-from sentry.models import (
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupSubscription,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
     should_use_notifications_v2,
@@ -218,14 +216,17 @@ def get_participants_for_release(
     if should_use_notifications_v2(organization):
         providers_by_recipient = notifications_service.get_participants(
             recipients=actors,
+            project_ids=[project.id for project in projects],
             organization_id=organization.id,
-            type=NotificationSettingTypes.DEPLOY,
+            type=NotificationSettingEnum.DEPLOY,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
         for actor in actors:
-            settings = providers_by_recipient[actor.id]
-            for provider, val in settings.items():
+            settings = providers_by_recipient.get(actor.id, {})
+            for provider_str, val_str in settings.items():
+                provider = ExternalProviders(provider_str)
+                val = NotificationSettingsOptionEnum(val_str)
                 reason = get_reason(actor, val, commited_user_ids)
                 if reason:
                     users_to_reasons_by_provider.add(provider, actor, reason)

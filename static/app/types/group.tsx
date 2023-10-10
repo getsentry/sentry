@@ -46,6 +46,7 @@ export enum SavedSearchType {
   EVENT = 1,
   SESSION = 2,
   REPLAY = 3,
+  METRIC = 4,
 }
 
 export enum IssueCategory {
@@ -80,6 +81,7 @@ export enum IssueType {
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
   PROFILE_FRAME_DROP = 'profile_frame_drop',
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 }
 
 export enum IssueTitle {

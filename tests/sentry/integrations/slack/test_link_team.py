@@ -8,13 +8,11 @@ from rest_framework import status
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
-from sentry.models import (
-    ExternalActor,
-    NotificationSetting,
-    Organization,
-    OrganizationIntegration,
-    Team,
-)
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase

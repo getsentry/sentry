@@ -23,14 +23,20 @@ export const steps = ({
     description: t('Add the Sentry Electron SDK package as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/electron
-
-# Using npm
-npm install --save @sentry/electron
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/electron',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/electron',
+          },
+        ],
       },
     ],
   },

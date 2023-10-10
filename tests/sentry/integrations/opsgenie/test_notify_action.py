@@ -4,7 +4,8 @@ import pytest
 import responses
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -98,21 +99,36 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     def test_render_label(self):
-        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
+        rule = self.get_rule(
+            data={"account": self.integration.id, "team": self.team1["id"], "priority": "P2"}
+        )
 
         assert (
             rule.render_label()
-            == "Send a notification to Opsgenie account test-app and team cool-team"
+            == "Send a notification to Opsgenie account test-app and team cool-team with P2 priority"
         )
 
     def test_render_label_without_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
-        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
+        rule = self.get_rule(
+            data={"account": self.integration.id, "team": self.team1["id"], "priority": "P2"}
+        )
 
         label = rule.render_label()
-        assert label == "Send a notification to Opsgenie account [removed] and team [removed]"
+        assert (
+            label
+            == "Send a notification to Opsgenie account [removed] and team [removed] with P2 priority"
+        )
+
+    def test_render_label_no_priority(self):
+        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
+
+        assert (
+            rule.render_label()
+            == "Send a notification to Opsgenie account test-app and team cool-team with P3 priority"
+        )
 
     def test_valid_team_options(self):
         new_org = self.create_organization(name="New Org", owner=self.user)

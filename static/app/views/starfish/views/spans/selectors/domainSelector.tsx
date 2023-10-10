@@ -45,7 +45,7 @@ export function DomainSelector({
   const eventView = getEventView(location, moduleName, spanCategory, state.search);
 
   const {data: domains, isLoading} = useSpansQuery<
-    Array<{[SpanMetricsField.SPAN_DOMAIN_ARRAY]: Array<string>}>
+    Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
   >({
     eventView,
     initialData: [],
@@ -55,7 +55,7 @@ export function DomainSelector({
 
   const transformedDomains = Array.from(
     domains?.reduce((acc, curr) => {
-      const spanDomainArray = curr[SpanMetricsField.SPAN_DOMAIN_ARRAY];
+      const spanDomainArray = curr[SpanMetricsField.SPAN_DOMAIN];
       if (spanDomainArray) {
         spanDomainArray.forEach(name => acc.add(name));
       }
@@ -128,7 +128,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.SPAN_DOMAIN_ARRAY]: newValue.value,
+            [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
           },
         });
       }}
@@ -155,18 +155,18 @@ function getEventView(
       moduleName,
       location: {
         ...location,
-        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN_ARRAY),
+        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN),
       },
       spanCategory,
     }),
     ...(search && search.length > 0
-      ? [`${SpanMetricsField.SPAN_DOMAIN_ARRAY}:*${[search]}*`]
+      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
       : []),
   ].join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: [SpanMetricsField.SPAN_DOMAIN_ARRAY, 'count()'],
+      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
       orderby: '-count',
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,

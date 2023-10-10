@@ -25,7 +25,9 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import Rule, RuleActivity, RuleActivityType, Team, User
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
@@ -108,6 +110,7 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
 
 
 class ProjectRulesPostSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -115,6 +118,59 @@ class ProjectRulesPostSerializer(serializers.Serializer):
             ("none", "All conditions must evaluate to false."),
         ),
         help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
+    )
+    conditions = serializers.ListField(
+        child=RuleNodeField(type="condition/event"),
+        help_text="""
+A list of triggers that determine when the rule fires. See below for a list of possible conditions.
+
+**A new issue is created**
+```json
+{
+    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+}
+```
+
+**The issue changes state from resolved to unresolved**
+```json
+{
+    "id": "sentry.rules.conditions.regression_event.RegressionEventCondition"
+}
+```
+
+**The issue is seen more than `value` times in `interval`**
+- `value` - An integer
+- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+    "value": 500,
+    "interval": "1h"
+}
+```
+
+**The issue is seen by more than `value` users in `interval`**
+- `value` - An integer
+- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "value": 1000,
+    "interval": "15m"
+}
+```
+
+**The issue affects more than `value` percent of sessions in `interval`**
+- `value` - An integer from 0 to 100
+- `interval` - Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+    "value": 50,
+    "interval": "10m"
+}
+```
+""",
     )
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
@@ -264,65 +320,11 @@ A list of actions that take place when all required conditions and filters for t
 ```
 """,
     )
-    conditions = serializers.ListField(
-        child=RuleNodeField(type="condition/event"),
-        help_text="""
-A list of triggers that determine when the rule fires. See below for a list of possible conditions.
-
-**A new issue is created**
-```json
-{
-    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
-}
-```
-
-**The issue changes state from resolved to unresolved**
-```json
-{
-    "id": "sentry.rules.conditions.regression_event.RegressionEventCondition"
-}
-```
-
-**The issue is seen more than `value` times in `interval`**
-- `value` - An integer
-- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
-```json
-{
-    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-    "value": 500,
-    "interval": "1h"
-}
-```
-
-**The issue is seen by more than `value` users in `interval`**
-- `value` - An integer
-- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
-```json
-{
-    "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-    "value": 1000,
-    "interval": "15m"
-}
-```
-
-**The issue affects more than `value` percent of sessions in `interval`**
-- `value` - An integer from 0 to 100
-- `interval` - Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
-```json
-{
-    "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-    "value": 50,
-    "interval": "10m"
-}
-```
-""",
-    )
     frequency = serializers.IntegerField(
         min_value=5,
         max_value=60 * 24 * 30,
-        help_text="How often to perform the actions once for an issue, in minutes.",
+        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
     )
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
@@ -441,7 +443,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {

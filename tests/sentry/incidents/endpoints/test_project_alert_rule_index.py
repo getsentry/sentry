@@ -1,13 +1,12 @@
 from copy import deepcopy
 from datetime import timezone
-from functools import cached_property
 
 import requests
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
@@ -19,20 +18,6 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 pytestmark = [requires_snuba]
-
-
-class AlertRuleBase:
-    @cached_property
-    def organization(self):
-        return self.create_organization()
-
-    @cached_property
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @cached_property
-    def user(self):
-        return self.create_user()
 
 
 @region_silo_test(stable=True)

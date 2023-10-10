@@ -12,7 +12,8 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
+    from sentry.monitors.models import Monitor
 
 
 @unique
@@ -71,13 +72,13 @@ class QuotaConfig:
         categories=None,
         scope=None,
         scope_id=None,
-        limit=None,
+        limit: int | None = None,
         window=None,
         reason_code=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
-            assert type(limit) == int, "limit must be an integer"
+            assert isinstance(limit, int), "limit must be an integer"
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
@@ -217,6 +218,10 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
+        "assign_monitor_seat",
+        "unassign_monitor_seat",
+        "enable_seat_recreate",
+        "disable_seat_recreate",
     )
 
     def __init__(self, **options):
@@ -411,7 +416,8 @@ class Quota(Service):
                 )
 
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
+        from sentry.models.organization import Organization
 
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
@@ -434,7 +440,7 @@ class Quota(Service):
         return (quota, window)
 
     def get_organization_quota(self, organization):
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         account_limit = _limit_from_settings(
             OrganizationOption.objects.get_value(
@@ -491,3 +497,34 @@ class Quota(Service):
         :param organization_id: The organization id.
         :param volume: The volume of transaction of the given project.
         """
+
+    def assign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ) -> int:
+        """
+        Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
+        will be updated from ACTIVE to OK if the seat assignment is accepted.
+        """
+        from sentry.monitors.models import MonitorStatus
+        from sentry.utils.outcomes import Outcome
+
+        monitor.update(status=MonitorStatus.OK)
+        return Outcome.ACCEPTED
+
+    def unassign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ):
+        """
+        Disables a monitor seat assignment and sets the Monitor status to DISABLED
+        """
+        from sentry.monitors.models import MonitorStatus
+
+        monitor.update(status=MonitorStatus.DISABLED)
+
+    def enable_seat_recreate(self, monitor: Monitor):
+        """Sets the monitor's seat assignment to automatically be recreated at renewal."""
+
+    def disable_seat_recreate(self, monitor: Monitor):
+        """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""

@@ -1,4 +1,8 @@
-from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

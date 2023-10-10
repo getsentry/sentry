@@ -8,7 +8,8 @@ import responses
 from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -113,7 +114,7 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -265,7 +266,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)

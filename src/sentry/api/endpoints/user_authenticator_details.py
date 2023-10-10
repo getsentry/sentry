@@ -12,7 +12,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
 from sentry.security import capture_security_activity
 
@@ -31,7 +31,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         devices = authenticator.config
         for device in devices["devices"]:
             # this is for devices registered with webauthn, since the stored data is not a string, we need to decode it
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == interface_device_id:
                     return device
             elif device["binding"]["keyHandle"] == interface_device_id:

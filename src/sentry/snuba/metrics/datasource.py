@@ -28,7 +28,7 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -78,6 +78,18 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
+def _build_use_case_id_filter(use_case_id: UseCaseID):
+    use_case_values = [use_case_id.value]
+
+    if use_case_id == UseCaseID.SESSIONS:
+        # For sessions, the `use_case_id` field in Clickhouse is stored as "" but this has been fixed and a back-fill
+        # should happen which will make this condition superfluous.
+        # TODO(iambriccardo): Remove this condition once the backfill is done.
+        use_case_values.append("")
+
+    return Condition(Column("use_case_id"), Op.IN, use_case_values)
+
+
 def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
@@ -90,7 +102,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
+        where=[_build_use_case_id_filter(use_case_id)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
@@ -153,7 +165,6 @@ def get_available_derived_metrics(
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-
     stored_mris = get_stored_mris(projects, use_case_id) if projects else []
 
     for mri in stored_mris:
@@ -184,8 +195,23 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
+    # To reduce the number of queries, we scope down the number of entity keys, since we know that sessions are stored
+    # separately from all the other entity keys.
+    if use_case_id == UseCaseID.SESSIONS:
+        entity_keys = {
+            EntityKey.MetricsCounters,
+            EntityKey.MetricsSets,
+            EntityKey.MetricsDistributions,
+        }
+    else:
+        entity_keys = {
+            EntityKey.GenericMetricsCounters,
+            EntityKey.GenericMetricsSets,
+            EntityKey.GenericMetricsDistributions,
+        }
+
     stored_metrics = []
-    for entity_key in METRIC_TYPE_TO_ENTITY.values():
+    for entity_key in entity_keys:
         stored_metrics += _get_metrics_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,

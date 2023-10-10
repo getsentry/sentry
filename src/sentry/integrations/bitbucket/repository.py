@@ -1,6 +1,6 @@
 from sentry.locks import locks
-from sentry.models import OrganizationOption
 from sentry.models.apitoken import generate_token
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError

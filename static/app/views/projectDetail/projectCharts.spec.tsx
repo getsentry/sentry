@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {SessionsField} from 'sentry-fixture/sessions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +12,7 @@ function renderProjectCharts(
   chartDisplay?: string
 ) {
   const {organization, router, project} = initializeOrg({
-    organization: TestStubs.Organization({features}),
+    organization: Organization({features}),
     projects: [{platform}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
@@ -46,7 +49,7 @@ describe('ProjectDetail > ProjectCharts', () => {
     mockSessions = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField(`sum(session)`),
+      body: SessionsField(`sum(session)`),
     });
   });
 

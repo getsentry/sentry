@@ -22,7 +22,6 @@ export enum SpanMetricsField {
   SPAN_MODULE = 'span.module',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
-  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
@@ -36,11 +35,12 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
-  | 'span.domain'
   | 'span.group'
-  | 'project.id';
+  | 'project.id'
+  | 'transaction'
+  | 'transaction.method';
 
-export type SpanArrayFields = 'span.domain_array';
+export type SpanStringArrayFields = 'span.domain';
 
 export type SpanFunctions =
   | 'sps'
@@ -58,9 +58,11 @@ export type MetricsResponse = {
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
-  [Property in SpanArrayFields as `${Property}`]: string[];
-} & {
-  'time_spent_percentage(local)': number;
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
+};
+
+export type MetricsFilters = {
+  [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
 
 export type MetricsProperty = keyof MetricsResponse;
@@ -78,7 +80,6 @@ export enum SpanIndexedField {
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
-  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
 }
@@ -95,8 +96,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.TRANSACTION_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
-  [SpanIndexedField.SPAN_DOMAIN]: string;
-  [SpanIndexedField.SPAN_DOMAIN_ARRAY]: string[];
+  [SpanIndexedField.SPAN_DOMAIN]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
 };

@@ -2,6 +2,7 @@ import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 import {AccountEmails} from 'sentry-fixture/accountEmails';
 import {Authenticators} from 'sentry-fixture/authenticators';
+import {Organizations} from 'sentry-fixture/organizations';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +25,7 @@ describe('TwoFactorRequired', function () {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
+      body: Organizations(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
@@ -101,7 +102,7 @@ describe('TwoFactorRequired', function () {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
 
     render(
@@ -119,7 +120,7 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
 
     render(

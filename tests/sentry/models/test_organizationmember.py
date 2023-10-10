@@ -10,14 +10,10 @@ from rest_framework.serializers import ValidationError
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import (
-    INVITE_DAYS_VALID,
-    AuthIdentity,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationOption,
-)
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
@@ -221,7 +217,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert qs.exists()
 
         with outbox_runner():
-            member.save_outbox_for_update()
+            member.outbox_for_update().save()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.

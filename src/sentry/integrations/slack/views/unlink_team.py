@@ -5,7 +5,8 @@ from rest_framework.request import Request
 
 from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
-from sentry.models import ExternalActor, Integration
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service

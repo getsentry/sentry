@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import time
 import uuid
 import zlib
 from datetime import datetime
-from typing import List
+from typing import List, Mapping
 from unittest.mock import ANY, patch
 
 import msgpack
@@ -11,11 +13,12 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry import options
-from sentry.models import File
+from sentry.models.files.file import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TransactionTestCase
 
 
@@ -31,14 +34,26 @@ def test_multiprocessing_strategy():
         output_block_size=1,
     )
 
+    def _commit(offsets: Mapping[Partition, int], force: bool = False) -> None:
+        return None
+
     # Assert the multi-processing step does not fail to initialize.
-    task = factory.create_with_partitions(lambda offsets, force: None, {})
+    task = factory.create_with_partitions(_commit, {})
 
     # Clean up after ourselves by terminating the processing pool spawned by the above call.
     task.terminate()
 
 
-class RecordingTestCaseMixin:
+class RecordingTestCaseMixin(TransactionTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
+    replay_id = uuid.uuid4().hex
+    replay_recording_id = uuid.uuid4().hex
+    force_synchronous = True
+
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
+        raise NotImplementedError
+
     def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
             input_block_size=1,
@@ -147,14 +162,11 @@ class RecordingTestCaseMixin:
 # configuration values.
 
 
-class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
+class FilestoreRecordingTestCase(RecordingTestCaseMixin):
     def setUp(self):
-        self.replay_id = uuid.uuid4().hex
-        self.replay_recording_id = uuid.uuid4().hex
-        self.force_synchronous = True
         options.set("replay.storage.direct-storage-sample-rate", 0)
 
-    def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
         # Assert a recording segment model was created for filestore driver types.
         recording_segment = ReplayRecordingSegment.objects.first()
         assert recording_segment.project_id == self.project.id
@@ -187,14 +199,11 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         return FilestoreBlob().get(recording_segment)
 
 
-class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
+class StorageRecordingTestCase(RecordingTestCaseMixin):
     def setUp(self):
-        self.replay_id = uuid.uuid4().hex
-        self.replay_recording_id = uuid.uuid4().hex
-        self.force_synchronous = True
         options.set("replay.storage.direct-storage-sample-rate", 100)
 
-    def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
         # Assert no recording segment is written for direct-storage.  Direct-storage does not
         # use a metadata database.
         recording_segment = ReplayRecordingSegment.objects.first()
@@ -219,12 +228,8 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
 
 
 class ThreadedFilestoreRecordingTestCase(FilestoreRecordingTestCase):
-    def setUp(self):
-        super().setUp()
-        self.force_synchronous = False
+    force_synchronous = False
 
 
 class ThreadedStorageRecordingTestCase(StorageRecordingTestCase):
-    def setUp(self):
-        super().setUp()
-        self.force_synchronous = False
+    force_synchronous = False

@@ -11,11 +11,13 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, TypeVar, overload
 from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.role_dict import RoleDict
+from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -315,8 +317,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
-    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
-    # "csp.middleware.CSPMiddleware",
+    "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -547,7 +548,7 @@ AUTHENTICATION_BACKENDS = (
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
-        "NAME": "sentry.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 8},
     },
     {
@@ -655,6 +656,8 @@ RPC_SHARED_SECRET = None
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
+# This region name is also used by the ApiGateway to proxy org-less region
+# requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
@@ -733,7 +736,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.organization_mapping",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
@@ -943,12 +945,6 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
-        "options": {"expires": 3600},
-    },
 }
 
 # Most tasks run in the regions
@@ -1051,15 +1047,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-monthly-invite-missing-org-members": {
-        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour=7,
-            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
-        ),
-        "options": {"expires": 60 * 25},
-    },
+    # "schedule-monthly-invite-missing-org-members": {
+    #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+    #     "schedule": crontab(
+    #         minute=0,
+    #         hour=7,
+    #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+    #     ),
+    #     "options": {"expires": 60 * 25},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1342,7 +1338,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DISABLE_ERRORS_AND_WARNINGS": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "COMPONENT_SPLIT_PATCH": False,
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
         "DESCRIPTION": "Sentry Public API",
@@ -1457,6 +1453,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
+    # Enable profiling statistical detectors
+    "organizations:profiling-statistical-detectors": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1537,6 +1535,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
@@ -1788,6 +1788,8 @@ SENTRY_FEATURES = {
     "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1850,7 +1852,7 @@ SENTRY_LOGIN_URL = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
-SENTRY_PROJECT_KEY = None
+SENTRY_PROJECT_KEY: int | None = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
@@ -2200,6 +2202,8 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
+# How many frames are used in jira issues
+SENTRY_MAX_STACKTRACE_FRAMES = 100
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
@@ -2330,7 +2334,7 @@ SENTRY_DEFAULT_ROLE = "member"
 # they're presented in the UI. This is primarily important in that a member
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
-SENTRY_ROLES = (
+SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2441,7 +2445,7 @@ SENTRY_ROLES = (
     },
 )
 
-SENTRY_TEAM_ROLES = (
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "contributor",
         "name": "Contributor",
@@ -2676,34 +2680,28 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
-    "zookeeper": lambda settings, options: (
-        {
-            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
-            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
-            "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
-            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
-        }
-    ),
     "kafka": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
             "ports": {"9092/tcp": 9092},
+            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
             "environment": {
-                "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
-                "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-                "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
-                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
-                "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+                "KAFKA_PROCESS_ROLES": "broker,controller",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
+                "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
+                "KAFKA_NODE_ID": "1",
+                "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
+                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
                 "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
                 "KAFKA_LOG_RETENTION_HOURS": "24",
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
@@ -2881,7 +2879,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 
-SENTRY_SDK_CONFIG = {
+SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
@@ -2905,7 +2903,7 @@ SENTRY_PROFILES_SAMPLE_RATE = 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
 # specific, and each have their own pros/cons. See the sdk for more details.
-SENTRY_PROFILER_MODE = "sleep"
+SENTRY_PROFILER_MODE: Final = "sleep"
 
 # To have finer control over which process will have profiling enabled, this
 # environment variable will be required to enable profiling.
@@ -2924,7 +2922,7 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 #    scope.set_tag('organization.cool', '1')
 #
 # SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
-SENTRY_ORGANIZATION_CONTEXT_HELPER = None
+SENTRY_ORGANIZATION_CONTEXT_HELPER: Callable[..., object] | None = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()
@@ -3369,6 +3367,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "sentry",
     "social_auth",
     "feedback",
+    "hybridcloud",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3687,7 +3686,7 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 #
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
-SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
 
 # Show banners on the login page that are defined in layout.html
 SHOW_LOGIN_BANNER = False
@@ -3714,7 +3713,7 @@ SHOW_LOGIN_BANNER = False
 #       "bootstrap.servers": "kafka2:9092",
 #   },
 # }
-SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
 # decorator.
@@ -3738,7 +3737,7 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
-ADDITIONAL_BULK_QUERY_DELETES: list[Tuple[str, str, str | None]] = []
+ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000

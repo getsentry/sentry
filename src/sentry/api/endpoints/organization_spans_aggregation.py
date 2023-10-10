@@ -3,20 +3,23 @@ from collections import defaultdict, namedtuple
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, TypedDict
 
+import sentry_sdk
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
+
+ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
 
 EventSpan = namedtuple(
     "EventSpan",
@@ -63,49 +66,9 @@ AggregateSpanRow = TypedDict(
 NULL_GROUP = "00"
 
 
-class AggregateSpans:
+class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
-
-    def build_aggregate_span_tree(self, results: Mapping[str, Any]):
-        for event in results["data"]:
-            span_tree = {}
-            root_span_id = None
-            spans = event["spans"]
-
-            for span_ in spans:
-                span = EventSpan(*span_)
-                span_id = getattr(span, "span_id")
-                is_root = getattr(span, "is_segment")
-                if is_root:
-                    root_span_id = span_id
-                if span_id not in span_tree:
-                    spans_dict = span._asdict()
-                    # Fallback to group_raw if group doesn't exist for now
-                    spans_dict["key"] = (
-                        spans_dict["op"]
-                        if spans_dict["group"] == NULL_GROUP
-                        else spans_dict["group"]
-                    )
-                    spans_dict["start_timestamp_ms"] = (
-                        int(datetime.fromisoformat(spans_dict["start_timestamp"]).timestamp())
-                        * 1000
-                    ) + (spans_dict["start_ms"])
-                    span_tree[span_id] = spans_dict
-                    span_tree[span_id]["children"] = []
-
-            for span_ in span_tree.values():
-                parent_id = span_["parent_span_id"]
-                if parent_id in span_tree:
-                    parent_span = span_tree[parent_id]
-                    children = parent_span["children"]
-                    children.append(span_)
-
-            if root_span_id in span_tree:
-                root_span = span_tree[root_span_id]
-                self.fingerprint_nodes(root_span, root_span["start_timestamp_ms"])
-
-        return self.aggregated_tree
 
     def fingerprint_nodes(
         self,
@@ -148,6 +111,7 @@ class AggregateSpans:
                 prefix = f"{root_prefix}-{key}"
             else:
                 prefix = f"{root_prefix}-{key}{nth_span}"
+
         node_fingerprint = hashlib.md5(prefix.encode()).hexdigest()[:16]
         parent_node = self.aggregated_tree.get(parent_node_fingerprint, None)
 
@@ -182,9 +146,7 @@ class AggregateSpans:
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": f"<<unparametrized>> {description}"
-                if span_tree["group"] == NULL_GROUP
-                else description,
+                "description": description if span_tree["group"] == NULL_GROUP else description,
                 "start_timestamp": start_timestamp,
                 "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
@@ -215,6 +177,118 @@ class AggregateSpans:
             )
 
 
+class AggregateIndexedSpans(BaseAggregateSpans):
+    def build_aggregate_span_tree(self, results: Mapping[str, Any]):
+        for event in results["data"]:
+            span_tree = {}
+            root_span_id = None
+            spans = event["spans"]
+
+            for span_ in spans:
+                span = EventSpan(*span_)
+                span_id = getattr(span, "span_id")
+                is_root = getattr(span, "is_segment")
+                if is_root:
+                    root_span_id = span_id
+                if span_id not in span_tree:
+                    spans_dict = span._asdict()
+                    # Fallback to op if group doesn't exist for now
+                    spans_dict["key"] = (
+                        spans_dict["op"]
+                        if spans_dict["group"] == NULL_GROUP
+                        else spans_dict["group"]
+                    )
+                    spans_dict["start_timestamp_ms"] = (
+                        int(datetime.fromisoformat(spans_dict["start_timestamp"]).timestamp())
+                        * 1000
+                    ) + (spans_dict["start_ms"])
+                    span_tree[span_id] = spans_dict
+                    span_tree[span_id]["children"] = []
+
+            for span_ in span_tree.values():
+                parent_id = span_["parent_span_id"]
+                if parent_id in span_tree:
+                    parent_span = span_tree[parent_id]
+                    children = parent_span["children"]
+                    children.append(span_)
+
+            if root_span_id in span_tree:
+                root_span = span_tree[root_span_id]
+                self.fingerprint_nodes(root_span, root_span["start_timestamp_ms"])
+
+        return self.aggregated_tree
+
+
+class AggregateNodestoreSpans(BaseAggregateSpans):
+    def build_aggregate_span_tree(self, results: Any):
+        for event_ in results:
+            event = event_.data.data
+            span_tree = {}
+
+            root_span_id = event["contexts"]["trace"]["span_id"]
+            span_tree[root_span_id] = {
+                "span_id": root_span_id,
+                "is_segment": True,
+                "parent_span_id": None,
+                "group": event["contexts"]["trace"]["hash"],
+                "group_raw": event["contexts"]["trace"]["hash"],
+                "description": event["transaction"],
+                "op": event["contexts"]["trace"]["op"],
+                "start_timestamp_ms": event["start_timestamp"]
+                * 1000,  # timestamp is unix timestamp, convert to ms
+                "duration": (event["timestamp"] - event["start_timestamp"])
+                * 1000,  # duration in ms
+                "exclusive_time": event["contexts"]["trace"]["exclusive_time"],
+                "key": event["contexts"]["trace"]["hash"],
+                "children": [],
+            }
+
+            spans = event["spans"]
+
+            for span in spans:
+                span_id = span["span_id"]
+                if span_id not in span_tree:
+                    spans_dict = {
+                        "span_id": span["span_id"],
+                        "is_segment": False,
+                        "parent_span_id": span["parent_span_id"],
+                        "group": span.get("sentry_tags", {}).get("group")
+                        or span.get("data", {}).get("span.group", NULL_GROUP),
+                        "group_raw": span["hash"],
+                        "description": span.get("sentry_tags", {}).get("description")
+                        or span.get("data", {}).get("span.description")
+                        or span.get("description", ""),
+                        "op": span.get("op", ""),
+                        "start_timestamp_ms": span["start_timestamp"]
+                        * 1000,  # timestamp is unix timestamp, convert to ms
+                        "duration": (span["timestamp"] - span["start_timestamp"])
+                        * 1000,  # duration in ms
+                        "exclusive_time": span["exclusive_time"],
+                        "children": [],
+                    }
+                    # Fallback to op if group doesn't exist for now
+                    spans_dict["key"] = (
+                        spans_dict["op"]
+                        if spans_dict["group"] == NULL_GROUP
+                        else spans_dict["group"]
+                    )
+                    span_tree[span_id] = spans_dict
+                    span_tree[span_id]["children"] = []
+
+            for span_ in span_tree.values():
+                parent_id = span_["parent_span_id"]
+                if parent_id in span_tree:
+                    parent_span = span_tree[parent_id]
+                    children = parent_span["children"]
+                    children.append(span_)
+
+            if root_span_id in span_tree:
+                root_span = span_tree[root_span_id]
+                self.fingerprint_nodes(root_span, root_span["start_timestamp_ms"])
+
+        return self.aggregated_tree
+
+
 @region_silo_endpoint
 class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -238,41 +312,74 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
-        builder = SpansIndexedQueryBuilder(
-            dataset=Dataset.SpansIndexed,
-            params=params,
-            selected_columns=["transaction_id", "count()"],
-            query=f"transaction:{transaction}",
-            limit=100,
-        )
-        builder.columns.append(
-            Function(
-                "groupArray",
-                parameters=[
-                    Function(
-                        "tuple",
-                        parameters=[
-                            Column("span_id"),
-                            Column("is_segment"),
-                            Column("parent_span_id"),
-                            Column("group"),
-                            Column("group_raw"),
-                            Column("description"),
-                            Column("op"),
-                            Column("start_timestamp"),
-                            Column("start_ms"),
-                            Column("duration"),
-                            Column("exclusive_time"),
-                        ],
-                    )
-                ],
-                alias="spans",
+        backend = request.query_params.get("backend", "nodestore")
+        if backend not in ALLOWED_BACKENDS:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
             )
+
+        if backend == "indexedSpans":
+            builder = SpansIndexedQueryBuilder(
+                dataset=Dataset.SpansIndexed,
+                params=params,
+                selected_columns=["transaction_id", "count()"],
+                query=f"transaction:{transaction}",
+                limit=100,
+            )
+
+            builder.columns.append(
+                Function(
+                    "groupArray",
+                    parameters=[
+                        Function(
+                            "tuple",
+                            parameters=[
+                                Column("span_id"),
+                                Column("is_segment"),
+                                Column("parent_span_id"),
+                                Column("group"),
+                                Column("group_raw"),
+                                Column("description"),
+                                Column("op"),
+                                Column("start_timestamp"),
+                                Column("start_ms"),
+                                Column("duration"),
+                                Column("exclusive_time"),
+                            ],
+                        )
+                    ],
+                    alias="spans",
+                )
+            )
+            snql_query = builder.get_snql_query()
+            snql_query.tenant_ids = {"organization_id": organization.id}
+            results = raw_snql_query(snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value)
+
+            with sentry_sdk.start_span(
+                op="span.aggregation", description="AggregateIndexedSpans.build_aggregate_span_tree"
+            ):
+                aggregated_tree = AggregateIndexedSpans().build_aggregate_span_tree(results)
+
+            return Response(data=aggregated_tree)
+
+        events = eventstore.backend.get_events(
+            filter=eventstore.Filter(
+                conditions=[["transaction", "=", transaction]],
+                start=params["start"],
+                end=params["end"],
+                project_ids=params["project_id"],
+                organization_id=params["organization_id"],
+            ),
+            limit=100,
+            referrer=Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value,
+            dataset=Dataset.Transactions,
+            tenant_ids={"organization_id": organization.id},
         )
-        snql_query = builder.get_snql_query()
-        snql_query.tenant_ids = {"organization_id": organization.id}
-        results = raw_snql_query(snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value)
-        aggregated_tree = AggregateSpans().build_aggregate_span_tree(results)
+
+        with sentry_sdk.start_span(
+            op="span.aggregation", description="AggregateNodestoreSpans.build_aggregate_span_tree"
+        ):
+            aggregated_tree = AggregateNodestoreSpans().build_aggregate_span_tree(events)
 
         return Response(data=aggregated_tree)
 

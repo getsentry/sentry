@@ -15,14 +15,12 @@ from sentry.api.serializers import (
 )
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    OrganizationMapping,
-    OrganizationMemberMapping,
-    OrganizationStatus,
-    UserEmail,
-)
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
@@ -117,8 +115,8 @@ class DatabaseBackedUserService(UserService):
         only_visible: bool = False,
     ) -> List[RpcOrganizationMapping]:
         if user_id is None:
-            # This is impossible if type hints are followed or Pydantic enforces
-            # type-checking on serialization, but is still possible if we make a call
+            # This is impossible if type hints are followed or Pydantic enforces type-checking
+            # on serialization, but is still possible if we make a call
             # from non-Mypy-checked code on the same silo. It can occur easily if
             # `request.user.id` is passed as an argument where the user is an
             # AnonymousUser. Check explicitly to guard against returning mappings

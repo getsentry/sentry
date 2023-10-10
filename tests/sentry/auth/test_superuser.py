@@ -26,7 +26,7 @@ from sentry.auth.superuser import (
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
@@ -170,7 +170,7 @@ class SuperuserTestCase(TestCase):
         ):
             user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
-            request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+            request._body = json.dumps(  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1607
                 {
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
@@ -243,7 +243,7 @@ class SuperuserTestCase(TestCase):
     def test_su_access_no_request_user_missing_info(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+        request._body = json.dumps(  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1607
             {
                 "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Edit organization settings",
@@ -263,7 +263,7 @@ class SuperuserTestCase(TestCase):
     ):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = b'{"invalid" "json"}'  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+        request._body = b'{"invalid" "json"}'  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1607
 
         superuser = Superuser(request, org_id=None)
         with self.settings(

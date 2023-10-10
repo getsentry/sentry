@@ -29,7 +29,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.has_header("test")
         assert resp["test"] == "header"
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/get"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/get"
 
         request = RequestFactory().get("http://sentry.io/error")
         resp = proxy_request(request, self.organization.slug)
@@ -39,7 +39,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.has_header("test")
         assert resp["test"] == "header"
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/error"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/error"
 
     @responses.activate
     def test_query_params(self):
@@ -67,7 +67,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.POST,
-            "http://region.internal.sentry.io/post",
+            "http://us.internal.sentry.io/post",
             verify_request_body(request_body, {"test": "header"}),
         )
 
@@ -80,14 +80,14 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/post"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/post"
 
     @responses.activate
     def test_put(self):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.PUT,
-            "http://region.internal.sentry.io/put",
+            "http://us.internal.sentry.io/put",
             verify_request_body(request_body, {"test": "header"}),
         )
 
@@ -100,14 +100,14 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/put"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/put"
 
     @responses.activate
     def test_patch(self):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.PATCH,
-            "http://region.internal.sentry.io/patch",
+            "http://us.internal.sentry.io/patch",
             verify_request_body(request_body, {"test": "header"}),
         )
 
@@ -120,14 +120,14 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/patch"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/patch"
 
     @responses.activate
     def test_head(self):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.HEAD,
-            "http://region.internal.sentry.io/head",
+            "http://us.internal.sentry.io/head",
             verify_request_headers({"test": "header"}),
         )
 
@@ -140,14 +140,14 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/head"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/head"
 
     @responses.activate
     def test_delete(self):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.DELETE,
-            "http://region.internal.sentry.io/delete",
+            "http://us.internal.sentry.io/delete",
             verify_request_body(request_body, {"test": "header"}),
         )
 
@@ -160,7 +160,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region.internal.sentry.io/delete"
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/delete"
 
     @responses.activate
     def test_file_upload(self):
@@ -173,7 +173,7 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         responses.add_callback(
             responses.POST,
-            "http://region.internal.sentry.io/post",
+            "http://us.internal.sentry.io/post",
             verify_file_body(contents, {"test": "header"}),
         )
         request = RequestFactory().post(
@@ -193,7 +193,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request_body = contents
         responses.add_callback(
             responses.POST,
-            "http://region.internal.sentry.io/post",
+            "http://us.internal.sentry.io/post",
             verify_request_body(contents, {"test": "header"}),
         )
         request = RequestFactory().post(
@@ -212,7 +212,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.POST,
-            "http://region.internal.sentry.io/post",
+            "http://us.internal.sentry.io/post",
             verify_request_body(request_body, {"test": "header"}),
         )
 

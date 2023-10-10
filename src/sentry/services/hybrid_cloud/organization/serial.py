@@ -4,15 +4,12 @@ from collections import defaultdict
 from typing import Iterable, List, MutableMapping, Set
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Team,
-    TeamStatus,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,

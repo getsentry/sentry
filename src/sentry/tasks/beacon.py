@@ -57,7 +57,11 @@ def send_beacon():
     See the documentation for more details.
     """
     from sentry import options
-    from sentry.models import Broadcast, Organization, Project, Team, User
+    from sentry.models.broadcast import Broadcast
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     install_id = get_install_id()
 

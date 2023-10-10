@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -13,7 +15,7 @@ const onClickMock = jest.fn();
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -147,10 +149,10 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('shows a guide for org-owner/manager', () => {
-    const adminAccessOrg = {
+    const adminAccessOrg = Organization({
       ...organization,
       access: ['org:write'],
-    };
+    });
 
     render(<CreateAlertButton organization={adminAccessOrg} showPermissionGuide />, {
       organization: adminAccessOrg,

@@ -3,8 +3,10 @@ from functools import cached_property
 from django.urls import reverse
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
@@ -167,7 +169,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
+@region_silo_test(stable=True)
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

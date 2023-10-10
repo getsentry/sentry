@@ -21,7 +21,10 @@ from urllib.request import Request
 
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
-from sentry.models import ExternalActor, Identity, Integration, Team
+from sentry.models.identity import Identity
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.models.team import Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -198,7 +201,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        assert type(organization_id) == int
+        assert isinstance(organization_id, int)
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property

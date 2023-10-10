@@ -54,7 +54,7 @@ class Column:
     alias: str
     # the internal name in snuba
     column: str
-    # type kind/type associated with this column
+    # data type associated with this column
     kind: Kind
     # some kinds will have an unit associated with it
     unit: Optional[Unit] = None

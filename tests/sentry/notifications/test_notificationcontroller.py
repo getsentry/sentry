@@ -2,6 +2,7 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
@@ -157,7 +158,7 @@ class NotificationControllerTest(TestCase):
         )
         assert (
             providers[self.user][scope][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK]
-            == NotificationSettingsOptionEnum.ALWAYS
+            == NotificationSettingsOptionEnum.COMMITTED_ONLY
         )
 
         enabled_settings = controller.get_all_enabled_settings()[self.user]
@@ -298,7 +299,7 @@ class NotificationControllerTest(TestCase):
         )
         assert (
             providers[self.user][scope][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.EMAIL]
-            == NotificationSettingsOptionEnum.ALWAYS
+            == NotificationSettingsOptionEnum.COMMITTED_ONLY
         )
         assert (
             providers[self.user][scope][NotificationSettingEnum.DEPLOY][
@@ -456,24 +457,86 @@ class NotificationControllerTest(TestCase):
         enabled_settings = controller.get_all_enabled_settings()
         scope = (NotificationScopeEnum.PROJECT, self.project.id)
 
-        for type in [
-            NotificationSettingEnum.DEPLOY,
-            NotificationSettingEnum.WORKFLOW,
-            NotificationSettingEnum.ISSUE_ALERTS,
+        # Settings for self.user
+        for (type, expected_setting) in [
+            (
+                NotificationSettingEnum.DEPLOY,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+            (
+                NotificationSettingEnum.WORKFLOW,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                },
+            ),
+            (
+                NotificationSettingEnum.ISSUE_ALERTS,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+            (
+                NotificationSettingEnum.REPORTS,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+            (
+                NotificationSettingEnum.QUOTA,
+                {
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
         ]:
-            values = enabled_settings[self.user][scope][type].values()
-            assert all(value == NotificationSettingsOptionEnum.ALWAYS for value in values)
+            provider_settings = enabled_settings[self.user][scope][type]
+            assert provider_settings == expected_setting
 
-            values = enabled_settings[new_user][scope][type].values()
-            assert all(value == NotificationSettingsOptionEnum.ALWAYS for value in values)
-
-        default = {
-            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
-            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-        }
-        for type in [NotificationSettingEnum.REPORTS, NotificationSettingEnum.QUOTA]:
-            assert enabled_settings[self.user][scope][type] == default
-            assert enabled_settings[new_user][scope][type] == default
+        # Settings for new_user
+        for (type, expected_setting) in [
+            (
+                NotificationSettingEnum.DEPLOY,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                },
+            ),
+            (
+                NotificationSettingEnum.WORKFLOW,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                },
+            ),
+            (
+                NotificationSettingEnum.ISSUE_ALERTS,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.MSTEAMS: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+            (
+                NotificationSettingEnum.REPORTS,
+                {
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+            (
+                NotificationSettingEnum.QUOTA,
+                {
+                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                },
+            ),
+        ]:
+            provider_settings = enabled_settings[new_user][scope][type]
+            assert provider_settings == expected_setting
 
     def test_get_notification_recipients(self):
         rpc_user = RpcActor.from_object(self.user)
@@ -521,6 +584,13 @@ class NotificationControllerTest(TestCase):
         assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.MSTEAMS)
 
     def test_get_subscriptions_status_for_projects(self):
+        add_notification_setting_option(
+            scope_type=NotificationScopeEnum.PROJECT,
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.WORKFLOW,
+            value=NotificationSettingsOptionEnum.NEVER,
+            user_id=self.user.id,
+        )
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -531,19 +601,31 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.DEPLOY,
-        ) == {self.project.id: (False, True)}
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=False, is_active=True, has_only_inactive_subscriptions=False
+            )
+        }
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
-            type=NotificationSettingEnum.ISSUE_ALERTS,
-        ) == {self.project.id: (False, False)}
+            type=NotificationSettingEnum.WORKFLOW,
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=True, is_active=False, has_only_inactive_subscriptions=True
+            )
+        }
 
         assert controller.get_subscriptions_status_for_projects(
             project_ids=[self.project.id],
             user=self.user,
             type=NotificationSettingEnum.QUOTA,
-        ) == {self.project.id: (False, True)}
+        ) == {
+            self.project.id: GroupSubscriptionStatus(
+                is_disabled=False, is_active=True, has_only_inactive_subscriptions=False
+            )
+        }
 
     def test_get_participants(self):
         rpc_user = RpcActor.from_object(self.user)
@@ -571,7 +653,7 @@ class NotificationControllerTest(TestCase):
         assert controller.get_participants() == {
             rpc_user: {
                 ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
             }
         }
 
