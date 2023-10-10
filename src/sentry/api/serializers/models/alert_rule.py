@@ -70,7 +70,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    timeWindow: str
+    timeWindow: int
     resolution: float
     thresholdPeriod: int
     triggers: List[dict]
