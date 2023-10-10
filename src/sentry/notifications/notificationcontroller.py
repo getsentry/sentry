@@ -421,7 +421,7 @@ class NotificationController:
 
             combined_settings = self.get_combined_settings(type=type, project_id=project_id)
 
-            # take the settings for this user and apply it to the projct
+            # take the settings for this user and apply it to the project
             settings_for_user = combined_settings[user]
             result[project_id] = settings_for_user
 
