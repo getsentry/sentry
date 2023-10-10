@@ -216,7 +216,11 @@ def _get_entity_of_metric_mri(
     entity_keys_set: frozenset[EntityKey]
     if use_case_id is UseCaseID.TRANSACTIONS:
         entity_keys_set = frozenset(
-            {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+            }
         )
     elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
