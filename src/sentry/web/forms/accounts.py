@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
-from sentry.models import User
+from sentry.models.user import User
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
@@ -76,7 +76,7 @@ class AuthenticationForm(forms.Form):
         UserModel = get_user_model()
         self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
         if not self.fields["username"].label:
-            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # typeddjango/django-stubs#1626
+            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # issue: typeddjango/django-stubs#1626
 
     def clean_username(self, value=None):
         if not value:

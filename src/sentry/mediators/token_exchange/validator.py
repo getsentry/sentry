@@ -3,7 +3,9 @@ from django.db import router
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import ApiApplication, SentryApp, User
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.utils.cache import memoize
 

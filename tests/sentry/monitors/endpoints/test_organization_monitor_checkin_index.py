@@ -3,7 +3,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -33,6 +34,28 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             "span_id": uuid.uuid4().hex[:16],
         }
         return self.store_event(data, project_id=project_id)
+
+    def test_options_cors(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="OPTIONS",
+            statsPeriod="1d",
+        )
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"]
+        assert resp["Access-Control-Allow-Headers"]
 
     def test_simple(self):
         monitor = self._create_monitor()

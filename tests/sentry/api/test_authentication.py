@@ -16,9 +16,10 @@ from sentry.api.authentication import (
     RpcSignatureAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectkey import ProjectKeyStatus
+from sentry.models.relay import Relay
 from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
     generate_request_signature,

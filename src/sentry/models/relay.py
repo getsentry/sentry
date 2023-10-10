@@ -9,7 +9,7 @@ from sentry.db.models import Model, region_silo_only_model
 
 
 @region_silo_only_model
-class RelayUsage(Model):
+class RelayUsage(OverwritableConfigMixin, Model):
     __relocation_scope__ = RelocationScope.Config
 
     relay_id = models.CharField(max_length=64)

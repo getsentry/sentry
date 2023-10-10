@@ -5,7 +5,7 @@ from functools import cached_property
 from django.http import HttpRequest
 
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
-from sentry.models import Team
+from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

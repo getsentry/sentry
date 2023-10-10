@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
 import {
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -70,7 +70,7 @@ function Line({
 }: Props) {
   // Prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
-  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
+  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformKey;
   const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
 
   const expandable =

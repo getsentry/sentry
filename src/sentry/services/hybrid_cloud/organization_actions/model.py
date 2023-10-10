@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from sentry.models import Organization, OrganizationMember, Team
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 
 
 @dataclass

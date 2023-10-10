@@ -95,16 +95,13 @@ export function useMetricsTagValues(
 }
 
 export type MetricsQuery = {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
   mri: string;
+  projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
   query?: string;
-};
-
-export type MetricsDataProps = MetricsQuery & {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -132,7 +129,7 @@ export function useMetricsData({
   environments,
   query,
   groupBy,
-}: MetricsDataProps) {
+}: MetricsQuery) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
@@ -301,5 +298,12 @@ export function updateQuery(router: InjectedRouter, partialQuery: Record<string,
       ...router.location.query,
       ...partialQuery,
     },
+  });
+}
+
+export function clearQuery(router: InjectedRouter) {
+  router.push({
+    ...router.location,
+    query: {},
   });
 }

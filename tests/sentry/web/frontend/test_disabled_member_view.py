@@ -2,7 +2,7 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

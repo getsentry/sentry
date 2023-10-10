@@ -1,6 +1,7 @@
 from django.http import Http404
 
-from sentry.models import Group, GroupSubscription
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 
 

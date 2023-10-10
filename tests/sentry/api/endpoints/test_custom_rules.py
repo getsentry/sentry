@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -7,6 +8,7 @@ from sentry.api.endpoints.custom_rules import (
     DEFAULT_PERIOD_STRING,
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
+    get_condition,
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
@@ -92,7 +94,7 @@ class CustomRulesGetEndpoint(APITestCase):
                 self.organization.slug,
                 qs_params={
                     "query": "environment:prod",
-                    "project": [self.known_projects[1].id],
+                    "project": [proj.id for proj in self.known_projects[1:3]],
                 },
             )
 
@@ -127,7 +129,7 @@ class CustomRulesGetEndpoint(APITestCase):
 
     def test_finds_org_condition(self):
         """
-        A request for either any project of org will find an org rule ( if condition matches)
+        A request for org will find an org rule ( if condition matches)
         """
 
         # finds projects in the org rule
@@ -136,7 +138,7 @@ class CustomRulesGetEndpoint(APITestCase):
                 self.organization.slug,
                 qs_params={
                     "query": "environment:dev",
-                    "project": [self.known_projects[1].id],
+                    "project": [],
                 },
             )
         assert resp.status_code == 200
@@ -177,7 +179,7 @@ class CustomRulesGetEndpoint(APITestCase):
                 self.organization.slug,
                 qs_params={
                     "query": "environment:prod",
-                    "project": [self.known_projects[1].id],
+                    "project": [project.id for project in self.known_projects[1:3]],
                 },
             )
         assert resp.status_code == 200
@@ -212,7 +214,6 @@ class CustomRulesEndpoint(APITestCase):
             "query": "event.type:transaction",
             "projects": [self.project.id],
             "period": "1h",
-            "overrideExisting": True,
         }
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(self.organization.slug, raw_data=request_data)
@@ -241,7 +242,6 @@ class CustomRulesEndpoint(APITestCase):
             "query": "",
             "projects": [self.project.id],
             "period": "1h",
-            "overrideExisting": True,
         }
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(self.organization.slug, raw_data=request_data)
@@ -267,16 +267,15 @@ class CustomRulesEndpoint(APITestCase):
 
     def test_updates_existing(self):
         """
-        Test that the endpoint updates an existing rule if the same rule condition is given
+        Test that the endpoint updates an existing rule if the same rule condition and projects is given
 
         The rule id should be the same
-        The period and the projects should be updated
+        The period should be updated
         """
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
             "period": "1h",
-            "overrideExisting": True,
         }
 
         # create rule
@@ -294,9 +293,8 @@ class CustomRulesEndpoint(APITestCase):
 
         request_data = {
             "query": "event.type:transaction",
-            "projects": [self.second_project.id],
+            "projects": [self.project.id],
             "period": "2h",
-            "overrideExisting": True,
         }
 
         # update existing rule
@@ -311,8 +309,7 @@ class CustomRulesEndpoint(APITestCase):
         assert end_date - start_date >= timedelta(hours=2)
 
         projects = data["projects"]
-        assert self.project.id in projects
-        assert self.second_project.id in projects
+        assert projects == [self.project.id]
 
         new_rule_id = data["ruleId"]
         assert rule_id == new_rule_id
@@ -325,12 +322,57 @@ class CustomRulesEndpoint(APITestCase):
             "query": "event.type:transaction",
             "projects": [self.project.id],
             "period": "1h",
-            "overrideExisting": True,
         }
         with Feature({"organizations:investigation-bias": False}):
             resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 404
+
+    @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
+    def test_invalidates_project_config(self, mock_invalidate_project_config):
+        """
+        Tests that project rules invalidates all the configurations for the
+        passed projects
+        """
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [self.project.id, self.second_project.id],
+            "period": "1h",
+        }
+
+        mock_invalidate_project_config.reset_mock()
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        mock_invalidate_project_config.assert_any_call(trigger=mock.ANY, project_id=self.project.id)
+
+        mock_invalidate_project_config.assert_any_call(
+            trigger=mock.ANY, project_id=self.second_project.id
+        )
+
+    @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
+    def test_invalidates_organisation_config(self, mock_invalidate_project_config):
+        """
+        Tests that org rules invalidates all the configurations for the projects
+        in the organisation
+        """
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [],
+            "period": "1h",
+        }
+
+        mock_invalidate_project_config.reset_mock()
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        mock_invalidate_project_config.assert_called_once_with(
+            trigger=mock.ANY, organization_id=self.organization.id
+        )
 
 
 @pytest.mark.parametrize(
@@ -430,3 +472,33 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         assert not serializer.is_valid()
         # the two invalid projects should be in the error message
         assert len(serializer.errors["projects"]) == 2
+
+
+@pytest.mark.parametrize(
+    "query,condition",
+    [
+        ("", {"op": "and", "inner": []}),
+        (
+            "event.type:transaction",
+            {"name": "event.tags.event.type", "op": "eq", "value": "transaction"},
+        ),
+        ("environment:prod", {"op": "eq", "name": "event.environment", "value": "prod"}),
+        ("hello world", {"op": "eq", "name": "event.transaction", "value": "hello world"}),
+        (
+            "environment:prod hello world",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.environment", "value": "prod"},
+                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
+                ],
+            },
+        ),
+    ],
+)
+def test_get_condition(query, condition):
+    """
+    Test that the get_condition function works as expected
+    """
+    actual_condition = get_condition(query)
+    assert actual_condition == condition

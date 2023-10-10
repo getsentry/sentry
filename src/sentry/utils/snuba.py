@@ -34,16 +34,13 @@ from sentry_sdk import Hub
 from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseProject,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.release import Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns

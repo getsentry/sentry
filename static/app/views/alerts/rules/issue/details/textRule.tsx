@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import type {Member, Team} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  type IssueAlertRule,
+} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
-import {
-  EVENT_FREQUENCY_PERCENT_CONDITION,
-  REAPPEARED_EVENT_CONDITION,
-} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
  * Translate Issue Alert Conditions to text
@@ -23,7 +23,7 @@ export function TextCondition({
 
   if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
-      if (condition.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+      if (condition.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
         return (
           <Fragment>
             {t(
@@ -60,7 +60,7 @@ export function TextCondition({
     );
   }
   if (
-    condition.id === REAPPEARED_EVENT_CONDITION &&
+    condition.id === IssueAlertConditionType.REAPPEARED_EVENT &&
     organization.features.includes('escalating-issues')
   ) {
     return (
@@ -96,7 +96,7 @@ export function TextAction({
     );
   }
 
-  if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+  if (action.id === IssueAlertActionType.SLACK) {
     const name = action.name
       // Hide the id "(optionally, an ID: XXX)"
       .replace(/\(optionally.*\)/, '')

@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 
-from sentry.models import File
+from sentry.models.files.file import File
 from sentry.replays.lib import kafka
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay

@@ -6,10 +6,17 @@ import responses
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestComment,
+    PullRequestCommit,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z

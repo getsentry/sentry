@@ -71,6 +71,7 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
+import ThresholdsHoverWrapper from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -1016,13 +1017,18 @@ function WidgetViewerModal(props: Props) {
                           organization.features.includes(
                             'dashboard-widget-indicators'
                           ) && (
-                            <CircleIndicator
-                              color={getWidgetIndicatorColor(
-                                widget.thresholds,
-                                tableData
-                              )}
-                              size={12}
-                            />
+                            <ThresholdsHoverWrapper
+                              thresholds={widget.thresholds}
+                              tableData={tableData}
+                            >
+                              <CircleIndicator
+                                color={getWidgetIndicatorColor(
+                                  widget.thresholds,
+                                  tableData
+                                )}
+                                size={12}
+                              />
+                            </ThresholdsHoverWrapper>
                           )}
                       </WidgetTitleRow>
                       {widget.description && (
@@ -1167,7 +1173,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}

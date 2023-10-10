@@ -2,7 +2,8 @@ from typing import List, cast
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
-from sentry.models import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule, Project
+from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
+from sentry.models.project import Project
 from sentry.utils import json
 
 
@@ -20,7 +21,7 @@ class CustomRuleBias(Bias):
             condition = json.loads(rule.condition)
             ret_val.append(
                 {
-                    "samplingValue": {"type": "sampleRate", "value": rule.sample_rate},
+                    "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
                     "type": "transaction",
                     "id": rule.external_rule_id,
                     "condition": cast(Condition, condition),
@@ -28,11 +29,6 @@ class CustomRuleBias(Bias):
                         "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                         "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                     },
-                    # TODO: (Raduw) switch to reservoir sampling when available
-                    # "decayingFn": {
-                    #     "type": "reservoir",
-                    #     "limit": rule.num_samples,
-                    # },
                 }
             )
         return ret_val

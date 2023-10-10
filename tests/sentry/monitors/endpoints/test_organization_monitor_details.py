@@ -2,7 +2,9 @@ import pytest
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
-from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
+from sentry.models.environment import Environment
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.options import override_options
@@ -230,6 +232,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
+        # Verify the conditions haven't changed
+        assert monitor_rule.data["conditions"] == rule.data["conditions"]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 

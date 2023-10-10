@@ -1,4 +1,7 @@
-import {FeedbackItemResponse, HydratedFeedbackItem} from 'sentry/utils/feedback/types';
+import {
+  FeedbackItemResponse,
+  HydratedFeedbackItem,
+} from 'sentry/utils/feedback/item/types';
 
 export default function hydrateFeedbackRecord(
   apiResponse: FeedbackItemResponse

@@ -5,7 +5,7 @@ from typing import Any
 from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.json import JSONData

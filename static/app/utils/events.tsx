@@ -459,6 +459,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
+    event_mechanism:
+      event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
   };
 }
 

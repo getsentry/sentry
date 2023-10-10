@@ -25,13 +25,11 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
@@ -344,7 +342,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             except KeyError:
                 return Response(status=400)
 
-            if not can_set_team_role(request.access, team, new_role):
+            if not can_set_team_role(request, team, new_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)

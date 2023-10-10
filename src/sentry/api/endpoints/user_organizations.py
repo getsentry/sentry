@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.user import RegionSiloUserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.user import RpcUser
 
 

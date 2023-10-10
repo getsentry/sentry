@@ -9,7 +9,7 @@ from requests import Request
 from sentry.integrations.bitbucket.client import BitbucketApiClient, BitbucketAPIPath
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode

@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase, TestCase
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin, split_sms_to
