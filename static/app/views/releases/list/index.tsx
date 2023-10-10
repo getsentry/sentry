@@ -546,7 +546,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 <DatePageFilter
                   alignDropdown="left"
                   disallowArbitraryRelativeRanges
-                  hint={t(
+                  menuFooterMessage={t(
                     'Changing this date range will recalculate the release metrics.'
                   )}
                 />
