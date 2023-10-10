@@ -436,15 +436,15 @@ class GroupManager(BaseManager):
 
             Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
 
-            for group in modified_groups_list:
-                Activity.objects.create_group_activity(
-                    group,
-                    activity_type,
-                    data=activity_data,
-                    send_notification=send_activity_notification,
-                )
+        for group in modified_groups_list:
+            Activity.objects.create_group_activity(
+                group,
+                activity_type,
+                data=activity_data,
+                send_notification=send_activity_notification,
+            )
 
-                record_group_history_from_activity_type(group, activity_type.value)
+            record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
