@@ -4,14 +4,10 @@ import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 
 describe('GithubFeedbackButton', function () {
   it('renders', async function () {
-    render(
-      <GithubFeedbackButton href="https://example.com/my-test-url">
-        My button label
-      </GithubFeedbackButton>
-    );
+    render(<GithubFeedbackButton href="https://example.com/my-test-url" />);
 
     const anchor = screen.getByRole<HTMLAnchorElement>('button', {
-      name: 'My button label',
+      name: 'Give Feedback',
     });
 
     // Renders a link with given href
@@ -22,5 +18,29 @@ describe('GithubFeedbackButton', function () {
     // Renders tooltip
     await userEvent.hover(anchor);
     expect(await screen.findByText('Give us feedback on GitHub')).toBeInTheDocument();
+  });
+
+  it('renders with custom label', function () {
+    render(
+      <GithubFeedbackButton href="https://example.com/my-test-url" label="My label" />
+    );
+
+    expect(
+      screen.getByRole<HTMLAnchorElement>('button', {
+        name: 'My label',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('renders without label', function () {
+    render(<GithubFeedbackButton href="https://example.com/my-test-url" label={null} />);
+
+    // Renders button without text content
+    const button = screen.getByRole<HTMLAnchorElement>('button', {
+      name: 'Give Feedback',
+    });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent('');
+    expect(button).toHaveAttribute('aria-label', 'Give Feedback');
   });
 });
