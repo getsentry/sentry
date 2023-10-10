@@ -22,12 +22,12 @@ type SortState = MetricWidgetDisplayConfig['sort'];
 export function SummaryTable({
   series,
   operation,
-  onClick,
+  onRowClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
   setHoveredLegend,
 }: {
-  onClick: (seriesName: string) => void;
+  onRowClick: (seriesName: string) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
@@ -162,7 +162,7 @@ export function SummaryTable({
           return (
             <Fragment key={seriesName}>
               <CellWrapper
-                onClick={() => onClick(seriesName)}
+                onClick={() => onRowClick(seriesName)}
                 onMouseEnter={() => setHoveredLegend?.(seriesName)}
                 onMouseLeave={() => setHoveredLegend?.('')}
               >

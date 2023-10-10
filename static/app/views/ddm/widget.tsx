@@ -240,7 +240,7 @@ function MetricWidgetBody({
           }}
           sort={sort}
           operation={metricsQuery.op}
-          onClick={toggleSeriesVisibility}
+          onRowClick={toggleSeriesVisibility}
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
