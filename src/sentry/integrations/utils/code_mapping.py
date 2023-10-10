@@ -5,6 +5,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -384,7 +385,9 @@ class CodeMappingTreesHelper:
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
+    organization_integration: Union[OrganizationIntegration, RpcOrganizationIntegration],
+    project: Project,
+    code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:
     repository, _ = Repository.objects.get_or_create(
         name=code_mapping.repo.name,
