@@ -13,6 +13,22 @@ from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityTy
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.request_cache import request_cache
+
+
+@request_cache
+def get_neglected_rule(obj):
+    return NeglectedRule.objects.get(
+        rule=obj,
+        organization=obj.project.organization_id,
+        opted_out=False,
+        sent_initial_email_date__isnull=False,
+    )
+
+
+@request_cache
+def get_rule_snooze(obj, user_id):
+    return RuleSnooze.objects.filter(Q(user_id=user_id) | Q(user_id=None), rule=obj)
 
 
 def _generate_rule_label(project, rule, data):
@@ -210,7 +226,7 @@ class RuleSerializer(Serializer):
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
 
-        rule_snooze = RuleSnooze.objects.filter(Q(user_id=user.id) | Q(user_id=None), rule=obj)
+        rule_snooze = get_rule_snooze(obj, user.id)
         if rule_snooze.exists():
             d["snooze"] = True
             snooze = rule_snooze[0]
@@ -230,12 +246,7 @@ class RuleSerializer(Serializer):
             d["snooze"] = False
 
         try:
-            neglected_rule = NeglectedRule.objects.get(
-                rule=obj,
-                organization=obj.project.organization_id,
-                opted_out=False,
-                sent_initial_email_date__isnull=False,
-            )
+            neglected_rule = get_neglected_rule(obj)
             d["disableReason"] = "noisy"
             d["disableDate"] = neglected_rule.disable_date
         except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
