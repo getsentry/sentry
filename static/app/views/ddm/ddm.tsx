@@ -46,9 +46,7 @@ function DDM() {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
-                <GithubFeedbackButton href="https://github.com/getsentry/sentry/discussions/54956">
-                  Give Feedback
-                </GithubFeedbackButton>
+                <GithubFeedbackButton href="https://github.com/getsentry/sentry/discussions/54956" />
               </ButtonBar>
             </Layout.HeaderActions>
           </Layout.Header>
