@@ -15,11 +15,14 @@ import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 type Props = {
   event: Event;
   projectSlug: string;
-  replayId: undefined | string;
   group?: Group;
 };
 
-function EventReplayContent({event, group, replayId}: Props) {
+function EventReplayContent({
+  event,
+  group,
+  replayId,
+}: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
@@ -70,7 +73,7 @@ function EventReplayContent({event, group, replayId}: Props) {
   );
 }
 
-export default function EventReplay({projectSlug, event, group}: Props) {
+export default function EventReplay({event, group, projectSlug}: Props) {
   const organization = useOrganization();
   const hasReplaysFeature = organization.features.includes('session-replay');
 
@@ -78,12 +81,15 @@ export default function EventReplay({projectSlug, event, group}: Props) {
   const canUpsellReplay = projectCanUpsellReplay(project);
   const replayId = getReplayIdFromEvent(event);
 
-  if (!hasReplaysFeature) {
-    return null;
-  }
-
-  if (replayId || canUpsellReplay) {
-    return <EventReplayContent {...{projectSlug, event, group, replayId}} />;
+  if (hasReplaysFeature && (replayId || canUpsellReplay)) {
+    return (
+      <EventReplayContent
+        event={event}
+        group={group}
+        projectSlug={projectSlug}
+        replayId={replayId}
+      />
+    );
   }
 
   return null;
