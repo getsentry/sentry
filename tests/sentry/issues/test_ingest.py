@@ -209,7 +209,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             )
 
     def test_rate_limited(self) -> None:
-        MockGranted = namedtuple("mock_granted", ["granted"])
+        MockGranted = namedtuple("MockGranted", ["granted"])
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence()
         group_info = save_issue_from_occurrence(occurrence, event, None)
