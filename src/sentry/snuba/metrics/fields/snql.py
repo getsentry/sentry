@@ -994,3 +994,13 @@ def on_demand_eps_snql_factory(
     alias: Optional[str],
 ) -> Function:
     return rate_snql_factory(aggregate_filter, interval, 1, alias)
+
+
+def on_demand_user_misery_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+):
+    """TBD"""
+    # XXX: The formula is calculated like this
+    # (count_miserable(user,100) + 5.8875) / (count_unique(user) + 5.8875 + 111.8625) = 0.0575
+    # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
+    return miserable_users(org_id, use_case_id, alias)
