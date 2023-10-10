@@ -581,9 +581,7 @@ class GroupSerializerBase(Serializer, ABC):
         project_ids = list(groups_by_project.keys())
         if should_use_notifications_v2(groups[0].project.organization):
             enabled_settings = notifications_service.get_subscriptions_for_projects(
-                user_id=user.id,
-                project_ids=project_ids,
-                type=NotificationSettingEnum.WORKFLOW,
+                user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
             )
             query_groups = {
                 group for group in groups if (not enabled_settings[group.project_id][2])
