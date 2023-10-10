@@ -28,22 +28,19 @@ export function TextCondition({
   ) {
     const subject = CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id];
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
+      // This text does not translate well and should match the alert builder
       return (
         <Fragment>
-          {t(
-            '%s %s%% higher in %s compared to %s ago',
-            subject,
-            condition.value,
-            condition.interval,
-            condition.comparisonInterval
-          )}
+          {subject} {condition.value}% higher in {condition.interval} compared to{' '}
+          {condition.comparisonInterval} ago
         </Fragment>
       );
     }
 
     return (
+      // This text does not translate well and should match the alert builder
       <Fragment>
-        {t('%s more than %s in %s', subject, condition.value, condition.interval)}
+        {subject} more than {condition.value} in {condition.interval}
       </Fragment>
     );
   }
