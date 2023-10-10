@@ -16,11 +16,7 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-} from 'sentry/views/performance/trends/types';
-import {trendToColor} from 'sentry/views/performance/trends/utils';
+import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
@@ -35,15 +31,7 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
   const theme = useTheme();
   const router = useRouter();
 
-  const resultSeries = transformEventStats(statsData, chartLabel).map(values => {
-    return {
-      ...values,
-      color: trendToColor[TrendChangeType.REGRESSION].default,
-      lineStyle: {
-        opacity: 1,
-      },
-    };
-  });
+  const resultSeries = transformEventStats(statsData, chartLabel);
 
   const needsLabel = true;
   const intervalSeries = getIntervalLine(
