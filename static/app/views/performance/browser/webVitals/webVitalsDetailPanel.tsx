@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -21,7 +20,6 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
@@ -63,18 +61,17 @@ export function WebVitalsDetailPanel({
   webVital: WebVitals | null;
 }) {
   const location = useLocation();
-  const {projects} = useProjects();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const router = useRouter();
   const {period, start, end, utc} = pageFilters.selection.datetime;
+  const transaction = location.query.transaction
+    ? Array.isArray(location.query.transaction)
+      ? location.query.transaction[0]
+      : location.query.transaction
+    : undefined;
 
-  const project = useMemo(
-    () => projects.find(p => p.id === String(location.query.project)),
-    [projects, location.query.project]
-  );
-
-  const {data: projectData} = useProjectWebVitalsQuery();
+  const {data: projectData} = useProjectWebVitalsQuery({transaction});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -85,6 +82,7 @@ export function WebVitalsDetailPanel({
   });
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
+    transaction,
     orderBy: webVital,
     limit: 100,
   });
@@ -109,7 +107,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectData?.data, projectScore, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery();
+    useProjectWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries[] = [
     {
@@ -277,13 +275,14 @@ export function WebVitalsDetailPanel({
       return <AlignRight>{value}</AlignRight>;
     }
     if (key === 'transaction') {
-      const link = `/performance/summary/?${qs.stringify({
-        project: project?.id,
-        transaction: row.transaction,
-      })}`;
       return (
         <NoOverflow>
-          <Link to={link}>{row.transaction}</Link>
+          <Link
+            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            onClick={onClose}
+          >
+            {row.transaction}
+          </Link>
         </NoOverflow>
       );
     }
