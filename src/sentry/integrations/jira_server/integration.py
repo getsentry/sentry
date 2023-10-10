@@ -9,11 +9,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
+from django.http import HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features
 from sentry.integrations import (
@@ -25,14 +25,11 @@ from sentry.integrations import (
 )
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.models import (
-    ExternalIssue,
-    Identity,
-    IntegrationExternalProject,
-    Organization,
-    OrganizationIntegration,
-    User,
-)
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -51,6 +48,7 @@ from sentry.web.helpers import render_to_response
 from .client import JiraServerClient, JiraServerSetupClient
 
 logger = logging.getLogger("sentry.integrations.jira_server")
+
 
 DESCRIPTION = """
 Connect your Sentry organization into one or more of your Jira Server instances.
@@ -159,7 +157,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -184,7 +182,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -224,7 +222,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
             config.get("url"),
@@ -275,16 +273,10 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     default_identity = None
 
     def get_client(self):
-        if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise IntegrationError("Identity not found.")
-
         return JiraServerClient(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+            integration=self.model,
+            identity_id=self.org_integration.default_auth_id,
+            org_integration_id=self.org_integration.id,
         )
 
     def get_organization_config(self):
@@ -550,7 +542,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -657,11 +649,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self):
+    def get_projects(self, cached=True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
-            jira_projects = client.get_projects_list()
+            jira_projects = client.get_projects_list(cached)
         except ApiError as e:
             logger.info(
                 "jira_server.get_projects.error",
@@ -715,8 +707,51 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         if not project_id:
             project_id = jira_projects[0]["id"]
 
+        logger.info(
+            "get_create_issue_config.start",
+            extra={
+                "organization_id": self.organization_id,
+                "integration_id": self.model.id,
+                "num_jira_projects": len(jira_projects),
+                "project_id": project_id,
+            },
+        )
+
         client = self.get_client()
-        issue_type_choices = client.get_issue_types(project_id)
+
+        project_field = {
+            "name": "project",
+            "label": "Jira Project",
+            "choices": [(p["id"], p["key"]) for p in jira_projects],
+            "default": project_id,
+            "type": "select",
+            "updatesForm": True,
+        }
+
+        try:
+            issue_type_choices = client.get_issue_types(project_id)
+        except ApiError as e:
+            logger.info(
+                "get_create_issue_config.get_issue_types.error",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "num_jira_projects": len(jira_projects),
+                    "project_id": project_id,
+                    "error_message": str(e),
+                },
+            )
+            # return a form with just the project selector and a special form field to show the error
+            return [
+                project_field,
+                {
+                    "name": "error",
+                    "type": "blank",
+                    "help": "Could not fetch issue creation metadata from Jira Server. Ensure that"
+                    " the integration user has access to the requested project.",
+                },
+            ]
+
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
         ]
@@ -744,14 +779,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             )
 
         fields = [
-            {
-                "name": "project",
-                "label": "Jira Project",
-                "choices": [(p["id"], p["key"]) for p in jira_projects],
-                "default": project_id,
-                "type": "select",
-                "updatesForm": True,
-            },
+            project_field,
             *fields,
             {
                 "name": "issuetype",
@@ -946,7 +974,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:
@@ -1048,6 +1076,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
                     "issue_key": external_issue.key,
+                    "transitions": transitions,
+                    "jira_status": jira_status,
                 },
             )
             return

@@ -1,12 +1,14 @@
 from django.urls import reverse
-from freezegun import freeze_time
 
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @freeze_time(before_now(days=1).replace(minute=10))
 class TeamStatsTest(APITestCase):
     def test_simple(self):
@@ -33,7 +35,3 @@ class TeamStatsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.data[-1][1] == 3, response.data
-        for point in response.data[:-1]:
-            assert point[1] == 0
-        assert len(response.data) == 24

@@ -1,9 +1,10 @@
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
@@ -13,9 +14,11 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
+import {QUERY_LIMIT_PARAM} from '../utils';
+
+const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
     ...rest,
@@ -29,25 +32,31 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
 function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <MEPSettingProvider>
-        <PerformanceDisplayProvider
-          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
-        >
-          <WidgetContainer
-            allowedCharts={[
-              PerformanceWidgetSetting.TPM_AREA,
-              PerformanceWidgetSetting.FAILURE_RATE_AREA,
-              PerformanceWidgetSetting.USER_MISERY_AREA,
-              PerformanceWidgetSetting.DURATION_HISTOGRAM,
-            ]}
-            rowChartSettings={[]}
-            withStaticFilters={withStaticFilters}
-            forceDefaultChartSetting
-            {...data}
-            {...rest}
-          />
-        </PerformanceDisplayProvider>
-      </MEPSettingProvider>
+      <MetricsCardinalityProvider
+        location={data.router.location}
+        organization={data.organization}
+      >
+        <MEPSettingProvider forceTransactions>
+          <PerformanceDisplayProvider
+            value={{performanceType: ProjectPerformanceType.ANY}}
+          >
+            <WidgetContainer
+              chartHeight={100}
+              allowedCharts={[
+                PerformanceWidgetSetting.TPM_AREA,
+                PerformanceWidgetSetting.FAILURE_RATE_AREA,
+                PerformanceWidgetSetting.USER_MISERY_AREA,
+                PerformanceWidgetSetting.DURATION_HISTOGRAM,
+              ]}
+              rowChartSettings={[]}
+              withStaticFilters={withStaticFilters}
+              forceDefaultChartSetting
+              {...data}
+              {...rest}
+            />
+          </PerformanceDisplayProvider>
+        </MEPSettingProvider>
+      </MetricsCardinalityProvider>
     </OrganizationContext.Provider>
   );
 }
@@ -100,6 +109,18 @@ describe('Performance > Widgets > WidgetContainer', function () {
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility-sums/`,
       body: [],
     });
   });
@@ -168,10 +189,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -180,10 +203,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     data.eventView = data.eventView.clone();
 
     wrapper.rerender(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -194,10 +219,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     wrapper.rerender(
-      <WrappedComponent
-        data={modifiedData}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={modifiedData}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
@@ -213,13 +240,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
           interval: undefined,
           middle: undefined,
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '14d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'improved',
         }),
       })
@@ -713,7 +740,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['transaction', 'project.id', 'failure_count()'],
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload failure_count():>0',
           sort: '-failure_count()',
@@ -744,7 +771,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'event.type:error !tags[transaction]:"" count():>0',
           sort: '-count()',
@@ -787,10 +814,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
@@ -806,14 +835,56 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '7d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'improved',
+        }),
+      })
+    );
+  });
+
+  it('Most time spent in db queries widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time-Consuming Queries'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'span.op',
+            'span.group',
+            'project.id',
+            'span.description',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'has:span.description span.module:db transaction.op:pageload',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
         }),
       })
     );
@@ -842,13 +913,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: '-trend_percentage()',
           statsPeriod: '7d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'regression',
         }),
       })
@@ -879,7 +950,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           environment: ['prod'],
           field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
@@ -920,7 +991,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           environment: ['prod'],
           field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
@@ -961,7 +1032,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'avg(measurements.frames_frozen)',
           ],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',

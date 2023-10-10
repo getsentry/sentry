@@ -6,6 +6,7 @@ export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
   get: (uuid: string) => SentryAppComponent | undefined;
   getAll: () => SentryAppComponent[];
   getInitialState: () => SentryAppComponent[];
+  init: () => void;
   loadComponents: (items: SentryAppComponent[]) => void;
 }
 

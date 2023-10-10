@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, region_silo_only_model

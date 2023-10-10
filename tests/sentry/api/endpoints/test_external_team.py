@@ -1,5 +1,5 @@
-from sentry.models import ExternalActor
-from sentry.testutils import APITestCase
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 

@@ -1,74 +1,91 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization, Project} from 'sentry/types';
+import {IconIssues} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  ColumnType,
-  fieldAlignment,
-  getAggregateAlias,
-} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
-
-const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
-
-import styled from '@emotion/styled';
-
-import Duration from 'sentry/components/duration';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {IssueCounts, useIssueCounts} from 'sentry/views/starfish/queries/useIssueCounts';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-// HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
-// returned as a number because it's an equation, but we
-// want formatted as a percentage
-const TABLE_META_OVERRIDES: Record<string, ColumnType> = {
-  [TIME_SPENT_IN_SERVICE]: 'percentage',
-};
+const COLUMN_TITLES = [
+  t('Endpoint'),
+  DataTitles.throughput,
+  DataTitles.avg,
+  DataTitles.errorCount,
+  DataTitles.timeSpent,
+  t('Issues'),
+];
 
 type Props = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
-  columnTitles?: string[];
-  dataset?: 'discover' | 'metrics';
 };
 
-function EndpointList({
-  eventView,
-  location,
-  onSelect,
-  organization,
-  setError,
-  columnTitles,
-  dataset,
-}: Props) {
+export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
+  column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
+};
+
+function QueryIssueCounts({eventView, tableData, children}) {
+  const transactions: Map<string, string> = new Map();
+  transactions.set('is:unresolved', '');
+  if (tableData) {
+    tableData.data.forEach(row => {
+      transactions.set(`transaction:${row.transaction} is:unresolved`, row.transaction);
+    });
+  }
+  const {data, isLoading} = useIssueCounts(eventView, Array.from(transactions.keys()));
+  const result: Map<string, IssueCounts> = new Map();
+  for (const [query, count] of data ? Object.entries(data) : []) {
+    if (transactions.has(query)) {
+      result.set(transactions.get(query)!, count);
+    }
+  }
+
+  return children({issueCounts: result, isIssueLoading: isLoading});
+}
+
+function EndpointList({eventView, location, organization, setError}: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [_eventView, setEventView] = useState<EventView>(eventView);
+  const overallEventView = _eventView.clone();
+  overallEventView.query = '';
+  const overallFields = overallEventView.fields;
+  overallEventView.fields = overallFields.filter(
+    field => field.field !== 'transaction' && field.field !== 'http.method'
+  );
 
   // Effect to keep the parent eventView in sync with the child, so that chart zoom and time period can be accounted for.
-
   useEffect(() => {
     setEventView(prevEventView => {
       const cloned = eventView.clone();
@@ -79,45 +96,51 @@ function EndpointList({
 
   function renderBodyCell(
     tableData: TableData | null,
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     dataRow: TableDataRow,
-    deltaColumnMap: Record<string, string>
+    _deltaColumnMap: Record<string, string>,
+    issueCounts: Map<string, null | number>
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const tableMeta = {...tableData.meta, ...TABLE_META_OVERRIDES};
+    const tableMeta = tableData.meta;
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     if (field === 'transaction') {
-      let prefix = '';
-      if (dataRow['http.method']) {
-        prefix = `${dataRow['http.method']} `;
+      const method = dataRow['http.method'];
+      if (method === undefined && dataRow.transaction === 'Overall') {
+        return <span>{dataRow.transaction}</span>;
       }
-
-      const row = {
-        endpoint: `${prefix}${dataRow.transaction}`,
-        transaction: dataRow.transaction,
-        httpOp: dataRow['http.method'],
-        aggregateDetails: {
-          failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
-          p50: dataRow['p50()'],
-          tpm: dataRow['tpm()'],
-          p50Delta: dataRow[deltaColumnMap['p50()']],
-        },
-      } as EndpointDataRow;
+      const endpointName =
+        method && !dataRow.transaction.toString().startsWith(method.toString())
+          ? `${method} ${dataRow.transaction}`
+          : dataRow.transaction;
 
       return (
         <Link
-          onClick={() => onSelect(row)}
-          to=""
+          to={`/organizations/${
+            organization.slug
+          }/starfish/endpoint-overview/?${qs.stringify({
+            endpoint: dataRow.transaction,
+            'http.method': dataRow['http.method'],
+            statsPeriod: eventView.statsPeriod,
+            project: eventView.project,
+            start: eventView.start,
+            end: eventView.end,
+          })}`}
           style={{display: `block`, width: `100%`}}
+          onClick={() => {
+            trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {
+              organization,
+              endpoint: dataRow.transaction,
+            });
+          }}
         >
-          {prefix}
-          {dataRow.transaction}
+          {endpointName}
         </Link>
       );
     }
@@ -126,48 +149,51 @@ function EndpointList({
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <Tooltip
-          title={t(
-            'This endpoint accounts for %s of the cumulative time on your web service',
-            formatPercentage(cumulativeTimePercentage)
-          )}
-          containerDisplayMode="block"
-          position="top"
-        >
-          <NumberContainer>
-            {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
-              cumulativeTime: (
-                <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
-              ),
-              cumulativeTimePercentage: formatPercentage(cumulativeTimePercentage),
-            })}
-          </NumberContainer>
-        </Tooltip>
+        <TimeSpentCell percentage={cumulativeTimePercentage} total={cumulativeTime} />
       );
     }
 
-    if (
-      field.startsWith(
-        'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
-      )
-    ) {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
+    // TODO: This can be removed if/when the backend returns this field's type
+    // as `"rate"` and its unit as `"1/second"
+    if (field === 'tps()') {
       return (
-        <NumberContainer>
-          <TrendingDuration trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </TrendingDuration>
-        </NumberContainer>
+        <ThroughputCell rate={dataRow[field] as number} unit={RateUnits.PER_SECOND} />
       );
     }
 
     if (field === 'project') {
       return null;
+    }
+
+    if (field === 'issues') {
+      const transactionName = dataRow.transaction as string;
+      const method = dataRow['http.method'];
+      let issueCount = issueCounts.has(transactionName)
+        ? issueCounts.get(transactionName)
+        : undefined;
+      if (issueCount === null) {
+        issueCount = 0;
+      }
+      if (method === undefined && transactionName === 'Overall') {
+        issueCount = issueCounts.get('');
+      }
+      return (
+        <IssueButton
+          to={`/issues/?${qs.stringify({
+            project: eventView.project,
+            query: `is:unresolved transaction:"${dataRow.transaction}"`,
+            statsPeriod: eventView.statsPeriod,
+            start: eventView.start,
+            end: eventView.end,
+          })}`}
+        >
+          <IconIssues size="sm" />
+          <IssueLabel>
+            {issueCount !== undefined ? issueCount : <LoadingIndicator size={20} mini />}
+            {issueCount === 100 && '+'}
+          </IssueLabel>
+        </IssueButton>
+      );
     }
 
     const fieldName = getAggregateAlias(field);
@@ -187,43 +213,51 @@ function EndpointList({
     return rendered;
   }
 
-  function renderBodyCellWithData(tableData: TableData | null) {
+  function combineTableDataWithOverall(
+    tableData: TableData | null,
+    overallTableData: TableData | null
+  ): TableData {
+    const overallRow = overallTableData?.data?.[0];
+    const combinedData = Object.assign({}, tableData);
+    if (overallRow && tableData?.data) {
+      overallRow.transaction = 'Overall';
+      combinedData.data = [overallRow, ...tableData.data];
+    }
+    return combinedData;
+  }
+
+  function renderBodyCellWithData(
+    tableData: TableData | null,
+    issueCounts: Map<string, null | number>
+  ) {
     const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
       Object.keys(tableData.data[0]).forEach(col => {
         if (
           col.startsWith(
-            'equation|(percentile_range(transaction.duration,0.50,lessOrEquals'
+            'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p50()'] = col;
+          deltaColumnMap['avg()'] = col;
         }
       });
     }
 
-    return (
-      column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+    return (column: TableColumnHeader, dataRow: TableDataRow): React.ReactNode =>
+      renderBodyCell(tableData, column, dataRow, deltaColumnMap, issueCounts);
   }
 
   function renderHeadCell(
     tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     title: React.ReactNode
   ): React.ReactNode {
-    // Hack to get equations to align and sort properly because
-    // some of the functions called below aren't set up to handle
-    // equations. Fudging code here to keep minimal footprint of
-    // code changes.
-    let align: Alignments = 'left';
-    if (column.column.kind === 'equation') {
-      align = 'right';
-    } else {
-      align = fieldAlignment(column.name, column.type, tableMeta);
+    let align: Alignments = 'right';
+    if (title === 'Endpoint') {
+      align = 'left';
     }
     const field = {
-      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      field: column.column?.kind === 'equation' ? (column.key as string) : column.name,
       width: column.width,
     };
 
@@ -259,6 +293,13 @@ function EndpointList({
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAnalytics('starfish.web_service_view.endpoint_list.header.clicked', {
+            organization,
+            direction: currentSortKind === 'desc' ? 'asc' : 'desc',
+            header: title || field.field,
+          });
+        }}
       />
     );
 
@@ -266,8 +307,8 @@ function EndpointList({
   }
 
   function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
-    const newColumnTitles = columnTitles ?? COLUMN_TITLES;
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+    const newColumnTitles = COLUMN_TITLES;
+    return (column: TableColumnHeader, index: number): React.ReactNode =>
       renderHeadCell(tableMeta, column, newColumnTitles[index]);
   }
 
@@ -285,15 +326,23 @@ function EndpointList({
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
-  const columnOrder = eventView
-    .getColumns()
+  const eventViewColumns = eventView.getColumns();
+  eventViewColumns.push({
+    key: 'issues',
+    name: 'Issues',
+    type: 'number',
+    width: -1,
+  } as TableColumn<React.ReactText>);
+  const columnOrder = eventViewColumns
     .filter(
       (col: TableColumn<React.ReactText>) =>
-        !col.name.startsWith('count_miserable') &&
-        !col.name.startsWith('percentile_range') &&
-        col.name !== 'project_threshold_config' &&
         col.name !== 'project' &&
         col.name !== 'http.method' &&
         col.name !== 'total.transaction_duration' &&
@@ -312,30 +361,51 @@ function EndpointList({
     <GuideAnchor target="performance_table" position="top-start">
       <StyledSearchBar placeholder={t('Search for endpoints')} onSearch={handleSearch} />
       <DiscoverQuery
-        eventView={_eventView}
+        eventView={overallEventView}
         orgSlug={organization.slug}
-        location={location}
+        location={omit(location, 'cursor')}
         setError={error => setError(error?.message)}
-        referrer="api.starfish.endpoint-list"
-        queryExtras={{dataset: dataset ?? 'metrics'}}
+        referrer="api.starfish.web-service-overall"
+        queryExtras={{dataset: 'metrics', cursor: ''}}
+        limit={1}
       >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={columnOrder}
-              columnSortBy={columnSortBy}
-              grid={{
-                onResizeColumn: handleResizeColumn,
-                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
-                renderBodyCell: renderBodyCellWithData(tableData) as any,
-              }}
-              location={location}
-            />
+        {({tableData: overallTableData}) => (
+          <DiscoverQuery
+            eventView={_eventView}
+            orgSlug={organization.slug}
+            location={location}
+            setError={error => setError(error?.message)}
+            referrer="api.starfish.endpoint-list"
+            queryExtras={{dataset: 'metrics'}}
+            limit={5}
+          >
+            {({pageLinks, isLoading, tableData}) => (
+              <Fragment>
+                <QueryIssueCounts eventView={eventView} tableData={tableData}>
+                  {({issueCounts, isIssueLoading}) => (
+                    <GridEditable
+                      isLoading={isLoading && isIssueLoading}
+                      data={
+                        tableData && overallTableData
+                          ? combineTableDataWithOverall(tableData, overallTableData).data
+                          : []
+                      }
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        onResizeColumn: handleResizeColumn,
+                        renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                        renderBodyCell: renderBodyCellWithData(tableData, issueCounts),
+                      }}
+                      location={location}
+                    />
+                  )}
+                </QueryIssueCounts>
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
+                <Pagination pageLinks={pageLinks} />
+              </Fragment>
+            )}
+          </DiscoverQuery>
         )}
       </DiscoverQuery>
     </GuideAnchor>
@@ -344,16 +414,17 @@ function EndpointList({
 
 export default EndpointList;
 
-const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutral'}>`
-  color: ${p =>
-    p.trendDirection === 'good'
-      ? p.theme.successText
-      : p.trendDirection === 'bad'
-      ? p.theme.errorText
-      : p.theme.subText};
-  float: right;
-`;
-
 const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const IssueButton = styled(Button)`
+  width: 100%;
+  margin-left: auto;
+`;
+
+const IssueLabel = styled('div')`
+  padding-left: ${space(1)};
+  margin-left: auto;
+  position: relative;
 `;

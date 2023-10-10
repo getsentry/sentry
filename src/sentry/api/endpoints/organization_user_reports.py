@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
@@ -8,11 +9,14 @@ from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
-from sentry.models import UserReport
+from sentry.models.userreport import UserReport
 
 
 @region_silo_endpoint
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationUserReportsPermission,)
 
     def get(self, request: Request, organization) -> Response:

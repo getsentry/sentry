@@ -1,12 +1,14 @@
+import uuid
+
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.db.models.fields import uuid
-from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
-from sentry.testutils import APITestCase
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):

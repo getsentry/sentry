@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import pytz
 from django.http import HttpRequest, HttpResponse
@@ -14,7 +14,9 @@ logger = logging.getLogger("sentry")
 
 
 def render_to_string(
-    template: str, context: Mapping[str, Any] | None = None, request: HttpRequest | None = None
+    template: Sequence[str] | str,
+    context: Mapping[str, Any] | None = None,
+    request: HttpRequest | None = None,
 ) -> str:
     if context is None:
         context = dict()
@@ -27,7 +29,7 @@ def render_to_string(
     rendered = loader.render_to_string(template, context=context, request=request)
     timezone.deactivate()
 
-    return rendered  # type: ignore[no-any-return]
+    return rendered
 
 
 def render_to_response(

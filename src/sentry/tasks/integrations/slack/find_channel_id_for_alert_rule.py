@@ -14,16 +14,20 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
-from sentry.models import Organization
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
+    name="sentry.integrations.slack.search_channel_id_metric_alerts",
+    queue="integrations",
+    silo_mode=SiloMode.REGION,
 )
 def find_channel_id_for_alert_rule(
     organization_id: int,

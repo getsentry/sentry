@@ -1,20 +1,20 @@
-from django.utils import timezone
-from freezegun import freeze_time
+from datetime import timezone
 
 from sentry.incidents.models import (
+    INCIDENT_STATUS,
     AlertRuleThresholdType,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
 )
-from sentry.models import ActorTuple
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.models.actor import ActorTuple
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
@@ -41,7 +41,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
                 IncidentActivity(
                     incident=user_owned_incident,
                     type=IncidentActivityType.CREATED.value,
-                    value=IncidentStatus.OPEN,
+                    value=INCIDENT_STATUS[IncidentStatus.OPEN],
                     date_added=before_now(days=i),
                 )
             )
@@ -147,12 +147,12 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         IncidentActivity.objects.create(
             incident=user_owned_incident,
             type=IncidentActivityType.CREATED.value,
-            value=IncidentStatus.OPEN,
+            value=INCIDENT_STATUS[IncidentStatus.OPEN],
         )
         IncidentActivity.objects.create(
             incident=team_owned_incident,
             type=IncidentActivityType.CREATED.value,
-            value=IncidentStatus.OPEN,
+            value=INCIDENT_STATUS[IncidentStatus.OPEN],
             date_added=before_now(days=2),
         )
 
@@ -185,7 +185,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered-index"
 
@@ -205,7 +205,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
                 IncidentActivity(
                     incident=user_owned_incident,
                     type=IncidentActivityType.CREATED.value,
-                    value=IncidentStatus.OPEN,
+                    value=INCIDENT_STATUS[IncidentStatus.OPEN],
                     date_added=before_now(weeks=i),
                 )
             )
@@ -220,7 +220,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
             IncidentActivity(
                 incident=team_owned_incident,
                 type=IncidentActivityType.CREATED.value,
-                value=IncidentStatus.OPEN,
+                value=INCIDENT_STATUS[IncidentStatus.OPEN],
                 date_added=before_now(weeks=0),
             )
         )
@@ -230,7 +230,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
                 IncidentActivity(
                     incident=team_owned_incident,
                     type=IncidentActivityType.CREATED.value,
-                    value=IncidentStatus.OPEN,
+                    value=INCIDENT_STATUS[IncidentStatus.OPEN],
                     date_added=before_now(weeks=i),
                 )
             )

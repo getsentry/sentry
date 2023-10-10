@@ -1,6 +1,7 @@
 .env
 .cache/
-.coverage
+.code-workspace
+.coverage*
 .DS_Store
 .venv
 *.egg-info
@@ -46,6 +47,7 @@ Gemfile.lock
 *.iml
 .pytest_cache/
 .vscode/tags
+.vscode/bookmarks.json
 coverage.xml
 junit.xml
 *.codestyle.xml
@@ -56,3 +58,4 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
+model-manifest.json

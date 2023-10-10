@@ -5,12 +5,13 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
+from contextlib import nullcontext
 from enum import Enum
-from typing import IO, Any, Generator, Mapping, NoReturn, TypeVar, overload
+from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
@@ -18,6 +19,17 @@ from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S
 from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
+
+# A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
+# So we jump through hoops to get only the exact types
+if TYPE_CHECKING:
+    from django.db.models.query import _QuerySetAny
+
+    QuerySetAny = _QuerySetAny
+else:
+    from django.db.models.query import QuerySet
+
+    QuerySetAny = QuerySet
 
 TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
@@ -28,6 +40,7 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
+
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
@@ -51,9 +64,11 @@ def better_default_encoder(o: object) -> object:
         return int(o)
     elif callable(o):
         return "<function>"
+    elif isinstance(o, QuerySetAny):
+        return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
-        return force_text(o)
+        return force_str(o)
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
@@ -116,8 +131,10 @@ def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+def loads(
+    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
+) -> JSONData:
+    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore
         if use_rapid_json is True:
             return rapidjson.loads(value)
         else:
@@ -158,6 +175,7 @@ def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TK
 __all__ = (
     "JSONData",
     "JSONDecodeError",
+    "JSONEncoder",
     "dump",
     "dumps",
     "dumps_htmlsafe",

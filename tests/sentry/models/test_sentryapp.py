@@ -1,6 +1,7 @@
 from sentry.constants import SentryAppStatus
-from sentry.models import ApiApplication, SentryApp
-from sentry.testutils import TestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -37,6 +38,8 @@ class SentryAppTest(TestCase):
 
     def test_related_names(self):
         self.sentry_app.save()
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
 

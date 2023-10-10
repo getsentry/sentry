@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ArchiveActions from 'sentry/components/actions/archive';
-import {ResolutionStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();
@@ -18,9 +18,9 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
     expect(onUpdate).toHaveBeenCalledWith({
-      status: ResolutionStatus.IGNORED,
+      status: GroupStatus.IGNORED,
       statusDetails: {},
-      substatus: 'until_escalating',
+      substatus: 'archived_until_escalating',
     });
   });
 
@@ -33,6 +33,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
       statusDetails: {},
+      substatus: 'archived_forever',
     });
   });
 
@@ -52,9 +53,9 @@ describe('ArchiveActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(onUpdate).toHaveBeenCalledWith({
-      status: ResolutionStatus.IGNORED,
+      status: GroupStatus.IGNORED,
       statusDetails: {},
-      substatus: 'until_escalating',
+      substatus: 'archived_until_escalating',
     });
   });
 
@@ -73,6 +74,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
       statusDetails: {ignoreDuration: 30},
+      substatus: 'archived_until_condition_met',
     });
   });
 });

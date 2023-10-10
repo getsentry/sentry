@@ -40,7 +40,11 @@ import {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -94,7 +98,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
@@ -119,9 +123,14 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
-          eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
-          ]);
+
+          // Skip character escaping because generating the query for EventsRequest
+          // downstream will already handle escaping
+          eventView.additionalConditions.setFilterValues(
+            'transaction',
+            [provided.widgetData.list.data[selectedListIndex].transaction as string],
+            false
+          );
 
           if (canUseMetricsData(organization)) {
             eventView.additionalConditions.setFilterValues('!transaction', [

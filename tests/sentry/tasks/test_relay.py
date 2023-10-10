@@ -3,9 +3,12 @@ from unittest import mock
 from unittest.mock import call, patch
 
 import pytest
-from django.db import transaction
+from django.db import router, transaction
 
-from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
@@ -15,6 +18,8 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def _cache_keys_for_project(project):
@@ -29,6 +34,13 @@ def _cache_keys_for_org(org):
     for proj in Project.objects.filter(organization_id=org.id):
         for key in ProjectKey.objects.filter(project_id=proj.id):
             yield key.public_key
+
+
+@pytest.fixture(autouse=True)
+def disable_auto_on_commit():
+    simulated_transaction_watermarks.state["default"] = -1
+    with in_test_hide_transaction_boundary():
+        yield
 
 
 @pytest.fixture
@@ -65,7 +77,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
         # entire test runs in one transaction because that's how pytest-django
         # sets up things unless one uses
         # pytest.mark.django_db(transaction=True).
-        burst(max_jobs=10)
+        burst(max_jobs=20)
 
     return inner
 
@@ -94,11 +106,13 @@ def debounce_cache(monkeypatch):
 
     cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.mark_task_done", cache.mark_task_done
+        "sentry.relay.projectconfig_debounce_cache.backend.mark_task_done", cache.mark_task_done
     )
-    monkeypatch.setattr("sentry.relay.projectconfig_debounce_cache.debounce", cache.debounce)
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced", cache.is_debounced
+        "sentry.relay.projectconfig_debounce_cache.backend.debounce", cache.debounce
+    )
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced", cache.is_debounced
     )
 
     return cache
@@ -123,7 +137,7 @@ def invalidation_debounce_cache(monkeypatch):
     return debounce_cache
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_debounce(
     monkeypatch,
     default_projectkey,
@@ -146,7 +160,7 @@ def test_debounce(
     assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_generate(
     monkeypatch,
     default_project,
@@ -155,6 +169,7 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
+    # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)
@@ -172,9 +187,13 @@ def test_generate(
     ]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_project_update_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
+    default_projectkey,
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -205,9 +224,13 @@ def test_project_update_option(
         }
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_project_delete_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
+    default_projectkey,
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -220,9 +243,12 @@ def test_project_delete_option(
     assert redis_cache.get(default_projectkey)["config"]["piiConfig"] == {}
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_project_get_option_does_not_reload(
-    default_project, emulate_transactions, monkeypatch, django_cache
+    default_project,
+    emulate_transactions,
+    monkeypatch,
+    django_cache,
 ):
     ProjectOption.objects._option_cache.clear()
     with emulate_transactions(assert_num_callbacks=0):
@@ -235,9 +261,12 @@ def test_project_get_option_does_not_reload(
     assert not build_project_config.called
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_invalidation_project_deleted(
-    default_project, emulate_transactions, redis_cache, django_cache
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Ensure we have a ProjectKey
     project_key = next(_cache_keys_for_project(default_project))
@@ -250,7 +279,7 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=5):
+    with emulate_transactions(assert_num_callbacks=6):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
@@ -259,8 +288,13 @@ def test_invalidation_project_deleted(
     assert redis_cache.get(project_key)["disabled"]
 
 
-@pytest.mark.django_db
-def test_projectkeys(default_project, emulate_transactions, redis_cache, django_cache):
+@django_db_all
+def test_projectkeys(
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
+):
     # When a projectkey is deleted the invalidation task should be triggered and the project
     # should be cached as disabled.
 
@@ -294,15 +328,19 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache, django_
         assert not redis_cache.get(key.public_key)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_db_transaction(
-    default_project, default_projectkey, redis_cache, task_runner, django_cache
+    default_project,
+    default_projectkey,
+    redis_cache,
+    task_runner,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
 
-    with task_runner(), transaction.atomic():
+    with task_runner(), transaction.atomic(router.db_for_write(ProjectOption)):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -316,7 +354,7 @@ def test_db_transaction(
     }
 
     try:
-        with task_runner(), transaction.atomic():
+        with task_runner(), transaction.atomic(router.db_for_write(ProjectOption)):
             default_project.update_option(
                 "sentry:relay_pii_config", '{"applications": {"$string": ["@password:mask"]}}'
             )
@@ -332,7 +370,7 @@ def test_db_transaction(
     }
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestInvalidationTask:
     def test_debounce(
         self,
@@ -395,10 +433,10 @@ class TestInvalidationTask:
             schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
         for cache_key in _cache_keys_for_project(default_project):
-            cfg = redis_cache.get(cache_key)
-            assert "dummy-key" not in cfg
-            assert cfg["disabled"] is False
-            assert cfg["projectId"] == default_project.id
+            cfg_from_cache = redis_cache.get(cache_key)
+            assert "dummy-key" not in cfg_from_cache
+            assert cfg_from_cache["disabled"] is False
+            assert cfg_from_cache["projectId"] == default_project.id
 
     def test_invalidate_org(
         self,
@@ -431,7 +469,10 @@ class TestInvalidationTask:
     )
     @mock.patch("django.db.transaction.on_commit", wraps=transaction.on_commit)
     def test_project_config_invalidations_after_commit(
-        self, oncommit, schedule_inner, default_project
+        self,
+        oncommit,
+        schedule_inner,
+        default_project,
     ):
         schedule_invalidate_project_config(
             trigger="test", project_id=default_project.id, countdown=2
@@ -448,8 +489,12 @@ class TestInvalidationTask:
         )
 
     @mock.patch("sentry.tasks.relay._schedule_invalidate_project_config")
-    def test_project_config_invalidations_delayed(self, schedule_inner, default_project):
-        with transaction.atomic():
+    def test_project_config_invalidations_delayed(
+        self,
+        schedule_inner,
+        default_project,
+    ):
+        with transaction.atomic(router.db_for_write(ProjectOption)):
             schedule_invalidate_project_config(
                 trigger="inside-transaction", project_id=default_project, countdown=2
             )
@@ -462,7 +507,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_invalidate_hierarchy(
     monkeypatch,
     burst_task_runner,

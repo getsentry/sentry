@@ -1,5 +1,7 @@
+from typing import Any, Dict
+
 from sentry.api.serializers import Serializer, serialize
-from sentry.models import EventUser
+from sentry.models.eventuser import EventUser
 from sentry.search.utils import convert_user_tag_to_query
 
 
@@ -21,11 +23,9 @@ class UserTagValueSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        if not attrs["user"]:
-            result = {"id": None}
-        else:
-            result = serialize(attrs["user"], user)
-
+        result: Dict[str, Any] = (
+            {"id": None} if not attrs["user"] else serialize(attrs["user"], user)
+        )
         query = convert_user_tag_to_query("user", obj.value)
         if query:
             result["query"] = query

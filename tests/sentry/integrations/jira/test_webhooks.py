@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -6,13 +8,15 @@ from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.response import Response
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import AtlassianConnectValidationError
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 
 TOKEN = "JWT anexampletoken"
 
@@ -23,7 +27,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
+        integration = Integration.objects.create(
             provider="jira",
             name="Example Jira",
             metadata={
@@ -33,7 +37,8 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
+        integration.add_organization(self.organization, self.user)
+        self.integration = serialize_integration(integration=integration)
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_assign(self, mock_sync_group_assignee_inbound):
@@ -156,6 +161,19 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 },
             )
 
+    @patch("sentry_sdk.set_tag")
+    @patch("sentry.integrations.utils.scope.bind_organization_context")
+    def test_adds_context_data(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+            mock_set_tag.assert_called_with("integration_id", self.integration.id)
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
+
     def test_missing_changelog(self):
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
@@ -171,7 +189,7 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
     # In order to be able to use `as_view`'s `initkwargs` (in other words, in order to be able to
     # pass kwargs to `as_view` and have `as_view` pass them onto the `__init__` method below), any
     # kwarg we'd like to pass must already be an attibute of the class
-    error = None
+    error = BaseException("unreachable")
 
     def __init__(self, error: Exception = dummy_exception, *args, **kwargs):
         # We allow the error to be passed in so that we have access to it in the test for use

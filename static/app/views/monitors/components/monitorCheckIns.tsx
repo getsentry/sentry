@@ -1,123 +1,221 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import TimeSince from 'sentry/components/timeSince';
+import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
+import ShortId from 'sentry/components/shortId';
+import StatusIndicator from 'sentry/components/statusIndicator';
+import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import useApiRequests from 'sentry/utils/useApiRequests';
-import {CheckInStatus, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
-
-import CheckInIcon from './checkInIcon';
-
-type CheckIn = {
-  dateCreated: string;
-  duration: number;
-  id: string;
-  status: CheckInStatus;
-  attachmentId?: number;
-};
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {
+  CheckIn,
+  CheckInStatus,
+  Monitor,
+  MonitorEnvironment,
+} from 'sentry/views/monitors/types';
+import {statusToText} from 'sentry/views/monitors/utils';
 
 type Props = {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
-  orgId: string;
+  monitorEnvs: MonitorEnvironment[];
+  orgSlug: string;
 };
 
-type State = {
-  checkInList: CheckIn[];
+const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  'success' | 'error' | 'muted' | 'warning'
+> = {
+  [CheckInStatus.OK]: 'success',
+  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.IN_PROGRESS]: 'muted',
+  [CheckInStatus.MISSED]: 'warning',
+  [CheckInStatus.TIMEOUT]: 'error',
 };
 
-function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
-  const {data, hasError, renderComponent} = useApiRequests<State>({
-    endpoints: [
-      [
-        'checkInList',
-        `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
-        {query: {per_page: '10', environment: monitorEnv.name}},
-        {paginate: true},
-      ],
-    ],
-  });
+function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const queryKey = [
+    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    {
+      query: {
+        per_page: '10',
+        environment: monitorEnvs.map(e => e.name),
+        expand: 'groups',
+        ...location.query,
+      },
+    },
+  ] as const;
+
+  const {
+    data: checkInList,
+    getResponseHeader,
+    isLoading,
+    isError,
+  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
+
+  if (isError) {
+    return <LoadingError />;
+  }
 
   const generateDownloadUrl = (checkin: CheckIn) =>
-    `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
+    `/api/0/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
-  const renderedComponent = renderComponent(
-    <React.Fragment>
-      <Panel>
-        <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
-        <PanelBody>
-          {data.checkInList?.map(checkIn => (
-            <PanelItem key={checkIn.id}>
-              <CheckInIconWrapper>
-                <Tooltip
-                  title={tct('Check In Status: [status]', {
-                    status: checkIn.status,
-                  })}
-                >
-                  <CheckInIcon status={checkIn.status} size={16} />
-                </Tooltip>
-              </CheckInIconWrapper>
-              <TimeSinceWrapper>
-                <TimeSince date={checkIn.dateCreated} />
-              </TimeSinceWrapper>
-              <DurationWrapper>
-                {defined(checkIn.duration) && (
-                  <Duration seconds={checkIn.duration / 1000} />
+  const emptyCell = <Text>{'\u2014'}</Text>;
+
+  // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
+  // the future. For now hide these if they're not being used.
+  const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
+
+  const headers = [
+    t('Status'),
+    t('Started'),
+    t('Duration'),
+    t('Issues'),
+    ...(hasAttachments ? [t('Attachment')] : []),
+    t('Expected At'),
+  ];
+
+  return (
+    <Fragment>
+      <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
+      <PanelTable headers={headers}>
+        {isLoading
+          ? [...new Array(headers.length)].map((_, i) => (
+              <RowPlaceholder key={i}>
+                <Placeholder height="2rem" />
+              </RowPlaceholder>
+            ))
+          : checkInList.map(checkIn => (
+              <Fragment key={checkIn.id}>
+                <Status>
+                  <StatusIndicator
+                    status={checkStatusToIndicatorStatus[checkIn.status]}
+                    tooltipTitle={tct('Check In Status: [status]', {
+                      status: statusToText[checkIn.status],
+                    })}
+                  />
+                  <Text>{statusToText[checkIn.status]}</Text>
+                </Status>
+                {checkIn.status !== CheckInStatus.MISSED ? (
+                  <div>
+                    {monitor.config.timezone ? (
+                      <Tooltip
+                        title={
+                          <DateTime
+                            date={checkIn.dateCreated}
+                            forcedTimezone={monitor.config.timezone}
+                            timeZone
+                            timeOnly
+                            seconds
+                          />
+                        }
+                      >
+                        {<DateTime date={checkIn.dateCreated} timeOnly seconds />}
+                      </Tooltip>
+                    ) : (
+                      <DateTime date={checkIn.dateCreated} timeOnly seconds />
+                    )}
+                  </div>
+                ) : (
+                  emptyCell
                 )}
-              </DurationWrapper>
-              <AttachmentWrapper>
-                {checkIn.attachmentId && (
+                {defined(checkIn.duration) ? (
+                  <Duration seconds={checkIn.duration / 1000} />
+                ) : (
+                  emptyCell
+                )}
+                {checkIn.groups && checkIn.groups.length > 0 ? (
+                  <IssuesContainer>
+                    {checkIn.groups.map(({id, shortId}) => (
+                      <QuickContextHovercard
+                        dataRow={{
+                          ['issue.id']: id,
+                          issue: shortId,
+                        }}
+                        contextType={ContextType.ISSUE}
+                        organization={organization}
+                        key={id}
+                      >
+                        {
+                          <StyledShortId
+                            shortId={shortId}
+                            avatar={
+                              <ProjectBadge
+                                project={monitor.project}
+                                hideName
+                                avatarSize={12}
+                              />
+                            }
+                            to={`/issues/${id}`}
+                          />
+                        }
+                      </QuickContextHovercard>
+                    ))}
+                  </IssuesContainer>
+                ) : (
+                  emptyCell
+                )}
+                {!hasAttachments ? null : checkIn.attachmentId ? (
                   <Button
                     size="xs"
                     icon={<IconDownload size="xs" />}
                     href={generateDownloadUrl(checkIn)}
                   >
-                    Attachment
+                    {t('Attachment')}
                   </Button>
+                ) : (
+                  emptyCell
                 )}
-              </AttachmentWrapper>
-            </PanelItem>
-          ))}
-        </PanelBody>
-      </Panel>
-      <Pagination pageLinks={data.checkInListPageLinks} />
-    </React.Fragment>
+                <Timestamp date={checkIn.expectedTime} seconds />
+              </Fragment>
+            ))}
+      </PanelTable>
+      <Pagination pageLinks={getResponseHeader?.('Link')} />
+    </Fragment>
   );
-
-  return hasError ? <ErrorWrapper>{renderedComponent}</ErrorWrapper> : renderedComponent;
 }
 
 export default MonitorCheckIns;
 
-const DivMargin = styled('div')`
-  margin-right: ${space(2)};
+const Status = styled('div')`
+  line-height: 1.1;
 `;
 
-const CheckInIconWrapper = styled(DivMargin)`
+const IssuesContainer = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
 `;
 
-const TimeSinceWrapper = styled(DivMargin)`
-  font-variant-numeric: tabular-nums;
+const Timestamp = styled(DateTime)`
+  color: ${p => p.theme.subText};
 `;
 
-const DurationWrapper = styled('div')`
-  font-variant-numeric: tabular-nums;
+const StyledShortId = styled(ShortId)`
+  justify-content: flex-start;
 `;
 
-const ErrorWrapper = styled('div')`
-  margin: ${space(3)} ${space(3)} 0;
-`;
+const RowPlaceholder = styled('div')`
+  grid-column: 1 / -1;
+  padding: ${space(1)};
 
-const AttachmentWrapper = styled('div')`
-  margin-left: auto;
+  &:not(:last-child) {
+    border-bottom: solid 1px ${p => p.theme.innerBorder};
+  }
 `;

@@ -4,13 +4,15 @@ import debounce from 'lodash/debounce';
 
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,12 +26,12 @@ import type {
 } from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   integration: Integration;
   organization: Organization;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   adding: boolean;
   dropdownBusy: boolean;
   integrationRepos: {
@@ -40,7 +42,7 @@ type State = AsyncComponent['state'] & {
   itemList: Repository[];
 };
 
-class IntegrationRepos extends AsyncComponent<Props, State> {
+class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -53,17 +55,19 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.searchRepositoriesRequest();
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const orgId = this.props.organization.slug;
-    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
-  }
-
-  getIntegrationRepos() {
-    const integrationId = this.props.integration.id;
-    return this.state.itemList.filter(repo => repo.integrationId === integrationId);
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    const {organization, integration} = this.props;
+    return [
+      [
+        'itemList',
+        `/organizations/${organization.slug}/repos/`,
+        {query: {status: 'active', integration_id: integration.id}},
+      ],
+    ];
   }
 
   // Called by row to signal repository change.
@@ -88,9 +92,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   );
 
   searchRepositoriesRequest = (searchQuery?: string) => {
-    const orgId = this.props.organization.slug;
+    const {organization, integration} = this.props;
     const query = {search: searchQuery};
-    const endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
+    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repos/`;
     return this.api.request(endpoint, {
       method: 'GET',
       query,
@@ -109,9 +113,8 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   };
 
   addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {itemList} = this.state;
-    const orgId = this.props.organization.slug;
 
     this.setState({adding: true});
 
@@ -124,9 +127,14 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
 
     let promise: Promise<Repository>;
     if (migratableRepo) {
-      promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);
+      promise = migrateRepository(
+        this.api,
+        organization.slug,
+        migratableRepo.id,
+        integration
+      );
     } else {
-      promise = addRepository(this.api, orgId, selection.value, integration);
+      promise = addRepository(this.api, organization.slug, selection.value, integration);
     }
     promise.then(
       (repo: Repository) => {
@@ -197,9 +205,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {itemListPageLinks, integrationReposErrorStatus} = this.state;
-    const orgId = this.props.organization.slug;
-    const itemList = this.getIntegrationRepos() || [];
+    const {itemListPageLinks, integrationReposErrorStatus, itemList} = this.state;
     return (
       <Fragment>
         {integrationReposErrorStatus === 400 && (
@@ -235,7 +241,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
                 api={this.api}
                 key={repo.id}
                 repository={repo}
-                orgId={orgId}
+                orgSlug={this.props.organization.slug}
                 onRepositoryChange={this.onRepositoryChange}
               />
             ))}

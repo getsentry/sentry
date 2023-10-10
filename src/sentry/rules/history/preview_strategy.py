@@ -1,8 +1,7 @@
 from typing import Any, Dict, Sequence
 
-from sentry import features
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 
@@ -20,10 +19,6 @@ To add support for a new issue category/dataset:
 def get_dataset_from_category(category: int, organization: Organization) -> Dataset:
     if category == GroupCategory.ERROR.value:
         return Dataset.Events
-    elif category == GroupCategory.PERFORMANCE.value and not features.has(
-        "organizations:issue-platform-search-perf-issues", organization
-    ):
-        return Dataset.Transactions
     return Dataset.IssuePlatform
 
 

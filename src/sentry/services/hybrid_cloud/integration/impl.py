@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -10,18 +10,26 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
+from sentry.services.hybrid_cloud.integration.serial import (
+    serialize_integration,
+    serialize_integration_external_project,
+    serialize_organization_integration,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -38,15 +46,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration = Integration.objects.filter(id=integration_id).first()
         if integration is None:
             return False
-        install = self.get_installation(integration=integration, organization_id=organization_id)
+        install = integration.get_installation(organization_id=organization_id)
         if isinstance(install, NotifyBasicMixin):
             install.send_message(channel_id=channel, message=message)
             return True
 
         return False
-
-    def close(self) -> None:
-        pass
 
     def page_integration_ids(
         self,
@@ -121,7 +126,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if limit is not None:
             integrations = integrations[:limit]
 
-        return [self._serialize_integration(integration) for integration in integrations]
+        return [serialize_integration(integration) for integration in integrations]
 
     def get_integration(
         self,
@@ -147,8 +152,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
-        integration = Integration.objects.filter(**integration_kwargs).first()
-        return self._serialize_integration(integration) if integration else None
+        try:
+            integration = Integration.objects.get(**integration_kwargs)
+        except Integration.DoesNotExist:
+            return None
+        except Integration.MultipleObjectsReturned:
+            return None
+        return serialize_integration(integration)
 
     def get_organization_integrations(
         self,
@@ -181,12 +191,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs)
+        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
 
         if limit is not None:
             ois = ois[:limit]
 
-        return [self._serialize_organization_integration(oi) for oi in ois]
+        return [serialize_organization_integration(oi) for oi in ois]
 
     def get_organization_context(
         self,
@@ -225,10 +235,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (
-            self._serialize_integration(integration),
-            [self._serialize_organization_integration(oi) for oi in organization_integrations],
-        )
+        return (integration, organization_integrations)
 
     def update_integrations(
         self,
@@ -255,7 +262,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         integrations.update(**integration_kwargs)
 
-        return [self._serialize_integration(integration) for integration in integrations]
+        return [serialize_integration(integration) for integration in integrations]
 
     def update_integration(
         self,
@@ -271,7 +278,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=status,
             metadata=metadata,
         )
-        return self._serialize_integration(integrations[0]) if len(integrations) > 0 else None
+        return integrations[0] if len(integrations) > 0 else None
 
     def update_organization_integrations(
         self,
@@ -282,26 +289,24 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> List[RpcOrganizationIntegration]:
-        ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
-        if not ois.exists():
-            return []
+        ois: List[OrganizationIntegration] = []
+        fields: Set[str] = set()
+        for oi in OrganizationIntegration.objects.filter(id__in=org_integration_ids):
+            if config is not None:
+                oi.config = config
+                fields.add("config")
+            if status is not None:
+                oi.status = status
+                fields.add("status")
+            if grace_period_end is not None or set_grace_period_end_null:
+                gpe_value = grace_period_end if not set_grace_period_end_null else None
+                oi.grace_period_end = gpe_value
+                fields.add("grace_period_end")
+            ois.append(oi)
 
-        oi_kwargs: Dict[str, Any] = {}
-
-        if config is not None:
-            oi_kwargs["config"] = config
-        if status is not None:
-            oi_kwargs["status"] = status
-        if grace_period_end is not None or set_grace_period_end_null:
-            gpe_value = grace_period_end if not set_grace_period_end_null else None
-            oi_kwargs["grace_period_end"] = gpe_value
-
-        if not oi_kwargs:
-            return []
-
-        ois.update(**oi_kwargs)
-
-        return [self._serialize_organization_integration(oi) for oi in ois]
+        if fields:
+            OrganizationIntegration.objects.bulk_update(ois, fields=list(fields))
+        return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(
         self,
@@ -319,7 +324,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             grace_period_end=grace_period_end,
             set_grace_period_end_null=set_grace_period_end_null,
         )
-        return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return ois[0] if len(ois) > 0 else None
+
+    def add_organization(
+        self, *, integration_id: int, org_ids: List[int]
+    ) -> Optional[RpcIntegration]:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if not integration:
+            return None
+        for org_id in org_ids:
+            integration.add_organization(organization_id=org_id)
+        return serialize_integration(integration)
 
     def send_incident_alert_notification(
         self,
@@ -329,9 +344,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: str | None = None,
+    ) -> bool:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
@@ -353,13 +369,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 },
                 exc_info=True,
             )
-            return None
+            return False
 
         app_platform_event = AppPlatformEvent(
             resource="metric_alert",
             action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
             install=install,
-            data=incident_attachment,
+            data=json.loads(incident_attachment_json),
         )
 
         # Can raise errors if client returns >= 400
@@ -378,13 +394,36 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )
+        return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
-    ) -> None:
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
+    ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
         try:
             client.send_card(channel, attachment)
+            return True
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+        return False
+
+    def delete_integration(self, *, integration_id: int) -> None:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return
+        integration.delete()
+
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> RpcIntegrationExternalProject | None:
+        external_project = IntegrationExternalProject.objects.filter(
+            external_id=external_id,
+            organization_integration_id__in=OrganizationIntegration.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+            ),
+        ).first()
+        if external_project is None:
+            return None
+        return serialize_integration_external_project(external_project)

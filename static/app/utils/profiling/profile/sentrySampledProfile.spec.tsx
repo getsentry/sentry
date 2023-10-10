@@ -2,6 +2,8 @@ import merge from 'lodash/merge';
 
 import {DeepPartial} from 'sentry/types/utils';
 
+import {Frame} from '../frame';
+
 import {makeTestingBoilerplate} from './profile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {createSentrySampleProfileFrameIndex} from './utils';
@@ -452,7 +454,7 @@ describe('SentrySampledProfile', () => {
         },
         // Frame 0 occurs 3 times, frame 1 occurs once
         stacks: [[0], [1, 0], [0]],
-        frames: [{function: 'f0'}, {function: 'f1'}, {function: '2'}],
+        frames: [{function: 'f0'}, {function: 'f1'}, {function: 'f2'}],
       },
     });
 
@@ -464,5 +466,52 @@ describe('SentrySampledProfile', () => {
 
     expect(profile.callTree.children[0].count).toBe(2);
     expect(profile.callTree.children[0].children[0].count).toBe(1);
+  });
+
+  it('filters frames', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 1000,
+            thread_id: '0',
+          },
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 2000,
+            thread_id: '0',
+          },
+        ],
+        thread_metadata: {
+          '0': {
+            name: 'bar',
+          },
+        },
+        stacks: [[1, 0]],
+        frames: [{function: 'f0'}, {function: 'f1'}],
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {
+        type: 'flamegraph',
+        frameFilter: frame => frame.name === 'f0',
+      }
+    );
+
+    expect(profile.callTree.frame).toBe(Frame.Root);
+    expect(profile.callTree.children).toHaveLength(1);
+    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    // the f1 frame is filtered out, so the f0 frame has no children
+    expect(profile.callTree.children[0].children).toHaveLength(0);
   });
 });

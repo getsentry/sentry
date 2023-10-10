@@ -9,6 +9,10 @@ type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
   /**
+   * The background color of the filled in checkbox.
+   */
+  checkboxColor?: string;
+  /**
    * Is the checkbox active? Supports 'indeterminate'
    */
   checked?: CheckboxProps['checked'] | 'indeterminate';
@@ -16,6 +20,7 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
    * Styles to be applied to the hidden <input> element.
    */
   inputCss?: Interpolation<Theme>;
+
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -34,7 +39,14 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-function Checkbox({className, inputCss, checked = false, size = 'sm', ...props}: Props) {
+function Checkbox({
+  checkboxColor,
+  className,
+  inputCss,
+  checked = false,
+  size = 'sm',
+  ...props
+}: Props) {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
   // Support setting the indeterminate value, which is only possible through
@@ -55,7 +67,7 @@ function Checkbox({className, inputCss, checked = false, size = 'sm', ...props}:
         {...props}
       />
 
-      <StyledCheckbox aria-hidden checked={checked} size={size}>
+      <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
         {checked === true && (
           <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
@@ -124,6 +136,7 @@ const HiddenInput = styled('input')`
 const StyledCheckbox = styled('div')<{
   checked: Props['checked'];
   size: FormSize;
+  color?: Props['checkboxColor'];
 }>`
   position: relative;
   display: flex;
@@ -139,7 +152,7 @@ const StyledCheckbox = styled('div')<{
   ${p =>
     p.checked
       ? css`
-          background: ${p.theme.active};
+          background: ${p.color ?? p.theme.active};
           border: 0;
         `
       : css`

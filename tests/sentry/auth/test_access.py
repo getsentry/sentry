@@ -1,25 +1,25 @@
+from typing import Optional
 from unittest.mock import Mock
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
-from sentry.models import (
-    ApiKey,
-    AuthIdentity,
-    AuthProvider,
-    ObjectStatus,
-    Organization,
-    TeamStatus,
-    User,
-    UserPermission,
-    UserRole,
-)
+from sentry.constants import ObjectStatus
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.team import TeamStatus
+from sentry.models.user import User
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits, no_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
 
 
 def silo_from_user(
@@ -41,7 +41,7 @@ def silo_from_user(
     )
 
 
-def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
+def silo_from_request(request, organization: Optional[Organization] = None, scopes=None) -> Access:
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = organization_service.get_organization_by_id(
@@ -63,15 +63,15 @@ class AccessFactoryTestCase(TestCase):
             return access.from_request(*args, **kwds)
         return silo_from_request(*args, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(self, organization: Organization, **kwds):
         return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_provider(self, organization: Organization, **kwds):
         return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
@@ -415,7 +415,7 @@ class FromUserTest(AccessFactoryTestCase):
 
     def test_superuser_permissions(self):
         user = self.create_user(is_superuser=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserPermission.objects.create(user=user, permission="test.permission")
 
         result = self.from_user(user)
@@ -424,15 +424,64 @@ class FromUserTest(AccessFactoryTestCase):
         result = self.from_user(user, is_superuser=True)
         assert result.has_permission("test.permission")
 
+    @with_feature("organizations:team-roles")
+    def test_enforce_upper_bound_scope(self):
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        team_other = self.create_team(organization=organization)
+        project_other = self.create_project(organization=organization, teams=[team_other])
+
+        # Team Admin
+        user = self.create_user()
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read", "team:admin"]),
+            self.from_request(request, organization, scopes=["org:read", "team:admin"]),
+        ]
+        for result in results:
+            # Does not have scopes from org-role
+            assert not result.has_scope("org:admin")
+            assert not result.has_scope("org:write")
+            assert result.has_scope("org:read")
+            assert not result.has_scope("team:admin")  # Org-member do not have team:admin scope
+            assert not result.has_scope("team:read")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+            assert not result.has_scope("project:read")
+
+            # Has scopes from team-role
+            assert result.has_team_scope(team, "team:admin")  # From being a team-admin
+            assert not result.has_team_scope(team, "team:write")
+            assert not result.has_team_scope(team, "team:read")
+            assert not result.has_project_scope(project, "project:admin")
+            assert not result.has_project_scope(project, "project:write")
+            assert not result.has_project_scope(project, "project:read")
+
+            # Does not have scope from other team
+            assert not result.has_team_scope(team_other, "team:admin")
+            assert not result.has_team_scope(team_other, "team:write")
+            assert not result.has_team_scope(team_other, "team:read")
+            assert not result.has_project_scope(project_other, "project:admin")
+            assert not result.has_project_scope(project_other, "project:write")
+            assert not result.has_project_scope(project_other, "project:read")
+
 
 @all_silo_test(stable=True)
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=self.superuser, permission="test.permission")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization_id=self.org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])
@@ -496,7 +545,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -520,7 +569,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)
@@ -697,7 +746,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
     def test_has_app_scopes(self):
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             app_with_scopes.update(scope_list=["team:read", "team:write"])
         self.create_sentry_app_installation(
             organization=self.org, slug=app_with_scopes.slug, user=self.user
@@ -751,6 +800,6 @@ class GetPermissionsForUserTest(TestCase):
         role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
         role.users.add(user)
 
-        assert sorted(access.get_permissions_for_user(user.id)) == sorted(
+        assert sorted(access_service.get_permissions_for_user(user.id)) == sorted(
             ["test.permission", "test.permission-role"]
         )

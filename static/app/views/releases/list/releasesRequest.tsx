@@ -149,14 +149,14 @@ class ReleasesRequest extends Component<Props, State> {
 
     return {
       query: new MutableSearch(
-        releases.reduce((acc, release, index, allReleases) => {
+        releases.reduce<string[]>((acc, release, index, allReleases) => {
           acc.push(`release:"${release}"`);
           if (index < allReleases.length - 1) {
             acc.push('OR');
           }
 
           return acc;
-        }, [] as string[])
+        }, [])
       ).formatString(),
       interval: getInterval(selection.datetime),
       ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)), {

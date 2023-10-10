@@ -1,18 +1,22 @@
+from __future__ import annotations
+
+import logging
 from typing import Any, Mapping, Optional, Union
 
 from requests import PreparedRequest, Response
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiResponse
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+logger = logging.getLogger(__name__)
 
 
 class SlackClient(IntegrationProxyClient):
@@ -20,6 +24,26 @@ class SlackClient(IntegrationProxyClient):
     integration_name = "slack"
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
+
+    def __init__(
+        self,
+        integration_id: int | None = None,
+        org_integration_id: int | None = None,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
+    ) -> None:
+        self.integration_id = integration_id
+        if not org_integration_id and integration_id is not None:
+            org_integration_id = infer_org_integration(
+                integration_id=self.integration_id, ctx_logger=logger
+            )
+
+        super().__init__(
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+            integration_id=integration_id,
+            logging_context=logging_context,
+        )
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -36,27 +60,39 @@ class SlackClient(IntegrationProxyClient):
             ).first()
 
         if not integration:
+            logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
-
         token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         )
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
+    def is_response_fatal(self, response: Response) -> bool:
+        try:
+            resp_json = response.json()
+            if not resp_json.get("ok"):
+                if "account_inactive" == resp_json.get("error", ""):
+                    return True
+            return False
+        except json.JSONDecodeError:
+            return False
+
     def track_response_data(
         self,
         code: Union[str, int],
-        span: Transaction,
+        span: Span | None = None,
         error: Optional[str] = None,
         resp: Optional[Response] = None,
+        extra: Optional[Mapping[str, str]] = None,
     ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
         try:
             span.set_http_status(int(code))
         except ValueError:
             span.set_status(str(code))
-
-        span.set_tag("integration", "slack")
 
         is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
@@ -86,6 +122,7 @@ class SlackClient(IntegrationProxyClient):
         )
 
         extra = {
+            **(extra or {}),
             self.integration_type: self.name,
             "status_string": str(code),
             "error": str(error)[:256] if error else None,

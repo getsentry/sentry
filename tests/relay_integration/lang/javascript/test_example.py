@@ -2,19 +2,25 @@ import os
 
 import pytest
 
-from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import RelayStoreHelper
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 
 # IMPORTANT:
 #
 # This test suite requires Symbolicator in order to run correctly.
 # Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
 #
-# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix` to `system.internal-url-prefix`
-# inside `process_with_symbolicator` fixture inside `src/sentry/utils/pytest/fixtures.py`,
-# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
+# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
+# to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
+# entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 
 def get_fixture_path(name):
@@ -26,17 +32,23 @@ def load_fixture(name):
         return f.read()
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
-    def initialize(self, default_projectkey, default_project):
+    def initialize(
+        self, default_projectkey, default_project, request, set_sentry_option, live_server
+    ):
         self.project = default_project
         self.projectkey = default_projectkey
         self.project.update_option("sentry:scrape_javascript", False)
 
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_expansion(self, process_with_symbolicator):
+    def test_sourcemap_expansion(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
         )

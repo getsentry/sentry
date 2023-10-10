@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
@@ -13,38 +13,38 @@ from .webhooks import (
 )
 
 urlpatterns = [
-    url(
+    re_path(
         r"^ui-hook/$",
         JiraSentryInstallationView.as_view(),
     ),
-    url(
+    re_path(
         r"^descriptor/$",
         JiraDescriptorEndpoint.as_view(),
     ),
-    url(
+    re_path(
         r"^installed/$",
         JiraSentryInstalledWebhook.as_view(),
         name="sentry-extensions-jira-installed",
     ),
-    url(
+    re_path(
         r"^uninstalled/$",
         JiraSentryUninstalledWebhook.as_view(),
     ),
-    url(
+    re_path(
         r"^issue-updated/$",
         JiraIssueUpdatedWebhook.as_view(),
         name="sentry-extensions-jira-issue-updated",
     ),
-    url(
+    re_path(
         r"^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$",
         JiraSearchEndpoint.as_view(),
         name="sentry-extensions-jira-search",
     ),
-    url(
+    re_path(
         r"^configure/$",
         JiraExtensionConfigurationView.as_view(),
     ),
-    url(
+    re_path(
         r"^issue/(?P<issue_key>[^\/]+)/$",
         JiraSentryIssueDetailsView.as_view(),
         name="sentry-extensions-jira-issue-hook",

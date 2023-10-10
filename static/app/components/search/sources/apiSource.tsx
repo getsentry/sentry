@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {
@@ -316,7 +317,7 @@ class ApiSource extends Component<Props, State> {
     // Otherwise it'd be constant :spinning_loading_wheel:
     if (
       (nextProps.query.length <= 2 &&
-        nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)) ||
+        nextProps.query.substring(0, 2) !== this.props.query.substring(0, 2)) ||
       // Also trigger a search if next query value satisfies an eventid/shortid query
       shouldSearchShortIds(nextProps.query) ||
       shouldSearchEventIds(nextProps.query)
@@ -333,7 +334,7 @@ class ApiSource extends Component<Props, State> {
     const {organization} = this.props;
     const orgId = organization?.slug;
 
-    let searchUrls = ['/organizations/'];
+    let searchUrls: string[] = [];
     let directUrls: (string | null)[] = [];
 
     // Only run these queries when we have an org in context
@@ -354,21 +355,23 @@ class ApiSource extends Component<Props, State> {
         shouldSearchEventIds(query) ? `/organizations/${orgId}/eventids/${query}/` : null,
       ];
     }
-
-    const searchRequests = searchUrls.map(url =>
-      this.api
-        .requestPromise(url, {
-          query: {
-            query,
-          },
-        })
-        .then(
-          resp => resp,
-          err => {
-            this.handleRequestError(err, {orgId, url});
-            return null;
-          }
-        )
+    let searchRequests = [fetchOrganizations(this.api, {query})];
+    searchRequests = searchRequests.concat(
+      searchUrls.map(url =>
+        this.api
+          .requestPromise(url, {
+            query: {
+              query,
+            },
+          })
+          .then(
+            resp => resp,
+            err => {
+              this.handleRequestError(err, {orgId, url});
+              return null;
+            }
+          )
+      )
     );
 
     const directRequests = directUrls.map(url => {
@@ -393,15 +396,16 @@ class ApiSource extends Component<Props, State> {
   }, 150);
 
   handleRequestError = (err: ResponseMeta, {url, orgId}) => {
-    Sentry.withScope(scope => {
-      scope.setExtra(
-        'url',
-        url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
-      );
-      Sentry.captureException(
-        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
-      );
-    });
+    if (err && err.status !== 401 && err.status !== 403) {
+      Sentry.withScope(scope => {
+        scope.setExtra(
+          'url',
+          url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
+        );
+        scope.setFingerprint(['api-source-failed']);
+        Sentry.captureException(err);
+      });
+    }
   };
 
   // Handles a list of search request promises, and then updates state with response objects

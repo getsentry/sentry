@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -10,9 +10,11 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -37,6 +39,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import {getWidgetIndicatorColor, hasThresholdMaxValue} from '../utils';
+import ThresholdsHoverWrapper from '../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -72,6 +76,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -219,6 +224,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
+    const {onDataFetched} = this.props;
+
+    if (onDataFetched && tableResults) {
+      onDataFetched(tableResults);
+    }
+
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
@@ -273,8 +284,8 @@ class WidgetCard extends Component<Props, State> {
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(aggregate =>
-              parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(
+              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField
@@ -287,7 +298,7 @@ class WidgetCard extends Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
-          <React.Fragment>
+          <Fragment>
             <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
               hasData={
@@ -298,13 +309,41 @@ class WidgetCard extends Component<Props, State> {
               <WidgetCardPanel isDragging={false}>
                 <WidgetHeader>
                   <WidgetHeaderDescription>
-                    <Tooltip
-                      title={widget.title}
-                      containerDisplayMode="grid"
-                      showOnlyOnOverflow
-                    >
-                      <WidgetTitle>{widget.title}</WidgetTitle>
-                    </Tooltip>
+                    <WidgetTitleRow>
+                      <Tooltip
+                        title={widget.title}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                      >
+                        <WidgetTitle>{widget.title}</WidgetTitle>
+                      </Tooltip>
+                      {widget.thresholds &&
+                        hasThresholdMaxValue(widget.thresholds) &&
+                        this.state.tableData &&
+                        organization.features.includes('dashboard-widget-indicators') && (
+                          <ThresholdsHoverWrapper
+                            thresholds={widget.thresholds}
+                            tableData={this.state.tableData}
+                          >
+                            <CircleIndicator
+                              color={getWidgetIndicatorColor(
+                                widget.thresholds,
+                                this.state.tableData
+                              )}
+                              size={12}
+                            />
+                          </ThresholdsHoverWrapper>
+                        )}
+                    </WidgetTitleRow>
+                    {widget.description && (
+                      <Tooltip
+                        title={widget.description}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                      >
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      </Tooltip>
+                    )}
                     <DashboardsMEPConsumer>
                       {({}) => {
                         // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -330,6 +369,7 @@ class WidgetCard extends Component<Props, State> {
                   {this.renderContextMenu()}
                 </WidgetHeader>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
+
                 {isWidgetInvalid ? (
                   <Fragment>
                     {renderErrorMessage?.('Widget query condition is invalid.')}
@@ -371,45 +411,43 @@ class WidgetCard extends Component<Props, State> {
                 {this.renderToolbar()}
               </WidgetCardPanel>
             </VisuallyCompleteWithData>
-            {!organization.features.includes('performance-mep-bannerless-ui') &&
-              (organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) && (
-                <MEPConsumer>
-                  {metricSettingContext => {
-                    return (
-                      <DashboardsMEPConsumer>
-                        {({isMetricsData}) => {
-                          if (
-                            showStoredAlert &&
-                            isMetricsData === false &&
-                            widget.widgetType === WidgetType.DISCOVER &&
-                            metricSettingContext &&
-                            metricSettingContext.metricSettingState !==
-                              MEPState.transactionsOnly
-                          ) {
-                            if (!widgetContainsErrorFields) {
-                              return (
-                                <StoredDataAlert showIcon>
-                                  {tct(
-                                    "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                    {
-                                      indexedData: (
-                                        <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                      ),
-                                    }
-                                  )}
-                                </StoredDataAlert>
-                              );
-                            }
+            {!organization.features.includes('performance-mep-bannerless-ui') && (
+              <MEPConsumer>
+                {metricSettingContext => {
+                  return (
+                    <DashboardsMEPConsumer>
+                      {({isMetricsData}) => {
+                        if (
+                          showStoredAlert &&
+                          isMetricsData === false &&
+                          widget.widgetType === WidgetType.DISCOVER &&
+                          metricSettingContext &&
+                          metricSettingContext.metricSettingState !==
+                            MEPState.TRANSACTIONS_ONLY
+                        ) {
+                          if (!widgetContainsErrorFields) {
+                            return (
+                              <StoredDataAlert showIcon>
+                                {tct(
+                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                  {
+                                    indexedData: (
+                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                    ),
+                                  }
+                                )}
+                              </StoredDataAlert>
+                            );
                           }
-                          return null;
-                        }}
-                      </DashboardsMEPConsumer>
-                    );
-                  }}
-                </MEPConsumer>
-              )}
-          </React.Fragment>
+                        }
+                        return null;
+                      }}
+                    </DashboardsMEPConsumer>
+                  );
+                }}
+              </MEPConsumer>
+            )}
+          </Fragment>
         )}
       </ErrorBoundary>
     );
@@ -495,6 +533,17 @@ const StyledErrorPanel = styled(ErrorPanel)`
 
 const WidgetHeaderDescription = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const WidgetTitleRow = styled('span')`
+  display: flex;
   align-items: center;
+  gap: ${space(0.75)};
+`;
+
+export const WidgetDescription = styled('small')`
+  ${p => p.theme.overflowEllipsis}
+  color: ${p => p.theme.gray300};
 `;

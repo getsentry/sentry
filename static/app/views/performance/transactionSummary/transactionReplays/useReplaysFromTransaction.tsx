@@ -82,6 +82,7 @@ function useReplaysFromTransaction({
     if (!response.replayIds) {
       return null;
     }
+
     return EventView.fromSavedQuery({
       id: '',
       name: '',

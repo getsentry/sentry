@@ -1,8 +1,10 @@
 from rest_framework import status
 
+from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
+@control_silo_test
 class SlackCommandsGetTest(SlackCommandsTest):
     method = "get"
 

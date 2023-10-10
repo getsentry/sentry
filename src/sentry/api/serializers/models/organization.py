@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,20 +16,24 @@ from typing import (
     cast,
 )
 
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
+from sentry.api.base import PreventNumericSlugMixin
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
-    RoleSerializerResponse,
+    OrganizationRoleSerializerResponse,
     TeamRoleSerializer,
+    TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
+from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.app import env
 from sentry.auth.access import Access
@@ -40,6 +44,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_COMMENT_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
@@ -49,25 +54,23 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    ObjectStatus,
 )
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationAvatar,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    OrganizationStatus,
-    Project,
-    ProjectStatus,
-    Team,
-    TeamStatus,
-)
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -93,9 +96,23 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+
+    # The slug pattern consists of the following:
+    # [a-zA-Z0-9]   - The slug must start with a letter or number
+    # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
+    # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
+    slug = serializers.RegexField(
+        r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+        max_length=50,
+        error_messages={
+            "invalid": _(
+                "Enter a valid slug consisting of lowercase letters, numbers, or hyphens. "
+                "It cannot be entirely numeric or start/end with a hyphen."
+            )
+        },
+    )
 
     def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
@@ -119,10 +136,11 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
+        value = super().validate_slug(value)
         return value
 
 
-class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
+class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -170,31 +188,6 @@ class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
         return {"public_key": public_key, "name": key_name, "description": description}
 
 
-class _Status(TypedDict):
-    id: str
-    name: str
-
-
-class _Links(TypedDict):
-    organizationUrl: str
-    regionUrl: str
-
-
-class OrganizationSerializerResponse(TypedDict):
-    id: str
-    slug: str
-    status: _Status
-    name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    requireEmailVerification: bool
-    avatar: Any  # TODO replace with Avatar
-    features: Any  # TODO
-    links: _Links
-    hasAuthProvider: bool
-
-
 class ControlSiloOrganizationSerializerResponse(TypedDict):
     # The control silo will not, cannot, should not contain most organization data.
     # Therefore, we need a specialized, limited via of that data.
@@ -203,7 +196,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+class ControlSiloOrganizationSerializer(Serializer):
     def serialize(
         self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
     ) -> ControlSiloOrganizationSerializerResponse:
@@ -215,9 +208,9 @@ class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
 
 
 @register(Organization)
-class OrganizationSerializer(Serializer):  # type: ignore
+class OrganizationSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Organization], user: User
+        self, item_list: Sequence[Organization], user: User, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         avatars = {
             a.organization_id: a
@@ -261,7 +254,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
         }
 
     def serialize(
-        self, obj: Organization, attrs: Mapping[str, Any], user: User
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
         from sentry import features
         from sentry.features.base import OrganizationFeature
@@ -337,7 +330,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
-        return {
+        context = {
             "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
@@ -358,6 +351,13 @@ class OrganizationSerializer(Serializer):  # type: ignore
             "hasAuthProvider": has_auth_provider,
         }
 
+        if "access" in kwargs:
+            context["access"] = kwargs["access"].scopes
+            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
+            context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+
+        return context
+
 
 class _OnboardingTasksAttrs(TypedDict):
     user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
@@ -374,7 +374,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):  # type: ignore
+class OnboardingTasksSerializer(Serializer):
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
@@ -412,8 +412,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[RoleSerializerResponse]
-    teamRoleList: List[RoleSerializerResponse]
+    orgRoleList: List[OrganizationRoleSerializerResponse]
+    teamRoleList: List[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -436,6 +436,10 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
     aiSuggestedSolution: bool
+    githubPRBot: bool
+    githubOpenPRBot: bool
+    githubNudgeInvite: bool
+    isDynamicallySampled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -451,11 +455,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
-
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = cast(DetailedOrganizationSerializerResponse, super().serialize(obj, attrs, user))
+        context = cast(
+            DetailedOrganizationSerializerResponse,
+            super().serialize(obj, attrs, user, access=access),
+        )
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -540,6 +545,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
+                "githubPRBot": bool(
+                    obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubOpenPRBot": bool(
+                    obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubNudgeInvite": bool(
+                    obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
             }
         )
 
@@ -547,14 +561,25 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         # serialize trusted relays info into their external form
         context["trustedRelays"] = [TrustedRelaySerializer(raw).data for raw in trusted_relays_raw]
 
-        context["access"] = access.scopes
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
+        context["isDynamicallySampled"] = (
+            features.has("organizations:dynamic-sampling", obj)
+            and sample_rate is not None
+            and sample_rate < 1.0
+        )
+        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
+        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
+            context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
+        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        if desired_sample_rate is not None:
+            context["desiredSampleRate"] = desired_sample_rate
+
         return context
 
 
@@ -573,9 +598,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
-            Project.objects.filter(
-                organization=organization, status=ProjectStatus.VISIBLE
-            ).order_by("slug")
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).order_by(
+                "slug"
+            )
         )
 
         for project in project_list:
@@ -585,7 +610,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         team_list = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).order_by(
                 "slug"
             )
         )

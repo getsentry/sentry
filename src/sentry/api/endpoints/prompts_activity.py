@@ -1,6 +1,6 @@
 import calendar
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
@@ -9,8 +9,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models import Organization, Project, PromptsActivity
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
@@ -33,6 +36,10 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class PromptsActivityEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
@@ -101,7 +108,7 @@ class PromptsActivityEndpoint(Endpoint):
             data["dismissed_ts"] = now
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PromptsActivity)):
                 PromptsActivity.objects.create_or_update(
                     feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )

@@ -3,6 +3,7 @@ import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -155,7 +156,7 @@ export function percent(value: number, totalValue: number): number {
 export function toTitleCase(str: string): string {
   return str.replace(
     /\w\S*/g,
-    txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    txt => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
   );
 }
 
@@ -211,7 +212,7 @@ export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
 
 export function getShortCommitHash(hash: string): string {
   if (hash.match(/^[a-f0-9]{40}$/)) {
-    hash = hash.substr(0, 7);
+    hash = hash.substring(0, 7);
   }
   return hash;
 }
@@ -333,4 +334,8 @@ export const isFunction = (value: any): value is Function => typeof value === 'f
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}
+
+export function generateBaseControlSiloUrl() {
+  return ConfigStore.get('links').sentryUrl || '';
 }

@@ -1,7 +1,7 @@
 import {forwardRef, useCallback} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useTab} from '@react-aria/tabs';
+import {AriaTabProps, useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
 
-interface TabProps {
+interface TabProps extends AriaTabProps {
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -202,7 +202,8 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   transition: box-shadow 0.1s ease-out;
 
   li.focus-visible & {
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px,
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
   }
 `;

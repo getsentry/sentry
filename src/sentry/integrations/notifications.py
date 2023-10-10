@@ -4,10 +4,12 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalActor, Integration, Organization, Team, User
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
+from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -44,7 +46,7 @@ def _get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    identity_id_to_idp: Mapping[RpcIdentity.id, RpcIdentityProvider | None] = {
+    identity_id_to_idp = {
         identity.id: identity_service.get_provider(provider_id=identity.idp_id)
         for identity in identities
     }
@@ -72,34 +74,35 @@ def _get_channel_and_integration_by_user(
 
 
 def _get_channel_and_integration_by_team(
-    team_actor_id: int, organization: Organization, provider: ExternalProviders
-) -> Mapping[str, Integration]:
+    team_id: int, organization: Organization, provider: ExternalProviders
+) -> Mapping[str, RpcIntegration]:
+    org_integrations = integration_service.get_organization_integrations(
+        status=ObjectStatus.ACTIVE, organization_id=organization.id
+    )
+
     try:
-        external_actor = (
-            ExternalActor.objects.filter(
-                provider=provider.value,
-                actor_id=team_actor_id,
-                organization_id=organization.id,
-                integration__status=ObjectStatus.ACTIVE,
-                integration__organizationintegration__status=ObjectStatus.ACTIVE,
-                # limit to org here to prevent multiple query results
-                integration__organizationintegration__organization_id=organization.id,
-            )
-            .select_related("integration")
-            .get()
+        external_actor = ExternalActor.objects.get(
+            provider=provider.value,
+            team_id=team_id,
+            organization_id=organization.id,
+            integration_id__in=[oi.integration_id for oi in org_integrations],
         )
     except ExternalActor.DoesNotExist:
         return {}
-    return {external_actor.external_id: external_actor.integration}
+
+    integration = integration_service.get_integration(integration_id=external_actor.integration_id)
+    if integration.status != ObjectStatus.ACTIVE:
+        return {}
+    return {external_actor.external_id: integration}
 
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization,
-    recipients: Iterable[RpcActor | Team | User],
+    recipients: Iterable[RpcActor],
     provider: ExternalProviders,
-) -> Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]]:
-    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]] = defaultdict(dict)
-    for recipient in (RpcActor.from_object(r) for r in recipients):
+) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
+    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
+    for recipient in RpcActor.many_from_object(recipients):
         channels_to_integrations = None
         if recipient.actor_type == ActorType.USER:
             channels_to_integrations = _get_channel_and_integration_by_user(
@@ -107,7 +110,7 @@ def get_integrations_by_channel_by_recipient(
             )
         elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
             channels_to_integrations = _get_channel_and_integration_by_team(
-                recipient.actor_id, organization, provider
+                recipient.id, organization, provider
             )
         if channels_to_integrations is not None:
             output[recipient] = channels_to_integrations

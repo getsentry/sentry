@@ -1,13 +1,19 @@
-from typing import Mapping, Optional, Set
+from typing import Collection, Dict, Mapping, Optional, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from django.conf import settings
+
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    OrgId,
     StringIndexer,
+    UseCaseKeyCollection,
+    UseCaseKeyResult,
+    UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils import metrics
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -74,6 +80,17 @@ TRANSACTION_METRICS_NAMES = {
     "c:transactions/count_per_root_project@none": PREFIX + 125,
     "d:transactions/measurements.time_to_initial_display@millisecond": PREFIX + 126,
     "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
+    "c:transactions/on_demand@none": PREFIX + 128,
+    "d:transactions/on_demand@none": PREFIX + 129,
+    "s:transactions/on_demand@none": PREFIX + 130,
+    "g:transactions/on_demand@none": PREFIX + 131,
+    "c:transactions/alert@none": PREFIX + 132,
+    "d:transactions/alert@none": PREFIX + 133,
+    "s:transactions/alert@none": PREFIX + 134,
+    "g:transactions/alert@none": PREFIX + 135,
+    "d:transactions/duration_light@millisecond": PREFIX + 136,
+    "c:transactions/usage@none": PREFIX + 137,
+    # Last possible index: 199
 }
 
 # 200 - 399
@@ -133,20 +150,53 @@ SHARED_TAG_STRINGS = {
     "span.status": PREFIX + 246,
     "span.status_code": PREFIX + 247,
     "span.domain": PREFIX + 248,
+    "span.description": PREFIX + 249,
+    "http.status_code": PREFIX + 250,
+    "geo.country_code": PREFIX + 251,
+    "span.group": PREFIX + 252,
+    "transaction.method": PREFIX + 253,
+    "span.category": PREFIX + 254,
+    "span.main_thread": PREFIX + 255,
+    "device.class": PREFIX + 256,
+    "resource.render_blocking_status": PREFIX + 257,
+    # More Transactions
+    "has_profile": PREFIX + 260,
+    "query_hash": PREFIX + 261,
+    "failure": PREFIX + 262,
+    # Escalating Issues
+    "group": PREFIX + 263,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
 
 # 400-499
 SPAN_METRICS_NAMES = {
+    # Deprecated -- transactions namespace
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
+    "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
+    # Spans namespace
+    "s:spans/user@none": PREFIX + 403,
+    "d:spans/duration@millisecond": PREFIX + 404,
+    "d:spans/exclusive_time@millisecond": PREFIX + 405,
+    "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
+    "d:spans/frames_frozen@none": PREFIX + 407,
+    "d:spans/frames_slow@none": PREFIX + 408,
+    "d:spans/http.response_content_length@none": PREFIX + 409,
+    "d:spans/http.decoded_response_body_length@none": PREFIX + 410,
+    "d:spans/http.response_transfer_size@none": PREFIX + 411,
+}
+
+# 500-599
+ESCALATING_ISSUES_METRIC_NAMES = {
+    "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
+    **ESCALATING_ISSUES_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
@@ -164,42 +214,77 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        static_keys = KeyCollection(org_strings)
-        static_key_results = KeyResults()
-        for org_id, string in static_keys.as_tuples():
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        static_keys = UseCaseKeyCollection(strings)
+        static_key_results = UseCaseKeyResults()
+        for use_case_id, org_id, string in static_keys.as_tuples():
             if string in SHARED_STRINGS:
                 id = SHARED_STRINGS[string]
-                static_key_results.add_key_result(
-                    KeyResult(org_id, string, id), FetchType.HARDCODED
+                static_key_results.add_use_case_key_result(
+                    UseCaseKeyResult(use_case_id, org_id, string, id), FetchType.HARDCODED
                 )
 
-        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
+        org_strings_left = static_key_results.get_unmapped_use_case_keys(static_keys)
 
         if org_strings_left.size == 0:
             return static_key_results
 
         indexer_results = self.indexer.bulk_record(
-            use_case_id=use_case_id, org_strings=org_strings_left.mapping
+            {
+                use_case_id: key_collection.mapping
+                for use_case_id, key_collection in org_strings_left.mapping.items()
+            }
         )
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        # TODO: remove this metric after investigation is over
+        if use_case_id is UseCaseID.ESCALATING_ISSUES:
+            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
+        return self.indexer.resolve(use_case_id, org_id, string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_id=use_case_id, org_id=org_id, id=id)
+
+        resolved_id = self.indexer.reverse_resolve(use_case_id, org_id, id)
+        if resolved_id is None:
+            # HACK: if a string gets re-indexed we need to have some way to look
+            # up the old id and we do it this way because the table has a unique
+            # constraint on the org_id and the string.
+            reindexed_ints = settings.SENTRY_METRICS_INDEXER_REINDEXED_INTS
+            if id in reindexed_ints:
+                return reindexed_ints[id]
+        return resolved_id
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        shared_strings: Dict[int, str] = {}
+        unresolved_ids = []
+        for ident in ids:
+            if ident in REVERSE_SHARED_STRINGS:
+                # resolved the shared string
+                shared_strings[ident] = REVERSE_SHARED_STRINGS[ident]
+            else:
+                # remember the position of the strings we need to resolve
+                unresolved_ids.append(ident)
+
+        # insert the strings resolved by the base indexer in the global result
+        org_strings = self.indexer.bulk_reverse_resolve(use_case_id, org_id, unresolved_ids)
+
+        return {**org_strings, **shared_strings}
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:

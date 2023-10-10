@@ -8,7 +8,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -57,43 +58,36 @@ export function CustomMeasurementsProvider({
 
   useEffect(() => {
     let shouldCancelRequest = false;
+    fetchCustomMeasurements(api, organization, selection)
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-    if (
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-    ) {
-      fetchCustomMeasurements(api, organization, selection)
-        .then(response => {
-          if (shouldCancelRequest) {
-            return;
-          }
+        const newCustomMeasurements = Object.keys(
+          response
+        ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
+          acc[customMeasurement] = {
+            key: customMeasurement,
+            name: customMeasurement,
+            functions: response[customMeasurement].functions,
+            unit: response[customMeasurement].unit,
+            fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
+          };
+          return acc;
+        }, {});
 
-          const newCustomMeasurements = Object.keys(
-            response
-          ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
-            acc[customMeasurement] = {
-              key: customMeasurement,
-              name: customMeasurement,
-              functions: response[customMeasurement].functions,
-              unit: response[customMeasurement].unit,
-              fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
-            };
-            return acc;
-          }, {});
+        setState({customMeasurements: newCustomMeasurements});
+      })
+      .catch((e: RequestError) => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-          setState({customMeasurements: newCustomMeasurements});
-        })
-        .catch(e => {
-          if (shouldCancelRequest) {
-            return;
-          }
-
-          const errorResponse =
-            e?.responseJSON ?? t('Unable to fetch custom performance metrics');
-          addErrorMessage(errorResponse);
-          handleXhrErrorResponse(errorResponse)(e);
-        });
-    }
+        const errorResponse = t('Unable to fetch custom performance metrics');
+        addErrorMessage(errorResponse);
+        handleXhrErrorResponse(errorResponse, e);
+      });
 
     return () => {
       shouldCancelRequest = true;

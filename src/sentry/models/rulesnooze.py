@@ -2,8 +2,27 @@ from django.db import models
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
+
+class RuleSnoozeManager(BaseManager):
+    def is_snoozed_for_all(self, rule=None, alert_rule=None):
+        """Check whether the given rule is snoozed for everyone"""
+        return RuleSnooze.objects.filter(
+            user_id__isnull=True, rule=rule, alert_rule=alert_rule
+        ).exists()
+
+    def is_snoozed_for_user(self, user_id, rule=None, alert_rule=None):
+        """Check whether the given rule is snoozed for the given user"""
+        return RuleSnooze.objects.filter(user_id=user_id, rule=rule, alert_rule=alert_rule).exists()
 
 
 @region_silo_only_model
@@ -14,7 +33,7 @@ class RuleSnooze(Model):
     Null `user_id` value means snoozed for all users.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
@@ -22,6 +41,8 @@ class RuleSnooze(Model):
     alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
     until = models.DateTimeField(null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects = RuleSnoozeManager()
 
     class Meta:
         db_table = "sentry_rulesnooze"

@@ -8,7 +8,6 @@ with the same Enum name but with a value of the MRI so we would add
 `FOO_BAR=e:sessions/foo.bar@none`
 """
 
-
 __all__ = (
     "SessionMetricKey",
     "TransactionMetricKey",
@@ -95,6 +94,42 @@ class TransactionMetricKey(Enum):
     USER_MISERY = "transaction.user_misery"
     FAILURE_COUNT = "transaction.failure_count"
     TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
+    HTTP_ERROR_RATE = "transaction.http_error_rate"
+
+    # Less granular coarse metrics
+    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
+
+    # Span metrics.
+    # NOTE: These might be moved to their own namespace soon.
+    SPAN_USER = "span.user"
+    SPAN_DURATION = "span.duration"
+    SPAN_SELF_TIME = "span.exclusive_time"
+    SPAN_SELF_TIME_LIGHT = "span.exclusive_time_light"
+
+    # TODO: Remove this as soon as the MetricsQuery supports private metrics
+    COUNT_ON_DEMAND = "count.on_demand"
+    DIST_ON_DEMAND = "dist.on_demand"
+    SET_ON_DEMAND = "set.on_demand"
+
+
+class SpanMetricKey(Enum):
+    USER = "span.user"
+    DURATION = "span.duration"
+    SELF_TIME = "span.exclusive_time"
+    SELF_TIME_LIGHT = "span.exclusive_time_light"
+
+    HTTP_ERROR_COUNT = "span.http_error_count"
+    HTTP_ERROR_RATE = "span.http_error_rate"
+    HTTP_ERROR_COUNT_LIGHT = "span.http_error_count_light"
+    HTTP_ERROR_RATE_LIGHT = "span.http_error_rate_light"
+
+
+class ErrorsMetricKey(Enum):
+    EVENT_INGESTED = "errors.event_ingested"
+
+
+class SpanTagsKey(Enum):
+    HTTP_STATUS_CODE = "span.status_code"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should
@@ -104,6 +139,7 @@ class TransactionTagsKey(Enum):
 
     TRANSACTION_STATUS = "transaction.status"
     TRANSACTION_SATISFACTION = "satisfaction"
+    TRANSACTION_HTTP_STATUS_CODE = "http.status_code"
 
 
 class TransactionStatusTagValue(Enum):

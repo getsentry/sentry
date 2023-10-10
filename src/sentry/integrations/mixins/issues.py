@@ -4,18 +4,14 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, UserOption
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
-from sentry.notifications.utils import (
-    get_notification_group_title,
-    get_parent_and_repeating_spans,
-    get_span_and_problem,
-    get_span_evidence_value,
-    get_span_evidence_value_problem,
-)
+from sentry.models.user import User
+from sentry.notifications.utils import get_notification_group_title
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
@@ -93,24 +89,6 @@ class IssueBasicMixin:
         if body:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
-
-    def get_performance_issue_description_data(self, event):
-        """Generate the span evidence data from a performance issue to populate
-        an integration's ticket description. Each integration will need to take
-        this data and format it appropriately.
-        """
-        spans, matched_problem = get_span_and_problem(event)
-        if not matched_problem:
-            return ""
-
-        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        transaction_name = get_span_evidence_value_problem(matched_problem)
-        parent_span = get_span_evidence_value(parent_span)
-        repeating_spans = get_span_evidence_value(repeating_spans)
-        num_repeating_spans = (
-            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
-        )
-        return (transaction_name, parent_span, num_repeating_spans, repeating_spans)
 
     def get_create_issue_config(self, group, user, **kwargs):
         """
@@ -205,13 +183,18 @@ class IssueBasicMixin:
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project, user):
+    def get_defaults(self, project: Project, user: User):
         project_defaults = self.get_project_defaults(project.id)
 
-        user_option_key = dict(user=user, key="issue:defaults", project=project)
-        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.model.provider, {}
+        user_option_value = get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [user.id], "keys": ["issue:defaults"], "project_id": project.id}
+            ),
+            key="issue:defaults",
+            default={},
         )
+
+        user_defaults = user_option_value.get(self.model.provider, {})
 
         defaults = {}
         defaults.update(project_defaults)
@@ -365,11 +348,11 @@ class IssueBasicMixin:
 
 
 class IssueSyncMixin(IssueBasicMixin):
-    comment_key = None
-    outbound_status_key = None
-    inbound_status_key = None
-    outbound_assignee_key = None
-    inbound_assignee_key = None
+    comment_key: ClassVar[str | None] = None
+    outbound_status_key: ClassVar[str | None] = None
+    inbound_status_key: ClassVar[str | None] = None
+    outbound_assignee_key: ClassVar[str | None] = None
+    inbound_assignee_key: ClassVar[str | None] = None
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)

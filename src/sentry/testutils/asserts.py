@@ -1,6 +1,11 @@
 from typing import Optional
 
-from sentry.models import AuditLogEntry, CommitFileChange
+from django.http import StreamingHttpResponse
+
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
@@ -36,9 +41,13 @@ def assert_commit_shape(commit):
 def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
-    assert minimum <= response.status_code < maximum, (response.status_code, response.content)
+    assert minimum <= response.status_code < maximum, (
+        response.status_code,
+        response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
+    )
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def org_audit_log_exists(**kwargs):
     assert kwargs
     if "organization" in kwargs:

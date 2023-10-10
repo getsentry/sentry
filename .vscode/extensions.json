@@ -4,9 +4,11 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "ms-python.python",
+    "ms-python.black-formatter",
     "dbaeumer.vscode-eslint",
     "lextudio.restructuredtext",
     "ziyasal.vscode-open-in-github",
-    "timonwong.shellcheck"
+    "timonwong.shellcheck",
+    "tyriar.sort-lines",
   ]
 }

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import unittest
+from typing import Any
 
 from fixtures.schema_validation import invalid_schema
 from sentry.api.validators.sentry_apps.schema import validate_component
@@ -6,7 +9,7 @@ from sentry.api.validators.sentry_apps.schema import validate_component
 
 class TestSelectSchemaValidation(unittest.TestCase):
     def setUp(self):
-        self.schema = {
+        self.schema: dict[str, Any] = {
             "type": "select",
             "name": "title",
             "label": "Title",

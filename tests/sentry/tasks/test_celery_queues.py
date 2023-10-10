@@ -2,7 +2,7 @@ from celery import current_app
 from celery.schedules import crontab
 from django.conf import settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CeleryQueueRegisteredTest(TestCase):
@@ -28,6 +28,6 @@ class CeleryQueuesUseCrontabTest(TestCase):
         for task_name in crontab_tasks:
             config = settings.CELERYBEAT_SCHEDULE[task_name]
             schedule = config.get("schedule")
-            assert (
-                type(schedule) == crontab
+            assert isinstance(
+                schedule, crontab
             ), f"Task {task_name} has a schedule of type {type(schedule)}"

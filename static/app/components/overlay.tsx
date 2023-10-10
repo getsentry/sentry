@@ -4,7 +4,8 @@ import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
-import OverlayArrow from 'sentry/components/overlayArrow';
+import {OverlayArrow, OverlayArrowProps} from 'sentry/components/overlayArrow';
+import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -21,7 +22,7 @@ interface OverlayProps extends HTMLMotionProps<'div'> {
    * Props to be passed into <OverlayArrow />. If undefined, the overlay will
    * render with no arrow.
    */
-  arrowProps?: React.ComponentProps<typeof OverlayArrow>;
+  arrowProps?: OverlayArrowProps;
   children?: React.ReactNode;
   /**
    * The CSS styles for the "origin point" over the overlay. Typically this
@@ -108,15 +109,17 @@ const Overlay = styled(
       },
       ref
     ) => {
-      const animationProps = animated
-        ? {
-            ...overlayAnimation,
-            style: {
-              ...style,
-              ...computeOriginFromArrow(placement, originPoint),
-            },
-          }
-        : {style};
+      const isTestEnv = NODE_ENV === 'test';
+      const animationProps =
+        !isTestEnv && animated
+          ? {
+              ...overlayAnimation,
+              style: {
+                ...style,
+                ...computeOriginFromArrow(placement, originPoint),
+              },
+            }
+          : {style};
 
       return (
         <motion.div {...props} {...animationProps} ref={ref}>
@@ -130,7 +133,9 @@ const Overlay = styled(
   position: relative;
   border-radius: ${p => p.theme.panelBorderRadius};
   background: ${p => p.theme.backgroundElevated};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  box-shadow:
+    0 0 0 1px ${p => p.theme.translucentBorder},
+    ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
 
   /* Override z-index from useOverlayPosition */

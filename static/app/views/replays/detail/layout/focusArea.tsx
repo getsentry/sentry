@@ -1,69 +1,68 @@
-import Placeholder from 'sentry/components/placeholder';
+import styled from '@emotion/styled';
+
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useOrganization from 'sentry/utils/useOrganization';
+import A11y from 'sentry/views/replays/detail/accessibility/index';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
-import IssueList from 'sentry/views/replays/detail/issueList';
+import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
+import ErrorList from 'sentry/views/replays/detail/errorList/index';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
+import PerfTable from 'sentry/views/replays/detail/perfTable/index';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
-  const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
-    useReplayContext();
-  const organization = useOrganization();
+  const {replay} = useReplayContext();
 
   switch (getActiveTab()) {
-    case TabKey.network:
+    case TabKey.A11Y:
+      return <A11y />;
+    case TabKey.NETWORK:
+      return <NetworkList />;
+    case TabKey.TRACE:
+      return <Trace />;
+    case TabKey.PERF:
+      return <PerfTable />;
+    case TabKey.ERRORS:
+      return <ErrorList />;
+    case TabKey.DOM:
+      return <DomMutations />;
+    case TabKey.MEMORY:
       return (
-        <NetworkList
-          networkSpans={replay?.getNetworkSpans()}
+        <MemoryTabWrapper>
+          <MemoryChart />
+          <DomNodesChart />
+        </MemoryTabWrapper>
+      );
+    case TabKey.CONSOLE:
+      return <Console />;
+    case TabKey.TAGS:
+      return <TagPanel />;
+    case TabKey.BREADCRUMBS:
+    default: {
+      return (
+        <Breadcrumbs
+          frames={replay?.getChapterFrames()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    case TabKey.trace:
-      return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
-    case TabKey.issues:
-      if (!replay) {
-        return <Placeholder height="150px" />;
-      }
-      return (
-        <IssueList
-          replayId={replay.getReplay()?.id}
-          projectId={replay.getReplay()?.project_id}
-        />
-      );
-    case TabKey.dom:
-      return (
-        <DomMutations
-          replay={replay}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
-    case TabKey.memory:
-      return (
-        <MemoryChart
-          currentTime={currentTime}
-          currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
-          setCurrentTime={setCurrentTime}
-          setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
-        />
-      );
-    case TabKey.console:
-    default:
-      return (
-        <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
+    }
   }
 }
+
+const MemoryTabWrapper = styled(FluidHeight)`
+  justify-content: center;
+  gap: ${space(1)};
+  height: 100%;
+  display: flex;
+`;
 
 export default FocusArea;

@@ -1,4 +1,5 @@
 from .base import AvatarBase
+from .control_base import ControlAvatarBase
 from .doc_integration_avatar import DocIntegrationAvatar
 from .organization_avatar import OrganizationAvatar
 from .project_avatar import ProjectAvatar
@@ -8,6 +9,7 @@ from .user_avatar import UserAvatar
 
 __all__ = (
     "AvatarBase",
+    "ControlAvatarBase",
     "DocIntegrationAvatar",
     "OrganizationAvatar",
     "ProjectAvatar",

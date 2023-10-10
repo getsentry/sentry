@@ -1,9 +1,11 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from django.utils.translation import gettext_lazy as _
+from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
+from sentry_relay.processing import parse_release
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -21,7 +23,7 @@ class GroupResolution(Model):
     Describes when a group was marked as resolved.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     class Type:
         in_release = 0

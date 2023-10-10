@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import base64
 import copy
-from typing import Any
+from typing import Any, List
 
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from fido2.ctap2 import AuthenticatorData
 
 from sentry.auth.authenticators import (
@@ -17,15 +17,18 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
-    BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     control_silo_only_model,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.types.region import find_regions_for_user
 
 
 class AuthenticatorManager(BaseManager):
@@ -114,16 +117,11 @@ class AuthenticatorManager(BaseManager):
 
 
 class AuthenticatorConfig(PickledObjectField):
-    def __init__(self, *args, **kwargs):
-        # we have special logic to handle pickle compat
-        kwargs.setdefault("disable_pickle_validation", True)
-        super().__init__(*args, **kwargs)
-
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
     def get_db_prep_value(self, value, *args, **kwargs):
-        if self.write_json and self._is_devices_config(value):
+        if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
             for device in value["devices"]:
@@ -143,8 +141,10 @@ class AuthenticatorConfig(PickledObjectField):
 
 
 @control_silo_only_model
-class Authenticator(BaseModel):
-    __include_in_export__ = True
+class Authenticator(ControlOutboxProducingModel):
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)
@@ -165,6 +165,14 @@ class Authenticator(BaseModel):
         verbose_name = _("authenticator")
         verbose_name_plural = _("authenticators")
         unique_together = (("user", "type"),)
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     @cached_property
     def interface(self):

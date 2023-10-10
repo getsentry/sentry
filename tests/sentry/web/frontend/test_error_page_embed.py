@@ -5,8 +5,9 @@ from uuid import uuid4
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import Environment, UserReport
-from sentry.testutils import TestCase
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -71,6 +72,7 @@ class ErrorPageEmbedTest(TestCase):
             HTTP_ACCEPT="text/html, text/javascript",
         )
         assert resp.status_code == 200, resp.content
+        assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
     def test_uses_locale_from_header(self):

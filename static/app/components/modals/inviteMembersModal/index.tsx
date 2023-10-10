@@ -4,14 +4,19 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import type {
+  AsyncComponentProps,
+  AsyncComponentState,
+} from 'sentry/components/deprecatedAsyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,31 +26,39 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    organization: Organization;
-    initialData?: Partial<InviteRow>[];
-    source?: string;
-  };
+export interface InviteMembersModalProps extends AsyncComponentProps, ModalRenderProps {
+  organization: Organization;
+  initialData?: Partial<InviteRow>[];
+  source?: string;
+}
 
-type State = AsyncComponent['state'] & {
+interface State extends AsyncComponentState {
   complete: boolean;
   inviteStatus: InviteStatus;
   pendingInvites: InviteRow[];
   sendingInvites: boolean;
-};
+}
 
 const DEFAULT_ROLE = 'member';
 
-const InviteModalHook = HookOrDefault({
+export const InviteModalHook = HookOrDefault({
   hookName: 'member-invite-modal:customization',
   defaultComponent: ({onSendInvites, children}) =>
     children({sendInvites: onSendInvites, canSend: true}),
 });
 
-type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
+export type InviteModalRenderFunc = React.ComponentProps<
+  typeof InviteModalHook
+>['children'];
 
-class InviteMembersModal extends AsyncComponent<Props, State> {
+class InviteMembersModal extends DeprecatedAsyncComponent<
+  InviteMembersModalProps,
+  State
+> {
+  static childContextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),
@@ -59,7 +72,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
    */
   sessionId = '';
 
+  getChildContext() {
+    // Expose organization via context to descendants
+    // e.g. TeamSelector relies on it being present
+    return {
+      organization: this.props.organization,
+    };
+  }
+
   componentDidMount() {
+    super.componentDidMount();
     this.sessionId = uniqueId();
 
     const {organization, source} = this.props;
@@ -71,7 +93,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];
@@ -488,7 +510,7 @@ const FooterContent = styled('div')`
   flex: 1;
 `;
 
-const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
+export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   display: flex;
   gap: ${space(1)};
   align-items: center;

@@ -2,50 +2,47 @@ from __future__ import annotations
 
 import abc
 import time
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
+from hashlib import md5
 from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
-import pytz
+import pytest
+from django.db import router
 from django.test import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.issues.grouptype import (
-    PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.issues.escalating import manage_issue_states
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.models import (
-    Activity,
-    Group,
-    GroupAssignee,
-    GroupInbox,
-    GroupInboxReason,
-    GroupOwner,
-    GroupOwnerType,
-    GroupSnooze,
-    GroupStatus,
-    Integration,
-    ProjectOwnership,
-    ProjectTeam,
-)
-from sentry.models.activity import ActivityIntegration
+from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.groupowner import (
     ASSIGNEE_EXISTS_DURATION,
     ASSIGNEE_EXISTS_KEY,
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
+    GroupOwner,
+    GroupOwnerType,
 )
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.integrations.integration import Integration
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.replays.lib import kafka as replays_kafka
 from sentry.rules import init_registry
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -53,17 +50,20 @@ from sentry.tasks.post_process import (
     post_process_group,
     process_event,
 )
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 class EventMatcher:
@@ -384,13 +384,13 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
     def test_rule_processor_buffer_values(self):
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
-        from sentry.models import Rule
+        from sentry.models.rule import Rule
 
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
@@ -427,7 +427,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -464,6 +464,42 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(
             EventMatcher(event, group=group2), True, False, True, False
         )
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_group_last_seen_buffer(self, mock_processor):
+        first_event_date = datetime.now(timezone.utc) - timedelta(days=90)
+        event1 = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        group1.update(last_seen=first_event_date)
+
+        event2 = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        # Mock set the last_seen value to the first event date
+        # To simulate the update to last_seen being buffered
+        event2.group.last_seen = first_event_date
+        event2.group.update(last_seen=first_event_date)
+        assert event2.group_id == group1.id
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event2,
+        )
+        mock_processor.assert_called_with(
+            EventMatcher(event2, group=group1), False, True, False, False
+        )
+        sent_group_date = mock_processor.call_args[0][0].group.last_seen
+        # Check that last_seen was updated to be at least the new event's date
+        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
@@ -585,7 +621,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -616,7 +652,11 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
         event = self.create_event(
-            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
+            data={
+                "message": "Foo bar",
+                "level": "info",
+                "timestamp": iso_format(django_timezone.now()),
+            },
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -633,7 +673,11 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
         event = self.create_event(
-            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
+            data={
+                "message": "Foo bar",
+                "level": "info",
+                "timestamp": iso_format(django_timezone.now()),
+            },
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -655,7 +699,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -677,34 +721,52 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 class InboxTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        new_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
-        group = event.group
+        group = new_event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
         self.call_post_process_group(
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,
-            event=event,
+            event=new_event,
         )
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(
             group=group
         ).delete()  # Delete so it creates the .REGRESSION entry.
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
 
-        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False)
 
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        # resolve the new issue so regression actually happens
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.active_at = group.active_at - timedelta(minutes=1)
+        group.save(update_fields=["status", "substatus", "active_at"])
+
+        # trigger a transition from resolved to regressed by firing an event that groups to that issue
+        regressed_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        assert regressed_event.group == new_event.group
+
+        group = regressed_event.group
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
-            event=event,
+            event=regressed_event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), False, True, False, False)
-
-        group = Group.objects.get(id=group.id)
+        mock_processor.assert_called_with(EventMatcher(regressed_event), False, True, False, False)
+        group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
         assert GroupInbox.objects.filter(
@@ -1178,6 +1240,41 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
+    def test_auto_assignment_when_owners_are_invalid(self):
+        """
+        Test that invalid group owners (that exist due to bugs) are deleted and not assigned
+        when no valid issue owner exists
+        """
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        # Hard code an invalid group owner
+        invalid_codeowner = GroupOwner(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            context={"rule": "codeowners:/**/*.css " + self.user.email},
+            user_id=self.user.id,
+        )
+        invalid_codeowner.save()
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee is None
+        assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
+
     @patch("sentry.tasks.post_process.logger")
     def test_debounces_handle_owner_assignments(self, logger):
         self.make_ownership()
@@ -1244,7 +1341,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
         "commitId": "asdfwreqr",
-        "committedDate": "",
+        "committedDate": (datetime.now(timezone.utc) - timedelta(days=2)),
         "commitMessage": "placeholder commit message",
         "commitAuthorName": "",
         "commitAuthorEmail": "admin@localhost",
@@ -1324,7 +1421,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(Integration)):
             Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)
@@ -1339,13 +1436,16 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(self, mock_processor, send_robust):
+    def test_invalidates_snooze(
+        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
+    ):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
@@ -1361,6 +1461,13 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save(update_fields=["status", "substatus"])
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() - timedelta(hours=1)
+        )
+
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
             is_new=False,
@@ -1370,26 +1477,33 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
-
+        mock_send_escalating_robust.assert_called_once_with(
+            project=group.project,
+            group=group,
+            event=EventMatcher(event),
+            sender=manage_issue_states,
+            was_until_escalating=False,
+        )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ESCALATING
         assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.UNIGNORED.value
+            group=group, reason=GroupInboxReason.ESCALATING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
+            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
         ).exists()
-        assert send_robust.called
+        assert mock_send_unignored_robust.called
 
     @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1398,7 +1512,10 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
             group = event.group
-            group.update(times_seen=50)
+            group.times_seen = 50
+            group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+            group.save(update_fields=["times_seen", "status", "substatus"])
             snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
 
             self.call_post_process_group(
@@ -1409,7 +1526,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
-            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -1422,7 +1539,11 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() + timedelta(hours=1)
+        )
 
         self.call_post_process_group(
             is_new=True,
@@ -1434,6 +1555,173 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
+
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    def test_forecast_in_activity(self, mock_is_escalating):
+        """
+        Test that the forecast is added to the activity for escalating issues that were
+        previously ignored until_escalating.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert Activity.objects.filter(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_ESCALATING.value,
+            data={"event_id": event.event_id, "forecast": 0},
+        ).exists()
+
+
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
+class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:sdk-crash-detection")
+    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
+    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
+
+        args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
+        assert args["event"].project.id == event.project.id
+        assert args["event_project_id"] == 1234
+        assert args["sample_rate"] == 0.1234
+
+    def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
+        self, mock_sdk_crash_detection
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
+
+    @with_feature("organizations:sdk-crash-detection")
+    def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
+
+
+@mock.patch.object(replays_kafka, "get_kafka_producer_cluster_options")
+@mock.patch.object(replays_kafka, "KafkaPublisher")
+@mock.patch("sentry.utils.metrics.incr")
+class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
+    def test_replay_linkage(self, incr, kafka_producer, kafka_publisher):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 1
+            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+
+            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+
+            assert ret_value["type"] == "replay_event"
+            assert ret_value["start_time"] == int(event.datetime.timestamp())
+            assert ret_value["replay_id"] == replay_id
+            assert ret_value["project_id"] == self.project.id
+            assert ret_value["segment_id"] is None
+            assert ret_value["retention_days"] == 90
+
+            # convert ret_value_payload which is a list of bytes to a string
+            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+            assert ret_value_payload == {
+                "type": "event_link",
+                "replay_id": replay_id,
+                "error_id": event.event_id,
+                "timestamp": int(event.datetime.timestamp()),
+                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+            }
+
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_no_replay(self, incr, kafka_producer, kafka_publisher):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
+            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+
+    def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
+
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": False}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
+            for args, _ in incr.call_args_list:
+                self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
 @region_silo_test
@@ -1448,6 +1736,8 @@ class PostProcessGroupErrorTest(
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
+    SDKCrashMonitoringTestMixin,
+    ReplayLinkageTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
@@ -1463,8 +1753,35 @@ class PostProcessGroupErrorTest(
             is_new_group_environment=is_new_group_environment,
             cache_key=cache_key,
             group_id=event.group_id,
+            project_id=event.project_id,
         )
         return cache_key
+
+    @with_feature("organizations:escalating-metrics-backend")
+    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
+    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.create_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "stacktrace": {"frames": [{"function": f} for f in ["a", "b"]]},
+                        }
+                    ]
+                },
+                "timestamp": min_ago,
+                "start_timestamp": min_ago,
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        assert generic_metrics_backend_mock.call_count == 1
 
 
 @region_silo_test
@@ -1476,17 +1793,12 @@ class PostProcessGroupPerformanceTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    PerformanceIssueTestCase,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        # Store a performance event
-        event = self.store_transaction(
-            project_id=project_id,
-            user_id="hi",
-            fingerprint=[fingerprint],
-        )
-        return event.for_group(event.groups[0])
+        return self.create_performance_issue(fingerprint=fingerprint)
 
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
@@ -1512,9 +1824,11 @@ class PostProcessGroupPerformanceTest(
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
                 group_states=group_states,
+                project_id=event.project_id,
             )
         return cache_key
 
+    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -1525,8 +1839,9 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_processor,
         run_post_process_job_mock,
+        generic_metrics_backend_mock,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         event = self.store_transaction(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
@@ -1549,6 +1864,7 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
+        assert generic_metrics_backend_mock.call_count == 0
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
@@ -1567,19 +1883,9 @@ class PostProcessGroupPerformanceTest(
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[
-                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
-                f"{PerformanceNPlusOneGroupType.type_id}-group2",
-            ],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 2
-        cache_key = write_event_to_cache(event)
+        event = self.create_performance_issue()
+        assert event.group
+        # cache_key = write_event_to_cache(event)
         group_state = dict(
             is_new=True,
             is_regression=False,
@@ -1589,22 +1895,24 @@ class PostProcessGroupPerformanceTest(
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
         # wait for the side effects to happen
-        call_order = []
-        mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
-        mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
-        mock_process_rules.side_effect = call_order.append(mock_process_rules)
+        call_order = [mock_handle_owner_assignment, mock_handle_auto_assignment, mock_process_rules]
+        mock_handle_owner_assignment.side_effect = None
+        mock_handle_auto_assignment.side_effect = None
+        mock_process_rules.side_effect = None
 
         post_process_group(
             **group_state,
-            cache_key=cache_key,
+            cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": group.id, **group_state} for group in event.groups],
+            group_states=[{"id": event.group.id, **group_state}],
+            occurrence_id=event.occurrence_id,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 2
+        assert run_post_process_job_mock.call_count == 1
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
@@ -1613,12 +1921,12 @@ class PostProcessGroupPerformanceTest(
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_process_transaction_event_clusterer(
         self,
         mock_store_transaction_name,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         event = process_event(
             data={
                 "project": self.project.id,
@@ -1644,7 +1952,9 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             group_states=None,
         )
 
-        assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+        assert mock_store_transaction_name.mock_calls == [
+            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
+        ]
 
 
 @region_silo_test
@@ -1717,3 +2027,11 @@ class PostProcessGroupGenericTest(
 
         # Make sure we haven't called this again, since we should exit early.
         assert mock_processor.call_count == 1
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared(self):
+        pass
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared_with_commits(self):
+        pass

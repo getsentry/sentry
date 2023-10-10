@@ -22,7 +22,6 @@ def test_retries():
     made since it times out.
     """
     connection_mock = mock.Mock()
-    connection_mock.request.side_effect = ReadTimeoutError(None, "test.com", "Timeout")
 
     snuba_pool = FakeConnectionPool(
         connection=connection_mock,
@@ -32,6 +31,8 @@ def test_retries():
         timeout=30,
         maxsize=10,
     )
+
+    connection_mock.request.side_effect = ReadTimeoutError(snuba_pool, "test.com", "Timeout")
 
     with pytest.raises(HTTPError):
         snuba_pool.urlopen("POST", "/query", body="{}")

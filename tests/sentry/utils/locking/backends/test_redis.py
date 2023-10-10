@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 from functools import cached_property
 from unittest import TestCase
 
 import pytest
 
-from sentry.utils.locking.backends.redis import RedisClusterLockBackend, RedisLockBackend
+from sentry.utils.locking.backends.redis import (
+    BaseRedisLockBackend,
+    RedisClusterLockBackend,
+    RedisLockBackend,
+)
 from sentry.utils.redis import clusters, redis_clusters
 
 
 class RedisBackendTestCaseBase:
-
-    backend_class = None
+    backend_class: type[BaseRedisLockBackend]
 
     @property
     def cluster(self):

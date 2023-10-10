@@ -2,8 +2,9 @@ import datetime
 import uuid
 from enum import Enum
 from unittest import TestCase
+from unittest.mock import patch
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.utils import json
 
@@ -48,3 +49,13 @@ class JSONTest(TestCase):
 
     def test_translation(self):
         self.assertEqual(json.dumps(_("word")), '"word"')
+
+    @patch("sentry_sdk.start_span")
+    def test_loads_with_sdk_trace(self, start_span_mock):
+        json.loads('{"test": "message"}')
+        start_span_mock.assert_called_once()
+
+    @patch("sentry_sdk.start_span")
+    def test_loads_without_sdk_trace(self, start_span_mock):
+        json.loads('{"test": "message"}', skip_trace=True)
+        start_span_mock.assert_not_called()

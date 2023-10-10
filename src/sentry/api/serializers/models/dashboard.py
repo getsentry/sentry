@@ -2,14 +2,14 @@ from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -36,7 +36,9 @@ class DashboardWidgetSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
+            "thresholds": obj.thresholds,
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
             "dateCreated": obj.date_added,

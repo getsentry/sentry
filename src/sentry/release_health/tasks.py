@@ -7,14 +7,11 @@ from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
@@ -31,7 +28,7 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     with metrics.timer(
@@ -46,7 +43,7 @@ def monitor_release_adoption(**kwargs) -> None:
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 

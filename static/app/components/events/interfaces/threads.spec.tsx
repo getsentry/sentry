@@ -1,3 +1,5 @@
+import merge from 'lodash/merge';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -204,7 +206,7 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {
+        render(<Threads {...props} />, {
           organization,
         });
 
@@ -224,8 +226,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('toggle full stack trace button', async function () {
@@ -629,7 +629,15 @@ describe('Threads', function () {
                   },
                   rawStacktrace: null,
                   state: 'BLOCKED',
-                  lockReason: 'waiting on tid=1',
+                  heldLocks: {
+                    '0x0d3a2f0a': {
+                      type: 8,
+                      address: '0x0d3a2f0a',
+                      package_name: 'java.lang',
+                      class_name: 'Object',
+                      thread_id: 11,
+                    },
+                  },
                 },
                 {
                   id: 1,
@@ -861,9 +869,11 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {organization});
+        render(<Threads {...props} />, {organization});
         // Title
-        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+        const threadSelector = screen.getByTestId('thread-selector');
+        expect(threadSelector).toBeInTheDocument();
+        within(threadSelector).getByText('main');
 
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
@@ -884,8 +894,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('renders thread state and lock reason', function () {
@@ -894,14 +902,16 @@ describe('Threads', function () {
           features: ['anr-improvements'],
         };
         const newProps = {...props, organization: newOrg};
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
-        expect(screen.getByText('Blocked')).toBeInTheDocument();
-        expect(screen.getAllByText('waiting on tid=1')).toHaveLength(2);
+        expect(screen.getAllByText('Blocked')).toHaveLength(2);
+        expect(
+          screen.getAllByText('waiting to lock <0x0d3a2f0a> held by thread 11')
+        ).toHaveLength(2);
         expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Actions
@@ -919,8 +929,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('hides thread tag event entry if none', function () {
@@ -973,10 +981,8 @@ describe('Threads', function () {
           },
           organization: newOrg,
         };
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
-
-        expect(container).toSnapshot();
       });
 
       it('maps android vm states to java vm states', function () {
@@ -988,7 +994,7 @@ describe('Threads', function () {
           id: 0,
           current: false,
           crashed: true,
-          name: null,
+          name: 'main',
           stacktrace: {
             frames: [
               {
@@ -1039,8 +1045,9 @@ describe('Threads', function () {
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
-        // WaitingPerformingGc maps to Waiting
-        expect(screen.getByText('Waiting')).toBeInTheDocument();
+        // WaitingPerformingGc maps to Waiting for both Thread tag and Thread State
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
+        expect(screen.getAllByText('Waiting')).toHaveLength(2);
       });
 
       it('toggle full stack trace button', async function () {
@@ -1183,6 +1190,105 @@ describe('Threads', function () {
 
         // Raw stack trace option
         expect(screen.getByRole('option', {name: 'Raw stack trace'})).toBeInTheDocument();
+      });
+
+      it('uses thread label in selector if name not available', function () {
+        const newEvent = {...event};
+        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+          typeof Threads
+        >['data'];
+        const thread = {
+          id: 0,
+          current: false,
+          crashed: true,
+          name: null,
+          stacktrace: {
+            frames: [
+              {
+                filename: null,
+                absPath: null,
+                module: null,
+                package: '/System/Library/Frameworks/UIKit.framework/UIKit',
+                platform: null,
+                instructionAddr: '0x197885c54',
+                symbolAddr: '0x197885bf4',
+                function: '<redacted>',
+                rawFunction: null,
+                symbol: null,
+                context: [],
+                lineNo: null,
+                colNo: null,
+                inApp: false,
+                trust: null,
+                errors: null,
+                vars: null,
+              },
+            ],
+            registers: {},
+            framesOmitted: null,
+            hasSystemFrames: true,
+          },
+          rawStacktrace: null,
+        };
+        threadsEntry.values = [
+          {
+            ...thread,
+          },
+          {
+            ...thread,
+            id: 1,
+          },
+        ];
+        const newProps = {...props, event: newEvent};
+        render(<Threads {...newProps} />, {organization});
+        // Title
+        const threadSelector = screen.getByTestId('thread-selector');
+        expect(threadSelector).toBeInTheDocument();
+        within(threadSelector).getByText('ViewController.causeCrash');
+      });
+
+      it('renders raw stack trace', async function () {
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
+          body: 'crash report content',
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true`,
+          body: 'crash report content (minified)',
+        });
+
+        // Need rawStacktrace: true to enable the "minified" option in the UI
+        const eventWithMinifiedOption = merge({}, event, {
+          entries: [{data: {values: [{rawStacktrace: true}]}}],
+        });
+        render(<Threads {...props} event={eventWithMinifiedOption} />, {organization});
+
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        expect(await screen.findByText('Display')).toBeInTheDocument();
+
+        // Click on raw stack trace option
+        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+
+        // Raw crash report content should be displayed
+        await screen.findByText('crash report content');
+
+        // Download button should have correct URL
+        expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+          'href',
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&download=1`
+        );
+
+        // Click on minified option
+        await userEvent.click(screen.getByText(displayOptions.minified));
+
+        // Raw crash report content should be displayed (now with minified response)
+        await screen.findByText('crash report content (minified)');
+
+        // Download button should nonw have minified=true
+        expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+          'href',
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&download=1`
+        );
       });
     });
   });

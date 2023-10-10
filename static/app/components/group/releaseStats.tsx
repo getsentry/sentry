@@ -6,20 +6,27 @@ import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {useApiQuery} from 'sentry/utils/queryClient';
+
+import QuestionTooltip from '../questionTooltip';
 
 type Props = {
-  allEnvironments: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
-  environments: Environment[];
-  group: Group | undefined;
+  environments: string[];
   organization: Organization;
   project: Project;
+  allEnvironments?: Group;
+  currentRelease?: CurrentRelease;
+  group?: Group;
+};
+
+type GroupRelease = {
+  firstRelease: Release;
+  lastRelease: Release;
 };
 
 function GroupReleaseStats({
@@ -30,22 +37,34 @@ function GroupReleaseStats({
   group,
   currentRelease,
 }: Props) {
-  const environment =
-    environments.length > 0
-      ? environments.map(env => env.displayName).join(', ')
-      : undefined;
+  const environment = environments.length > 0 ? environments.join(', ') : undefined;
   const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0].displayName
+      ? environments[0]
       : undefined;
+
+  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
+    [
+      defined(group)
+        ? `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`
+        : '',
+    ],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
+
+  const firstRelease = groupReleaseData?.firstRelease;
+  const lastRelease = groupReleaseData?.lastRelease;
 
   const projectId = project.id;
   const projectSlug = project.slug;
-  const hasRelease = new Set(project.features).has('releases');
+  const hasRelease = project.features.includes('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
@@ -86,17 +105,11 @@ function GroupReleaseStats({
 
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              <Fragment>
-                {t('Last Seen')}
-                <TooltipWrapper>
-                  <Tooltip
-                    title={t('When the most recent event in this issue was captured.')}
-                    disableForVisualTest
-                  >
-                    <IconQuestion size="sm" color="gray200" />
-                  </Tooltip>
-                </TooltipWrapper>
-              </Fragment>
+              {t('Last Seen')}
+              <QuestionTooltip
+                title={t('When the most recent event in this issue was captured.')}
+                size="xs"
+              />
             </SidebarSection.Title>
             <StyledSidebarSectionContent>
               <SeenInfo
@@ -110,24 +123,18 @@ function GroupReleaseStats({
                 dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
-                release={group.lastRelease || null}
+                release={lastRelease}
                 title={t('Last Seen')}
               />
             </StyledSidebarSectionContent>
           </SidebarSection.Wrap>
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              <Fragment>
-                {t('First Seen')}
-                <TooltipWrapper>
-                  <Tooltip
-                    title={t('When the first event in this issue was captured.')}
-                    disableForVisualTest
-                  >
-                    <IconQuestion size="sm" color="gray200" />
-                  </Tooltip>
-                </TooltipWrapper>
-              </Fragment>
+              {t('First Seen')}
+              <QuestionTooltip
+                title={t('When the first event in this issue was captured.')}
+                size="xs"
+              />
             </SidebarSection.Title>
             <StyledSidebarSectionContent>
               <SeenInfo
@@ -141,7 +148,7 @@ function GroupReleaseStats({
                 dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
-                release={group.firstRelease || null}
+                release={firstRelease}
                 title={t('First seen')}
               />
             </StyledSidebarSectionContent>
@@ -163,10 +170,6 @@ function GroupReleaseStats({
 }
 
 export default memo(GroupReleaseStats);
-
-const TooltipWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-`;
 
 const GraphContainer = styled('div')`
   margin-bottom: ${space(3)};

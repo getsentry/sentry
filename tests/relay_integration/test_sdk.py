@@ -7,9 +7,21 @@ from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
-from sentry.testutils import assert_mock_called_once_with_partial
-from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
+from sentry.models.userrole import manage_default_super_admin_role
+from sentry.receivers import create_default_projects
+from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
+from sentry.testutils.skips import requires_kafka
 from sentry.utils.sdk import bind_organization_context, configure_sdk
+
+pytestmark = [requires_kafka]
+
+
+@pytest.fixture(autouse=True)
+def setup_fixtures():
+    manage_default_super_admin_role()
+    create_default_projects()
 
 
 @pytest.fixture
@@ -40,18 +52,19 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
             assert Hub.current.client is not None
 
             event_id = hub.capture_event(*args, **kwargs)
+            assert hub.client is not None
             hub.client.flush()
 
             with push_scope():
                 return wait_for_ingest_consumer(
-                    lambda: eventstore.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+                    lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
                 )
 
         yield inner
 
 
 @override_settings(SENTRY_PROJECT=1)
-@pytest.mark.django_db
+@django_db_all
 def test_simple(settings, post_event_with_sdk):
     event = post_event_with_sdk({"message": "internal client test"})
 
@@ -61,7 +74,7 @@ def test_simple(settings, post_event_with_sdk):
 
 
 @override_settings(SENTRY_PROJECT=1)
-@pytest.mark.django_db
+@django_db_all
 def test_recursion_breaker(settings, post_event_with_sdk):
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
@@ -77,7 +90,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
-@pytest.mark.django_db
+@django_db_all
 @override_settings(SENTRY_PROJECT=1)
 def test_encoding(settings, post_event_with_sdk):
     class NotJSONSerializable:
@@ -93,9 +106,8 @@ def test_encoding(settings, post_event_with_sdk):
 
 
 @override_settings(SENTRY_PROJECT=1)
-@pytest.mark.django_db
+@django_db_all
 def test_bind_organization_context(default_organization):
-
     configure_sdk()
 
     bind_organization_context(default_organization)
@@ -109,8 +121,9 @@ def test_bind_organization_context(default_organization):
 
 
 @override_settings(SENTRY_PROJECT=1)
-@pytest.mark.django_db
+@django_db_all
 def test_bind_organization_context_with_callback(settings, default_organization):
+    create_default_projects()
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
@@ -123,7 +136,7 @@ def test_bind_organization_context_with_callback(settings, default_organization)
 
 
 @override_settings(SENTRY_PROJECT=1)
-@pytest.mark.django_db
+@django_db_all
 def test_bind_organization_context_with_callback_error(settings, default_organization):
     configure_sdk()
 

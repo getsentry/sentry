@@ -4,7 +4,7 @@ import pytest
 
 from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
 from sentry.notifications.utils.tasks import _send_notification, async_send_notification
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import AnotherDummyNotification, DummyNotification
 
 

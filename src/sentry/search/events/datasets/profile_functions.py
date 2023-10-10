@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Mapping, Optional, Union
 
-from snuba_sdk import Column as SnColumn
+from snuba_sdk import Column as SnQLColumn
 from snuba_sdk import Condition, Direction, Op, OrderBy
+from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
@@ -15,12 +17,11 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
-    Function,
     InvalidFunctionArgument,
-    InvalidSearchQuery,
     NumberRange,
     NumericColumn,
     SnQLFunction,
+    TimestampArg,
     with_default,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
@@ -54,7 +55,7 @@ class Column:
 
     # the internal name in snuba
     column: str
-    # type kind/type associated with this column
+    # data type associated with this column
     kind: Kind
     # the external name to expose
     alias: Optional[str] = None
@@ -67,26 +68,34 @@ COLUMNS = [
     Column(alias="project_id", column="project_id", kind=Kind.INTEGER),
     Column(alias="transaction", column="transaction_name", kind=Kind.STRING),
     Column(alias="timestamp", column="timestamp", kind=Kind.DATE),
-    Column(alias="depth", column="depth", kind=Kind.INTEGER),
-    Column(alias="parent_fingerprint", column="parent_fingerprint", kind=Kind.INTEGER),
-    Column(alias="fingerprint", column="fingerprint", kind=Kind.INTEGER),
-    Column(alias="name", column="name", kind=Kind.STRING),
+    Column(alias="_fingerprint", column="fingerprint", kind=Kind.INTEGER),
+    Column(alias="function", column="name", kind=Kind.STRING),
     Column(alias="package", column="package", kind=Kind.STRING),
-    Column(alias="path", column="path", kind=Kind.STRING),
     Column(alias="is_application", column="is_application", kind=Kind.INTEGER),
     Column(alias="platform.name", column="platform", kind=Kind.STRING),
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="release", column="release", kind=Kind.STRING),
-    Column(alias="os.name", column="os_name", kind=Kind.STRING),
-    Column(alias="os.version", column="os_version", kind=Kind.STRING),
-    Column(alias="retention_days", column="retention_days", kind=Kind.INTEGER),
-    Column(alias="percentiles", column="percentiles", kind=Kind.DURATION),
+    Column(
+        alias="function.duration",
+        column="percentiles",
+        kind=Kind.DURATION,
+        unit=Duration.NANOSECOND,
+    ),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
+AGG_STATE_COLUMNS = [
+    "count",
+    "percentiles",
+    "avg",
+    "sum",
+    "min",
+    "max",
+]
 
-class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
+
+class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -99,7 +108,7 @@ class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -126,19 +135,13 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "project.id",
         "project_id",
-        "transaction_name",
+        "transaction",
         "timestamp",
-        "depth",
-        "parent_fingerprint",
-        "fingerprint",
-        "name",
+        "_fingerprint",
+        "function",
         "package",
-        "path",
         "is_application",
-        "platform",
-        "os_name",
-        "os_version",
-        "retention_days",
+        "platform.name",
     }
 
     def __init__(self, builder: builder.QueryBuilder):
@@ -149,10 +152,23 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
+            "fingerprint": self._fingerprint_filter_converter,
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
+
+    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        try:
+            return Condition(
+                self.builder.resolve_column("fingerprint"),
+                Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
+                int(search_filter.value.value),
+            )
+        except ValueError:
+            raise InvalidSearchQuery(
+                "Invalid value for fingerprint condition. Accepted values are numeric."
+            )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
@@ -192,9 +208,20 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
+            "fingerprint": self._resolve_fingerprint_alias,
             PROJECT_ALIAS: self._resolve_project_slug_alias,
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
         }
+
+    def _resolve_fingerprint_alias(self, alias: str) -> SelectType:
+        # HACK: temporarily truncate the fingerprint to 32 bits
+        # as snuba cannot handle 64 bit unsigned fingerprints
+        # once we migrate to a 32 bit unsigned fingerprint
+        # we can remove this field alias and directly use the column
+        #
+        # When removing this, make sure to update the test helper to
+        # generate 32 bit function fingerprints as well.
+        return Function("toUInt32", [self.builder.column("_fingerprint")], alias)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
@@ -207,32 +234,60 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "count",
                     snql_aggregate=lambda _, alias: Function(
-                        "count",
-                        [SnColumn("count")],
+                        "countMerge",
+                        [SnQLColumn("count")],
                         alias,
                     ),
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "count_unique",
+                    required_args=[ProfileFunctionColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
                     "worst",
                     snql_aggregate=lambda _, alias: Function(
-                        "argMaxMerge",
-                        [SnColumn("worst")],
+                        "replaceAll",
+                        [
+                            Function(
+                                "toString",
+                                [Function("argMaxMerge", [SnQLColumn("worst")])],
+                            ),
+                            "-",
+                            "",
+                        ],
                         alias,
                     ),
-                    default_result_type="string",
+                    default_result_type="string",  # TODO: support array type
                 ),
                 SnQLFunction(
                     "examples",
                     snql_aggregate=lambda _, alias: Function(
-                        "groupUniqArrayMerge(5)",
-                        [SnColumn("examples")],
+                        "arrayMap",
+                        [
+                            # TODO: should this transform be moved to snuba?
+                            Lambda(
+                                ["x"],
+                                Function(
+                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
+                                ),
+                            ),
+                            Function(
+                                "arrayPushFront",
+                                [
+                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                                    Function("argMaxMerge", [SnQLColumn("worst")]),
+                                ],
+                            ),
+                        ],
                         alias,
                     ),
-                    default_result_type="string",
+                    default_result_type="string",  # TODO: support array type
                 ),
                 SnQLFunction(
-                    "percentiles",
+                    "percentile",
                     required_args=[
                         ProfileFunctionNumericColumn("column"),
                         NumberRange("percentile", 0, 1),
@@ -245,7 +300,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p50",
                     optional_args=[
-                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
                     result_type_fn=self.reflective_result_type(),
@@ -255,7 +310,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p75",
                     optional_args=[
-                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
                     result_type_fn=self.reflective_result_type(),
@@ -265,7 +320,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p95",
                     optional_args=[
-                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
                     result_type_fn=self.reflective_result_type(),
@@ -275,9 +330,77 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p99",
                     optional_args=[
-                        with_default("percentiles", ProfileFunctionNumericColumn("column")),
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "avgMerge",
+                        [SnQLColumn("avg")],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "sum",
+                    optional_args=[
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "sumMerge",
+                        [SnQLColumn("sum")],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_before",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "less"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_after",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "greater"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_delta",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=self._resolve_percentile_delta,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -346,6 +469,47 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     [args["column"]],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_cond(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        return Function(
+            "arrayElement",
+            [
+                Function(
+                    f'quantilesMergeIf({args["percentile"]})',
+                    [
+                        args["column"],
+                        Function(
+                            cond,
+                            [
+                                self.builder.column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                1,
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_delta(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                self._resolve_percentile_cond(args, None, "greater"),
+                self._resolve_percentile_cond(args, None, "less"),
             ],
             alias,
         )

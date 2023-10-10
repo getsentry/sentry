@@ -1,4 +1,4 @@
-import {IconArrow, IconGlobe, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
+import {IconArrow, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
 import {IconGraphArea} from 'sentry/icons/iconGraphArea';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 
@@ -8,8 +8,6 @@ export function getWidgetIcon(displayType: DisplayType) {
   switch (displayType) {
     case DisplayType.TABLE:
       return IconMenu;
-    case DisplayType.WORLD_MAP:
-      return IconGlobe;
     case DisplayType.BIG_NUMBER:
       return IconNumber;
     case DisplayType.BAR:

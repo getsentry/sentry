@@ -1,6 +1,6 @@
 from django import forms
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
 
 

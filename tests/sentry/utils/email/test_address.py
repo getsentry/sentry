@@ -1,4 +1,4 @@
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.email.address import (
     get_from_email_domain,
@@ -45,7 +45,7 @@ class ParseEmailTest(TestCase):
         assert parse_email("lauryn <lauryn@sentry.io>") == "lauryn@sentry.io"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class ParseUserNameTest(TestCase):
     def test_empty(self):
         assert parse_user_name("") == ""

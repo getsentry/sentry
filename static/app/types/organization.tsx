@@ -1,3 +1,4 @@
+import {Project} from 'sentry/types/project';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -17,6 +18,9 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubNudgeInvite: boolean;
+  githubOpenPRBot: boolean;
+  githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
   links: {
@@ -50,6 +54,7 @@ export interface Organization extends OrganizationSummary {
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
   isDefault: boolean;
+  isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
   orgRoleList: OrgRole[];
@@ -60,7 +65,7 @@ export interface Organization extends OrganizationSummary {
     maxRateInterval: number | null;
     projectLimit: number | null;
   };
-  relayPiiConfig: string;
+  relayPiiConfig: string | null;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -68,7 +73,14 @@ export interface Organization extends OrganizationSummary {
   storeCrashReports: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  desiredSampleRate?: number | null;
+  effectiveSampleRate?: number | null;
   orgRole?: string;
+}
+
+export interface DetailedOrganization extends Organization {
+  projects: Project[];
+  teams: Team[];
 }
 
 export interface Team {
@@ -84,9 +96,9 @@ export interface Team {
   isPending: boolean;
   memberCount: number;
   name: string;
-  orgRole: string | null;
   slug: string;
   teamRole: string | null;
+  orgRole?: string | null;
 }
 
 // TODO: Rename to BaseRole
@@ -128,23 +140,36 @@ export interface Member {
   isOnlyOwner: boolean;
   name: string;
   orgRole: OrgRole['id'];
-  orgRoleList: OrgRole[]; // TODO: Move to global store
-  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
+  orgRoleList: OrgRole[];
   pending: boolean | undefined;
   projects: string[];
-
-  // Avoid using these keys
-  role: OrgRole['id']; // Deprecated: use orgRole
+  /**
+   * @deprecated use orgRole
+   */
+  role: OrgRole['id'];
   roleName: string;
-  roles: OrgRole[]; // Deprecated: use orgRoleList
+  /**
+   * @deprecated use orgRoleList
+   */
+  roles: OrgRole[];
+  teamRoleList: TeamRole[];
 
-  teamRoleList: TeamRole[]; // TODO: Move to global store
+  // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
   }[];
-  teams: string[]; // # Deprecated, use teamRoles
-  user: User;
+  /**
+   * @deprecated use teamRoles
+   */
+  teams: string[];
+  // # Deprecated, use teamRoles
+  /**
+   * User may be null when the member represents an invited member
+   */
+  user: User | null;
+  // TODO: Move to global store
+  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
@@ -153,6 +178,17 @@ export interface Member {
 export interface TeamMember extends Member {
   teamRole?: string | null;
   teamSlug?: string;
+}
+
+/**
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
+ */
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  // The user's ID in the repository provider (e.g. Github username)
+  externalId: string;
 }
 
 /**
@@ -195,20 +231,20 @@ export type SavedQueryVersions = 1 | 2;
 export interface NewQuery {
   fields: Readonly<string[]>;
   name: string;
-  projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
   display?: string;
-  end?: string;
+  end?: string | Date;
   environment?: Readonly<string[]>;
   expired?: boolean;
   id?: string;
   interval?: string;
   orderby?: string;
+  projects?: Readonly<number[]>;
   query?: string;
   range?: string;
-  start?: string;
+  start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;
@@ -229,12 +265,12 @@ export type SavedQueryState = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
-export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;

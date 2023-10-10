@@ -11,9 +11,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils import json
 
 from .events import PullRequestEventWebhook, PushEventWebhook
@@ -37,7 +36,7 @@ class GithubWebhookBase(View, abc.ABC):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -49,7 +48,7 @@ class GithubWebhookBase(View, abc.ABC):
     def get_secret(self, organization: Organization) -> str | None:
         raise NotImplementedError
 
-    def handle(self, request: Request, organization=None) -> Response:
+    def handle(self, request: Request, organization=None) -> HttpResponse:
         secret = self.get_secret(organization)
         if secret is None:
             logger.info("github.webhook.missing-secret", extra=self.get_logging_data(organization))

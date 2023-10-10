@@ -1,19 +1,20 @@
 import pytest
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
     BoundedPositiveIntegerField,
     Model,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 # There's a good chance this model wont get created in the db, so avoid
 # assuming it exists in these tests.
 class DummyModel(Model):
-    __include_in_export__ = False  # needs defined for Sentry to not yell at you
+    __relocation_scope__ = RelocationScope.Excluded
 
     foo = models.CharField(max_length=32)
     normint = BoundedIntegerField(null=True)

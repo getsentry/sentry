@@ -22,7 +22,6 @@ const Panel = styled(
   border-radius: ${p => p.theme.panelBorderRadius};
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};
-  box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowMedium)};
   margin-bottom: ${space(2)};
   position: relative;
 `;

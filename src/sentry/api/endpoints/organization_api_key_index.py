@@ -3,19 +3,27 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationAdminPermission,
+)
 from sentry.api.serializers import serialize
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
 
-@region_silo_endpoint
-class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization_context, organization) -> Response:
         """
         List an Organization's API Keys
         ```````````````````````````````````
@@ -29,7 +37,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
 
         return Response(serialize(queryset, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization_context, organization) -> Response:
         """
         Create an Organization API Key
         ```````````````````````````````````

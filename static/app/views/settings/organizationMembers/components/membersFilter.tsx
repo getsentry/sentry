@@ -9,7 +9,6 @@ type Props = {
   onChange: (query: string) => void;
   query: string;
   roles: OrgRole[];
-  className?: string;
 };
 
 type Filters = {

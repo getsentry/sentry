@@ -17,12 +17,12 @@ export enum VisualizationDataState {
 }
 
 export enum GenericPerformanceWidgetDataType {
-  histogram = 'histogram',
-  area = 'area',
-  vitals = 'vitals',
-  line_list = 'line_list',
-  trends = 'trends',
-  stacked_area = 'stacked_area',
+  HISTOGRAM = 'histogram',
+  AREA = 'area',
+  VITALS = 'vitals',
+  LINE_LIST = 'line_list',
+  TRENDS = 'trends',
+  STACKED_AREA = 'stacked_area',
 }
 
 export type PerformanceWidgetProps = {
@@ -37,10 +37,11 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
-
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
+
+  subTitle?: string;
 
   withStaticFilters?: boolean;
 };
@@ -78,7 +79,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
 
 export type QueryDefinition<
   T extends WidgetDataConstraint,
-  S extends WidgetDataResult | undefined
+  S extends WidgetDataResult | undefined,
 > = {
   component: QueryFC<T>;
   fields: string | string[];
@@ -140,10 +141,11 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   title: string;
   titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
-
   HeaderActions?: HeaderActions<T>;
+
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
+  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =

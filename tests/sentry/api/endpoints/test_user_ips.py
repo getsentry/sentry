@@ -1,13 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
-
-from sentry.models import UserIP
-from sentry.testutils import APITestCase
+from sentry.models.userip import UserIP
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserEmailsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 

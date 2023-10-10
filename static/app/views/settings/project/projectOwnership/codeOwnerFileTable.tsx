@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -62,7 +62,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw},
+          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
         }
       );
       onUpdate({...codeowner, ...data});

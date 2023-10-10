@@ -3,19 +3,15 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
-from sentry.models import (
-    ApiApplication,
-    AuditLogEntry,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import faux
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -131,11 +127,7 @@ class TestCreator(TestCase):
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
-        self.creator.schema = ""
-        assert self.creator.run(user=self.user)
-
-    def test_none_schema(self):
-        self.creator.schema = None
+        self.creator.schema = {}
         assert self.creator.run(user=self.user)
 
     def test_schema_with_no_elements(self):
@@ -239,10 +231,14 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        call = faux(create_audit_entry)
-        assert call.kwarg_equals("organization_id", self.org.id)
-        assert call.kwarg_equals("target_object", self.org.id)
-        assert call.kwarg_equals("event", audit_log.get_event_id("INTERNAL_INTEGRATION_ADD"))
+        (
+            _,
+            _,
+            (_, kwargs),
+        ) = create_audit_entry.call_args_list
+        assert kwargs["organization_id"] == self.org.id
+        assert kwargs["target_object"] == self.org.id
+        assert kwargs["event"] == audit_log.get_event_id("INTERNAL_INTEGRATION_ADD")
 
     @patch("sentry.analytics.record")
     @patch("sentry.utils.audit.create_audit_entry")
@@ -258,9 +254,9 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        assert faux(record).args_equals("internal_integration.created")
-        assert faux(record).kwargs == {
-            "user_id": self.user.id,
-            "organization_id": self.org.id,
-            "sentry_app": sentry_app.slug,
-        }
+        record.assert_called_with(
+            "internal_integration.created",
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app=sentry_app.slug,
+        )

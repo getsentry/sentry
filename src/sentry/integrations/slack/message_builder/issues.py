@@ -2,29 +2,33 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from django.core.cache import cache
-
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
+    build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
     build_footer,
     format_actor_options,
+    get_color,
+    get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.issues.grouptype import GroupCategory
-from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.models.actor import ActorTuple
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
@@ -41,8 +45,10 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
         assignee_identity = identity_service.get_identity(
-            provider_id=identity.idp_id,
-            user_id=assigned_actor.id,
+            filter={
+                "provider_id": identity.idp_id,
+                "user_id": assigned_actor.id,
+            }
         )
         assignee_text = (
             assigned_actor.get_display_name()
@@ -55,7 +61,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
+def build_action_text(
+    identity: RpcIdentity, action: MessageAction, has_escalating: bool = False
+) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -65,7 +73,7 @@ def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | Non
 
     # Resolve actions have additional 'parameters' after ':'
     status = STATUSES.get((action.value or "").split(":", 1)[0])
-
+    status = "archived" if status == "ignored" and has_escalating else status
     # Action has no valid action text, ignore
     if not status:
         return None
@@ -96,7 +104,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = user_service.get_from_group(group=group)
+    all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
 
@@ -110,22 +118,8 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def has_releases(project: Project) -> bool:
-    cache_key = f"has_releases:2:{project.id}"
-    has_releases_option: bool | None = cache.get(cache_key)
-    if has_releases_option is None:
-        has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
-        if has_releases_option:
-            cache.set(cache_key, True, 3600)
-        else:
-            cache.set(cache_key, False, 60)
-    return has_releases_option
-
-
 def get_action_text(
-    text: str,
-    actions: Sequence[Any],
-    identity: RpcIdentity,
+    text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
     return (
         text
@@ -133,7 +127,9 @@ def get_action_text(
         + "\n".join(
             [
                 action_text
-                for action_text in [build_action_text(identity, action) for action in actions]
+                for action_text in [
+                    build_action_text(identity, action, has_escalating) for action in actions
+                ]
                 if action_text
             ]
         )
@@ -149,14 +145,16 @@ def build_actions(
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
+    has_escalating = features.has("organizations:escalating-issues", project.organization)
+
     if actions and identity:
-        text = get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity, has_escalating)
         return [], text, "_actioned_issue"
 
     ignore_button = MessageAction(
         name="status",
-        label="Ignore",
-        value="ignored",
+        label="Archive" if has_escalating else "Ignore",
+        value="ignored:until_escalating" if has_escalating else "ignored:forever",
     )
 
     resolve_button = MessageAction(
@@ -167,7 +165,7 @@ def build_actions(
 
     status = group.get_status()
 
-    if not has_releases(project):
+    if not project.flags.has_releases:
         resolve_button = MessageAction(
             name="status",
             label="Resolve",
@@ -178,14 +176,14 @@ def build_actions(
         resolve_button = MessageAction(
             name="status",
             label="Unresolve",
-            value="unresolved",
+            value="unresolved:ongoing",
         )
 
     if status == GroupStatus.IGNORED:
         ignore_button = MessageAction(
             name="status",
-            label="Stop Ignoring",
-            value="unresolved",
+            label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
+            value="unresolved:ongoing",
         )
 
     assignee = group.get_assignee()
@@ -198,35 +196,6 @@ def build_actions(
     )
 
     return [resolve_button, ignore_button, assign_button], text, color
-
-
-def get_timestamp(group: Group, event: GroupEvent | None) -> float:
-    ts = group.last_seen
-    return to_timestamp(max(ts, event.datetime) if event else ts)
-
-
-def get_color(
-    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
-) -> str:
-    if notification:
-        if not isinstance(notification, AlertRuleNotification):
-            return "info"
-    if event_for_tags:
-        color: str | None = event_for_tags.get_tag("level")
-        if (
-            hasattr(event_for_tags, "occurrence")
-            and event_for_tags.occurrence is not None
-            and event_for_tags.occurrence.level is not None
-        ):
-            color = event_for_tags.occurrence.level
-        if color and color in LEVEL_TO_COLOR.keys():
-            return color
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
-        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
-        return "info"
-
-    return "error"
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
@@ -243,7 +212,8 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
-        recipient: Team | User | None = None,
+        recipient: RpcActor | None = None,
+        is_unfurl: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -256,17 +226,29 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
+        self.is_unfurl = is_unfurl
 
     @property
     def escape_text(self) -> bool:
         """
         Returns True if we need to escape the text in the message.
         """
-        return features.has("organizations:slack-escape-messages", self.group.project.organization)
+        return True
 
-    def build(self) -> SlackBody:
+    def build(self, notification_uuid: str | None = None) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+
+        if self.escape_text:
+            text = escape_slack_text(text)
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
+            if self.is_unfurl:
+                text = escape_slack_text(text)
+
+        # This link does not contain user input (it's a static label and a url), must not escape it.
+        text += build_attachment_replay_link(self.group, self.event) or ""
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -279,12 +261,19 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
-        if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
+        if not self.issue_details or (
+            self.recipient and self.recipient.actor_type == ActorType.TEAM
+        ):
             payload_actions, text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
         else:
             payload_actions = []
+
+        rule_id = None
+        if self.rules:
+            rule_id = self.rules[0].id
+
         return self._build(
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),
@@ -301,6 +290,8 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 self.issue_details,
                 self.notification,
                 ExternalProviders.SLACK,
+                rule_id,
+                notification_uuid=notification_uuid,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
@@ -315,8 +306,18 @@ def build_group_attachment(
     rules: list[Rule] | None = None,
     link_to_event: bool = False,
     issue_details: bool = False,
+    is_unfurl: bool = False,
+    notification_uuid: str | None = None,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
-        group, event, tags, identity, actions, rules, link_to_event, issue_details
-    ).build()
+        group,
+        event,
+        tags,
+        identity,
+        actions,
+        rules,
+        link_to_event,
+        issue_details,
+        is_unfurl=is_unfurl,
+    ).build(notification_uuid=notification_uuid)

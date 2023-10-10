@@ -1,10 +1,8 @@
-import mimetypes
-
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
-from django.utils.functional import cached_property
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositiveIntegerField
 
@@ -12,7 +10,7 @@ from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositive
 # Based heavily on EventAttachment
 @region_silo_only_model
 class ReplayRecordingSegment(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()
     replay_id = models.CharField(max_length=32, db_index=True)
@@ -32,18 +30,8 @@ class ReplayRecordingSegment(Model):
 
     __repr__ = sane_repr("replay_id", "segment_id", "file_id")
 
-    @cached_property
-    def mimetype(self):
-        from sentry.models import File
-
-        file = File.objects.get(id=self.file_id)
-        rv = file.headers.get("Content-Type")
-        if rv:
-            return rv.split(";")[0].strip()
-        return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
-
     def delete(self, *args, **kwargs):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         try:
             file = File.objects.get(id=self.file_id)

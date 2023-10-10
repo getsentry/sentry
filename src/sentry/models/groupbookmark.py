@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -19,7 +20,7 @@ class GroupBookmark(Model):
     aggregated event (Group).
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", related_name="bookmark_set")
     group = FlexibleForeignKey("sentry.Group", related_name="bookmark_set")

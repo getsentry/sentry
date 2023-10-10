@@ -89,12 +89,14 @@ from typing import Any, Dict, List, Literal, Sequence, Tuple, Union
 import redis
 import sentry_sdk
 from django.conf import settings
+from django.db import router
 
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -162,7 +164,7 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def backup_unprocessed_event(project, data):
+def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -185,7 +187,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
-        event = eventstore.get_event_by_id(project_id, event_id)
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
@@ -217,7 +219,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
 def reprocess_event(project_id, event_id, start_time):
 
-    from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
     reprocessable_event = pull_event_data(project_id, event_id)
@@ -593,7 +595,7 @@ def start_group_reprocessing(
 ):
     from django.db import transaction
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(models.Group)):
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
         original_substatus = group.substatus
@@ -642,7 +644,7 @@ def start_group_reprocessing(
     # and simplified from groupserializer.
     event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
-        dataset=snuba.Dataset.Events,  # from
+        dataset=Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
         referrer="reprocessing2.start_group_reprocessing",
     )["data"][0]["times_seen"]

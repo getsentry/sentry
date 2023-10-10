@@ -4,7 +4,7 @@ from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
-from .client import PagerDutyClient
+from .client import PagerDutyPluginClient
 
 
 class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
@@ -100,7 +100,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
                 service_key = route_service_key
                 break
 
-        client = PagerDutyClient(service_key=service_key)
+        client = PagerDutyPluginClient(service_key=service_key)
         try:
             response = client.trigger_incident(
                 description=description,
@@ -119,4 +119,4 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             )
             assert response["status"] == "success"
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)

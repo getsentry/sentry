@@ -51,8 +51,8 @@ class DjangoAtomicIntegration(Integration):
                 del self._sentry_sdk_span
             return rv
 
-        Atomic.__enter__ = _enter
-        Atomic.__exit__ = _exit
+        Atomic.__enter__ = _enter  # type: ignore[method-assign]
+        Atomic.__exit__ = _exit  # type: ignore[method-assign]
 
 
 def table_exists(name, using=DEFAULT_DB_ALIAS):

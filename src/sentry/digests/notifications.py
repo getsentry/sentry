@@ -9,14 +9,19 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 from sentry import tsdb
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.tsdb.base import TSDBModel
 from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Notification = namedtuple("Notification", "event rules")
+Notification = namedtuple(
+    "Notification", "event rules notification_uuid", defaults=(None, None, None)
+)
 
 
 def split_key(
@@ -56,13 +61,15 @@ def unsplit_key(
     return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
 
 
-def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
+def event_to_record(
+    event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
+) -> Record:
     if not rules:
         logger.warning(f"Creating record for {event} that does not contain any rules!")
 
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules]),
+        Notification(event, [rule.id for rule in rules], notification_uuid),
         to_timestamp(event.datetime),
     )
 
@@ -84,14 +91,14 @@ def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any
             itertools.chain.from_iterable(record.value.rules for record in records)
         ),
         "event_counts": tsdb.get_sums(
-            tsdb.models.group,
+            TSDBModel.group,
             list(groups.keys()),
             start,
             end,
             tenant_ids=tenant_ids,
         ),
         "user_counts": tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             list(groups.keys()),
             start,
             end,
@@ -144,14 +151,18 @@ def rewrite_record(
 
     return Record(
         record.key,
-        Notification(event, [_f for _f in [rules.get(id) for id in record.value.rules] if _f]),
+        Notification(
+            event,
+            [_f for _f in [rules.get(id) for id in record.value.rules] if _f],
+            record.value.notification_uuid,
+        ),
         record.timestamp,
     )
 
 
 def group_records(
     groups: MutableMapping[str, Mapping[str, MutableSequence[Record]]], record: Record
-) -> Mapping[str, Mapping[str, Sequence[Record]]]:
+) -> MutableMapping[str, Mapping[str, MutableSequence[Record]]]:
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
@@ -190,9 +201,7 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
 
 
 def check_group_state(record: Record) -> bool:
-    # Explicitly typing to satisfy mypy.
-    is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
-    return is_unresolved
+    return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
 
 
 def build_digest(

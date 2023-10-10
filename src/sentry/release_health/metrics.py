@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     List,
     Literal,
@@ -19,7 +20,7 @@ from typing import (
 from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit
 
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -45,7 +46,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MetricField,
     MetricGroupByField,
@@ -75,7 +76,7 @@ MINUTE = 60  # 60 seconds
 HOUR = MINUTE * 60
 DAY = HOUR * 24
 LEGACY_SESSIONS_DEFAULT_ROLLUP = HOUR
-USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
+USE_CASE_ID = UseCaseID.SESSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +353,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             select = [
-                MetricField(metric_mri=SessionMRI.USER.value, alias="value", op="count_unique")
+                MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
             query = MetricsQuery(
                 org_id=org_id,
@@ -460,10 +461,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         select = [
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="min_counter_date", op="min_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="min_counter_date",
+                op="min_timestamp",
             ),
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="max_counter_date", op="max_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="max_counter_date",
+                op="max_timestamp",
             ),
             MetricField(
                 metric_mri=SessionMRI.RAW_DURATION.value, alias="min_dist_date", op="min_timestamp"
@@ -546,19 +551,19 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 max_date = max_date2
 
         if min_date is not None and max_date is not None:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": iso_format_snuba_datetime(min_date),
                 "sessions_upper_bound": iso_format_snuba_datetime(max_date),
             }
         else:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": None,
                 "sessions_upper_bound": None,
             }
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         if now is None:
@@ -580,7 +585,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
 
         where_clause = []
         groupby = [
@@ -636,7 +641,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
         groupby = [MetricGroupByField(field="release")]
         where_clause = [
             Condition(
@@ -808,7 +813,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
-                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value, alias="errored_preaggr", op=None
+                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
+                alias="errored_preaggr",
+                op=None,
             ),
         ]
 
@@ -948,7 +955,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         groups = raw_result["groups"]
         ret_val: Dict[ProjectRelease, List[List[int]]] = defaultdict(
-            lambda: _make_stats(start, granularity, buckets)  # type: ignore
+            lambda: _make_stats(start, granularity, buckets)
         )
 
         timestamps = [int(dt.timestamp()) for dt in raw_result["intervals"]]
@@ -1300,7 +1307,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
         select = [
-            MetricField(metric_mri=SessionMRI.SESSION.value, alias="oldest", op="min_timestamp"),
+            MetricField(
+                metric_mri=SessionMRI.RAW_SESSION.value, alias="oldest", op="min_timestamp"
+            ),
         ]
 
         query = MetricsQuery(
@@ -1587,7 +1596,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         groups = raw_result["groups"]
         if len(groups) > 0:
-            return get_path(groups[0], "totals", "value", default=0)  # type: ignore
+            return get_path(groups[0], "totals", "value", default=0)
         else:
             return 0
 

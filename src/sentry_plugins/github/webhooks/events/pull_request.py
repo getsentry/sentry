@@ -1,7 +1,10 @@
 from django.db import IntegrityError
 from django.http import Http404
 
-from sentry.models import CommitAuthor, PullRequest, Repository, User
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.user.service import user_service
 
 from . import Webhook, get_external_id
 
@@ -53,16 +56,13 @@ class PullRequestEventWebhook(Webhook):
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
-            try:
-                user_model = User.objects.filter(
-                    social_auth__provider="github",
-                    social_auth__uid=user["id"],
-                    org_memberships=organization,
-                )[0]
-            except IndexError:
-                pass
-            else:
-                author_email = user_model.email
+            rpc_user = user_service.get_user_by_social_auth(
+                organization_id=organization.id,
+                provider="github",
+                uid=user["id"],
+            )
+            if rpc_user is not None:
+                author_email = rpc_user.email
 
         try:
             author = CommitAuthor.objects.get(
@@ -81,6 +81,7 @@ class PullRequestEventWebhook(Webhook):
                     name=user["login"][:128],
                 )
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,

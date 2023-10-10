@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
-from sentry.models import File
-from sentry.testutils import TestCase
+from sentry.models.files.file import File
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -167,7 +167,7 @@ class ExportedDataTest(TestCase):
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,
-                "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.data_export.payload),
             },
             "type": "organization.export-data",
             "template": "sentry/emails/data-export-failure.txt",

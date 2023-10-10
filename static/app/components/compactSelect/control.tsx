@@ -76,7 +76,19 @@ export interface ControlProps
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
-    UseOverlayProps {
+    Pick<
+      UseOverlayProps,
+      | 'isOpen'
+      | 'onClose'
+      | 'offset'
+      | 'position'
+      | 'isDismissable'
+      | 'shouldCloseOnBlur'
+      | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
+      | 'preventOverflowOptions'
+      | 'flipOptions'
+    > {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -157,10 +169,10 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (args: {
-    props: Omit<DropdownButtonProps, 'children'>;
-    ref: React.RefObject<HTMLButtonElement>;
-  }) => React.ReactNode;
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
   /**
    * Label text inside the default trigger button. This is optional — by default the
    * selected option's label will be used.
@@ -182,8 +194,12 @@ export function Control({
   triggerProps,
   isOpen,
   onClose,
+  isDismissable,
   onInteractOutside,
   shouldCloseOnInteractOutside,
+  shouldCloseOnBlur,
+  preventOverflowOptions,
+  flipOptions,
   disabled,
   position = 'bottom-start',
   offset,
@@ -275,12 +291,17 @@ export function Control({
     overlayRef,
     overlayProps,
   } = useOverlay({
+    disableTrigger: disabled,
     type: grid ? 'menu' : 'listbox',
     position,
     offset,
     isOpen,
+    isDismissable,
     onInteractOutside,
     shouldCloseOnInteractOutside,
+    shouldCloseOnBlur,
+    preventOverflowOptions,
+    flipOptions,
     onOpenChange: async open => {
       // On open
       if (open) {
@@ -429,13 +450,7 @@ export function Control({
     <SelectContext.Provider value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(
-            mergeProps(triggerProps, triggerKeyboardProps, overlayTriggerProps, {
-              size,
-              disabled,
-              isOpen: overlayIsOpen,
-            })
-          )
+          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
         ) : (
           <DropdownButton
             size={size}
@@ -447,7 +462,7 @@ export function Control({
           </DropdownButton>
         )}
         <StyledPositionWrapper
-          zIndex={theme.zIndex.tooltip}
+          zIndex={theme.zIndex?.tooltip}
           visible={overlayIsOpen}
           {...overlayProps}
         >
@@ -561,9 +576,9 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-    height: ${space(1)};
-    width: ${space(1)};
+    margin: 0 ${space(0.5)} 0 ${space(1)};
+    height: 12px;
+    width: 12px;
   }
 `;
 

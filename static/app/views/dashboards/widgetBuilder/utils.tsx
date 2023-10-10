@@ -59,7 +59,6 @@ export const displayTypes = {
   [DisplayType.BAR]: t('Bar Chart'),
   [DisplayType.LINE]: t('Line Chart'),
   [DisplayType.TABLE]: t('Table'),
-  [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
 };
 
@@ -135,11 +134,7 @@ export function normalizeQueries({
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
   queries = cloneDeep(queries);
 
-  if (
-    [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
-      displayType
-    )
-  ) {
+  if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(displayType)) {
     // Some display types may only support at most 1 query.
     queries = queries.slice(0, 1);
   } else if (isTimeseriesChart) {
@@ -220,7 +215,7 @@ export function normalizeQueries({
   queries = queries.map(query => {
     let aggregates = query.aggregates;
 
-    if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
+    if (isTimeseriesChart) {
       // Filter out fields that will not generate numeric output types
       aggregates = aggregates.filter(aggregate =>
         isLegalYAxisType(aggregateOutputType(aggregate))
@@ -275,7 +270,7 @@ export function normalizeQueries({
     });
   }
 
-  if ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType)) {
+  if (DisplayType.BIG_NUMBER === displayType) {
     // For world map chart, cap fields of the queries to only one field.
     queries = queries.map(query => {
       return {
@@ -336,7 +331,7 @@ export function getAmendedFieldOptions({
 
 // Extract metric names from aggregation functions present in the widget queries
 export function getMetricFields(queries: WidgetQuery[]) {
-  return queries.reduce((acc, query) => {
+  return queries.reduce<string[]>((acc, query) => {
     for (const field of [...query.aggregates, ...query.columns]) {
       const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
       if (fieldParameter && !acc.includes(fieldParameter)) {
@@ -345,7 +340,7 @@ export function getMetricFields(queries: WidgetQuery[]) {
     }
 
     return acc;
-  }, [] as string[]);
+  }, []);
 }
 
 // Used to limit the number of results of the "filter your results" fields dropdown

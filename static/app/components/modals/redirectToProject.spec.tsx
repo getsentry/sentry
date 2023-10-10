@@ -10,15 +10,14 @@ describe('RedirectToProjectModal', function () {
   jest.useFakeTimers();
 
   it('has timer to redirect to new slug after mounting', function () {
-    const {router} = initializeOrg({
-      ...initializeOrg(),
+    const {routerProps} = initializeOrg({
       router: {
-        ...initializeOrg().router,
         routes: [
           {path: '/', childRoutes: []},
           {name: 'Organizations', path: ':orgId/', childRoutes: []},
           {name: 'Projects', path: ':projectId/', childRoutes: []},
         ],
+        params: {orgId: 'org-slug', projectId: 'project-slug'},
       },
     });
 
@@ -28,14 +27,7 @@ describe('RedirectToProjectModal', function () {
 
     act(() =>
       openModal(modalProps => (
-        <RedirectToProjectModal
-          {...modalProps}
-          routes={router.routes}
-          router={router}
-          location={router.location}
-          slug="new-slug"
-          params={{orgId: 'org-slug', projectId: 'project-slug'}}
-        />
+        <RedirectToProjectModal {...modalProps} {...routerProps} slug="new-slug" />
       ))
     );
 

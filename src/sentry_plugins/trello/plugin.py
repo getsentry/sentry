@@ -1,6 +1,6 @@
 import re
 
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -103,7 +103,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                     }
                 )
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
         return config
 
     def validate_config(self, project, config, actor=None):
@@ -114,7 +114,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         try:
             trello_client.get_organization_options()
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
         return config
 
     def get_group_urls(self):
@@ -122,11 +122,11 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         Return the URLs and the matching views
         """
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^options",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_options", plugin=self),
             ),
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             ),
@@ -212,7 +212,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                 id_list=form_data["list"], name=form_data["title"], desc=form_data["description"]
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return response["shortLink"]
 
@@ -222,14 +222,14 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         try:
             card = client.get_card(form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(card["shortLink"], comment)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return {"title": card["name"], "id": card["shortLink"]}
 

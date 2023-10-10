@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -45,7 +45,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         self.login_as(user=self.foo)
 
-        response = self.client.get(self.url)
+        response = self.client.get(f"{self.url}?project=-1")
         assert response.status_code == 200
 
         assert response.data["sentFirstEvent"]
@@ -56,7 +56,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         self.login_as(user=self.foo)
 
-        response = self.client.get(f"{self.url}?is_member=true")
+        response = self.client.get(self.url)
         assert response.status_code == 200
 
         assert not response.data["sentFirstEvent"]

@@ -62,12 +62,14 @@ import {MutableSearch} from '../tokenizeSearch';
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType> & {
+export type MetaType = Record<string, any> & {
   isMetricsData?: boolean;
   tips?: {columns: string; query: string};
   units?: Record<string, string>;
 };
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  units: Record<string, string>;
+} & {
   isMetricsData?: boolean;
 };
 
@@ -135,8 +137,12 @@ function getSortKeyFromField(
   return getSortField(fieldString, tableMeta);
 }
 
-export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
-  return !!getSortKeyFromField(field, tableMeta);
+export function isFieldSortable(
+  field: Field,
+  tableMeta?: MetaType,
+  useFunctionFormat?: boolean
+): boolean {
+  return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
 }
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -279,6 +285,29 @@ function validateTableMeta(tableMeta: MetaType | undefined): MetaType | undefine
   return tableMeta && Object.keys(tableMeta).length > 0 ? tableMeta : undefined;
 }
 
+export type EventViewOptions = {
+  createdBy: User | undefined;
+  display: string | undefined;
+  end: string | undefined;
+  environment: Readonly<string[]>;
+  fields: Readonly<Field[]>;
+  id: string | undefined;
+  name: string | undefined;
+  project: Readonly<number[]>;
+  query: string;
+  sorts: Readonly<Sort[]>;
+  start: string | undefined;
+  statsPeriod: string | undefined;
+  team: Readonly<('myteams' | number)[]>;
+  topEvents: string | undefined;
+  additionalConditions?: MutableSearch;
+  dataset?: DiscoverDatasets;
+  expired?: boolean;
+  interval?: string;
+  utc?: string | boolean | undefined;
+  yAxis?: string | string[] | undefined;
+};
+
 class EventView {
   id: string | undefined;
   name: string | undefined;
@@ -292,7 +321,7 @@ class EventView {
   statsPeriod: string | undefined;
   utc?: string | boolean | undefined;
   environment: Readonly<string[]>;
-  yAxis: string | undefined;
+  yAxis: string | string[] | undefined;
   display: string | undefined;
   topEvents: string | undefined;
   interval: string | undefined;
@@ -301,28 +330,7 @@ class EventView {
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
 
-  constructor(props: {
-    additionalConditions: MutableSearch;
-    createdBy: User | undefined;
-    display: string | undefined;
-    end: string | undefined;
-    environment: Readonly<string[]>;
-    fields: Readonly<Field[]>;
-    id: string | undefined;
-    name: string | undefined;
-    project: Readonly<number[]>;
-    query: string;
-    sorts: Readonly<Sort[]>;
-    start: string | undefined;
-    statsPeriod: string | undefined;
-    team: Readonly<('myteams' | number)[]>;
-    topEvents: string | undefined;
-    yAxis: string | undefined;
-    dataset?: DiscoverDatasets;
-    expired?: boolean;
-    interval?: string;
-    utc?: string | boolean | undefined;
-  }) {
+  constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
     const team = Array.isArray(props.team) ? props.team : [];
@@ -429,6 +437,18 @@ class EventView {
     return EventView.fromSavedQuery(saved);
   }
 
+  static fromNewQueryWithPageFilters(newQuery: NewQuery, pageFilters: PageFilters) {
+    return EventView.fromSavedQuery({
+      ...newQuery,
+      environment: newQuery.environment ?? pageFilters.environments,
+      projects: newQuery.projects ?? pageFilters.projects,
+      start: newQuery.start ?? pageFilters.datetime.start ?? undefined,
+      end: newQuery.end ?? pageFilters.datetime.end ?? undefined,
+      range: newQuery.range ?? pageFilters.datetime.period ?? undefined,
+      utc: newQuery.utc ?? pageFilters.datetime.utc ?? undefined,
+    });
+  }
+
   static getFields(saved: NewQuery | SavedQuery) {
     return saved.fields.map((field, i) => {
       const width =
@@ -454,7 +474,7 @@ class EventView {
       fields,
       query: queryStringFromSavedQuery(saved),
       team: saved.teams ?? [],
-      project: saved.projects,
+      project: saved.projects ?? [],
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
@@ -466,8 +486,10 @@ class EventView {
         },
         'environment'
       ),
-      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
-      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
+      yAxis:
+        Array.isArray(saved.yAxis) && saved.yAxis.length === 1
+          ? saved.yAxis[0]
+          : saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       interval: saved.interval,
@@ -611,7 +633,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis ? [this.yAxis] : undefined,
+      yAxis: typeof this.yAxis === 'string' ? [this.yAxis] : this.yAxis,
       dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
@@ -1059,12 +1081,12 @@ class EventView {
         ({
           key: sort.field,
           order: sort.kind,
-        } as TableColumnSort<string>)
+        }) as TableColumnSort<string>
     );
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined): string {
+  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
     const queryParts: string[] = [];
 
     if (this.query) {
@@ -1344,7 +1366,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return yAxis;
+      return typeof yAxis === 'string' ? yAxis : yAxis[0];
     }
 
     return defaultOption;

@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
-from copy import deepcopy
-from datetime import datetime
+from copy import copy, deepcopy
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
@@ -10,9 +10,10 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import ProjectTeam, ProjectTransactionThreshold
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events.constants import (
@@ -664,7 +665,7 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns) -> str:
+def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -674,7 +675,10 @@ def get_function_alias_with_columns(function_name, columns) -> str:
             for col in columns
         ),
     )
-    return f"{function_name}_{columns}".rstrip("_")
+    alias = f"{function_name}_{columns}".rstrip("_")
+    if prefix:
+        alias = prefix + alias
+    return alias
 
 
 def get_json_meta_type(field_alias, snuba_type, builder=None):
@@ -940,6 +944,27 @@ class IntervalDefault(NumberRange):
         return int(interval)
 
 
+class TimestampArg(FunctionArg):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without date range")
+
+        try:
+            ts = datetime.fromtimestamp(int(value), tz=timezone.utc)
+        except (OverflowError, ValueError):
+            raise InvalidFunctionArgument(f"{value} is not a timestamp")
+
+        if ts < params["start"] or ts > params["end"]:
+            raise InvalidFunctionArgument("timestamp outside date range")
+
+        return ts
+
+
 class ColumnArg(FunctionArg):
     """Parent class to any function argument that should eventually resolve to a
     column
@@ -1049,7 +1074,14 @@ class NumericColumn(ColumnArg):
         "spans_exclusive_time",
     }
 
-    def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        allow_array_value: Optional[bool] = False,
+        spans: Optional[bool] = False,
+        **kwargs,
+    ):
+        self.spans = spans
         super().__init__(name, **kwargs)
         self.allow_array_value = allow_array_value
 
@@ -1057,6 +1089,10 @@ class NumericColumn(ColumnArg):
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
 
+        # Shortcutting this for now
+        # TODO: handle different datasets better here
+        if self.spans and value in ["span.duration", "span.self_time"]:
+            return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
@@ -1276,7 +1312,7 @@ class DiscoverFunction:
 
     def alias_as(self, name):
         """Create a copy of this function to be used as an alias"""
-        alias = deepcopy(self)
+        alias = copy(self)
         alias.name = name
         return alias
 
@@ -2019,7 +2055,6 @@ FUNCTIONS = {
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
-
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
@@ -2121,6 +2156,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
+        self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
@@ -2156,5 +2192,5 @@ class MetricsFunction(SnQLFunction):
 
 class FunctionDetails(NamedTuple):
     field: str
-    instance: SnQLFunction
+    instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]

@@ -11,7 +11,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
 )
 
 from confluent_kafka import KafkaError
@@ -21,12 +20,11 @@ from django.conf import settings
 
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +37,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
-        self.assign_transaction_partitions_randomly = True
         self.__producers: MutableMapping[str, Producer] = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
-        return cast(str, self.transactions_topic)
+        return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
         if topic not in self.__producers:
-            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+            cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
             self.__producers[topic] = Producer(cluster_options)
 
@@ -59,7 +56,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _get_headers_for_insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -132,13 +129,20 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs: Any,
     ) -> None:
         event_type = self._get_event_type(event)
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in KafkaEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                    "event_type": event_type.value,
+                },
+            )
 
         assign_partitions_randomly = (
             (event_type == EventStreamEventType.Generic)
-            or (
-                event_type == EventStreamEventType.Transaction
-                and self.assign_transaction_partitions_randomly
-            )
+            or (event_type == EventStreamEventType.Transaction)
             or killswitch_matches_context(
                 "kafka.send-project-events-to-random-partitions",
                 {"project_id": event.project_id, "message_type": event_type.value},
@@ -147,6 +151,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
+            )
+            kwargs["asynchronous"] = False
 
         super().insert(
             event,
@@ -228,9 +243,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
     ) -> None:
-        dispatch_function = _get_task_kwargs_and_dispatch
-
-        PostProcessForwarder(dispatch_function).run(
+        PostProcessForwarder().run(
             entity,
             consumer_group,
             topic,

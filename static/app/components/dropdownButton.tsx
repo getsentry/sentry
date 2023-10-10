@@ -9,7 +9,7 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
   /**
    * Forward a ref to the button's root
    */
-  forwardedRef?: React.ForwardedRef<HTMLElement>;
+  forwardedRef?: React.ForwardedRef<HTMLButtonElement>;
   /**
    * Whether or not the button should render as open
    */
@@ -62,11 +62,12 @@ const ChevronWrap = styled('div')`
   flex-shrink: 0;
 `;
 
-const StyledButton = styled(Button)<
-  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> & {
-    hasPrefix: boolean;
-  }
->`
+interface StyledButtonProps
+  extends Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> {
+  hasPrefix?: boolean;
+}
+
+const StyledButton = styled(Button)<StyledButtonProps>`
   position: relative;
   max-width: 100%;
   z-index: 2;
@@ -84,6 +85,6 @@ const LabelText = styled('span')`
   padding-right: ${space(0.75)};
 `;
 
-export default forwardRef<HTMLElement, DropdownButtonProps>((props, ref) => (
+export default forwardRef<HTMLButtonElement, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

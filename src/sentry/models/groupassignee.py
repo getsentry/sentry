@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -17,13 +19,18 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import issue_assigned
+from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models import ActorTuple, Group, Team, User
+    from sentry.models.actor import ActorTuple
+    from sentry.models.group import Group
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
+
+logger = logging.getLogger(__name__)
 
 
 class GroupAssigneeManager(BaseManager):
@@ -34,10 +41,13 @@ class GroupAssigneeManager(BaseManager):
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
+        force_autoassign: bool = False,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity, GroupSubscription, Team
+        from sentry.models.activity import Activity
+        from sentry.models.groupsubscription import GroupSubscription
+        from sentry.models.team import Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
@@ -66,15 +76,21 @@ class GroupAssigneeManager(BaseManager):
         )
 
         if not created:
-            affected = not create_only and self.filter(group=group).exclude(
-                **{assignee_type_attr: assigned_to_id}
-            ).update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
+            affected = not create_only and (
+                self.filter(group=group)
+                .exclude(**{assignee_type_attr: assigned_to_id})
+                .update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
+                or force_autoassign
+            )
         else:
             affected = True
 
         if affected:
-            issue_assigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            transaction.on_commit(
+                lambda: issue_assigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                ),
+                router.db_for_write(GroupAssignee),
             )
             data = {
                 "assignee": str(assigned_to.id),
@@ -103,7 +119,8 @@ class GroupAssigneeManager(BaseManager):
     def deassign(self, group: Group, acting_user: User | RpcUser | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity
+        from sentry.models.activity import Activity
+        from sentry.models.projectownership import ProjectOwnership
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
@@ -112,7 +129,17 @@ class GroupAssigneeManager(BaseManager):
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
-            GroupOwner.invalidate_assignee_exists_cache(group.project.id)
+            # Clear ownership cache for the deassigned group
+            ownership = ProjectOwnership.get_ownership_cached(group.project.id)
+            if not ownership:
+                ownership = ProjectOwnership(project_id=group.project.id)
+            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+            if autoassignment_types:
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    group.project.id, autoassignment_types, group.id
+                )
+            GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
+            GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
@@ -120,6 +147,10 @@ class GroupAssigneeManager(BaseManager):
                 "organizations:integrations-issue-sync", group.organization, actor=acting_user
             ):
                 sync_group_assignee_outbound(group, None, assign=False)
+
+            issue_unassigned.send_robust(
+                project=group.project, group=group, user=acting_user, sender=self.__class__
+            )
 
 
 @region_silo_only_model
@@ -129,7 +160,7 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupAssigneeManager()
 
@@ -163,6 +194,6 @@ class GroupAssignee(Model):
         raise NotImplementedError("Unknown Assignee")
 
     def assigned_actor(self) -> ActorTuple:
-        from sentry.models import ActorTuple
+        from sentry.models.actor import ActorTuple
 
         return ActorTuple.from_actor_identifier(self.assigned_actor_id())

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 
 from sentry.lang.native.utils import image_name, is_minidump_event
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.reprocessing import report_processing_issue
 
 FATAL_ERRORS = (
@@ -33,14 +35,14 @@ class SymbolicationFailed(Exception):
         Exception.__init__(self)
         self.message = str(message)
         self.type = type
-        self.image_name = None
-        self.image_path = None
+        self.image_name: str | None = None
+        self.image_path: str | None = None
         if obj is not None:
-            self.image_uuid = str(obj.debug_id)
+            self.image_uuid: str | None = str(obj.debug_id)
             if obj.name:
                 self.image_path = obj.name
                 self.image_name = image_name(obj.name)
-            self.image_arch = obj.arch
+            self.image_arch: str | None = obj.arch
         else:
             self.image_uuid = None
             self.image_arch = None

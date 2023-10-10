@@ -5,16 +5,25 @@ import os
 from collections import defaultdict
 
 import sentry_sdk
-from symbolic import ProguardMapper  # type: ignore
+from symbolic.proguard import ProguardMapper
 
 from sentry import features
 from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
-from sentry.models import Organization, Project, ProjectDebugFile
+from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
-from ..base import DetectorType, PerformanceDetector, total_span_time
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -50,6 +59,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
             _, _, _, _, settings = settings_for_span
             if total_duration >= settings["duration_threshold"]:
                 fingerprint = self._fingerprint(span_list)
+                offender_spans = [span for span in span_list if "span_id" in span]
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=span_list[0].get("op"),
@@ -57,7 +67,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     parent_span_ids=[parent_span_id],
                     type=self.group_type,
                     cause_span_ids=[],
-                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
+                    offender_span_ids=[span["span_id"] for span in offender_spans],
                     evidence_data={
                         "op": span_list[0].get("op"),
                         "parent_span_ids": [parent_span_id],
@@ -65,12 +75,28 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                         "offender_span_ids": [
                             span["span_id"] for span in span_list if "span_id" in span
                         ],
+                        "transaction_name": self._event.get("transaction", ""),
+                        "repeating_spans": get_span_evidence_value(offender_spans[0]),
+                        "repeating_spans_compact": get_span_evidence_value(
+                            offender_spans[0], include_op=False
+                        ),
+                        "num_repeating_spans": str(len(offender_spans)),
                     },
-                    evidence_display=[],
+                    evidence_display=[
+                        IssueEvidence(
+                            name="Offending Spans",
+                            value=get_notification_attachment_body(
+                                span_list[0].get("op"),
+                                span_list[0].get("description", ""),
+                            ),
+                            # Has to be marked important to be displayed in the notifications
+                            important=True,
+                        )
+                    ],
                 )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True
+        return self.settings[0]["detection_enabled"]
 
 
 class FileIOMainThreadDetector(BaseIOMainThreadDetector):
@@ -82,7 +108,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     IGNORED_EXTENSIONS = {".nib", ".plist"}
     SPAN_PREFIX = "file"
-    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
+    type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
 
@@ -169,13 +195,13 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
     """
-    Checks for a file io span on the main thread
+    Checks for a DB span on the main thread
     """
 
     __slots__ = ("spans_involved", "stored_problems")
 
     SPAN_PREFIX = "db"
-    type: DetectorType = DetectorType.DB_MAIN_THREAD
+    type = DetectorType.DB_MAIN_THREAD
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 
@@ -209,6 +235,3 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         return features.has(
             "organizations:performance-db-main-thread-detector", organization, actor=None
         )
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -22,7 +24,8 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
 if TYPE_CHECKING:
-    from sentry.models.group import Environment, Group
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
 
 
 class NoResults(Exception):
@@ -34,7 +37,12 @@ class GroupEventsError(Exception):
 
 
 @region_silo_endpoint
-class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
+class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Events
@@ -96,7 +104,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
         if environments:
             params["environment"] = [env.name for env in environments]
 
-        full = request.GET.get("full", False)
+        full = request.GET.get("full") in ("1", "true")
 
         def data_fn(offset: int, limit: int) -> Any:
             try:
@@ -138,7 +146,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
 
         if raw_query:
             query_kwargs = parse_query([group.project], raw_query, request.user, environments)
-            query = cast(str, query_kwargs.pop("query", None))
+            query = query_kwargs.pop("query", None)
         else:
             query = None
 

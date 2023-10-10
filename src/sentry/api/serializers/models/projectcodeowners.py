@@ -6,7 +6,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
 from sentry.services.hybrid_cloud.integration import integration_service
 
@@ -33,8 +33,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             code_mapping = item.repository_project_path_config
 
             integration = integrations[item.repository_project_path_config.integration_id]
-            install = integration_service.get_installation(
-                integration=integration,
+            install = integration.get_installation(
                 organization_id=item.repository_project_path_config.organization_id,
             )
             codeowners_url = "unknown"

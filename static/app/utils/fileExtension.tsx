@@ -1,6 +1,6 @@
 const FILE_EXTENSION_TO_PLATFORM = {
-  jsx: 'react',
-  tsx: 'react',
+  jsx: 'javascript-react',
+  tsx: 'javascript-react',
   js: 'javascript',
   ts: 'javascript',
   php: 'php',

@@ -6,6 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconStack, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -77,7 +78,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   return (
     <DataExport
       payload={{
-        queryType: ExportQueryType.Discover,
+        queryType: ExportQueryType.DISCOVER,
         queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}
@@ -87,6 +88,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
     </DataExport>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderEditButton(canEdit: boolean, props: Props) {
@@ -105,6 +107,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
     </GuideAnchor>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
@@ -148,9 +151,15 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   );
 }
 
-function HeaderActions(props: Props) {
+function TableActions(props: Props) {
   return (
     <Fragment>
+      <InvestigationRuleCreation
+        {...props}
+        buttonProps={{size: 'sm'}}
+        numSamples={props.tableData?.data?.length}
+        key="investigationRuleCreation"
+      />
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
@@ -162,4 +171,4 @@ function HeaderActions(props: Props) {
   );
 }
 
-export default HeaderActions;
+export default TableActions;

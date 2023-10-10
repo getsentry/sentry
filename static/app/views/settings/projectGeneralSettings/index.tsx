@@ -7,6 +7,7 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -17,31 +18,34 @@ import {FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = AsyncView['props'] &
+type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Project;
 };
 
-class ProjectGeneralSettings extends AsyncView<Props, State> {
+class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
   private _form: Record<string, FieldValue> = {};
 
   getTitle() {
@@ -49,7 +53,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -70,7 +74,12 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    removeProject(this.api, organization.slug, project.slug)
+    removeProject({
+      api: this.api,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      origin: 'settings',
+    })
       .then(
         () => {
           addSuccessMessage(
@@ -82,10 +91,13 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           throw err;
         }
       )
-      .then(() => {
-        // Need to hard reload because lots of components do not listen to Projects Store
-        window.location.assign('/');
-      }, handleXhrErrorResponse('Unable to remove project'));
+      .then(
+        () => {
+          // Need to hard reload because lots of components do not listen to Projects Store
+          window.location.assign('/');
+        },
+        (err: RequestError) => handleXhrErrorResponse('Unable to remove project', err)
+      );
   };
 
   handleTransferProject = async () => {
@@ -104,12 +116,16 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project')(err);
+        handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
   };
 
-  isProjectAdmin = () => this.props.organization.access.includes('project:admin');
+  isProjectAdmin = () =>
+    hasEveryAccess(['project:admin'], {
+      organization: this.props.organization,
+      project: this.state.data,
+    });
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -164,8 +180,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
+    const isOrgOwner = hasEveryAccess(['org:admin'], {
+      organization: this.props.organization,
+    });
 
     return (
       <FieldGroup
@@ -178,7 +196,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           }
         )}
       >
-        {!isProjectAdmin &&
+        {!isOrgOwner &&
           t('You do not have the required permission to transfer this project.')}
 
         {isInternal &&
@@ -186,7 +204,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin && !isInternal && (
+        {isOrgOwner && !isInternal && (
           <Confirm
             onConfirm={this.handleTransferProject}
             priority="danger"
@@ -240,24 +258,27 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const project = this.state.data;
     const {projectId} = this.props.params;
     const endpoint = `/projects/${organization.slug}/${projectId}/`;
-    const access = new Set(organization.access);
+    const access = new Set(organization.access.concat(project.access));
+
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
       },
       features: new Set(organization.features),
       access,
-      disabled: !access.has('project:write'),
+      disabled: !hasEveryAccess(['project:write'], {organization, project}),
     };
+
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
-    /*
-    HACK: The <Form /> component applies its props to its children meaning the hooked component
-          would need to conform to the form settings applied in a separate repository. This is
-          not feasible to maintain and may introduce compatability errors if something changes
-          in either repository. For that reason, the Form component is split in two, since the
-          fields do not depend on one another, allowing for the Hook to manage it's own state.
-    */
+    // XXX: HACK
+    //
+    // The <Form /> component applies its props to its children meaning the
+    // hooked component would need to conform to the form settings applied in a
+    // separate repository. This is not feasible to maintain and may introduce
+    // compatability errors if something changes in either repository. For that
+    // reason, the Form component is split in two, since the fields do not
+    // depend on one another, allowing for the Hook to manage it's own state.
     const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,
@@ -282,7 +303,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <Form {...formProps}>
           <JsonForm

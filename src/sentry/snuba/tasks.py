@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Any, Environment, Mapping, Optional
+from sentry.models.environment import Environment
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
 
+# TODO(hybrid-cloud): Mark this as region silo only once testing/decorator
+#  interaction is cleaned up
 @instrumented_task(
     name="sentry.snuba.tasks.create_subscription_in_snuba",
     queue="subscriptions",
@@ -174,7 +176,10 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     if subscription.subscription_id is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
-            subscription.snuba_query, subscription.project.organization_id, subscription.project_id
+            subscription.snuba_query,
+            subscription.project.organization_id,
+            subscription.project_id,
+            skip_field_validation_for_entity_subscription_deletion=True,
         )
         _delete_from_snuba(
             query_dataset,

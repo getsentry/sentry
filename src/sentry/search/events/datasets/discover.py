@@ -17,11 +17,10 @@ from snuba_sdk import (
     OrderBy,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -68,7 +67,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -625,7 +624,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         "divide", [Function("count", []), args["interval"]], alias
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
@@ -635,7 +634,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "compare_numeric_aggregate",
@@ -1034,7 +1033,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             HTTP_STATUS_CODE_ALIAS,
         )
 
-    @cached_property  # type: ignore
+    @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
         org_id = (
             self.builder.params.organization.id
@@ -1237,7 +1236,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         """Given public aliases resolve division"""
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
@@ -1363,7 +1362,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "countIf", [Function("greaterOrEquals", [column, 0])]
         )
 
-        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+        return function_aliases.resolve_division(  # (satisfied + tolerable/2)/(total)
             Function(
                 "plus",
                 [
@@ -1599,15 +1598,14 @@ class DiscoverDatasetConfig(DatasetConfig):
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
+            return None
+
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
         general_group_filter_values = ["" for v in value if not v or v == "unknown"]
-        perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
-
-        general_groups = []
-        performance_groups = []
 
         if group_short_ids and self.builder.params.organization is not None:
             try:
@@ -1618,21 +1616,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                org = None
-                if groups:
-                    org = groups[0].project.organization
-                for group in groups:
-                    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
-                        "organizations:issue-platform-search-perf-issues", org
-                    ):
-                        performance_groups.append(group.id)
-                    else:
-                        general_groups.append(group.id)
-                general_groups = sorted(general_groups)
-                performance_groups = sorted(performance_groups)
-
-                general_group_filter_values.extend(general_groups)
-                perf_group_filter_values.extend(performance_groups)
+                general_group_filter_values.extend(sorted([group.id for group in groups]))
 
         if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
@@ -1643,19 +1627,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                         general_group_filter_values
                         if search_filter.is_in_filter
                         else general_group_filter_values[0]
-                    ),
-                )
-            )
-
-        if performance_groups:
-            return self.builder.convert_search_filter_to_condition(
-                SearchFilter(
-                    SearchKey("performance.issue_ids"),
-                    operator,
-                    SearchValue(
-                        perf_group_filter_values
-                        if search_filter.is_in_filter
-                        else perf_group_filter_values[0]
                     ),
                 )
             )
@@ -1702,7 +1673,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
         else:
-            return self.builder.get_default_converter()(search_filter)
+            return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter

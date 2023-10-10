@@ -8,12 +8,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Organization, SentryFunction} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -208,15 +210,18 @@ function SentryFunctionDetails(props: Props) {
 
 type WrapperState = {
   sentryFunction?: SentryFunction;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 type WrapperProps = {
   organization: Organization;
   params: {functionSlug?: string};
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
-class SentryFunctionsWrapper extends AsyncComponent<WrapperProps, WrapperState> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class SentryFunctionsWrapper extends DeprecatedAsyncComponent<
+  WrapperProps,
+  WrapperState
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {functionSlug} = this.props.params;
     const {organization} = this.props;
     if (functionSlug) {

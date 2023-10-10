@@ -1,13 +1,11 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -60,6 +58,69 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+        # Should default to full=false which does not include context property
+        assert "context" not in response.data[0]
+        assert "context" not in response.data[1]
+
+    def test_full_false(self):
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event_1.group.id}/events/?full=false"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+            [str(event_1.event_id), str(event_2.event_id)]
+        )
+        # Simplified response does not have context property
+        assert "context" not in response.data[0]
+        assert "context" not in response.data[1]
+
+    def test_full_true(self):
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event_1.group.id}/events/?full=true"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+
+        # Full response has context property
+        assert "context" in response.data[0]
+        assert "context" in response.data[1]
 
     def test_tags(self):
         self.login_as(user=self.user)
@@ -435,24 +496,6 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
-    def test_perf_issue_on_issue_platform(self):
-        # Just a duplicate of `test_perf_issue` to verify that perf issues read from
-        # the issue platform correctly here. Remove once we kill the related flags.
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            event_1 = self.create_performance_issue()
-            event_2 = self.create_performance_issue()
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/issues/{event_1.group.id}/events/"
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            response = self.do_request(url)
-
-        assert response.status_code == 200, response.content
-        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
-            [str(event_1.event_id), str(event_2.event_id)]
-        )
-
     def test_generic_issue(self):
         event_1, _, group_info = self.store_search_issue(
             self.project.id,
@@ -461,6 +504,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
+        assert group_info is not None
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,

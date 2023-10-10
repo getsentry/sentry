@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +15,7 @@ type InitialOpts = {
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
   const project = TestStubs.Project({platform});
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     projects: [project],
     features: features ?? [],
   });
@@ -67,7 +69,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="yes"
       />
     );
@@ -91,7 +93,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="no"
       />
     );
@@ -117,7 +119,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="maybe"
       />
     );
@@ -141,7 +143,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="maybe"
       />
     );
@@ -167,7 +169,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="maybe"
       />
     );
@@ -193,7 +195,7 @@ describe('Performance > Transaction Summary Header', function () {
         projects={[project]}
         projectId={project.id}
         transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+        currentTab={Tab.TRANSACTION_SUMMARY}
         hasWebVitals="yes"
       />
     );

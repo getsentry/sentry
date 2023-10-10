@@ -11,12 +11,15 @@ from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 import lxml.html
 import toronado
 from django.core.mail import EmailMultiAlternatives
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import options
 from sentry.db.models import Model
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Group, GroupEmailThread, Project
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.project import Project
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string
@@ -66,7 +69,7 @@ def inline_css(value: str) -> str:
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    html: str = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
+    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
     return html
 
 
@@ -158,7 +161,7 @@ class MessageBuilder:
         message_id = make_msgid(get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
-        subject = force_text(self.subject)
+        subject = force_str(self.subject)
 
         reference = self.reference
         if isinstance(reference, Activity):

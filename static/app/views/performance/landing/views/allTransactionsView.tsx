@@ -3,29 +3,34 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
+  const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
 
-  const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_REGRESSED,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-    PerformanceWidgetSetting.MOST_IMPROVED,
-  ];
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  if (
+    props.organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
+    if (props.organization.features.includes('performance-database-view')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+    } else {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+    }
+  } else {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
   }
 
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div data-test-id="all-transactions-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow

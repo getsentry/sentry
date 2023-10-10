@@ -1,3 +1,6 @@
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +11,7 @@ describe('Docs Search Modal', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({
@@ -23,7 +26,7 @@ describe('Docs Search Modal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
 
     MockApiClient.addMockResponse({
@@ -50,17 +53,10 @@ describe('Docs Search Modal', function () {
   });
 
   it('can open help search modal', async function () {
-    const {routerContext, router, route} = initializeOrg();
+    const {routerContext, routerProps} = initializeOrg();
 
     render(
-      <App
-        location={router.location}
-        routes={router.routes}
-        route={route}
-        router={router}
-        params={{}}
-        routeParams={router.params}
-      >
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>,
       {

@@ -5,17 +5,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import InviteStatus, Organization, OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
 
 from ... import get_allowed_org_roles, save_team_assignments
-from ...index import OrganizationMemberSerializer
 
 
 class ApproveInviteRequestSerializer(serializers.Serializer):
@@ -44,6 +46,11 @@ class InviteRequestPermissions(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (InviteRequestPermissions,)
 
     def _get_member(
@@ -105,9 +112,11 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         result = serializer.validated_data
 
         if result.get("orgRole"):
-            member.update(role=result["orgRole"])
+            member.role = result["orgRole"]
+            member.save()
         elif result.get("role"):
-            member.update(role=result["role"])
+            member.role = result["role"]
+            member.save()
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

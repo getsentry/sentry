@@ -2,10 +2,14 @@ import functools
 from unittest.mock import patch
 
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 
 from sentry import options
-from sentry.models import GroupEmailThread, User, UserEmail, UserOption
-from sentry.testutils import TestCase
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.options.user_option import UserOption
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
@@ -24,6 +28,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["X-Test"] == "foo"
@@ -46,6 +51,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["X-Test"] == "foo"
@@ -68,6 +74,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["Reply-To"] == "bar@example.com"
@@ -141,6 +148,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -163,6 +171,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test", "First message should not have Re: prefix"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -197,6 +206,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Re: Test"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -223,6 +233,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 2
 
         out = mail.outbox[1]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Re: Test"
         assert out.extra_headers["Message-Id"] == "321cba"
@@ -280,7 +291,7 @@ class MessageBuilderTest(TestCase):
                 subject="Test",
                 body="hello world",
                 html_body="<b>hello world</b>",
-                reference=object(),
+                reference=self.user,
             )
             .get_built_messages(["foo@example.com"])[0]
             .message()

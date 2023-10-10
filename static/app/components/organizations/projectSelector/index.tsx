@@ -3,8 +3,6 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {MenuActions} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -19,12 +17,11 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
 
-type Props = {
+export type ProjectSelectorProps = {
   /**
    * Used to render a custom dropdown button for the DropdownAutoComplete
    */
   customDropdownButton: (config: {
-    actions: MenuActions;
     isOpen: boolean;
     selectedProjects: Project[];
   }) => React.ReactElement;
@@ -81,7 +78,7 @@ function ProjectSelector({
   organization,
   value,
   disabled,
-}: Props) {
+}: ProjectSelectorProps) {
   const routes = useRoutes();
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
@@ -267,13 +264,11 @@ function ProjectSelector({
           virtualizedLabelHeight={theme.headerSelectorLabelHeight}
           inputActions={
             <InputActions>
-              <GuideAnchor target="new_page_filter_pin" position="bottom">
-                <PageFilterPinButton
-                  organization={organization}
-                  filter="projects"
-                  size="xs"
-                />
-              </GuideAnchor>
+              <PageFilterPinButton
+                organization={organization}
+                filter="projects"
+                size="xs"
+              />
             </InputActions>
           }
           menuFooter={({actions}) => (
@@ -318,9 +313,7 @@ function ProjectSelector({
           allowActorToggle
           closeOnSelect
         >
-          {({actions, isOpen}) =>
-            customDropdownButton({actions, selectedProjects: selected, isOpen})
-          }
+          {({isOpen}) => customDropdownButton({selectedProjects: selected, isOpen})}
         </StyledDropdownAutocomplete>
       )}
     </ClassNames>

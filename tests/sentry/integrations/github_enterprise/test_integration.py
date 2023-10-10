@@ -4,16 +4,14 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
-from sentry.testutils import IntegrationTestCase
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
     config = {

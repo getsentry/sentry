@@ -3,26 +3,21 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
+from datetime import timezone
 from typing import Any, Dict, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
-from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
-from sentry import features
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.query import apply_performance_conditions
-from sentry.models import (
-    Group,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
@@ -95,7 +90,7 @@ def is_fuzzy_numeric_key(key):
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key]).replace(tzinfo=UTC)
+            data[key] = transformer(data[key]).replace(tzinfo=timezone.utc)
     return data
 
 
@@ -399,11 +394,11 @@ class SnubaTagStorage(TagStorage):
         project_id,
         environment_id,
         key,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         tenant_ids=None,
         **kwargs,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
             project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
         )
@@ -412,12 +407,12 @@ class SnubaTagStorage(TagStorage):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_keys(
             project_id,
             None,
@@ -432,7 +427,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         use_cache=False,
         include_transactions=False,
         tenant_ids=None,
@@ -579,36 +574,6 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-    def get_perf_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
-    ):
-        filters = {"project_id": project_ids}
-        if environment_ids:
-            filters["environment"] = environment_ids
-
-        result = snuba.query(
-            dataset=Dataset.Transactions,
-            groupby=["group_id"],
-            conditions=[
-                [["hasAny", ["group_ids", ["array", group_id_list]]], "=", 1],
-                [f"tags[{key}]", "=", value],
-            ],
-            filter_keys=filters,
-            aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
-                ["count()", "", "times_seen"],
-                ["min", SEEN_COLUMN, "first_seen"],
-                ["max", SEEN_COLUMN, "last_seen"],
-            ],
-            referrer="tagstore.get_perf_group_list_tag_value",
-            tenant_ids=tenant_ids,
-        )
-
-        return {
-            group_id: GroupTagValue(key=key, value=value, **fix_tag_value_data(data))
-            for group_id, data in result.items()
-        }
-
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
@@ -693,15 +658,9 @@ class SnubaTagStorage(TagStorage):
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
-            if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
-                "organizations:issue-platform-search-perf-issues", group.organization
-            ):
-                dataset = Dataset.Transactions
-                apply_performance_conditions(conditions, group)
-            else:
-                filters["group_id"] = [group.id]
-                if not group.issue_category == GroupCategory.ERROR:
-                    dataset = Dataset.IssuePlatform
+            filters["group_id"] = [group.id]
+            if group.issue_category != GroupCategory.ERROR:
+                dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 
     def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):
@@ -852,26 +811,6 @@ class SnubaTagStorage(TagStorage):
 
         return None
 
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        filters = {"project_id": project_ids}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [["max", SEEN_COLUMN, "last_seen"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-last_seen",
-            referrer="tagstore.get_group_ids_for_users",
-            tenant_ids=tenant_ids,
-        )
-        return set(result.keys())
-
     def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
@@ -954,37 +893,6 @@ class SnubaTagStorage(TagStorage):
             [],
             "tagstore.get_groups_user_counts",
             tenant_ids=tenant_ids,
-        )
-
-    def get_perf_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
-    ):
-        filters_keys = {"project_id": project_ids}
-        if environment_ids:
-            filters_keys["environment"] = environment_ids
-
-        result = snuba.query(
-            dataset=Dataset.Transactions,
-            start=start,
-            end=start,
-            conditions=[[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]],
-            filter_keys=filters_keys,
-            aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
-                ["uniq", "tags[sentry:user]", "user_counts"],
-            ],
-            groupby=["group_id"],
-            referrer="tagstore.get_perf_groups_user_counts",
-            tenant_ids=tenant_ids,
-        )
-
-        return defaultdict(
-            int,
-            {
-                group_id: agg["user_counts"]
-                for group_id, agg in result.items()
-                if agg.get("user_counts")
-            },
         )
 
     def get_generic_groups_user_counts(
@@ -1288,6 +1196,7 @@ class SnubaTagStorage(TagStorage):
         #               entirely, furthermore, suggesting an event_id is not a very useful feature
         #               as they are not human readable.
         # profile_id    Same as event_id
+        # replay_id     Same as event_id
         # trace.*:      The same logic of event_id not being useful applies to the trace fields
         #               which are all also non human readable ids
         # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
@@ -1299,7 +1208,7 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
-        if snuba_key in {"event_id", "timestamp", "time", "profile_id"} or key in {
+        if snuba_key in {"event_id", "timestamp", "time", "profile_id", "replay_id"} or key in {
             "trace",
             "trace.span",
             "trace.parent_span",

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+from wsgiref.util import is_hop_by_hop
+
 from django.test import override_settings
+from requests.structures import CaseInsensitiveDict
 
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
     INVALID_PROXY_HEADERS,
+    PROXY_BASE_URL_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_headers,
@@ -12,22 +18,26 @@ from sentry.silo.util import (
     trim_leading_slashes,
     verify_subnet_signature,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SiloUtilityTest(TestCase):
-    headers = {
-        "User-Agent": "Chrome",
-        "Keep-Alive": "timeout=5",
-        "Authorization": "Bearer tkn",
-        "Host": "sentry.io",
-        "Content-Length": "27",
-        PROXY_OI_HEADER: "12",
-        PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
-        "X-Test-Header-1": "One",
-        "X-Test-Header-2": "Two",
-        "X-Test-Header-3": "Three",
-    }
+    headers = CaseInsensitiveDict(
+        data={
+            "User-Agent": "Chrome",
+            "Authorization": "Bearer tkn",
+            "Host": "sentry.io",
+            "Content-Length": "27",
+            "Content-Encoding": "deflate, gzip",
+            PROXY_OI_HEADER: "12",
+            PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
+            PROXY_BASE_URL_HEADER: "https://api.integration.com/",
+            "X-Test-Header-1": "One",
+            "X-Test-Header-2": "Two",
+            "X-Test-Header-3": "Three",
+            "X-Forwarded-Proto": "https",
+        }
+    )
     secret = "hush-hush-im-invisible"
 
     def test_trim_leading_slashes(self):
@@ -69,43 +79,79 @@ class SiloUtilityTest(TestCase):
         for header in retained_headers:
             assert self.headers[header] == cleaned[header]
 
+    def test_clean_hop_by_hop_headers(self):
+        headers = {
+            **self.headers,
+            "Keep-Alive": "timeout=5",
+            "Transfer-Encoding": "chunked",
+            "Proxy-Authenticate": "Basic",
+        }
+        hop_by_hop_headers = ["Keep-Alive", "Transfer-Encoding", "Proxy-Authenticate"]
+
+        cleaned = clean_headers(headers, invalid_headers=[])
+
+        for header in hop_by_hop_headers:
+            assert header in headers
+            assert header not in cleaned
+
+        retained_headers = filter(lambda k: not is_hop_by_hop(k), headers.keys())
+        for header in retained_headers:
+            assert headers[header] == cleaned[header]
+
     @override_settings(SENTRY_SUBNET_SECRET=secret)
     def test_subnet_signature(self):
-        signature = "v0=baac3ac029e96ef4df5d5334af73a1ff6f4c9106d39cb57ceeff60d59ce829d6"
-        encode_kwargs = {
-            "secret": self.secret,
-            "path": "/chat.postMessage",
-            "identifier": "21",
-            "request_body": b'{"some": "payload"}',
-        }
-        verify_kwargs = {
-            "path": encode_kwargs["path"],
-            "identifier": encode_kwargs["identifier"],
-            "request_body": encode_kwargs["request_body"],
-            "provided_signature": signature,
-        }
-        assert encode_subnet_signature(**encode_kwargs) == signature
-        assert verify_subnet_signature(**verify_kwargs)
+        signature = "v0=687940c95f7ec16fa8eb1641ac601bebfdeebf5eeaa698d3b6669077dde818ba"
+
+        def _encode(
+            secret: str = self.secret,
+            base_url: str = "http://controlserver/api/0/internal/integration-proxy/",
+            path: str = "/chat.postMessage",
+            identifier: str = "21",
+            request_body: bytes | None = b'{"some": "payload"}',
+        ) -> str:
+            return encode_subnet_signature(
+                secret=secret,
+                base_url=base_url,
+                path=path,
+                identifier=identifier,
+                request_body=request_body,
+            )
+
+        def _verify(
+            base_url: str = "http://controlserver/api/0/internal/integration-proxy/",
+            path: str = "/chat.postMessage",
+            identifier: str = "21",
+            request_body: bytes | None = b'{"some": "payload"}',
+            provided_signature: str = signature,
+        ) -> bool:
+            return verify_subnet_signature(
+                base_url=base_url,
+                path=path,
+                identifier=identifier,
+                request_body=request_body,
+                provided_signature=provided_signature,
+            )
+
+        assert _encode() == signature
+        assert _verify()
 
         # We trim slashes prior to encoding/verifying
-        slash_ignored_path_encode = {**encode_kwargs, "path": "chat.postMessage"}
-        assert encode_subnet_signature(**slash_ignored_path_encode) == signature
-        slash_ignored_path_verify = {**verify_kwargs, "path": "chat.postMessage"}
-        assert verify_subnet_signature(**slash_ignored_path_verify)
+        assert _encode(path="chat.postMessage") == signature
+        assert _verify(path="chat.postMessage")
+        assert (
+            _encode(base_url="http://controlserver/api/0/internal/integration-proxy") == signature
+        )
+        assert _verify(base_url="http://controlserver/api/0/internal/integration-proxy")
 
         # Wrong secrets not be verifiable
-        wrong_secret_encode = {**encode_kwargs, "secret": "wrong-secret"}
-        wrong_secret_signature = encode_subnet_signature(**wrong_secret_encode)
+        wrong_secret_signature = _encode(secret="wrong-secret")
         assert wrong_secret_signature != signature
-        wrong_secret_verify = {**verify_kwargs, "provided_signature": wrong_secret_signature}
-        assert not verify_subnet_signature(**wrong_secret_verify)
+        assert not _verify(provided_signature=wrong_secret_signature)
 
         # Any mishandled field should not be verifiable
-        for kwarg in ["path", "identifier", "request_body"]:
-            modified_encode = {**encode_kwargs, kwarg: "incorrect-data"}
-            modified_verify = {**verify_kwargs, kwarg: "incorrect-data"}
-            if kwarg == "request_body":
-                modified_encode[kwarg] = b"incorrect-data"
-                modified_verify[kwarg] = b"incorrect-data"
-            assert encode_subnet_signature(**modified_encode) != signature
-            assert not verify_subnet_signature(**modified_verify)
+        assert _encode(path="incorrect-data") != signature
+        assert not _verify(path="incorrect-data")
+        assert _encode(identifier="incorrect-data") != signature
+        assert not _verify(identifier="incorrect-data")
+        assert _encode(request_body=b"incorrect-data") != signature
+        assert not _verify(request_body=b"incorrect-data")

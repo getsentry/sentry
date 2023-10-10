@@ -6,17 +6,15 @@ from responses.matchers import query_string_matcher
 from sentry import audit_log
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
-from sentry.models import (
-    AuditLogEntry,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
-from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
@@ -216,6 +214,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identity.external_id == "UXXXXXXX2"
 
 
+@control_silo_test(stable=True)
 class SlackIntegrationPostInstallTest(APITestCase):
     def setUp(self):
         self.user2 = self.create_user("foo@example.com")
@@ -351,18 +350,19 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user3_identity.user.email == "ialreadyexist@example.com"
 
 
+@control_silo_test(stable=True)
 class SlackIntegrationConfigTest(TestCase):
     def setUp(self):
         self.integration = Integration.objects.create(provider="slack", name="Slack", metadata={})
         self.installation = SlackIntegration(self.integration, self.organization.id)
 
     def test_config_data_workspace_app(self):
-        self.installation.get_config_data()["installationType"] = "workspace_app"
+        assert self.installation.get_config_data()["installationType"] == "workspace_app"
 
     def test_config_data_user_token(self):
         self.integration.metadata["user_access_token"] = "token"
-        self.installation.get_config_data()["installationType"] = "classic_bot"
+        assert self.installation.get_config_data()["installationType"] == "classic_bot"
 
     def test_config_data_born_as_bot(self):
         self.integration.metadata["installation_type"] = "born_as_bot"
-        self.installation.get_config_data()["installationType"] = "born_as_bot"
+        assert self.installation.get_config_data()["installationType"] == "born_as_bot"

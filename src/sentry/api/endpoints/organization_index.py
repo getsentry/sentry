@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, features, options
 from sentry import ratelimits as ratelimiter
-from sentry import roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
@@ -15,21 +15,22 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    ProjectPlatform,
-)
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.organization import (
+    OrganizationOptions,
+    OrganizationProvisioningOptions,
+    PostProvisionOptions,
+)
+from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
-class OrganizationSerializer(BaseOrganizationSerializer):
+class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
@@ -49,6 +50,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request) -> Response:
@@ -105,15 +110,23 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=[value], is_verified=False)
+                    }
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
-                        | Q(members__email__iexact=value)
+                        | Q(member_set__user_id__in=user_ids)
                     )
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    queryset = queryset.filter(in_iexact("members__email", value))
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
+                    queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
@@ -199,55 +212,48 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        serializer = OrganizationSerializer(data=request.data)
+        serializer = OrganizationPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
 
             try:
+                create_default_team = bool(result.get("defaultTeam"))
+                provision_args = OrganizationProvisioningOptions(
+                    provision_options=OrganizationOptions(
+                        name=result["name"],
+                        slug=result.get("slug") or result["name"],
+                        owning_user_id=request.user.id,
+                        create_default_team=create_default_team,
+                    ),
+                    post_provision_options=PostProvisionOptions(
+                        getsentry_options=None, sentry_options=None
+                    ),
+                )
 
-                with transaction.atomic():
-                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
+                rpc_org = organization_provisioning_service.provision_organization_in_region(
+                    region_name=settings.SENTRY_MONOLITH_REGION,
+                    provisioning_options=provision_args,
+                )
+                org = Organization.objects.get(id=rpc_org.id)
 
-                    organization_mapping_service.create(
-                        organization_id=org.id,
-                        slug=org.slug,
-                        name=org.name,
-                        idempotency_key=result.get("idempotencyKey", ""),
-                        region_name=settings.SENTRY_REGION or "us",
-                    )
-                    rpc_org_member = organization_service.add_organization_member(
-                        organization_id=org.id,
-                        default_org_role=org.default_role,
-                        user_id=request.user.id,
-                        role=roles.get_top_dog().id,
-                    )
-                    om = OrganizationMember.objects.get(id=rpc_org_member.id)
+                org_setup_complete.send_robust(
+                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
+                )
 
-                    if result.get("defaultTeam"):
-                        team = org.team_set.create(name=org.name)
+                self.create_audit_entry(
+                    request=request,
+                    organization=org,
+                    target_object=org.id,
+                    event=audit_log.get_event_id("ORG_ADD"),
+                    data=org.get_audit_log_data(),
+                )
 
-                        OrganizationMemberTeam.objects.create(
-                            team=team, organizationmember=om, is_active=True
-                        )
-
-                    org_setup_complete.send_robust(
-                        instance=org, user=request.user, sender=self.__class__
-                    )
-
-                    self.create_audit_entry(
-                        request=request,
-                        organization=org,
-                        target_object=org.id,
-                        event=audit_log.get_event_id("ORG_ADD"),
-                        data=org.get_audit_log_data(),
-                    )
-
-                    analytics.record(
-                        "organization.created",
-                        org,
-                        actor_id=request.user.id if request.user.is_authenticated else None,
-                    )
+                analytics.record(
+                    "organization.created",
+                    org,
+                    actor_id=request.user.id if request.user.is_authenticated else None,
+                )
 
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.
@@ -260,7 +266,7 @@ class OrganizationIndexEndpoint(Endpoint):
             if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
-                    organization=org,
+                    organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )

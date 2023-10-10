@@ -3,10 +3,10 @@ from datetime import datetime
 import pytest
 from django.conf import settings
 from django.test import override_settings
-from freezegun import freeze_time
 
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import snowflake
@@ -82,6 +82,7 @@ class SnowflakeUtilsTest(TestCase):
                     if s == segment:
                         return value & ((1 << s.length) - 1)
                     value >>= s.length
+                raise AssertionError("unreachable")
 
-            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].id
-            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].snowflake_id

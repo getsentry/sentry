@@ -25,7 +25,7 @@ function TransactionSpans(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Spans}
+      tab={Tab.SPANS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateSpansEventView}
       childComponent={SpansContent}

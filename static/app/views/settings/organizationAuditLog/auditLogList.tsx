@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -17,7 +17,10 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
+import {
+  projectDetectorSettingsId,
+  retentionPrioritiesLabels,
+} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -55,6 +58,42 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
+const getTypeDisplay = (event: string) => {
+  if (event.startsWith('rule.')) {
+    return event.replace('rule.', 'issue-alert.');
+  }
+  if (event.startsWith('alertrule.')) {
+    return event.replace('alertrule.', 'metric-alert.');
+  }
+  return event;
+};
+
+const getEventOptions = (eventTypes: string[] | null) =>
+  eventTypes
+    ?.map(type => {
+      // Having both rule.x and alertrule.x may be confusing, so we'll replace their labels to be more descriptive.
+      // We need to maintain the values here so we still fetch the correct audit log events from the backend should we want
+      // to filter.
+      // See https://github.com/getsentry/sentry/issues/46997
+      if (type.startsWith('rule.')) {
+        return {
+          label: type.replace('rule.', 'issue-alert.'),
+          value: type,
+        };
+      }
+      if (type.startsWith('alertrule.')) {
+        return {
+          label: type.replace('alertrule.', 'metric-alert.'),
+          value: type,
+        };
+      }
+      return {
+        label: type,
+        value: type,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+
 function AuditNote({
   entry,
   orgSlug,
@@ -64,6 +103,10 @@ function AuditNote({
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
+
+  if (entry.event.startsWith('rule.')) {
+    return <Note>{entry.note.replace('rule', 'issue alert rule')}</Note>;
+  }
 
   if (!project) {
     return <Note>{entry.note}</Note>;
@@ -113,6 +156,26 @@ function AuditNote({
     );
   }
 
+  if (entry.event === 'project.change-performance-issue-detection') {
+    return (
+      <Note>
+        {tct('Edited project [projectSettingsLink] [note]', {
+          projectSettingsLink: (
+            <Link
+              to={`/settings/${orgSlug}/projects/${project.slug}/performance/#${projectDetectorSettingsId}`}
+            >
+              {entry.data.slug} performance issue detector settings
+            </Link>
+          ),
+          note: entry.note.replace(
+            'edited project performance issue detector settings ',
+            ''
+          ),
+        })}
+      </Note>
+    );
+  }
+
   if (entry.event === 'sampling_priority.enabled') {
     return (
       <Note>
@@ -149,6 +212,20 @@ function AuditNote({
     );
   }
 
+  if (entry.event === 'project.ownership-rule.edit') {
+    return (
+      <Note>
+        {tct('Modified ownership rules in project [projectSettingsLink]', {
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
+        })}
+      </Note>
+    );
+  }
+
   return <Note>{entry.note}</Note>;
 }
 
@@ -176,11 +253,6 @@ function AuditLogList({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
 
-  const eventOptions = eventTypes?.map(type => ({
-    label: type,
-    value: type,
-  }));
-
   const action = (
     <EventSelector
       clearable
@@ -188,7 +260,7 @@ function AuditLogList({
       name="eventFilter"
       value={eventType}
       placeholder={t('Select Action: ')}
-      options={eventOptions}
+      options={getEventOptions(eventTypes)}
       onChange={options => {
         onEventSelect(options?.value);
       }}
@@ -218,7 +290,7 @@ function AuditLogList({
                 </NameContainer>
               </UserInfo>
               <FlexCenter>
-                <MonoDetail>{entry.event}</MonoDetail>
+                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
               </FlexCenter>
               <FlexCenter>
                 {entry.ipAddress && (

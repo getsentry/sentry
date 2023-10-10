@@ -1,59 +1,41 @@
-import {CSSProperties, useCallback, useMemo} from 'react';
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
   currentTime: number;
   mutation: Extraction;
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 function DomMutationRow({
   currentHoverTime,
   currentTime,
+  onMouseEnter,
+  onMouseLeave,
   mutation,
+  onClickTimestamp,
   startTimestampMs,
   style,
 }: Props) {
-  const {html, crumb: breadcrumb} = mutation;
+  const {html, frame} = mutation;
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
-  );
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
-  );
-
-  const crumbTime = useMemo(
-    () => relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs),
-    [breadcrumb.timestamp, startTimestampMs]
-  );
-  const hasOccurred = currentTime >= crumbTime;
-  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
-
-  const {title} = getDetails(breadcrumb);
+  const {color, title, icon} = getFrameDetails(frame);
 
   return (
     <MutationListItem
@@ -63,28 +45,34 @@ function DomMutationRow({
         beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
         afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
       })}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
-      <IconWrapper color={breadcrumb.color} hasOccurred={hasOccurred}>
-        <BreadcrumbIcon type={breadcrumb.type} />
+      <IconWrapper color={color} hasOccurred={hasOccurred}>
+        {icon}
       </IconWrapper>
       <List>
         <Row>
           <Title hasOccurred={hasOccurred}>{title}</Title>
           <TimestampButton
-            onClick={onClickTimestamp}
+            onClick={event => {
+              event.stopPropagation();
+              onClickTimestamp(frame);
+            }}
             startTimestampMs={startTimestampMs}
-            timestampMs={breadcrumb.timestamp || ''}
+            timestampMs={frame.timestampMs}
           />
         </Row>
-        <Selector>{breadcrumb.message}</Selector>
-        <CodeContainer>
-          <CodeSnippet language="html" hideCopyButton>
-            {beautify.html(html, {indent_size: 2})}
-          </CodeSnippet>
-        </CodeContainer>
+        {/* @ts-expect-error */}
+        <Selector>{frame.message ?? ''}</Selector>
+        {html ? (
+          <CodeContainer>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ) : null}
       </List>
     </MutationListItem>
   );
@@ -98,40 +86,6 @@ const MutationListItem = styled('div')`
   /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
-
-  &:hover {
-    background-color: ${p => p.theme.hover};
-  }
-
-  /*
-  Draw a vertical line behind the breadcrumb icon.
-  The line connects each row together, but is truncated for the first and last items.
-  */
-  position: relative;
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    /* $padding + $half_icon_width - $space_for_the_line */
-    left: calc(${space(1.5)} + (24px / 2) - 1px);
-    width: 1px;
-    height: 100%;
-    background: ${p => p.theme.gray200};
-  }
-
-  &:first-of-type::after {
-    top: ${space(1)};
-    bottom: 0;
-  }
-
-  &:last-of-type::after {
-    top: 0;
-    height: ${space(1)};
-  }
-
-  &:only-of-type::after {
-    height: 0;
-  }
 `;
 
 const List = styled('div')`

@@ -1,13 +1,19 @@
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, create_match_frame
+from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.enhancer.matchers import create_match_frame
 
 
 def dump_obj(obj):
     if not isinstance(getattr(obj, "__dict__", None), dict):
         return obj
-    rv = {}
+    rv: dict[str, Any] = {}
     for (key, value) in obj.__dict__.items():
         if key.startswith("_"):
             continue

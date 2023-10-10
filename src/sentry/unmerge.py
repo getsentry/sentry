@@ -108,10 +108,12 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
     def start_snuba_replacement(
         self, project: Project, source_id: int, destination_id: int
     ) -> EventstreamState:
-        return eventstream.start_unmerge(project.id, self.fingerprints, source_id, destination_id)
+        return eventstream.backend.start_unmerge(
+            project.id, self.fingerprints, source_id, destination_id
+        )
 
     def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
-        eventstream.end_unmerge(eventstream_state)
+        eventstream.backend.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
         self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]
@@ -163,7 +165,7 @@ class UnmergeArgsBase(abc.ABC):
         last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
-        eventstream_state: EventstreamState = None,
+        eventstream_state: Optional[EventstreamState] = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
         destinations: Optional[Destinations] = None,

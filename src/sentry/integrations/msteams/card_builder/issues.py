@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
+from sentry import features
 from sentry.eventstore.models import Event
 from sentry.integrations.message_builder import (
     build_attachment_text,
@@ -22,7 +24,9 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 from ..utils import ACTION_TYPE
@@ -43,6 +47,8 @@ from .block import (
     create_input_choice_set_block,
     create_text_block,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
@@ -66,10 +72,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             }
         }
 
-    def build_group_title(self) -> TextBlock:
+    def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
         text = build_attachment_title(self.group)
-
-        link = self.group.get_absolute_url(params={"referrer": "msteams"})
+        params = {"referrer": "msteams"}
+        if notification_uuid:
+            params.update({"notification_uuid": notification_uuid})
+        link = self.group.get_absolute_url(params=params)
 
         title_text = f"[{text}]({link})"
         return create_text_block(
@@ -180,6 +188,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def build_group_actions(self) -> ContainerBlock:
         status = self.group.get_status()
+        has_escalating = features.has(
+            "organizations:escalating-issues-msteams", self.group.project.organization
+        )
 
         resolve_action = self.create_issue_action_block(
             toggled=GroupStatus.RESOLVED == status,
@@ -197,14 +208,20 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         ignore_action = self.create_issue_action_block(
             toggled=GroupStatus.IGNORED == status,
             action=ACTION_TYPE.IGNORE,
-            action_title=IssueConstants.IGNORE,
+            action_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
-            reverse_action_title=IssueConstants.STOP_IGNORING,
+            reverse_action_title=IssueConstants.STOP_ARCHIVE
+            if has_escalating
+            else IssueConstants.STOP_IGNORING,
             # card_kwargs
-            card_title=IssueConstants.IGNORE_INPUT_TITLE,
-            submit_button_title=IssueConstants.IGNORE,
+            card_title=IssueConstants.ARCHIVE_INPUT_TITLE
+            if has_escalating
+            else IssueConstants.IGNORE_INPUT_TITLE,
+            submit_button_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
             input_id=IssueConstants.IGNORE_INPUT_ID,
-            choices=IssueConstants.IGNORE_INPUT_CHOICES,
+            choices=IssueConstants.ARCHIVE_INPUT_CHOICES
+            if has_escalating
+            else IssueConstants.IGNORE_INPUT_CHOICES,
         )
 
         teams_choices = self.get_teams_choices()
@@ -221,6 +238,17 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             input_id=IssueConstants.ASSIGN_INPUT_ID,
             choices=teams_choices,
             default_choice=ME,
+        )
+
+        logger.info(
+            "msteams.build_group_actions",
+            extra={
+                "group_id": self.group.id,
+                "project_id": self.group.project.id,
+                "organization": self.group.project.organization.id,
+                "has_escalating": has_escalating,
+                "ignore_action": ignore_action,
+            },
         )
 
         return create_container_block(
@@ -243,9 +271,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def build_group_card(
-        self,
-    ) -> AdaptiveCard:
+    def build_group_card(self, notification_uuid: str | None = None) -> AdaptiveCard:
         """
         The issue (group) card has the following components stacked vertically,
         1. The issue title which links to the issue.
@@ -267,6 +293,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         ]
 
         return super().build(
-            title=self.build_group_title(),
+            title=self.build_group_title(notification_uuid=notification_uuid),
             fields=fields,
         )

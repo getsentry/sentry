@@ -3,15 +3,14 @@ import time
 from base64 import b64encode
 
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView
@@ -106,7 +105,7 @@ class TwoFactorAuthView(BaseView):
             ):
                 return interface
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: Request) -> HttpResponse:
         user = auth.get_pending_2fa_user(request)
         if user is None:
             return HttpResponseRedirect(auth.get_login_url())

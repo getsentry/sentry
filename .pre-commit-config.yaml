@@ -51,18 +51,20 @@ repos:
       language: python
       files: requirements-.*\.txt$
       additional_dependencies: [packaging==21.3]
-    - id: pyright
-      name: pyright
-      entry: pyright
-      language: node
-      files: ^src/
-      types: [ python ]
-      require_serial: true
-      additional_dependencies: [ "pyright@1.1.186" ]
-      args: [ '--project', 'pyrightconfig-commithook.json' ]
+    - id: check-mypy-bypass
+      name: do not bypass the type checker
+      entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
+      language: pygrep
+      types: [python]
+      exclude: ^src/sentry/metrics/minimetrics.py$
+
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    -   id: python-use-type-annotations
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.21.0
+    rev: 0.24.1
     hooks:
     - id: check-github-actions
     - id: check-github-workflows

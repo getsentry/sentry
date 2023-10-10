@@ -14,11 +14,25 @@ from sentry.api.serializers import (
 from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
-from sentry.models import Deploy, Environment, OrganizationOnboardingTask, ReleaseProjectEnvironment
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
-from sentry.testutils import TestCase
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
+
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -40,7 +54,7 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -53,7 +67,6 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
-            "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",
@@ -65,6 +78,8 @@ class OrganizationSerializerTest(TestCase):
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-deployment",
+            "integrations-enterprise-alert-rule",
+            "integrations-enterprise-incident-management",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
@@ -73,6 +88,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "invite-members-rate-limits",
             "minute-resolution-sessions",
+            "notifications-double-write",
             "open-membership",
             "project-stats",
             "relay",
@@ -82,6 +98,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "team-roles",
             "performance-issues-search",
             "transaction-name-normalize",
             "transaction-name-mark-scrubbed-as-sanitized",
@@ -130,7 +147,7 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -142,13 +159,13 @@ class DetailedOrganizationSerializerTest(TestCase):
 
         assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized
@@ -160,7 +177,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
 
         assert result["id"] == str(self.organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
@@ -205,6 +222,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
+@region_silo_test(stable=True)
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -224,6 +242,7 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
+@region_silo_test(stable=True)
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

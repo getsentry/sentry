@@ -3,9 +3,10 @@ import pytest
 __all__ = ["ReleaseHook"]
 
 from sentry.exceptions import HookValidationError
-from sentry.models import Commit, Release, ReleaseProject
+from sentry.models.commit import Commit
+from sentry.models.release import Release, ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class StartReleaseTest(TestCase):

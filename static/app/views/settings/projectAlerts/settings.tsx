@@ -5,31 +5,31 @@ import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import PluginList from 'sentry/components/pluginList';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {projectId: string};
 
 type Props = RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'] & {
+  DeprecatedAsyncView['props'] & {
     canEditRule: boolean;
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   pluginList: Array<Plugin> | null;
   project: Project | null;
 };
 
-class Settings extends AsyncView<Props, State> {
+class Settings extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -43,7 +43,7 @@ class Settings extends AsyncView<Props, State> {
     return `/projects/${organization.slug}/${params.projectId}/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     const projectEndpoint = this.getProjectEndpoint();
     return [

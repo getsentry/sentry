@@ -90,10 +90,21 @@ const organizationNavigation: NavigationSection[] = [
         id: 'integrations',
         recordAnalytics: true,
       },
+    ],
+  },
+  {
+    name: t('Developer Settings'),
+    items: [
+      {
+        path: `${pathPrefix}/auth-tokens/`,
+        title: t('Auth Tokens'),
+        description: t('Manage organization auth tokens'),
+        id: 'auth-tokens',
+      },
       {
         path: `${pathPrefix}/developer-settings/`,
-        title: t('Developer Settings'),
-        description: t('Manage developer applications'),
+        title: t('Custom Integrations'),
+        description: t('Manage custom integrations'),
         id: 'developer-settings',
       },
     ],

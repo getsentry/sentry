@@ -60,7 +60,7 @@ export interface SelectValue<T> extends MenuListItemProps {
  */
 export type Choice = [
   value: string | number,
-  label: string | number | React.ReactElement
+  label: string | number | React.ReactElement,
 ];
 
 export type Choices = Choice[];
@@ -127,9 +127,9 @@ export type PageFilters = {
    * Currently selected time filter
    */
   datetime: {
-    end: DateString;
+    end: DateString | null;
     period: string | null;
-    start: DateString;
+    start: DateString | null;
     utc: boolean | null;
   };
   /**

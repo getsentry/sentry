@@ -1,4 +1,4 @@
-from sentry.models import PromptsActivity
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.request_cache import request_cache
 
 DEFAULT_PROMPTS = {
@@ -13,6 +13,7 @@ DEFAULT_PROMPTS = {
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "vitals_alert": {"required_fields": ["organization_id"]},
+    "github_missing_members": {"required_fields": ["organization_id"]},
 }
 
 

@@ -6,18 +6,23 @@ import responses
 
 import sentry
 from sentry import options
-from sentry.models import Broadcast
+from sentry.models.broadcast import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
+@no_silo_test(stable=True)
 class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_simple(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        self.organization
+        self.project
+        self.team
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
         safe_urlread.return_value = json.dumps({"notices": [], "version": {"stable": "1.0.0"}})
 
@@ -37,7 +42,7 @@ class SendBeaconTest(TestCase):
                 "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
-                    "users": 0,
+                    "users": 1,
                     "projects": 1,
                     "teams": 1,
                     "events.24h": 0,
@@ -57,6 +62,9 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        self.organization
+        self.project
+        self.team
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
         safe_urlread.return_value = json.dumps({"notices": [], "version": {"stable": "1.0.0"}})
 
@@ -76,7 +84,7 @@ class SendBeaconTest(TestCase):
                 "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
-                    "users": 0,
+                    "users": 1,
                     "projects": 1,
                     "teams": 1,
                     "events.24h": 0,

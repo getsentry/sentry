@@ -1,9 +1,10 @@
-from sentry.models import ApiApplication, ApiAuthorization, ApiToken
-from sentry.testutils import APITestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apitoken import ApiToken
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class ApiAuthorizationsTest(APITestCase):
     endpoint = "sentry-api-0-api-authorizations"
 

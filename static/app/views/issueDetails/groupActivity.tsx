@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import uniq from 'lodash/uniq';
 
 import {createNote, deleteNote, updateNote} from 'sentry/actionCreators/group';
 import {
@@ -9,28 +8,25 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import ActivityAuthor from 'sentry/components/activity/author';
-import ActivityItem from 'sentry/components/activity/item';
-import Note from 'sentry/components/activity/note';
-import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import {ActivityAuthor} from 'sentry/components/activity/author';
+import {ActivityItem} from 'sentry/components/activity/item';
+import {Note} from 'sentry/components/activity/note';
+import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {CreateError} from 'sentry/components/activity/note/types';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   Group,
-  GroupActivityAssigned,
   GroupActivityReprocess,
   GroupActivityType,
   Organization,
   User,
 } from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
-import Teams from 'sentry/utils/teams';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -64,12 +60,12 @@ class GroupActivity extends Component<Props, State> {
   };
 
   handleNoteDelete = async ({noteId, text: oldText}) => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
-    addLoadingMessage(t('Removing comment...'));
+    addLoadingMessage(t('Removing comment\u{2026}'));
 
     try {
-      await deleteNote(api, group, noteId, oldText);
+      await deleteNote(api, organization.slug, group, noteId, oldText);
       clearIndicators();
     } catch (_err) {
       addErrorMessage(t('Failed to delete comment'));
@@ -81,16 +77,16 @@ class GroupActivity extends Component<Props, State> {
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleNoteCreate = async note => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
     this.setState({
       createBusy: true,
     });
 
-    addLoadingMessage(t('Posting comment...'));
+    addLoadingMessage(t('Posting comment\u{2026}'));
 
     try {
-      await createNote(api, group, note);
+      await createNote(api, organization.slug, group, note);
 
       this.setState({
         createBusy: false,
@@ -111,12 +107,12 @@ class GroupActivity extends Component<Props, State> {
   };
 
   handleNoteUpdate = async (note, {noteId, text: oldText}) => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
-    addLoadingMessage(t('Updating comment...'));
+    addLoadingMessage(t('Updating comment\u{2026}'));
 
     try {
-      await updateNote(api, group, note, noteId, oldText);
+      await updateNote(api, organization.slug, group, note, noteId, oldText);
       clearIndicators();
     } catch (error) {
       this.setState({
@@ -159,81 +155,60 @@ class GroupActivity extends Component<Props, State> {
 
         <Layout.Body>
           <Layout.Main>
-            <ActivityItem author={{type: 'user', user: me}}>
-              {() => (
-                <NoteInputWithStorage
-                  key={this.state.inputId}
-                  storageKey="groupinput:latest"
-                  itemKey={group.id}
-                  onCreate={this.handleNoteCreate}
-                  busy={this.state.createBusy}
-                  error={this.state.error}
-                  errorJSON={this.state.errorJSON}
-                  {...noteProps}
-                />
-              )}
+            <ActivityItem noPadding author={{type: 'user', user: me}}>
+              <NoteInputWithStorage
+                key={this.state.inputId}
+                storageKey="groupinput:latest"
+                itemKey={group.id}
+                onCreate={this.handleNoteCreate}
+                busy={this.state.createBusy}
+                error={this.state.error}
+                errorJSON={this.state.errorJSON}
+                {...noteProps}
+              />
             </ActivityItem>
 
-            <Teams
-              ids={uniq(
-                group.activity
-                  .filter(
-                    (item): item is GroupActivityAssigned =>
-                      item.type === GroupActivityType.ASSIGNED &&
-                      item.data.assigneeType === 'team' &&
-                      item.data.assignee?.length > 0
-                  )
-                  .map(item => item.data.assignee)
-              )}
-            >
-              {({initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  group.activity.map(item => {
-                    const authorName = item.user ? item.user.name : 'Sentry';
+            {group.activity.map(item => {
+              const authorName = item.user ? item.user.name : 'Sentry';
 
-                    if (item.type === GroupActivityType.NOTE) {
-                      return (
-                        <ErrorBoundary mini key={`note-${item.id}`}>
-                          <Note
-                            showTime={false}
-                            text={item.data.text}
-                            noteId={item.id}
-                            user={item.user as User}
-                            dateCreated={item.dateCreated}
-                            authorName={authorName}
-                            onDelete={this.handleNoteDelete}
-                            onUpdate={this.handleNoteUpdate}
-                            {...noteProps}
-                          />
-                        </ErrorBoundary>
-                      );
-                    }
-
-                    return (
-                      <ErrorBoundary mini key={`item-${item.id}`}>
-                        <ActivityItem
-                          author={{
-                            type: item.user ? 'user' : 'system',
-                            user: item.user ?? undefined,
-                          }}
-                          date={item.dateCreated}
-                          header={
-                            <GroupActivityItem
-                              author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                              activity={item}
-                              organization={organization}
-                              projectId={group.project.id}
-                            />
-                          }
-                        />
-                      </ErrorBoundary>
-                    );
-                  })
-                ) : (
-                  <LoadingIndicator />
-                )
+              if (item.type === GroupActivityType.NOTE) {
+                return (
+                  <ErrorBoundary mini key={`note-${item.id}`}>
+                    <Note
+                      showTime={false}
+                      text={item.data.text}
+                      noteId={item.id}
+                      user={item.user as User}
+                      dateCreated={item.dateCreated}
+                      authorName={authorName}
+                      onDelete={this.handleNoteDelete}
+                      onUpdate={this.handleNoteUpdate}
+                      {...noteProps}
+                    />
+                  </ErrorBoundary>
+                );
               }
-            </Teams>
+
+              return (
+                <ErrorBoundary mini key={`item-${item.id}`}>
+                  <ActivityItem
+                    author={{
+                      type: item.user ? 'user' : 'system',
+                      user: item.user ?? undefined,
+                    }}
+                    date={item.dateCreated}
+                    header={
+                      <GroupActivityItem
+                        author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                        activity={item}
+                        organization={organization}
+                        projectId={group.project.id}
+                      />
+                    }
+                  />
+                </ErrorBoundary>
+              );
+            })}
           </Layout.Main>
         </Layout.Body>
       </Fragment>

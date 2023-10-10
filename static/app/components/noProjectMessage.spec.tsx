@@ -1,20 +1,22 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {
     ProjectsStore.reset();
   });
 
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   it('renders', function () {
-    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const organization = Organization({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
-    delete organization.projects;
     ProjectsStore.loadInitialData([]);
 
     render(
@@ -30,15 +32,27 @@ describe('NoProjectMessage', function () {
 
     render(<NoProjectMessage organization={org} />);
 
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
-  it('"Create Project" is disabled when no access to `project:write`', function () {
+  it('disable "Create Project" when user has no org-level access', function () {
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+    render(<NoProjectMessage organization={Organization({access: []})} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+  });
+
+  it('shows "Create Project" button when user has team-level access', function () {
+    ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([
+      {...TestStubs.Team(), access: ['team:admin', 'team:write', 'team:read']},
+    ]);
+
+    // No org-level access
+    render(<NoProjectMessage organization={Organization({access: []})} />);
+
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
   it('has no "Join a Team" button when projects are missing', function () {
@@ -47,7 +61,7 @@ describe('NoProjectMessage', function () {
     render(<NoProjectMessage organization={org} />);
 
     expect(screen.queryByRole('button', {name: 'Join a Team'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {

@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
@@ -179,7 +185,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('not shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -223,12 +229,10 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -244,12 +248,10 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - with attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -264,8 +266,6 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -278,7 +278,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('no context and no tags', async function () {
-      const {container} = render(
+      render(
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
@@ -323,8 +323,6 @@ describe('EventTagsAndScreenshot', function () {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByLabelText('Close Modal'));
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -337,7 +335,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('has context, async tags and attachments', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -372,8 +370,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('renders multiple screenshots correctly', async function () {
@@ -429,8 +425,51 @@ describe('EventTagsAndScreenshot', function () {
       );
     });
 
+    it('can delete a screenshot', async function () {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1765467046/`,
+        method: 'DELETE',
+      });
+      render(
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectSlug={project.slug}
+          location={router.location}
+        />,
+        {organization}
+      );
+      renderGlobalModal();
+
+      // Open screenshot menu and select delete
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More screenshot actions'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+
+      // Selecting delete should open a confirmation modal
+      expect(
+        within(screen.getByRole('dialog')).getByText(
+          /are you sure you want to delete this image/i
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Confirm'})
+      );
+
+      // Screenshot should be removed after confirmation
+      expect(
+        screen.queryByRole('button', {name: 'View screenshot'})
+      ).not.toBeInTheDocument();
+    });
+
     it('has context and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
@@ -458,12 +497,10 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryByRole('listitem')).not.toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('has tags and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
@@ -491,8 +528,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
   });
 });

@@ -9,6 +9,7 @@ from django.apps import apps
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     JSONField,
@@ -16,7 +17,8 @@ from sentry.db.models import (
     control_silo_only_model,
     region_silo_only_model,
 )
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -45,7 +47,7 @@ class BaseScheduledDeletion(Model):
     class Meta:
         abstract = True
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = models.CharField(max_length=32, unique=True, default=default_guid)
     app_label = models.CharField(max_length=64)
@@ -159,6 +161,6 @@ class RegionScheduledDeletion(BaseScheduledDeletion):
 
 
 def get_regional_scheduled_deletion(mode: SiloMode) -> Type[BaseScheduledDeletion]:
-    if mode == SiloMode.REGION:
+    if mode != SiloMode.CONTROL:
         return RegionScheduledDeletion
     return ScheduledDeletion

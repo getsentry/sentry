@@ -1,20 +1,36 @@
-from croniter import croniter
+import pytz
+import sentry_sdk
+from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
-from django.utils.timezone import pytz
-from django.utils.translation import ugettext_lazy as _
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+)
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import MAX_TIMEOUT
+from sentry.monitors.models import (
+    MAX_SLUG_LENGTH,
+    CheckInStatus,
+    Monitor,
+    MonitorType,
+    ScheduleType,
+)
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
-    "active": MonitorStatus.ACTIVE,
-    "disabled": MonitorStatus.DISABLED,
+    "active": ObjectStatus.ACTIVE,
+    "disabled": ObjectStatus.DISABLED,
 }
 
 SCHEDULE_TYPES = {
@@ -41,11 +57,48 @@ class ObjectField(serializers.Field):
         return data
 
 
+class MonitorAlertRuleTargetValidator(serializers.Serializer):
+    target_identifier = serializers.IntegerField(help_text="ID of target object")
+    target_type = serializers.CharField(help_text="One of [Member, Team]")
+
+
+class MonitorAlertRuleValidator(serializers.Serializer):
+    environment = serializers.CharField(
+        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
+    )
+    targets = MonitorAlertRuleTargetValidator(
+        many=True,
+        help_text="Array of dictionaries with information of the user or team to be notified",
+    )
+
+
+class MissedMarginField(EmptyIntegerField):
+    def to_internal_value(self, value):
+        value = super().to_internal_value(value)
+
+        # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
+        # allowed for the checkin_margin to 1 from 0. Some monitors may still
+        # be upserting monitors with a 0 for the checkin_margin.
+        #
+        # In order to not break those checkins we will still allow a value of
+        # 0, but we will transform it to 1.
+        if value == 0:
+            # Capture this as a sentry error so we can understand if we can
+            # remove this code once very few people send upserts like this.
+            sentry_sdk.capture_message("Cron Monitor recieved upsert with checkin_margin = 0")
+            return 1
+        return value
+
+
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
-        required=False,
         help_text='Currently supports "crontab" or "interval"',
+        # The schedule_type IS required when the `type` is not part of the
+        # `schedule` object field (see self.validate). We cannot mark it as
+        # required here however since this field may be left out when using the
+        # alternative schedule format.
+        required=False,
     )
 
     schedule = ObjectField(
@@ -60,11 +113,12 @@ class ConfigValidator(serializers.Serializer):
     When using this format the `schedule_type` is not required
     """
 
-    checkin_margin = EmptyIntegerField(
+    checkin_margin = MissedMarginField(
         required=False,
         allow_null=True,
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
+        min_value=1,
     )
 
     max_runtime = EmptyIntegerField(
@@ -72,12 +126,30 @@ class ConfigValidator(serializers.Serializer):
         allow_null=True,
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        min_value=1,
+        max_value=MAX_TIMEOUT,
     )
 
     timezone = serializers.ChoiceField(
         choices=pytz.all_timezones,
         required=False,
         help_text="tz database style timezone string",
+    )
+
+    failure_issue_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
+        min_value=1,
+    )
+
+    recovery_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many successful check-ins in a row before resolving an issue.",
+        min_value=1,
     )
 
     def bind(self, *args, **kwargs):
@@ -121,6 +193,8 @@ class ConfigValidator(serializers.Serializer):
                 raise ValidationError({"schedule": "Invalid schedule for for 'interval' type"})
             if not isinstance(schedule[0], int):
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
+            if schedule[0] <= 0:
+                raise ValidationError({"schedule": "Interval must be greater than zero"})
             if schedule[1] not in INTERVAL_NAMES:
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit name"})
         elif schedule_type == ScheduleType.CRONTAB:
@@ -139,6 +213,14 @@ class ConfigValidator(serializers.Serializer):
             # crontab schedule must be valid
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
+
+            # check to make sure schedule actually has a next valid expected check-in
+            try:
+                itr = croniter(schedule, timezone.now())
+                next(itr)
+            except CroniterBadDateError:
+                raise ValidationError({"schedule": "Schedule is invalid"})
+
             # Do not support 6 or 7 field crontabs
             if len(schedule.split()) > 5:
                 raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
@@ -148,15 +230,15 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorValidator(serializers.Serializer):
+class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField()
+    name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
-        r"^[a-zA-Z0-9_-]+$",
-        max_length=50,
+        DEFAULT_SLUG_PATTERN,
+        max_length=MAX_SLUG_LENGTH,
         required=False,
         error_messages={
-            "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
+            "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
         },
     )
     status = serializers.ChoiceField(
@@ -165,6 +247,7 @@ class MonitorValidator(serializers.Serializer):
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
+    alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):
         return MONITOR_STATUSES.get(value, value)
@@ -181,7 +264,7 @@ class MonitorValidator(serializers.Serializer):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-
+        value = super().validate_slug(value)
         return value
 
     def update(self, instance, validated_data):
@@ -196,6 +279,14 @@ class MonitorValidator(serializers.Serializer):
         return validated_data
 
 
+class TraceContextValidator(serializers.Serializer):
+    trace_id = serializers.UUIDField(format="hex")
+
+
+class ContextsValidator(serializers.Serializer):
+    trace = TraceContextValidator(required=False)
+
+
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -204,9 +295,15 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("in_progress", CheckInStatus.IN_PROGRESS),
         )
     )
-    duration = EmptyIntegerField(required=False, allow_null=True)
+    duration = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        min_value=0,
+    )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
+    contexts = ContextsValidator(required=False, allow_null=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

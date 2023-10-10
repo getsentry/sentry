@@ -13,12 +13,10 @@ import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
+import {ProfilesChart} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
   location: Location;
@@ -70,8 +68,18 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts query={props.query} hideCount compact />
+        <ProfilesChart
+          referrer="api.profiling.profile-summary-chart"
+          query={props.query}
+          hideCount
+          compact
+        />
         <AggregateFlamegraphPanel transaction={props.transaction} />
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -95,11 +103,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           isLoading={profiles.status === 'loading'}
           sort={sort}
         />
-        <SuspectFunctionsTable
-          project={props.project}
-          transaction={props.transaction}
-          analyticsPageSource="profiling_transaction"
-        />
       </Layout.Main>
     </Fragment>
   );
@@ -113,6 +116,11 @@ const ALL_FIELDS = [
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+  'last_seen()',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];

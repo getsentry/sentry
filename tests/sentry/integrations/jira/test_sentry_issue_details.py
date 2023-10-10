@@ -1,16 +1,22 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import responses
-from django.utils import timezone
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
-from sentry.models import ExternalIssue, Group, GroupLink, Integration
-from sentry.testutils import APITestCase
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
+
+pytestmark = [requires_snuba]
+
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"

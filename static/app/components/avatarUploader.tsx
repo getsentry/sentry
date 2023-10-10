@@ -238,8 +238,8 @@ class AvatarUploader extends Component<Props, State> {
     const editingLeft = resizeDirection === 'nw' || resizeDirection === 'sw';
 
     const newDimensions = {
-      top: 0,
-      left: 0,
+      top: oldDimensions.top,
+      left: oldDimensions.left,
       size: oldDimensions.size + diff,
     };
 
@@ -441,7 +441,11 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   text-align: center;
   margin-bottom: 20px;
   background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0px;
   background-color: ${p => p.theme.background};
   background-image: linear-gradient(
       45deg,

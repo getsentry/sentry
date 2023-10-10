@@ -1,6 +1,8 @@
 import click
+import yaml
 
 from sentry.runner.decorators import configuration
+from sentry.utils import json
 
 
 @click.group()
@@ -14,7 +16,7 @@ def files():
 @configuration
 def get(id):
     """Fetch a file's contents by id."""
-    from sentry.models import File
+    from sentry.models.files.file import File
 
     try:
         file = File.objects.get(id=id)
@@ -34,7 +36,7 @@ def get(id):
 @configuration
 def info(id, format):
     """Show a file's metadata by id."""
-    from sentry.models import File
+    from sentry.models.files.file import File
 
     try:
         file = File.objects.get(id=id)
@@ -53,11 +55,7 @@ def info(id, format):
     stdout = click.get_text_stream("stdout")
 
     if format == "yaml":
-        from sentry.utils import yaml
-
         yaml.safe_dump(obj, stdout)
     elif format == "json":
-        from sentry.utils import json
-
         json.dump(obj, stdout)
         stdout.write("\n")

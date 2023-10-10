@@ -8,12 +8,13 @@ import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconMute} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
+  GroupStatus,
   GroupStatusResolution,
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  GroupSubstatus,
+  IgnoredStatusDetails,
   SelectValue,
 } from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -52,22 +53,23 @@ export function getIgnoreActions({
   'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate'
 >) {
   const onIgnore = (
-    statusDetails: ResolutionStatusDetails | undefined = {},
+    statusDetails: IgnoredStatusDetails | undefined = {},
     {bypassConfirm} = {bypassConfirm: false}
   ) => {
     openConfirmModal({
       bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
-          status: ResolutionStatus.IGNORED,
+          status: GroupStatus.IGNORED,
           statusDetails,
+          substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
         }),
       message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
     });
   };
 
-  const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
+  const onCustomIgnore = (statusDetails: IgnoredStatusDetails) => {
     onIgnore(statusDetails, {bypassConfirm: true});
   };
 
@@ -205,9 +207,7 @@ type IgnoreActionProps = {
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
@@ -219,8 +219,6 @@ function IgnoreActions({
   shouldConfirm,
   confirmMessage,
   className,
-  hideIcon,
-  disableTooltip,
   size = 'xs',
   confirmLabel = t('Ignore'),
   isIgnored = false,
@@ -232,10 +230,13 @@ function IgnoreActions({
           priority="primary"
           size="xs"
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
           aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
         />
       </Tooltip>
     );
@@ -252,11 +253,10 @@ function IgnoreActions({
     <ButtonBar className={className} merged>
       <IgnoreButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={hideIcon ? null : <IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >

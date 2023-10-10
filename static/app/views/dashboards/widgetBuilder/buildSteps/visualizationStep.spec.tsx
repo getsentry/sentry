@@ -1,3 +1,5 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/tags/',
     method: 'GET',
-    body: TestStubs.Tags(),
+    body: Tags(),
   });
 
   MockApiClient.addMockResponse({
@@ -73,7 +75,6 @@ function mockRequests(orgSlug: Organization['slug']) {
 
 describe('VisualizationStep', function () {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },

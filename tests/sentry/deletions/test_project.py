@@ -1,26 +1,22 @@
 from sentry import eventstore
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    EnvironmentProject,
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    Project,
-    ProjectDebugFile,
-    Release,
-    ReleaseCommit,
-    Repository,
-    RuleSnooze,
-    ScheduledDeletion,
-    ServiceHook,
-)
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.servicehook import ServiceHook
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -29,14 +25,18 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test
-class DeleteProjectTest(APITestCase, TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
@@ -114,13 +114,12 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             alert_rule=metric_alert_rule,
             title="Something bad happened",
         )
-        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
-        deletion = ScheduledDeletion.schedule(project, days=0)
-        deletion.update(in_progress=True)
+        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
+        self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
@@ -156,19 +155,21 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
-        deletion = ScheduledDeletion.schedule(project, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not GroupSeen.objects.filter(id=group_seen.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(conditions)
+        events = eventstore.backend.get_events(
+            conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+        )
         assert len(events) == 0

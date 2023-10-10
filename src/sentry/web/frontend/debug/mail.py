@@ -9,17 +9,17 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
@@ -28,27 +28,34 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    Project,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
+from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import Feature, override_options
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.notifications.utils import (
+    get_group_settings_link,
+    get_interface_list,
+    get_issue_replay_link,
+    get_rules,
+)
+from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
+from sentry.testutils.helpers.notifications import (  # NOQA:S007
+    SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_ISSUE_OCCURRENCE,
+)
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -155,7 +162,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-
+        group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -189,40 +196,28 @@ def make_error_event(request, project, platform):
 
 
 def make_performance_event(project, sample_name: str):
-    with override_options(
-        {
-            "performance.issues.all.problem-detection": 1.0,
-            "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
-            "performance.issues.render_blocking_assets.problem-creation": 1.0,
-        }
-    ), Feature(
-        {
-            "organizations:performance-n-plus-one-api-calls-detector": True,
-            "organizations:performance-issues-render-blocking-assets-detector": True,
-        }
+    timestamp = datetime(2017, 9, 6, 0, 0)
+    start_timestamp = timestamp - timedelta(seconds=3)
+    event_id = "44f1419e73884cd2b45c79918f4b6dc4"
+    occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+    occurrence_data["event_id"] = event_id
+    perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
+    perf_data["event_id"] = event_id
+    perf_data["project_id"] = project.id
+
+    with mock.patch.object(
+        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
-        timestamp = datetime(2017, 9, 6, 0, 0)
-        start_timestamp = timestamp - timedelta(seconds=3)
-
-        perf_data = dict(
-            load_data(
-                sample_name,
-                start_timestamp=start_timestamp,
-                timestamp=timestamp,
-            )
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            perf_data,
         )
-        perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-        perf_event_manager = EventManager(perf_data)
-        perf_event_manager.normalize()
-        perf_data = perf_event_manager.get_data()
-        perf_event = perf_event_manager.save(project.id)
-        # Prevent CI screenshot from constantly changing
-        perf_event.data["timestamp"] = timestamp.timestamp()
-        perf_event.data["start_timestamp"] = start_timestamp.timestamp()
-
-    perf_event = perf_event.for_group(perf_event.groups[0])
-    return perf_event
+    generic_group = group_info.group
+    group_event = generic_group.get_latest_event()
+    # Prevent CI screenshot from constantly changing
+    group_event.data["timestamp"] = timestamp.timestamp()
+    group_event.data["start_timestamp"] = start_timestamp.timestamp()
+    return group_event
 
 
 def make_generic_event(project):
@@ -249,6 +244,7 @@ def get_shared_context(rule, org, project, group, event):
         "rule": rule,
         "rules": rules,
         "group": group,
+        "group_header": get_group_substatus_text(group),
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
@@ -286,7 +282,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request: Request):
+    def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -377,10 +373,10 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
-    def get_activity(self, request: Request, event):
+    def get_activity(self, request: HttpRequest, event):
         raise NotImplementedError
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
@@ -395,7 +391,7 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = get_event_type(data)
 
-        event = eventstore.create_event(
+        event = eventstore.backend.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
 
@@ -413,6 +409,10 @@ class ActivityMailDebugView(View):
         )
 
 
+has_issue_states = True
+replay_id = "9188182919744ea987d8e4e58f4a6dec"
+
+
 @login_required
 def alert(request):
     random = get_random(request)
@@ -422,6 +422,10 @@ def alert(request):
 
     event = make_error_event(request, project, platform)
     group = event.group
+
+    group.substatus = random.choice(
+        [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
+    )
 
     rule = Rule(id=1, label="An example rule")
     notification_reason = (
@@ -443,7 +447,12 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
+            "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
+            "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
+            "has_issue_states": has_issue_states,
+            "replay_id": replay_id,
+            "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },
     ).render(request)
 
@@ -455,11 +464,10 @@ def digest(request):
     # TODO: Refactor all of these into something more manageable.
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
-    project.update_option("sentry:performance_issue_creation_rate", 1.0)
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state = {
+    state: dict[str, Any] = {
         "project": project,
         "groups": {},
         "rules": rules,
@@ -468,7 +476,7 @@ def digest(request):
     }
     records = []
     group_generator = make_group_generator(random, project)
-
+    notification_uuid = str(uuid.uuid4())
     for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
@@ -489,7 +497,7 @@ def digest(request):
                 to_timestamp(group.first_seen), to_timestamp(group.last_seen)
             )
 
-            event = eventstore.create_event(
+            event = eventstore.backend.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
             records.append(
@@ -500,6 +508,7 @@ def digest(request):
                         random.sample(
                             list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                         ),
+                        notification_uuid,
                     ),
                     to_timestamp(event.datetime),
                 )
@@ -523,6 +532,7 @@ def digest(request):
                     random.sample(
                         list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                     ),
+                    notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
@@ -546,6 +556,7 @@ def digest(request):
                     random.sample(
                         list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                     ),
+                    notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
@@ -561,6 +572,7 @@ def digest(request):
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
+    context["show_replay_links"] = True
     context["snooze_alert"] = True
     context["snooze_alert_urls"] = {
         rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details
@@ -697,7 +709,7 @@ def recover_account(request):
 
 @login_required
 def org_delete_confirm(request):
-    from sentry.models import AuditLogEntry
+    from sentry.models.auditlogentry import AuditLogEntry
 
     org = Organization.get_default()
     entry = AuditLogEntry(

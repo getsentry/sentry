@@ -1,32 +1,12 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
-import {RouteContext} from 'sentry/views/routeContext';
-
-function ComponentProviders({children}: {children: React.ReactNode}) {
-  const {router} = initializeOrg();
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      {children}
-      <GlobalModal />
-    </RouteContext.Provider>
-  );
-}
 
 describe('FeatureFeedback', function () {
   beforeEach(() => {
@@ -34,11 +14,8 @@ describe('FeatureFeedback', function () {
   });
 
   it('shows the modal on click', async function () {
-    render(
-      <ComponentProviders>
-        <FeatureFeedback featureName="test" />
-      </ComponentProviders>
-    );
+    render(<FeatureFeedback featureName="test" />);
+    renderGlobalModal();
 
     await userEvent.click(screen.getByText('Give Feedback'));
 
@@ -50,15 +27,14 @@ describe('FeatureFeedback', function () {
   it('shows the modal on click with custom "onClick" handler', async function () {
     const mockOnClick = jest.fn();
     render(
-      <ComponentProviders>
-        <FeatureFeedback
-          featureName="test"
-          buttonProps={{
-            onClick: mockOnClick,
-          }}
-        />
-      </ComponentProviders>
+      <FeatureFeedback
+        featureName="test"
+        buttonProps={{
+          onClick: mockOnClick,
+        }}
+      />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getByText('Give Feedback'));
 
@@ -68,18 +44,13 @@ describe('FeatureFeedback', function () {
   });
 
   it('Close modal on click', async function () {
-    render(
-      <ComponentProviders>
-        <FeatureFeedback featureName="test" />
-      </ComponentProviders>
-    );
+    render(<FeatureFeedback featureName="test" />);
+    const {waitForModalToHide} = renderGlobalModal();
 
     await userEvent.click(screen.getByText('Give Feedback'));
 
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('heading', {name: 'Submit Feedback'})
-    );
+    await waitForModalToHide();
   });
 });

@@ -1,21 +1,19 @@
 import {duration} from 'moment';
+import {ReplayError} from 'sentry-fixture/replayError';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 jest.useFakeTimers();
-jest.spyOn(ReplayReader, 'factory');
 jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
 
-const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-mockUseProjects.mockReturnValue({
+jest.mocked(useProjects).mockReturnValue({
   fetching: false,
   projects: [project],
   fetchError: null,
@@ -24,10 +22,6 @@ mockUseProjects.mockReturnValue({
   onSearch: () => Promise.resolve(),
   placeholders: [],
 });
-
-const MockedReplayReaderFactory = ReplayReader.factory as jest.MockedFunction<
-  typeof ReplayReader.factory
->;
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
   const HYDRATED_REPLAY = TestStubs.ReplayRecord({
@@ -49,7 +43,6 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
-    MockedReplayReaderFactory.mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -59,6 +52,18 @@ describe('useReplayData', () => {
       count_segments: 0,
       error_ids: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
@@ -67,7 +72,7 @@ describe('useReplayData', () => {
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       initialProps: {
-        replaySlug: `${project.slug}:${mockReplayResponse.id}`,
+        replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
       },
     });
@@ -75,13 +80,13 @@ describe('useReplayData', () => {
     await waitForNextUpdate();
 
     expect(result.current).toEqual({
+      attachments: expect.any(Array),
+      errors: expect.any(Array),
       fetchError: undefined,
       fetching: false,
       onRetry: expect.any(Function),
-      replay: expect.any(ReplayReader),
-      replayRecord: expectedReplay,
       projectSlug: project.slug,
-      replayId: expectedReplay.id,
+      replayRecord: expectedReplay,
     });
   });
 
@@ -98,10 +103,28 @@ describe('useReplayData', () => {
       error_ids: [],
     });
 
-    const mockSegmentResponse1 = TestStubs.ReplaySegmentInit({timestamp: startedAt});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+    });
+
+    const mockSegmentResponse1 = TestStubs.Replay.RRWebInitFrameEvents({
+      timestamp: startedAt,
+    });
     const mockSegmentResponse2 = [
-      ...TestStubs.ReplaySegmentConsole({timestamp: startedAt}),
-      ...TestStubs.ReplaySegmentNavigation({timestamp: startedAt}),
+      TestStubs.Replay.ConsoleEvent({timestamp: startedAt}),
+      TestStubs.Replay.NavigateEvent({
+        startTimestamp: startedAt,
+        endTimestamp: finishedAt,
+      }),
     ];
 
     MockApiClient.addMockResponse({
@@ -119,9 +142,9 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       initialProps: {
-        replaySlug: `${project.slug}:${mockReplayResponse.id}`,
+        replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
         segmentsPerPage: 1,
       },
@@ -133,11 +156,13 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
-      replayRecord: expectedReplay,
-      errors: [],
-    });
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
+        errors: [],
+        replayRecord: expectedReplay,
+      })
+    );
   });
 
   it('should concat N error responses and pass them through to Replay Reader', async () => {
@@ -158,17 +183,17 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
 
@@ -179,17 +204,35 @@ describe('useReplayData', () => {
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse1},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[0]}]`],
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="true"; cursor="0:1:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:0:0',
+      ],
     });
     const mockedErrorsCall2 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse2},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[1]}]`],
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:2:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:1:0',
+      ],
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       initialProps: {
-        replaySlug: `${project.slug}:${mockReplayResponse.id}`,
+        replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
         errorsPerPage: 1,
       },
@@ -201,11 +244,13 @@ describe('useReplayData', () => {
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
 
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
-      replayRecord: expectedReplay,
-      errors: [...mockErrorResponse1, ...mockErrorResponse2],
-    });
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: [],
+        errors: [...mockErrorResponse1, ...mockErrorResponse2],
+        replayRecord: expectedReplay,
+      })
+    );
   });
 
   it('should incrementally load attachments and errors', async () => {
@@ -221,12 +266,14 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: [ERROR_ID],
     });
-    const mockSegmentResponse = TestStubs.ReplaySegmentInit({timestamp: startedAt});
+    const mockSegmentResponse = TestStubs.Replay.RRWebInitFrameEvents({
+      timestamp: startedAt,
+    });
     const mockErrorResponse = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
 
@@ -250,30 +297,25 @@ describe('useReplayData', () => {
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       initialProps: {
-        replaySlug: `${project.slug}:${mockReplayResponse.id}`,
+        replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
       },
     });
 
     const expectedReplayData = {
+      attachments: [],
+      errors: [],
       fetchError: undefined,
       fetching: true,
       onRetry: expect.any(Function),
-      replay: null,
-      replayRecord: undefined,
       projectSlug: null,
-      replayId: expectedReplay.id,
+      replayRecord: undefined,
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
     expect(mockedEventsMetaCall).not.toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall).not.toHaveBeenCalledTimes(1);
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
-      replayRecord: undefined,
-      errors: [],
-    });
     expect(result.current).toEqual(expectedReplayData);
 
     jest.advanceTimersByTime(10);
@@ -283,66 +325,37 @@ describe('useReplayData', () => {
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
     expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
-      replayRecord: expectedReplay,
-      errors: [],
-    });
-    expectedReplayData.replayRecord = expectedReplay;
-    expectedReplayData.projectSlug = project.slug;
-    expectedReplayData.replay = expect.any(ReplayReader);
-    expect(result.current).toEqual(expectedReplayData);
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: [],
+        errors: [],
+        projectSlug: project.slug,
+        replayRecord: expectedReplay,
+      })
+    );
 
     jest.advanceTimersByTime(100);
     await waitForNextUpdate();
 
     // Next we see that some rrweb data has arrived
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: mockSegmentResponse,
-      replayRecord: expectedReplay,
-      errors: [],
-    });
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: mockSegmentResponse,
+        errors: [],
+        replayRecord: expectedReplay,
+      })
+    );
 
     jest.advanceTimersByTime(250);
     await waitForNextUpdate();
 
     // Finally we see fetching is complete, errors are here too
-    expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: mockSegmentResponse,
-      replayRecord: expectedReplay,
-      errors: mockErrorResponse,
-    });
-  });
-
-  it('should handle a replaySlug without projectSlug', async () => {
-    const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
-      count_errors: 0,
-      count_segments: 0,
-      error_ids: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
-      body: {data: mockReplayResponse},
-    });
-
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
-      initialProps: {
-        replaySlug: mockReplayResponse.id,
-        orgSlug: organization.slug,
-      },
-    });
-
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      fetchError: undefined,
-      fetching: false,
-      onRetry: expect.any(Function),
-      replay: expect.any(ReplayReader),
-      replayRecord: expectedReplay,
-      projectSlug: project.slug,
-      replayId: expectedReplay.id,
-    });
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: mockSegmentResponse,
+        errors: mockErrorResponse,
+        replayRecord: expectedReplay,
+      })
+    );
   });
 });

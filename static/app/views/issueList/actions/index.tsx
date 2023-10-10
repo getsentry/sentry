@@ -3,15 +3,16 @@ import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {t, tct, tn} from 'sentry/locale';
+import {Sticky} from 'sentry/components/sticky';
+import {tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -132,16 +133,22 @@ function IssueListActions({
   }
 
   function handleUpdate(data?: any) {
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
+    if (data.status === 'ignored') {
+      const statusDetails = data.statusDetails.ignoreCount
+        ? 'ignoreCount'
+        : data.statusDetails.ignoreDuration
+        ? 'ignoreDuration'
+        : data.statusDetails.ignoreUserCount
+        ? 'ignoreUserCount'
+        : undefined;
+      trackAnalytics('issues_stream.archived', {
+        action_status_details: statusDetails,
+        action_substatus: data.substatus,
+        organization,
+      });
+    }
 
     actionSelectedGroups(itemIds => {
-      // TODO(Kelly): remove once issue-list-removal-action feature is stable
-      if (!hasIssueListRemovalAction) {
-        addLoadingMessage(t('Saving changes\u2026'));
-      }
-
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
@@ -167,20 +174,14 @@ function IssueListActions({
           ...projectConstraints,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            if (!hasIssueListRemovalAction) {
-              clearIndicators();
-            }
-          },
-        }
+        {}
       );
     });
   }
 
   return (
-    <Sticky>
-      <StyledFlex>
+    <StickyActions>
+      <ActionsBar>
         {!disableActions && (
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
@@ -214,13 +215,12 @@ function IssueListActions({
         )}
         <Headers
           onSelectStatsPeriod={onSelectStatsPeriod}
-          anySelected={anySelected}
           selection={selection}
           statsPeriod={statsPeriod}
           isReprocessingQuery={displayReprocessingActions}
           isSavedSearchesOpen={isSavedSearchesOpen}
         />
-      </StyledFlex>
+      </ActionsBar>
       {!allResultsVisible && pageSelected && (
         <Alert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
@@ -264,7 +264,7 @@ function IssueListActions({
           </SelectAllNotice>
         </Alert>
       )}
-    </Sticky>
+    </StickyActions>
   );
 }
 
@@ -324,13 +324,17 @@ function shouldConfirm(
   }
 }
 
-const Sticky = styled('div')`
-  position: sticky;
+const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
-  top: -1px;
+
+  /* Remove border radius from the action bar when stuck. Without this there is
+   * a small gap where color can peek through. */
+  &[data-stuck] > div {
+    border-radius: 0;
+  }
 `;
 
-const StyledFlex = styled('div')`
+const ActionsBar = styled('div')`
   display: flex;
   min-height: 45px;
   padding-top: ${space(1)};

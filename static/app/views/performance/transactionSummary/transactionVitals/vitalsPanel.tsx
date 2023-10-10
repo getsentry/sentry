@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';

@@ -3,15 +3,23 @@ from collections import defaultdict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
-from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCommit, ReleaseProject
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.projectplatform import ProjectPlatform
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releasecommit import ReleaseCommit
 
 
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data
@@ -74,8 +82,10 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         ]
 
         # We want to first check if there are any bundles that are weakly associated with this release, if so we want
-        # to count the artifacts of the newest "ArtifactBundle".
-        last_bundle = release.last_weakly_associated_artifact_bundle()
+        # to count the sum of their artifacts.
+        weakly_associated_count = release.count_artifacts_in_artifact_bundles(
+            project_ids=[project["id"] for project in projects]
+        )
         return Response(
             {
                 "version": release.version,
@@ -86,11 +96,11 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
-                # In case there is not artifact bundle that is weakly associated with this release, we check if there is
+                # In case there is no artifact bundle that is weakly associated with this release, we check if there is
                 # the old "ReleaseFile". In case the old "ReleaseFile" is not present, we will return 0.
-                "releaseFileCount": release.count_artifacts()
-                if last_bundle is None
-                else last_bundle.artifact_count,
-                "bundleId": None if last_bundle is None else str(last_bundle.bundle_id),
+                "releaseFileCount": weakly_associated_count[1]
+                if weakly_associated_count is not None
+                else release.count_artifacts(),
+                "isArtifactBundle": weakly_associated_count is not None,
             }
         )

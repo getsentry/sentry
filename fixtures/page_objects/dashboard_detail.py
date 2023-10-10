@@ -60,7 +60,6 @@ class DashboardDetailPage(BasePage):
 
     def add_widget_through_dashboard(self, widget_title):
         self.click_dashboard_add_widget_button()
-        self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
         title_input = self.browser.element(WIDGET_TITLE_FIELD)
         title_input.clear()
         title_input.send_keys(widget_title)

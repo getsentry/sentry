@@ -9,6 +9,7 @@ class ReleaseCreatedEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_ids"),
         analytics.Attribute("user_agent", required=False),
+        analytics.Attribute("auth_type", required=False),
         analytics.Attribute("created_status"),
     )
 

@@ -2,6 +2,39 @@ import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrati
 
 import type {IssueConfigField} from './integrations';
 
+export const enum IssueAlertActionType {
+  SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+  NOTIFY_EMAIL = 'sentry.mail.actions.NotifyEmailAction',
+  DISCORD = 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction',
+  JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
+  AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
+  SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
+  MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',
+  PAGER_DUTY = 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
+  OPSGENIE = 'sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction',
+}
+
+export const enum IssueAlertConditionType {
+  EVERY_EVENT = 'sentry.rules.conditions.every_event.EveryEventCondition',
+  FIRST_SEEN_EVENT = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+  REGRESSION_EVENT = 'sentry.rules.conditions.regression_event.RegressionEventCondition',
+  REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
+  EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+  EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+}
+
+export const enum IssueAlertFilterType {
+  AGE_COMPARISON = 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+  ISSUE_OCCURRENCES = 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+  ASSIGNED_TO = 'sentry.rules.filters.assigned_to.AssignedToFilter',
+  LATEST_RELEASE = 'sentry.rules.filters.latest_release.LatestReleaseFilter',
+  ISSUE_CATEGORY = 'sentry.rules.filters.issue_category.IssueCategoryFilter',
+  EVENT_ATTRIBUTE = 'sentry.rules.filters.event_attribute.EventAttributeFilter',
+  TAGGED_EVENT = 'sentry.rules.filters.tagged_event.TaggedEventFilter',
+  LEVEL = 'sentry.rules.filters.level.LevelFilter',
+}
+
 type IssueAlertRuleFormField =
   | {
       type: 'choice';
@@ -28,8 +61,6 @@ export interface IssueAlertRuleActionTemplate {
   enabled: boolean;
   id: string;
   label: string;
-  name: string;
-  prompt: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
     | {
@@ -37,6 +68,7 @@ export interface IssueAlertRuleActionTemplate {
       }
     | SchemaFormConfig;
   link?: string;
+  prompt?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
@@ -46,7 +78,7 @@ export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
  * These are the action or condition data that the user is editing or has saved.
  */
 export interface IssueAlertRuleAction
-  extends Omit<IssueAlertRuleActionTemplate, 'formFields' | 'enabled'> {
+  extends Omit<IssueAlertRuleActionTemplate, 'formFields' | 'enabled' | 'label'> {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
   dynamic_form_fields?: IssueConfigField[];
@@ -54,7 +86,7 @@ export interface IssueAlertRuleAction
 
 export type IssueAlertRuleCondition = Omit<
   IssueAlertRuleConditionTemplate,
-  'formFields' | 'enabled'
+  'formFields' | 'enabled' | 'label'
 > & {
   dynamic_form_fields?: IssueConfigField[];
 } & {
@@ -83,8 +115,21 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   id: string;
   projects: string[];
   snooze: boolean;
+  status: 'active' | 'disabled';
+  /**
+   * Date alert is set to be disabled unless action is taken
+   */
+  disableDate?: string;
+  disableReason?: 'noisy';
   errors?: {detail: string}[];
   lastTriggered?: string;
+  /**
+   * Set to true to opt out of the rule being automatically disabled
+   * see also - status=disabled, disableDate, disableReason
+   * TODO(scttcper): This is only used in the edit request and we should
+   *  move it to its own interface
+   */
+  optOutEdit?: boolean;
   snoozeCreatedBy?: string;
   snoozeForEveryone?: boolean;
 }
@@ -96,19 +141,30 @@ export type ProjectAlertRuleStats = {
 };
 
 export enum MailActionTargetType {
-  IssueOwners = 'IssueOwners',
-  Team = 'Team',
-  Member = 'Member',
-  ReleaseMembers = 'ReleaseMembers',
+  ISSUE_OWNERS = 'IssueOwners',
+  TEAM = 'Team',
+  MEMBER = 'Member',
+  RELEASE_MEMBERS = 'ReleaseMembers',
 }
 
 export enum AssigneeTargetType {
-  Unassigned = 'Unassigned',
-  Team = 'Team',
-  Member = 'Member',
+  UNASSIGNED = 'Unassigned',
+  TEAM = 'Team',
+  MEMBER = 'Member',
 }
 
 export type NoteType = {
   mentions: string[];
   text: string;
 };
+
+/**
+ * Used when determining what types of actions a rule has. The default action is "sentry.mail.actions.NotifyEmailAction"
+ * while other actions can be integration (Slack, PagerDuty, etc) actions. We need to know this to determine what kind of muting
+ * the alert should have.
+ */
+export enum RuleActionsCategories {
+  ALL_DEFAULT = 'all_default',
+  SOME_DEFAULT = 'some_default',
+  NO_DEFAULT = 'no_default',
+}

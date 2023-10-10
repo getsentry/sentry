@@ -25,10 +25,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
-from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -324,8 +329,12 @@ def get_serialized_event_file_committers(
         if not owner:
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit_author = commit.author
 
-        author = {"email": commit.author.email, "name": commit.author.name}
+        if not commit_author:
+            return []
+
+        author = {"email": commit_author.email, "name": commit_author.name}
         if owner.user_id is not None:
             serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
             # No guarantee that just because the user_id is set that the value exists, so we still have to check

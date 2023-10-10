@@ -1,7 +1,9 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Sequence, Tuple, TypeVar
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 
 TeamData = TypeVar("TeamData")
 DictOfMembers = Dict[Any, List[TeamData]]
@@ -15,7 +17,7 @@ def get_teams_by_organization_member_id(
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(
-            team__status=TeamStatus.VISIBLE, organizationmember__in=organization_members
+            team__status=TeamStatus.ACTIVE, organizationmember__in=organization_members
         ).values_list("organizationmember_id", "team_id", "role")
     )
     team_ids = {team_id for (_om_id, team_id, _role) in organization_member_tuples}

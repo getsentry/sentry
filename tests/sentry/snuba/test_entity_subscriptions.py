@@ -11,7 +11,7 @@ from sentry.exceptions import (
 )
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -27,25 +27,25 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         for tag in [
-            SessionMRI.SESSION.value,
-            SessionMRI.USER.value,
+            SessionMRI.RAW_SESSION.value,
+            SessionMRI.RAW_USER.value,
             "session.status",
             "init",
             "crashed",
         ]:
-            indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
-            )
+            indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=self.organization.id, string=tag)
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
@@ -154,7 +154,7 @@ class EntitySubscriptionTestCase(TestCase):
     # this should be removed.
     def test_get_entity_subscription_for_metrics_dataset_for_users(self) -> None:
         org_id = self.organization.id
-        use_case_id = UseCaseKey.RELEASE_HEALTH
+        use_case_id = UseCaseID.SESSIONS
 
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
@@ -204,7 +204,7 @@ class EntitySubscriptionTestCase(TestCase):
                 Column("metric_id"),
                 Op.EQ,
                 resolve(
-                    UseCaseKey.RELEASE_HEALTH,
+                    UseCaseID.SESSIONS,
                     self.organization.id,
                     entity_subscription.metric_key.value,
                 ),
@@ -214,7 +214,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_for_users_with_metrics_layer(self) -> None:
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            use_case_id = UseCaseKey.RELEASE_HEALTH
+            use_case_id = UseCaseID.SESSIONS
 
             aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
             entity_subscription = get_entity_subscription(
@@ -277,7 +277,7 @@ class EntitySubscriptionTestCase(TestCase):
     # this should be removed.
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
         org_id = self.organization.id
-        use_case_id = UseCaseKey.RELEASE_HEALTH
+        use_case_id = UseCaseID.SESSIONS
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
             query_type=SnubaQuery.Type.CRASH_RATE,
@@ -345,7 +345,7 @@ class EntitySubscriptionTestCase(TestCase):
     ) -> None:
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            use_case_id = UseCaseKey.RELEASE_HEALTH
+            use_case_id = UseCaseID.SESSIONS
             aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.CRASH_RATE,
@@ -469,7 +469,7 @@ class EntitySubscriptionTestCase(TestCase):
         ).get_snql_query()
 
         metric_id = resolve(
-            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+            UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
         )
 
         assert snql_query.query.select == [
@@ -526,7 +526,7 @@ class EntitySubscriptionTestCase(TestCase):
             ).get_snql_query()
 
             metric_id = resolve(
-                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
             )
 
             assert snql_query.query.select == [
@@ -567,21 +567,17 @@ class EntitySubscriptionTestCase(TestCase):
                 extra_fields={"org_id": self.organization.id},
             )
             with patch(
-                "sentry.snuba.entity_subscription.PerformanceMetricsEntitySubscription.get_snql_aggregations"
-            ) as method:
+                "sentry.snuba.entity_subscription.PerformanceMetricsEntitySubscription.get_snql_aggregations",
                 # We have two aggregates on the metrics dataset but one with generic_metrics_sets and the other with
                 # generic_metrics_distributions.
-                method.return_value = [aggregate, "count_unique(user)"]
-                entity_subscription.get_snql_aggregations = method
-
+                return_value=[aggregate, "count_unique(user)"],
+            ):
                 with pytest.raises(IncompatibleMetricsQuery):
                     entity_subscription.build_query_builder(
                         "",
                         [self.project.id],
                         None,
-                        {
-                            "organization_id": self.organization.id,
-                        },
+                        {"organization_id": self.organization.id},
                     ).get_snql_query()
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
@@ -673,11 +669,12 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
         ]
 
         for expected_entity_subscription, query_type, dataset, aggregate in cases:
-            snuba_query = SnubaQuery(
+            snuba_query = SnubaQuery.objects.create(
                 time_window=60,
                 type=query_type.value,
                 dataset=dataset.value,
                 aggregate=aggregate,
+                resolution=5,
             )
             assert isinstance(
                 get_entity_subscription_from_snuba_query(snuba_query, self.organization.id),
@@ -741,12 +738,13 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
         ]
 
         for expected_entity_key, query_type, dataset, aggregate, query in cases:
-            snuba_query = SnubaQuery(
+            snuba_query = SnubaQuery.objects.create(
                 time_window=60,
                 type=query_type.value,
                 dataset=dataset.value,
                 aggregate=aggregate,
                 query=query,
+                resolution=5,
             )
             assert expected_entity_key == get_entity_key_from_snuba_query(
                 snuba_query, self.organization.id, self.project.id

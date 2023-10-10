@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import hashlib
-import random
-from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models import Organization, Project
+from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 from ..base import (
-    PARAMETERIZED_SQL_QUERY_REGEX,
     DetectorType,
     PerformanceDetector,
-    get_span_duration,
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -55,7 +56,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "transaction",
     )
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):
@@ -72,7 +73,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return True  # This detector is fully rolled out
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -126,9 +127,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if self._overlaps_last_span(span):
-            return False
-
         expected_parent_id = self.source_span.get("parent_span_id", None)
         parent_id = span.get("parent_span_id", None)
         if not parent_id or parent_id != expected_parent_id:
@@ -148,31 +146,17 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         return span_hash == self.n_hash
 
-    def _overlaps_last_span(self, span: Span) -> bool:
-        last_span = self.source_span
-        if self.n_spans:
-            last_span = self.n_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
-
     def _maybe_store_problem(self):
         if not self.source_span or not self.n_spans:
             return
 
-        count = self.settings.get("count")
-        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
-
         # Do we have enough spans?
+        count = self.settings.get("count")
         if len(self.n_spans) < count:
             return
 
         # Do the spans take enough total time?
-        total_duration = timedelta()
-        for span in self.n_spans:
-            total_duration += get_span_duration(span)
-        if total_duration < duration_threshold:
+        if not self._is_slower_than_threshold():
             return
 
         # We require a parent span in order to improve our fingerprint accuracy.
@@ -204,6 +188,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
 
+            offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -211,19 +197,42 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
-                offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
-                evidence_display=[],
+                offender_span_ids=offender_span_ids,
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value=get_notification_attachment_body(
+                            "db",
+                            self.n_spans[0].get("description", ""),
+                        ),
+                        # Has to be marked important to be displayed in the notifications
+                        important=True,
+                    )
+                ],
                 evidence_data={
+                    "transaction_name": self._event.get("transaction", ""),
                     "op": "db",
                     "parent_span_ids": [parent_span_id],
+                    "parent_span": get_span_evidence_value(parent_span),
                     "cause_span_ids": [self.source_span.get("span_id", None)],
-                    "offender_span_ids": [span.get("span_id", None) for span in self.n_spans],
+                    "offender_span_ids": offender_span_ids,
+                    "repeating_spans": get_span_evidence_value(self.n_spans[0]),
+                    "repeating_spans_compact": get_span_evidence_value(
+                        self.n_spans[0], include_op=False
+                    ),
+                    "num_repeating_spans": str(len(offender_span_ids)),
                 },
             )
 
+    def _is_slower_than_threshold(self) -> bool:
+        duration_threshold = self.settings.get("duration_threshold")
+        return total_span_time(self.n_spans) >= duration_threshold
+
     def _contains_valid_repeating_query(self, span: Span) -> bool:
+        # Make sure we at least have a space, to exclude e.g. MongoDB and
+        # Prisma's `rawQuery`.
         query = span.get("description", None)
-        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
+        return bool(query) and " " in query
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
@@ -258,7 +267,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
 
     __slots__ = (
         "stored_problems",
@@ -267,6 +276,14 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        # Only collecting metrics.
+        return False
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:

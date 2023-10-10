@@ -17,6 +17,7 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
+import {ReplayList} from 'sentry-fixture/replayList';
 
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
@@ -51,6 +52,11 @@ function init({organizationProps = {features: ['session-replay']}}: InitializeOr
 describe('GroupReplays', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sdk-updates/`,
+      body: [],
+    });
   });
 
   describe('Replay Feature Disabled', () => {
@@ -105,8 +111,10 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
+              data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
+              project: -1,
             },
           })
         );
@@ -119,7 +127,9 @@ describe('GroupReplays', () => {
               field: [
                 'activity',
                 'browser',
+                'count_dead_clicks',
                 'count_errors',
+                'count_rage_clicks',
                 'duration',
                 'finished_at',
                 'id',
@@ -131,7 +141,8 @@ describe('GroupReplays', () => {
                 'user',
               ],
               per_page: 50,
-              project: ['2'],
+              project: -1,
+              queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
               statsPeriod: '14d',
@@ -158,7 +169,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      const {container} = render(<GroupReplays group={mockGroup} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -169,7 +180,6 @@ describe('GroupReplays', () => {
       ).toBeInTheDocument();
       expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(container).toSnapshot();
     });
 
     it('should display error message when api call fails', async () => {
@@ -285,19 +295,19 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              ...TestStubs.ReplayList()[0],
+              ...ReplayList()[0],
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
               id: '346789a703f6454384f1de473b8b9fcc',
               started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
-                'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
+                'https://dev.getsentry.net:7999/replays/',
                 '/organizations/sentry-emerging-tech/replays/?project=2',
               ],
             },
             {
-              ...TestStubs.ReplayList()[0],
+              ...ReplayList()[0],
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
@@ -340,13 +350,13 @@ describe('GroupReplays', () => {
       // Expect the first row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/project-slug:${REPLAY_ID_1}/?${expectedQuery}`
+        `/organizations/org-slug/replays/${REPLAY_ID_1}/?${expectedQuery}`
       );
 
       // Expect the second row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/project-slug:${REPLAY_ID_2}/?${expectedQuery}`
+        `/organizations/org-slug/replays/${REPLAY_ID_2}/?${expectedQuery}`
       );
 
       // Expect the first row to have the correct duration

@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.region import RegionContextError, get_local_region
 
 _TTL = timedelta(minutes=5)
@@ -18,12 +21,14 @@ class MaxSnowflakeRetryError(APIException):
 
 
 class SnowflakeIdMixin:
+    id: models.Field[int, int]
+
     def save_with_snowflake_id(self, snowflake_redis_key, save_callback):
         for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                with transaction.atomic():
+                with enforce_constraints(transaction.atomic(using=router.db_for_write(type(self)))):
                     save_callback()
                 return
             except IntegrityError:
@@ -79,7 +84,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().id
+        segment_values[REGION_ID] = get_local_region().snowflake_id
     except RegionContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 

@@ -1,33 +1,36 @@
-from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
 from django.test import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 
+from sentry import tsdb
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    Activity,
-    ApiKey,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Release,
-)
+from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.release import Release
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -124,11 +127,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        from sentry.api.endpoints.group_details import tsdb
-
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
-        ) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
             response = self.client.get(url, {"environment": "production"}, format="json")
             assert response.status_code == 200
             assert get_range.call_count == 2
@@ -243,13 +242,27 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             datetime=timezone.now(),
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.delete()
 
         url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+
+    def test_collapse_tags(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # Without collapse param, tags should be present
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["tags"] == []
+
+        # With collapse param, tags should not be present
+        response = self.client.get(url, {"collapse": ["tags"]})
+        assert "tags" not in response.data
 
 
 @region_silo_test(stable=True)
@@ -305,6 +318,7 @@ class GroupUpdateTest(APITestCase):
 
         snooze = GroupSnooze.objects.get(group=group)
 
+        assert snooze.until is not None
         assert snooze.until > timezone.now() + timedelta(minutes=29)
         assert snooze.until < timezone.now() + timedelta(minutes=31)
 
@@ -412,7 +426,7 @@ class GroupUpdateTest(APITestCase):
         # hitting an endpoint that uses `client.{get,put,post}` to redirect to
         # another endpoint. This catches a regression that happened when
         # migrating to DRF 3.x.
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             api_key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["event:write"]
             )
@@ -423,7 +437,7 @@ class GroupUpdateTest(APITestCase):
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
@@ -518,6 +532,48 @@ class GroupUpdateTest(APITestCase):
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_team_subscription(self):
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+
+        # subscribe the team
+        GroupSubscription.objects.create(
+            team=team,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.team_mentioned,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data["participants"]) == 1
+        assert response.data["participants"][0]["type"] == "team"
+
+        # add the user as a subscriber
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        # both the user and their team should be subscribed separately
+        assert len(response.data["participants"]) == 2
+        assert (
+            response.data["participants"][0]["type"] == "user"
+        )  # user participants are processed first
+        assert response.data["participants"][1]["type"] == "team"
 
     def test_discard(self):
         self.login_as(user=self.user)

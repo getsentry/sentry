@@ -15,8 +15,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
-import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
+import {getSeriesSelection} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -27,6 +26,7 @@ import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
+  getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
@@ -154,12 +154,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(
-        widget.title,
-        widget.queries[0],
-        selection,
-        widget.displayType
-      );
+      const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
 
       return (
         <StyledSimpleTableChart
@@ -262,8 +257,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       case 'area':
       case 'top_n':
         return <AreaChart stacked {...chartProps} />;
-      case 'world_map':
-        return <WorldMapChart {...chartProps} />;
       case 'line':
       default:
         return <LineChart {...chartProps} />;
@@ -333,31 +326,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     // Only allow height resizing for widgets that are on a dashboard
     const autoHeightResize = Boolean(widget.id || widget.tempId);
 
-    if (widget.displayType === 'world_map') {
-      const {data, title} = processTableResults(tableResults);
-      const series = [
-        {
-          seriesName: title,
-          data,
-        },
-      ];
-
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
-          <ChartWrapper autoHeightResize={autoHeightResize}>
-            {getDynamicText({
-              value: this.chartComponent({
-                series,
-                autoHeightResize,
-              }),
-              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-            })}
-          </ChartWrapper>
-        </TransitionChart>
-      );
-    }
-
     const legend = {
       left: 0,
       top: 0,
@@ -380,6 +348,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const axisField = widget.queries[0]?.aggregates?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
+
+    // Check to see if all series output types are the same. If not, then default to number.
+    const outputType =
+      timeseriesResultsTypes && new Set(Object.values(timeseriesResultsTypes)).size === 1
+        ? timeseriesResultsTypes[axisLabel]
+        : 'number';
+    const isDurationChart = outputType === 'duration';
+    const durationUnit = isDurationChart
+      ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
+      : undefined;
+
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -408,16 +387,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           color: theme.chartLabel,
           formatter: (value: number) => {
             if (timeseriesResultsTypes) {
-              // Check to see if all series output types are the same. If not, then default to number.
-              const outputType =
-                new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[axisLabel]
-                  : 'number';
-              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+              return axisLabelFormatterUsingAggregateOutputType(
+                value,
+                outputType,
+                undefined,
+                durationUnit
+              );
             }
             return axisLabelFormatter(value, aggregateOutputType(axisLabel));
           },
         },
+        minInterval: durationUnit ?? 0,
       },
     };
 

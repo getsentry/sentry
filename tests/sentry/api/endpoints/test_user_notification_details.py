@@ -1,7 +1,10 @@
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -13,7 +16,7 @@ class UserNotificationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
     def test_lookup_self(self):
         self.get_success_response("me")
@@ -39,7 +42,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -48,7 +51,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -69,23 +72,29 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.get_success_response("me")
         assert response.data.get("subscribeByDefault") is False
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
+    @with_feature({"organizations:notifications-double-write": False})
     def test_saves_and_returns_values(self):
         data = {
             "deployNotifications": 2,
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
+        # make an org mapping for the user
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
         response = self.get_success_response("me", **data)
 
         assert response.data.get("deployNotifications") == 2
@@ -97,16 +106,47 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         assert value == NotificationSettingOptionValues.ALWAYS
+        # ensure double write does not happen
+        assert not NotificationSettingOption.objects.filter(user_id=self.user.id).exists()
+        assert not NotificationSettingProvider.objects.filter(user_id=self.user.id).exists()
+
+    @with_feature("organizations:notifications-double-write")
+    def test_double_write(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
+        data = {
+            "deployNotifications": 2,
+            "personalActivityNotifications": True,
+            "selfAssignOnResolve": True,
+        }
+        self.get_success_response("me", **data)
+
+        value = NotificationSetting.objects.get_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            user_id=self.user.id,
+        )
+        assert value == NotificationSettingOptionValues.ALWAYS
+
+        query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+            "value": "always",
+            "scope_type": "user",
+            "scope_identifier": self.user.id,
+        }
+        assert NotificationSettingOption.objects.filter(**query_args).exists()
+        assert NotificationSettingProvider.objects.filter(**query_args, provider="email")
 
     def test_saves_and_returns_values_when_defaults_present(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -116,13 +156,13 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         value1 = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             organization=self.organization,
         )
         value2 = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
 
         assert value1 == NotificationSettingOptionValues.NEVER

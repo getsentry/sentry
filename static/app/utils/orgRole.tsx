@@ -1,6 +1,9 @@
 import {OrgRole} from 'sentry/types';
 
-export function getEffectiveOrgRole(memberOrgRoles: string[], orgRoleList: OrgRole[]) {
+export function getEffectiveOrgRole(
+  memberOrgRoles: string[],
+  orgRoleList: OrgRole[]
+): OrgRole {
   const orgRoleMap = orgRoleList.reduce((acc, role, index) => {
     acc[role.id] = {index, role};
     return acc;

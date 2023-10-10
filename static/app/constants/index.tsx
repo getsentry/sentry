@@ -2,7 +2,6 @@
 
 import {t} from 'sentry/locale';
 import {
-  DataCategory,
   DataCategoryExact,
   DataCategoryInfo,
   OrgRole,
@@ -34,37 +33,26 @@ export const DEFAULT_APP_ROUTE = usingCustomerDomain
   : '/organizations/:orgSlug/issues/';
 
 export const API_ACCESS_SCOPES = [
-  'project:read',
-  'project:write',
-  'project:admin',
-  'project:releases',
-  'team:read',
-  'team:write',
-  'team:admin',
-  'event:read',
-  'event:write',
-  'event:admin',
-  'org:read',
-  'org:write',
-  'org:admin',
-  'org:integrations',
-  'member:read',
-  'member:write',
-  'member:admin',
   'alerts:read',
   'alerts:write',
-] as const;
-
-// Default API scopes when adding a new API token or org API token
-export const DEFAULT_API_ACCESS_SCOPES = [
-  'event:read',
   'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:integrations',
+  'org:read',
+  'org:write',
+  'project:admin',
   'project:read',
   'project:releases',
-  'org:read',
+  'project:write',
+  'team:admin',
   'team:read',
-  'member:read',
-];
+  'team:write',
+] as const;
 
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
@@ -169,7 +157,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['org:read']},
       write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      admin: {
+        label: 'Admin',
+        scopes: ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+      },
     },
   },
   {
@@ -227,14 +218,6 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '7d': t('7D'),
   '14d': t('14D'),
   '30d': t('30D'),
-};
-
-export const DATA_CATEGORY_NAMES = {
-  [DataCategory.ERRORS]: t('Errors'),
-  [DataCategory.TRANSACTIONS]: t('Transactions'),
-  [DataCategory.ATTACHMENTS]: t('Attachments'),
-  [DataCategory.PROFILES]: t('Profiles'),
-  [DataCategory.REPLAYS]: t('Session Replays'),
 };
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs

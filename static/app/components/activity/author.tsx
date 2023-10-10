@@ -5,4 +5,4 @@ const ActivityAuthor = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export default ActivityAuthor;
+export {ActivityAuthor};

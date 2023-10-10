@@ -12,12 +12,13 @@ import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
-import {Panel, PanelTable} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {
   Organization,
   ReleaseComparisonChartType,

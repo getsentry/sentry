@@ -1,17 +1,33 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models.environment import Environment
+from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
+from sentry.rules.conditions.base import EventCondition
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -27,6 +43,13 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     elif match_name == "none":
         return lambda bool_iter: not any(bool_iter)
     return None
+
+
+def is_condition_slow(condition: Mapping[str, str]) -> bool:
+    for slow_conditions in SLOW_CONDITION_MATCHES:
+        if slow_conditions in condition["id"]:
+            return True
+    return False
 
 
 class RuleProcessor:
@@ -127,7 +150,7 @@ class RuleProcessor:
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst: EventCondition = condition_cls(self.project, data=condition, rule=rule)
         passes: bool = safe_execute(
             condition_inst.passes, self.event, state, _with_transaction=False
         )
@@ -157,11 +180,21 @@ class RuleProcessor:
         :param rule: `Rule` object
         :return: void
         """
+        logging_details = {
+            "rule_id": rule.id,
+            "group_id": self.group.id,
+            "event_id": self.event.event_id,
+            "project_id": self.project.id,
+            "is_new": self.is_new,
+            "is_regression": self.is_regression,
+            "has_reappeared": self.has_reappeared,
+            "new_group_environment": self.is_new_group_environment,
+        }
+
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-
         try:
             environment = self.event.get_environment()
         except Environment.DoesNotExist:
@@ -186,11 +219,7 @@ class RuleProcessor:
                 filter_list.append(rule_cond)
 
         # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(
-            key=lambda condition: any(
-                condition_match in condition["id"] for condition_match in SLOW_CONDITION_MATCHES
-            )
-        )
+        condition_list.sort(key=lambda condition: is_condition_slow(condition))
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
@@ -205,7 +234,10 @@ class RuleProcessor:
                     return
             else:
                 self.logger.error(
-                    f"Unsupported {name}_match {match!r} for rule {rule.id}", filter_match, rule.id
+                    f"Unsupported {name}_match {match!r} for rule {rule.id}",
+                    filter_match,
+                    rule.id,
+                    extra={**logging_details},
                 )
                 return
 
@@ -227,10 +259,13 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group, self.event.event_id)
-        self.activate_downstream_actions(rule)
+        notification_uuid = str(uuid.uuid4())
+        history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(self, rule: Rule) -> None:
+    def activate_downstream_actions(
+        self, rule: Rule, notification_uuid: Optional[str] = None
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
@@ -239,8 +274,13 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after,
+                event=self.event,
+                state=state,
+                _with_transaction=False,
+                notification_uuid=notification_uuid,
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
@@ -257,15 +297,19 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
 
         self.grouped_futures.clear()
         rules = self.get_rules()
+        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
+            "rule", flat=True
+        )
         rule_statuses = self.bulk_get_rule_status(rules)
         for rule in rules:
-            self.apply_rule(rule, rule_statuses[rule.id])
+            if rule.id not in snoozed_rules:
+                self.apply_rule(rule, rule_statuses[rule.id])
 
         return self.grouped_futures.values()

@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -12,6 +12,7 @@ import EventCustomPerformanceMetrics, {
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
+import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
@@ -58,9 +59,9 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State> {
+class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -77,7 +78,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const {eventSlug} = params;
 
@@ -159,6 +160,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
+    const originatingUrl = getUrlFromEvent(event);
+
     return (
       <TraceMetaQuery
         location={location}
@@ -190,6 +193,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
                         <EventTitle>{event.title}</EventTitle>
                       </Tooltip>
+                      {originatingUrl && (
+                        <Button
+                          aria-label={t('Go to originating URL')}
+                          size="zero"
+                          icon={<IconOpen />}
+                          href={originatingUrl}
+                          external
+                          translucentBorder
+                          borderless
+                        />
+                      )}
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
@@ -299,15 +313,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      {(organization.features.includes('dashboards-mep') ||
-                        organization.features.includes('mep-rollout-flag')) && (
-                        <EventCustomPerformanceMetrics
-                          event={event}
-                          location={location}
-                          organization={organization}
-                          source={EventDetailPageSource.PERFORMANCE}
-                        />
-                      )}
+                      <EventCustomPerformanceMetrics
+                        event={event}
+                        location={location}
+                        organization={organization}
+                        source={EventDetailPageSource.PERFORMANCE}
+                      />
                       <TagsTable
                         event={event}
                         query={query}
@@ -349,7 +360,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle
-        title={t('Performance - Event Details')}
+        title={t('Performance — Event Details')}
         orgSlug={organization.slug}
       >
         {super.renderComponent() as React.ReactChild}
@@ -358,8 +369,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
+// We can't use theme.overflowEllipsis so that width isn't set to 100%
+// since button withn a link has to immediately follow the text in the title
 const EventTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default withRouteAnalytics(EventDetailsContent);

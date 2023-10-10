@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from django.db.models import F
 
 from sentry import features
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthProvider, Organization, OrganizationMember, organization_absolute_url
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import RpcAuthProvider
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.auth import RpcAuthProvider
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
 @register(AuthProvider)
@@ -20,14 +19,8 @@ class AuthProviderSerializer(Serializer):
         obj: AuthProvider | RpcAuthProvider,
         attrs,
         user,
-        organization: Organization | RpcOrganization | None = None,
+        organization: Organization | RpcOrganization,
     ):
-        if not organization:
-            org_context = organization_service.get_organization_by_id(id=obj.organization_id)
-            if org_context:
-                organization = org_context.organization
-        assert organization, "Could not find organization for serialization"
-
         pending_links_count = OrganizationMember.objects.filter(
             organization_id=organization.id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
@@ -35,7 +28,7 @@ class AuthProviderSerializer(Serializer):
 
         login_url = Organization.get_url(organization.slug)
 
-        absolute_login_url = organization_absolute_url(
+        absolute_login_url = OrganizationAbsoluteUrlMixin.organization_absolute_url(
             features.has("organizations:customer-domains", organization),
             slug=organization.slug,
             path=login_url,

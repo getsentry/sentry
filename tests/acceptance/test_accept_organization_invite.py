@@ -1,11 +1,14 @@
 from django.db.models import F
 
-from sentry.models import AuthProvider, Organization
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+# When we want to set this stable=True, we'll need to configure regions in order for invites to work.
+# See the accept_organization_invite.py#get_invite_state logic
+@no_silo_test(stable=True)
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -24,7 +27,6 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
-        self.browser.snapshot(name="accept organization invite")
         assert self.browser.element_exists('[data-test-id="join-organization"]')
 
     def test_invite_not_authenticated(self):

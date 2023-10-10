@@ -5,8 +5,11 @@ from uuid import uuid4
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
-from sentry.testutils import APITestCase
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
@@ -262,12 +265,8 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        first_uuid = None
-        last_uuid = None
         for i in range(25):
             last_uuid = str(uuid4())
-            if first_uuid is None:
-                first_uuid = last_uuid
             self._upload_proguard(url, last_uuid)
 
         # Test max 20 per page
@@ -286,6 +285,77 @@ class DebugFilesUploadTest(APITestCase):
         assert response.status_code == 200, response.content
         dsyms = response.data
         assert len(dsyms) == 20
+
+    def test_dsyms_delete_as_team_admin(self):
+        project = self.create_project(name="foo")
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
+
+        assert response.status_code == 201
+        assert len(response.data) == 1
+
+        url = reverse(
+            "sentry-api-0-associate-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            {
+                "checksums": ["e6d3c5185dac63eddfdc1a5edfffa32d46103b44"],
+                "platform": "android",
+                "name": "MyApp",
+                "appId": "com.example.myapp",
+                "version": "1.0",
+                "build": "1",
+            },
+            format="json",
+        )
+
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        download_id = response.data[0]["id"]
+
+        assert response.status_code == 200
+
+        team_admin = self.create_user()
+        team_admin_without_access = self.create_user()
+
+        self.create_member(
+            user=team_admin,
+            organization=project.organization,
+            role="member",
+        )
+        self.create_member(
+            user=team_admin_without_access,
+            organization=project.organization,
+            role="member",
+        )
+        self.create_team_membership(user=team_admin, team=self.team, role="admin")
+        self.create_team_membership(
+            user=team_admin_without_access, team=self.create_team(), role="admin"
+        )
+
+        # Team admin without project access can't delete
+        self.login_as(team_admin_without_access)
+        response = self.client.delete(url + "?id=" + download_id)
+
+        assert response.status_code == 404, response.content
+        assert ProjectDebugFile.objects.count() == 1
+
+        # Team admin with project access can delete
+        self.login_as(team_admin)
+        response = self.client.delete(url + "?id=" + download_id)
+
+        assert response.status_code == 204, response.content
+        assert ProjectDebugFile.objects.count() == 0
 
     def test_source_maps(self):
         project = self.create_project(name="foo")
@@ -426,3 +496,47 @@ class DebugFilesUploadTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == str(release.version)
         assert response.data[0]["fileCount"] == 2
+
+    def test_access_control(self):
+        # create a debug files such as proguard:
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+
+        response = self._upload_proguard(url, PROGUARD_UUID)
+
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+
+        (dsym,) = response.data
+        download_id = dsym["id"]
+
+        # `self.user` has access to these files
+        response = self.client.get(f"{url}?id={download_id}")
+        assert response.status_code == 200, response.content
+        assert PROGUARD_SOURCE == b"".join(response.streaming_content)
+
+        # with another user on a different org
+        other_user = self.create_user()
+        other_org = self.create_organization(name="other-org", owner=other_user)
+        other_project = self.create_project(organization=other_org)
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": other_org.slug,
+                "project_slug": other_project.slug,
+            },
+        )
+        self.login_as(user=other_user)
+
+        # accessing foreign files should not work
+        response = self.client.get(f"{url}?id={download_id}")
+        assert response.status_code == 404

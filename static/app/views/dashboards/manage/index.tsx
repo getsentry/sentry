@@ -1,9 +1,11 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -26,7 +28,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -50,15 +52,15 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ManageDashboards extends AsyncView<Props, State> {
+class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -66,9 +68,9 @@ class ManageDashboards extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    return [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'dashboards',
         `/organizations/${organization.slug}/dashboards/`,
@@ -81,6 +83,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         },
       ],
     ];
+    return endpoints;
   }
 
   getActiveSort() {
@@ -160,7 +163,6 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
-
     return (
       <StyledActions>
         <SearchBar
@@ -230,7 +232,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       was_previewed: false,
     });
 
-    await createDashboard(
+    const newDashboard = await createDashboard(
       api,
       organization.slug,
       {
@@ -239,8 +241,18 @@ class ManageDashboards extends AsyncView<Props, State> {
       },
       true
     );
-    this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+    this.loadDashboard(newDashboard.id);
+  }
+
+  loadDashboard(dashboardId: string) {
+    const {organization, location} = this.props;
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   onPreview(dashboardId: string) {
@@ -268,7 +280,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderBody() {
     const {showTemplates} = this.state;
-    const {organization} = this.props;
+    const {organization, api, location} = this.props;
 
     return (
       <Feature
@@ -313,6 +325,22 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
+                    <Feature features={['dashboards-import']}>
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
                   </ButtonBar>
                 </Layout.HeaderActions>
               </Layout.Header>

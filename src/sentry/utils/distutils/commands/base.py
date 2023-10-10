@@ -6,6 +6,9 @@ from distutils import log
 from distutils.core import Command
 from subprocess import STDOUT, CalledProcessError, check_output
 
+_HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.realpath(os.path.join(_HERE, "../../../../.."))
+
 
 class BaseBuildCommand(Command):
     user_options = [
@@ -32,9 +35,6 @@ class BaseBuildCommand(Command):
         self.force = None
         self.work_path = None
         self.inplace = None
-
-    def get_root_path(self):
-        return os.path.abspath(os.path.dirname(sys.modules["__main__"].__file__))
 
     def get_dist_paths(self):
         return []
@@ -104,7 +104,7 @@ class BaseBuildCommand(Command):
             log.debug("regular js build: build path is %s" % self.build_lib)
 
         if self.work_path is None:
-            self.work_path = self.get_root_path()
+            self.work_path = ROOT
 
     def _needs_built(self):
         for path in self.get_dist_paths():

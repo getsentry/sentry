@@ -1,4 +1,6 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +15,7 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['discover-basic', 'performance-view'],
   projects: [TestStubs.Project()],
 });
@@ -24,12 +26,11 @@ const {
   router,
   project,
 } = initializeOrg({
-  ...initializeOrg(),
   organization,
   router: {
     location: {
       query: {
-        project: 1,
+        project: '1',
       },
     },
   },
@@ -203,9 +204,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
-        field: 'p75(sentry.transactions.measurements.lcp)',
-      }),
+      body: MetricsField('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],
@@ -260,7 +259,7 @@ describe('Performance > VitalDetail', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
       },
@@ -311,7 +310,7 @@ describe('Performance > VitalDetail', function () {
         end: undefined,
         query: 'sometag:value has:measurements.lcp',
         referrer: 'performance-transaction-summary',
-        unselectedSeries: 'p100()',
+        unselectedSeries: ['p100()', 'avg()'],
         showTransactions: 'recent',
         display: 'vitals',
         trendFunction: undefined,
@@ -363,7 +362,7 @@ describe('Performance > VitalDetail', function () {
         end: undefined,
         query: 'anothertag:value has:measurements.cls',
         referrer: 'performance-transaction-summary',
-        unselectedSeries: 'p100()',
+        unselectedSeries: ['p100()', 'avg()'],
         showTransactions: 'recent',
         display: 'vitals',
         trendFunction: undefined,

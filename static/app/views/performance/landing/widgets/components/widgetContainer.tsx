@@ -38,7 +38,7 @@ import {VitalWidget} from '../widgets/vitalWidget';
 
 import {ChartRowProps} from './widgetChartRow';
 
-type Props = {
+interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   defaultChartSetting: PerformanceWidgetSetting;
@@ -50,7 +50,7 @@ type Props = {
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
-} & ChartRowProps;
+}
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -67,7 +67,7 @@ function trackChartSettingChange(
   });
 }
 
-const _WidgetContainer = (props: Props) => {
+function _WidgetContainer(props: Props) {
   const {
     organization,
     index,
@@ -131,18 +131,19 @@ const _WidgetContainer = (props: Props) => {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    InteractiveTitle: showNewWidgetDesign
-      ? containerProps => (
-          <WidgetInteractiveTitle
-            {...containerProps}
-            eventView={widgetEventView}
-            allowedCharts={allowedCharts}
-            chartSetting={chartSetting}
-            setChartSetting={setChartSetting}
-            rowChartSettings={rowChartSettings}
-          />
-        )
-      : null,
+    InteractiveTitle:
+      showNewWidgetDesign && allowedCharts.length > 2
+        ? containerProps => (
+            <WidgetInteractiveTitle
+              {...containerProps}
+              eventView={widgetEventView}
+              allowedCharts={allowedCharts}
+              chartSetting={chartSetting}
+              setChartSetting={setChartSetting}
+              rowChartSettings={rowChartSettings}
+            />
+          )
+        : null,
     ContainerActions: !showNewWidgetDesign
       ? containerProps => (
           <WidgetContainerActions
@@ -168,11 +169,11 @@ const _WidgetContainer = (props: Props) => {
   const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.trends:
+    case GenericPerformanceWidgetDataType.TRENDS:
       return (
         <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.area:
+    case GenericPerformanceWidgetDataType.AREA:
       return (
         <SingleFieldAreaWidget
           {...passedProps}
@@ -180,11 +181,11 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.vitals:
+    case GenericPerformanceWidgetDataType.VITALS:
       return (
         <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.line_list:
+    case GenericPerformanceWidgetDataType.LINE_LIST:
       return (
         <LineChartListWidget
           {...passedProps}
@@ -192,16 +193,16 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.histogram:
+    case GenericPerformanceWidgetDataType.HISTOGRAM:
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_area:
+    case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
-};
+}
 
 export function WidgetInteractiveTitle({
   chartSetting,
@@ -245,6 +246,7 @@ export function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       triggerProps={{borderless: true, size: 'zero'}}
+      offset={4}
     />
   );
 }
@@ -253,10 +255,11 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: normal;
-  margin: 0 -${space(0.5)};
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
+    padding: ${space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
@@ -357,7 +360,7 @@ const makeEventViewForWidget = (
   widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
   widgetEventView.display = DisplayModes.PREVIOUS;
   widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName} as Field)
+    fieldName => ({field: fieldName}) as Field
   );
 
   return widgetEventView;

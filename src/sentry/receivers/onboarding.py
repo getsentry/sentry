@@ -1,20 +1,23 @@
-import logging
-from datetime import datetime
+from __future__ import annotations
 
-import pytz
+import logging
+from datetime import datetime, timezone
+
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
-    Organization,
     OrganizationOnboardingTask,
-    Project,
 )
+from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
@@ -43,16 +46,18 @@ logger = logging.getLogger("sentry")
 # Used to determine if we should or not record an analytic data
 # for a first event of a project with a minified stack trace
 START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
+    2022, 12, 14, tzinfo=timezone.utc
 )
 
 
 @project_created.connect(weak=False)
-def record_new_project(project, user, **kwargs):
-    if user.is_authenticated:
+def record_new_project(project, user=None, user_id=None, **kwargs):
+    if user_id is not None:
+        default_user_id = user_id
+    elif user.is_authenticated:
         user_id = default_user_id = user.id
     else:
-        user = user_id = None
+        user_id = None
         try:
             default_user_id = (
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
@@ -77,7 +82,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user.id if user else None,
+        user_id=user_id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -85,7 +90,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user.id if user else None,
+            user_id=user_id,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -232,7 +237,7 @@ def record_first_replay(project, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.SESSION_REPLAY,
         status=OnboardingTaskStatus.COMPLETE,
-        date_completed=timezone.now(),
+        date_completed=django_timezone.now(),
     )
 
     if success:
@@ -282,6 +287,7 @@ def record_member_invited(member, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
     )
+
     analytics.record(
         "member.invited",
         invited_member_id=member.id,
@@ -292,19 +298,19 @@ def record_member_invited(member, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=member.organization_id,
+        organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "date_completed": timezone.now(),
-            "data": {"invited_member_id": member.id},
+            "date_completed": django_timezone.now(),
+            "data": {"invited_member_id": organization_member_id},
         },
     )
     if created or rows_affected:
-        try_mark_onboarding_complete(member.organization_id)
+        try_mark_onboarding_complete(organization_id)
 
 
 def record_release_received(project, event, **kwargs):
@@ -484,7 +490,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id if user else None,
             "project_id": project.id,
-            "date_completed": timezone.now(),
+            "date_completed": django_timezone.now(),
         },
     )
 
@@ -502,7 +508,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id,
             "project_id": project.id,
-            "date_completed": timezone.now(),
+            "date_completed": django_timezone.now(),
             "data": {"plugin": plugin.slug},
         },
     )
@@ -534,10 +540,17 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
-    # TODO(Leander): This function must be executed on region after being prompted by control
+def record_integration_added(
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs
+):
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=integration_id
+    )
+    if integration is None:
+        return
+
     task = OrganizationOnboardingTask.objects.filter(
-        organization_id=organization.id,
+        organization_id=organization_id,
         task=OnboardingTask.INTEGRATIONS,
     ).first()
 
@@ -548,12 +561,12 @@ def record_integration_added(integration, organization, user, **kwargs):
         task.data["providers"] = providers
         if task.status != OnboardingTaskStatus.COMPLETE:
             task.status = OnboardingTaskStatus.COMPLETE
-            task.user = user
-            task.date_completed = timezone.now()
+            task.user_id = user_id
+            task.date_completed = django_timezone.now()
         task.save()
     else:
         task = OrganizationOnboardingTask.objects.create(
-            organization_id=organization.id,
+            organization_id=organization_id,
             task=OnboardingTask.INTEGRATIONS,
             status=OnboardingTaskStatus.COMPLETE,
             data={"providers": [integration.provider]},

@@ -1,4 +1,5 @@
 import {WithRouterProps} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -35,13 +36,12 @@ describe('withSentryRouter', function () {
     mockUsingCustomerDomain.mockReturnValue(true);
     mockCustomerDomain.mockReturnValue('albertos-apples');
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
 
     const {routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
     });
 
@@ -57,7 +57,7 @@ describe('withSentryRouter', function () {
     mockUsingCustomerDomain.mockReturnValue(false);
     mockCustomerDomain.mockReturnValue(undefined);
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
@@ -66,7 +66,6 @@ describe('withSentryRouter', function () {
       orgId: 'something-else',
     };
     const {routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,

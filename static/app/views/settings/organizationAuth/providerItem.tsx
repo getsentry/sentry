@@ -5,7 +5,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Tag from 'sentry/components/tag';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';

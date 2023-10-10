@@ -7,6 +7,5 @@ from .integrations import *  # noqa: F401,F403
 from .notifications import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_codeowners import *  # noqa: F401,F403
-from .sentry_apps.schema import *  # noqa: F401,F403
 from .servicehook import *  # noqa: F401,F403
 from .userrole import *  # noqa: F401,F403

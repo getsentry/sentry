@@ -48,6 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['slack', t('Slack')],
       ['msteams', t('Microsoft Teams')],
     ],
+    help: t('Where personal notifications will be sent.'),
     multiple: true,
     onChange: val => {
       // This is a little hack to prevent this field from being empty.
@@ -60,12 +61,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   approval: {
     name: 'approval',
     type: 'select',
-    label: t('Approvals'),
+    label: t('Nudges'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications from teammates that require review or approval.'),
+    help: t('Notifications that require review or approval.'),
   },
   quota: {
     name: 'quota',
@@ -112,12 +113,26 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'select',
-    label: t('Claim Unassigned Issues I’ve Resolved'),
+    label: t('Resolve and Auto-Assign'),
     choices: [
       [true as any, t('On')],
       [false as any, t('Off')],
     ],
-    help: t('You’ll receive notifications about any changes that happen afterwards.'),
+    help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
+  },
+};
+
+export const NOTIFICATION_SETTING_FIELDS_V2: Record<string, Field> = {
+  ...NOTIFICATION_SETTING_FIELDS,
+  reports: {
+    name: 'reports',
+    type: 'select',
+    label: t('Weekly Reports'),
+    help: t('A summary of the past week for an organization.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
   },
 };
 

@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import base64
 import logging
-import sys
+import os
+import random
 from copy import deepcopy
+from datetime import datetime
+from typing import Any, Dict, Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -10,7 +15,11 @@ from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.utils import json, safe
+from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
+from sentry.models.artifactbundle import NULL_STRING
+from sentry.models.project import Project
+from sentry.utils import json, redis, safe
+from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +124,26 @@ SOURCES_SCHEMA = {
     },
 }
 
+LAST_UPLOAD_TTL = 24 * 3600
+
+
+def _get_cluster():
+    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)
+
+
+def _last_upload_key(project_id: int) -> str:
+    return f"symbols:last_upload:{project_id}"
+
+
+def record_last_upload(project: Project):
+    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
+
+
+def get_last_upload(project_id: int):
+    return _get_cluster().get(_last_upload_key(project_id))
+
 
 class InvalidSourcesError(Exception):
     pass
@@ -128,16 +157,19 @@ def get_internal_url_prefix() -> str:
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
         internal_url_prefix = options.get("system.url-prefix")
-        if sys.platform == "darwin":
-            internal_url_prefix = internal_url_prefix.replace(
-                "localhost", "host.docker.internal"
-            ).replace("127.0.0.1", "host.docker.internal")
+
+        replacements = ["localhost", "127.0.0.1"]
+        if "DJANGO_LIVE_TEST_SERVER_ADDRESS" in os.environ:
+            replacements.append(os.environ["DJANGO_LIVE_TEST_SERVER_ADDRESS"])
+
+        for replacement in replacements:
+            internal_url_prefix = internal_url_prefix.replace(replacement, "host.docker.internal")
 
     assert internal_url_prefix
     return internal_url_prefix.rstrip("/")
 
 
-def get_internal_source(project):
+def get_internal_source(project: Project):
     """
     Returns the source configuration for a Sentry project.
     """
@@ -149,6 +181,13 @@ def get_internal_source(project):
         ),
     )
 
+    if last_upload := get_last_upload(project.id):
+        # Adding a random query string parameter here makes sure that the
+        # Symbolicator-internal `list_files` cache that is querying this API
+        # is not being hit. This means that uploads will be immediately visible
+        # to Symbolicator, and not depending on its internal cache TTL.
+        sentry_source_url += f"?_last_upload={last_upload}"
+
     return {
         "type": "sentry",
         "id": INTERNAL_SOURCE_NAME,
@@ -157,7 +196,7 @@ def get_internal_source(project):
     }
 
 
-def get_internal_artifact_lookup_source_url(project):
+def get_internal_artifact_lookup_source_url(project: Project):
     """
     Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
@@ -173,7 +212,64 @@ def get_internal_artifact_lookup_source_url(project):
     )
 
 
-def get_internal_artifact_lookup_source(project):
+def get_bundle_index_urls(
+    project: Project, release: Optional[str], dist: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
+    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
+        return None, None
+
+    base_url = get_internal_artifact_lookup_source_url(project)
+
+    def make_download_url(flat_file_meta: FlatFileMeta):
+        # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
+        # and it is also used as the download key for the artifact-lookup API.
+        # The artifact-lookup API will ignore the additional timestamp on download.
+        return f"{base_url}?download={flat_file_meta.to_string()}"
+
+    url_index = None
+    identifier = FlatFileIdentifier(
+        project_id=project.id, release=release or NULL_STRING, dist=dist or NULL_STRING
+    )
+    if identifier.is_indexing_by_release():
+        url_meta = identifier.get_flat_file_meta()
+        if url_meta is not None:
+            url_index = make_download_url(url_meta)
+
+    # We query the empty release/dist which is a marker for the debug-id index,
+    # as well as the normal release index if we have a release.
+    debug_id_index = None
+    debug_id_meta = FlatFileIdentifier.for_debug_id(
+        project_id=identifier.project_id
+    ).get_flat_file_meta()
+    if debug_id_meta is not None:
+        debug_id_index = make_download_url(debug_id_meta)
+
+    return debug_id_index, url_index
+
+
+def get_scraping_config(project: Project) -> Dict[str, Any]:
+    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
+    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
+    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    return {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
+
+
+def get_internal_artifact_lookup_source(project: Project):
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
@@ -185,7 +281,7 @@ def get_internal_artifact_lookup_source(project):
     }
 
 
-def is_internal_source_id(source_id):
+def is_internal_source_id(source_id: str):
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 
     This is trivial, but multiple functions in this file need to use the same definition.

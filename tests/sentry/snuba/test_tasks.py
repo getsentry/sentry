@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import abc
 from datetime import timedelta
 from functools import partial
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -13,6 +16,7 @@ from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -30,23 +34,33 @@ from sentry.snuba.tasks import (
     subscription_checker,
     update_subscription_in_snuba,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
+    ret = indexer.record(
+        use_case_id=use_case_id,
+        org_id=org_id,
+        string=string,
+    )
+    assert ret is not None
+    return ret
 
 
-perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
-rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
+rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
+class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     status_translations = {
         QuerySubscription.Status.CREATING: "create",
         QuerySubscription.Status.UPDATING: "update",
@@ -63,7 +77,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def task(self):
+    def task(self, subscription_id: int) -> None:
         pass
 
     def create_subscription(
@@ -121,7 +135,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         )
 
 
-class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
@@ -176,7 +190,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
-        for tag in [SessionMRI.SESSION.value, SessionMRI.USER.value, "session.status"]:
+        for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
             (30, 10),
@@ -204,7 +218,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     assert request_body["granularity"] == expected_granularity
 
 
-class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
@@ -228,7 +242,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.subscription_id is not None
 
 
-class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
+class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 
@@ -246,9 +260,31 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
+    def test_invalid_subscription_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_invalid_metrics_subscription_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.Metrics,
+            subscription_id=subscription_id,
+            query="release:1",
+            aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
 
 class BuildSnqlQueryTest(TestCase):
-    aggregate_mappings = {
+    aggregate_mappings: dict[SnubaQuery.Type, dict[Dataset, dict[str, Any]]] = {
         SnubaQuery.Type.ERROR: {
             Dataset.Events: {
                 "count_unique(user)": lambda org_id: [
@@ -502,6 +538,8 @@ class BuildSnqlQueryTest(TestCase):
                 ],
             },
         },
+    }
+    aggregate_mappings_fallback = {
         "count()": lambda org_id, **kwargs: [Function("count", parameters=[], alias="count")],
     }
 
@@ -565,7 +603,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
-            aggregate, self.aggregate_mappings.get(aggregate, lambda org_id, **kwargs: [])
+            aggregate, self.aggregate_mappings_fallback.get(aggregate, lambda org_id, **kwargs: [])
         )
         return sorted(
             aggregate_builder_func(self.organization.id, **aggregate_kwargs),
@@ -597,7 +635,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_simple_performance_metrics(self):
         with Feature("organizations:use-metrics-layer"):
-            metric_id = resolve(UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["user"])
+            metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.Metrics,
@@ -659,7 +697,7 @@ class BuildSnqlQueryTest(TestCase):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
-                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
             )
             perf_indexer_record(self.organization.id, "release")
             perf_indexer_record(self.organization.id, version)
@@ -668,10 +706,10 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column("project_id"), Op.IN, [self.project.id]),
                 Condition(
                     Column(
-                        resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")
+                        resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, "release")
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
+                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, version),
                 ),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
@@ -731,7 +769,7 @@ class BuildSnqlQueryTest(TestCase):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
-                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
             )
             tag_key = "some_tag"
             tag_value = "some_value"
@@ -742,9 +780,9 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column("org_id"), Op.EQ, self.organization.id),
                 Condition(Column("project_id"), Op.IN, [self.project.id]),
                 Condition(
-                    Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, tag_key)),
+                    Column(resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, tag_key)),
                     Op.EQ,
-                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
+                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, tag_value),
                 ),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
@@ -934,7 +972,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_sessions_for_metrics(self):
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
+            for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
             expected_conditions = [
                 Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -960,7 +998,7 @@ class BuildSnqlQueryTest(TestCase):
                         resolve(
                             UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
-                            SessionMRI.SESSION.value,
+                            SessionMRI.RAW_SESSION.value,
                         )
                     ],
                 ),
@@ -974,13 +1012,13 @@ class BuildSnqlQueryTest(TestCase):
                 entity_extra_fields={"org_id": self.organization.id},
                 granularity=10,
                 use_none_clauses=True,
-                aggregate_kwargs={"metric_mri": SessionMRI.SESSION.value},
+                aggregate_kwargs={"metric_mri": SessionMRI.RAW_SESSION.value},
             )
 
     def test_simple_users_for_metrics(self):
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
+            for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
                 rh_indexer_record(org_id, tag)
 
             expected_conditions = [
@@ -991,7 +1029,9 @@ class BuildSnqlQueryTest(TestCase):
                     Op.IN,
                     [
                         resolve(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                            UseCaseKey.RELEASE_HEALTH,
+                            self.organization.id,
+                            SessionMRI.RAW_USER.value,
                         )
                     ],
                 ),
@@ -1005,7 +1045,7 @@ class BuildSnqlQueryTest(TestCase):
                 entity_extra_fields={"org_id": self.organization.id},
                 granularity=10,
                 use_none_clauses=True,
-                aggregate_kwargs={"metric_mri": SessionMRI.USER.value},
+                aggregate_kwargs={"metric_mri": SessionMRI.RAW_USER.value},
             )
 
     def test_query_and_environment_sessions_metrics(self):
@@ -1013,7 +1053,7 @@ class BuildSnqlQueryTest(TestCase):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
-                SessionMRI.SESSION.value,
+                SessionMRI.RAW_SESSION.value,
                 "session.status",
                 "environment",
                 "development",
@@ -1040,6 +1080,15 @@ class BuildSnqlQueryTest(TestCase):
                 ),
                 Condition(
                     Column(
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                ),
+                Condition(
+                    Column(
                         name=resolve_tag_key(
                             UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
                         )
@@ -1053,22 +1102,13 @@ class BuildSnqlQueryTest(TestCase):
                     ],
                 ),
                 Condition(
-                    Column(
-                        resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
-                ),
-                Condition(
                     Column(name="metric_id"),
                     Op.IN,
                     [
                         resolve(
                             UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
-                            SessionMRI.SESSION.value,
+                            SessionMRI.RAW_SESSION.value,
                         )
                     ],
                 ),
@@ -1084,7 +1124,7 @@ class BuildSnqlQueryTest(TestCase):
                 granularity=10,
                 use_none_clauses=True,
                 aggregate_kwargs={
-                    "metric_mri": SessionMRI.SESSION.value,
+                    "metric_mri": SessionMRI.RAW_SESSION.value,
                 },
             )
 
@@ -1093,7 +1133,7 @@ class BuildSnqlQueryTest(TestCase):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
-                SessionMRI.USER.value,
+                SessionMRI.RAW_USER.value,
                 "session.status",
                 "environment",
                 "development",
@@ -1132,7 +1172,9 @@ class BuildSnqlQueryTest(TestCase):
                     Op.IN,
                     [
                         resolve(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                            UseCaseKey.RELEASE_HEALTH,
+                            self.organization.id,
+                            SessionMRI.RAW_USER.value,
                         )
                     ],
                 ),
@@ -1150,7 +1192,7 @@ class BuildSnqlQueryTest(TestCase):
                 granularity=10,
                 use_none_clauses=True,
                 aggregate_kwargs={
-                    "metric_mri": SessionMRI.USER.value,
+                    "metric_mri": SessionMRI.RAW_USER.value,
                 },
             )
 

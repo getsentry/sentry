@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

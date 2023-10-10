@@ -18,13 +18,13 @@ import {
   getHumanDuration,
   pickBarColor,
   rectOfContent,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -57,7 +57,7 @@ import {
 
 type PropType = {
   dragProps: DragManagerChildrenProps;
-  event: EventTransaction;
+  event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
@@ -288,7 +288,7 @@ class TraceViewHeader extends Component<PropType, State> {
         ticks.push(
           <TickLabel
             key="first"
-            align={TickAlignment.Left}
+            align={TickAlignment.LEFT}
             hideTickMarker
             duration={0}
             style={{
@@ -304,7 +304,7 @@ class TraceViewHeader extends Component<PropType, State> {
           <TickLabel
             key="last"
             duration={duration}
-            align={TickAlignment.Right}
+            align={TickAlignment.RIGHT}
             hideTickMarker
             style={{
               right: space(1),
@@ -747,14 +747,14 @@ const TickText = styled('span')<{align: TickAlignment}>`
 
   ${({align}) => {
     switch (align) {
-      case TickAlignment.Center: {
+      case TickAlignment.CENTER: {
         return 'transform: translateX(-50%)';
       }
-      case TickAlignment.Left: {
+      case TickAlignment.LEFT: {
         return null;
       }
 
-      case TickAlignment.Right: {
+      case TickAlignment.RIGHT: {
         return 'transform: translateX(-100%)';
       }
 
@@ -781,7 +781,7 @@ function TickLabel(props: {
   align?: TickAlignment;
   hideTickMarker?: boolean;
 }) {
-  const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
+  const {style, duration, hideTickMarker = false, align = TickAlignment.CENTER} = props;
 
   return (
     <TickLabelContainer style={style}>
@@ -826,7 +826,7 @@ export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boole
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const MinimapBackground = styled('div')`
+export const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
@@ -976,3 +976,4 @@ const RightSidePane = styled('div')`
 `;
 
 export default TraceViewHeader;
+export {ActualMinimap};

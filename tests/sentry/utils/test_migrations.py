@@ -1,5 +1,5 @@
-from sentry.models import Organization
-from sentry.testutils import TestCase
+from sentry.models.organization import Organization
+from sentry.testutils.cases import TestCase
 from sentry.utils.migrations import clear_flag
 
 

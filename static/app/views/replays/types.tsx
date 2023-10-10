@@ -1,7 +1,4 @@
-import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
-
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
@@ -78,6 +75,14 @@ export type ReplayRecord = {
     ip: null | string;
     username: null | string;
   };
+  /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks?: number;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks?: number;
 };
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
@@ -103,28 +108,14 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
-// Sync with REPLAY_LIST_FIELDS below
-export type ReplayListRecord = Pick<
-  ReplayRecord,
-  | 'activity'
-  | 'count_errors'
-  | 'duration'
-  | 'finished_at'
-  | 'id'
-  | 'is_archived'
-  | 'project_id'
-  | 'started_at'
-  | 'user'
-> &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
-
-// Sync with ReplayListRecord above
-export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
+// Sync with ReplayListRecord below
+export const REPLAY_LIST_FIELDS = [
   'activity',
   'browser.name',
   'browser.version',
+  'count_dead_clicks',
   'count_errors',
-  'count_urls',
+  'count_rage_clicks',
   'duration',
   'finished_at',
   'id',
@@ -137,47 +128,31 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'user',
 ];
 
+// Sync with REPLAY_LIST_FIELDS above
+export type ReplayListRecord = Pick<
+  ReplayRecord,
+  | 'activity'
+  | 'browser'
+  | 'count_dead_clicks'
+  | 'count_errors'
+  | 'count_rage_clicks'
+  | 'duration'
+  | 'finished_at'
+  | 'id'
+  | 'is_archived'
+  | 'os'
+  | 'project_id'
+  | 'started_at'
+  | 'urls'
+  | 'user'
+>;
+
 export type ReplaySegment = {
   dateAdded: string;
   projectId: string;
   replayId: string;
   segmentId: number;
 };
-
-/**
- * Highlight Replay Plugin types
- */
-export interface Highlight {
-  nodeId: number;
-  text: string;
-  color?: string;
-}
-
-export type RecordingEvent = eventWithTime;
-
-export interface ReplaySpan<T = Record<string, any>> {
-  data: T;
-  endTimestamp: number;
-  id: string;
-  op: string;
-  startTimestamp: number;
-  timestamp: number;
-  description?: string;
-}
-
-export type MemorySpanType = ReplaySpan<{
-  memory: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}>;
-
-export type NetworkSpan = ReplaySpan;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
-export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
 
 /**
  * This is a result of a custom discover query
@@ -191,4 +166,46 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
   title: string;
+}
+
+export type DeadRageSelectorItem = {
+  aria_label: string;
+  dom_element: {fullSelector: string; projectId: number; selector: string};
+  element: string;
+  project_id: number;
+  count_dead_clicks?: number;
+  count_rage_clicks?: number;
+};
+
+export type DeadRageSelectorListResponse = {
+  data: {
+    count_dead_clicks: number;
+    count_rage_clicks: number;
+    dom_element: string;
+    element: ReplayClickElement;
+    project_id: number;
+  }[];
+};
+
+export type ReplayClickElement = {
+  alt: string;
+  aria_label: string;
+  class: string[];
+  id: string;
+  role: string;
+  tag: string;
+  testid: string;
+  title: string;
+};
+
+export interface DeadRageSelectorQueryParams {
+  isWidgetData: boolean;
+  cursor?: string | string[] | undefined | null;
+  per_page?: number;
+  prefix?: string;
+  sort?:
+    | 'count_dead_clicks'
+    | '-count_dead_clicks'
+    | 'count_rage_clicks'
+    | '-count_rage_clicks';
 }

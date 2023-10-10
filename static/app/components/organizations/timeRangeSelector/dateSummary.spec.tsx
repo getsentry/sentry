@@ -7,8 +7,7 @@ const end = new Date('2017-10-17T02:38:00.000Z'); // National Pasta Day
 
 describe('DateSummary', () => {
   it('renders', () => {
-    const {container} = render(<DateSummary start={start} end={end} />);
-    expect(container).toSnapshot();
+    render(<DateSummary start={start} end={end} />);
   });
 
   it('does not show times when it is midnight for start date and 23:59:59 for end date', () => {

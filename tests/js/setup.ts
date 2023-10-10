@@ -3,16 +3,20 @@
 import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
-import type {InjectedRouter} from 'react-router';
+import {ReactElement} from 'react';
+import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import MockDate from 'mockdate';
 import {object as propTypesObject} from 'prop-types';
 import {stringify} from 'query-string';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
+import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
@@ -46,10 +50,18 @@ MockDate.set(constantDate);
 /**
  * Mocks
  */
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('lodash/debounce', () =>
+  jest.fn(fn => {
+    fn.cancel = jest.fn();
+    return fn;
+  })
+);
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
+jest
+  .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
+  .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', function reactRouterMockFactory() {
   const ReactRouter = jest.requireActual('react-router');
@@ -65,6 +77,7 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
+jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -107,8 +120,13 @@ jest.mock('@sentry/react', function sentryReact() {
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
+    Hub: SentryReact.Hub,
+    Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    BrowserTracing: jest.fn().mockReturnValue({}),
+    BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addGlobalEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
     }),
@@ -148,7 +166,7 @@ const routerFixtures = {
 
       return '';
     }),
-    location: TestStubs.location(),
+    location: routerFixtures.location(),
     createPath: jest.fn(),
     routes: [],
     params: {},
@@ -167,19 +185,33 @@ const routerFixtures = {
   }),
 
   routerProps: (params = {}) => ({
-    location: TestStubs.location(),
+    location: routerFixtures.location(),
     params: {},
     routes: [],
     stepBack: () => {},
     ...params,
   }),
 
+  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
+    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
+  ): RouteComponentProps<RouteParams, {}> => {
+    const router = routerFixtures.router(params);
+    return {
+      location: router.location,
+      params: router.params as RouteParams & {},
+      routes: router.routes,
+      route: router.routes[0],
+      routeParams: router.params,
+      router,
+    };
+  },
+
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-      project: TestStubs.Project(),
+      location: routerFixtures.location(),
+      router: routerFixtures.router(),
+      organization: Organization(),
+      project: Project(),
       ...context,
     },
     childContextTypes: {
@@ -204,6 +236,8 @@ declare global {
   /**
    * Test stubs are automatically loaded from the fixtures/js-stubs
    * directory. Use these for setting up test data.
+   *
+   * @deprecated Please import test stubs directly and do not use this global.
    */
   // eslint-disable-next-line no-var
   var TestStubs: typeof fixtures;
@@ -268,3 +302,15 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+window.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  takeRecords = jest.fn();
+
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

@@ -3,8 +3,10 @@ from typing import List, Optional, Sequence, Set
 from snuba_sdk import Column, Function
 
 from sentry.api.utils import InvalidParams
+from sentry.search.events import constants
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.search.events.types import SelectType
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
     resolve_tag_value,
@@ -12,8 +14,9 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
-from sentry.snuba.metrics.naming_layer import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
+    SpanTagsKey,
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -34,14 +37,12 @@ def _aggregation_on_session_status_func_factory(aggregate):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseKey.RELEASE_HEALTH,
+                                        UseCaseID.SESSIONS,
                                         org_id,
                                         "session.status",
                                     )
                                 ),
-                                resolve_tag_value(
-                                    UseCaseKey.RELEASE_HEALTH, org_id, session_status
-                                ),
+                                resolve_tag_value(UseCaseID.SESSIONS, org_id, session_status),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -63,13 +64,13 @@ def _aggregation_on_abnormal_mechanism_func_factory(
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH,
+                        UseCaseID.SESSIONS,
                         org_id,
                         "abnormal_mechanism",
                     )
                 ),
                 [
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, mechanism)
+                    resolve_tag_value(UseCaseID.SESSIONS, org_id, mechanism)
                     for mechanism in abnormal_mechanism
                 ],
             ],
@@ -80,12 +81,12 @@ def _aggregation_on_abnormal_mechanism_func_factory(
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH,
+                        UseCaseID.SESSIONS,
                         org_id,
                         "abnormal_mechanism",
                     )
                 ),
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, abnormal_mechanism),
+                resolve_tag_value(UseCaseID.SESSIONS, org_id, abnormal_mechanism),
             ],
         )
 
@@ -130,12 +131,12 @@ def _aggregation_on_tx_status_func_factory(aggregate):
 
         tx_col = Column(
             resolve_tag_key(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 org_id,
                 TransactionTagsKey.TRANSACTION_STATUS.value,
             )
         )
-        excluded_statuses = resolve_tag_values(UseCaseKey.PERFORMANCE, org_id, exclude_tx_statuses)
+        excluded_statuses = resolve_tag_values(UseCaseID.TRANSACTIONS, org_id, exclude_tx_statuses)
         exclude_tx_statuses = Function(
             "notIn",
             [
@@ -187,13 +188,13 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseKey.PERFORMANCE,
+                                        UseCaseID.TRANSACTIONS,
                                         org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                                     )
                                 ),
                                 resolve_tag_value(
-                                    UseCaseKey.PERFORMANCE, org_id, satisfaction_value
+                                    UseCaseID.TRANSACTIONS, org_id, satisfaction_value
                                 ),
                             ],
                         ),
@@ -321,11 +322,95 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
+def http_error_count_transaction(org_id, metric_ids, alias=None):
+    statuses = [
+        resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, status)
+        for status in constants.HTTP_SERVER_ERROR_STATUS
+    ]
+    base_condition = Function(
+        "in",
+        [
+            Column(
+                name=resolve_tag_key(
+                    UseCaseID.TRANSACTIONS,
+                    org_id,
+                    TransactionTagsKey.TRANSACTION_HTTP_STATUS_CODE.value,
+                )
+            ),
+            list(status for status in statuses if status is not None),
+        ],
+    )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    base_condition,
+                    Function("in", [Column("metric_id"), list(metric_ids)]),
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def all_spans(
+    metric_ids: Set[int],
+    alias: Optional[str] = None,
+):
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function("in", [Column("metric_id"), list(metric_ids)]),
+        ],
+        alias,
+    )
+
+
+def http_error_count_span(org_id, metric_ids, alias=None):
+    statuses = [
+        resolve_tag_value(UseCaseID.SPANS, org_id, status)
+        for status in constants.HTTP_SERVER_ERROR_STATUS
+    ]
+    base_condition = Function(
+        "in",
+        [
+            Column(
+                name=resolve_tag_key(
+                    UseCaseID.SPANS,
+                    org_id,
+                    SpanTagsKey.HTTP_STATUS_CODE.value,
+                )
+            ),
+            list(status for status in statuses if status is not None),
+        ],
+    )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    base_condition,
+                    Function("in", [Column("metric_id"), list(metric_ids)]),
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
 def _project_threshold_multi_if_function(
     project_ids: Sequence[int], org_id: int, metric_ids: Set[int]
 ) -> Function:
     metric_ids_dictionary = {
-        reverse_resolve_weak(UseCaseKey.PERFORMANCE, org_id, metric_id): metric_id
+        reverse_resolve_weak(UseCaseID.TRANSACTIONS, org_id, metric_id): metric_id
         for metric_id in metric_ids
     }
 
@@ -354,12 +439,12 @@ def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Funct
         [
             Column(
                 name=resolve_tag_key(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     org_id,
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                 )
             ),
-            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, satisfaction_tag_value),
+            resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, satisfaction_tag_value),
         ],
     )
 
@@ -493,8 +578,8 @@ def session_duration_filters(org_id):
         Function(
             "equals",
             (
-                Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
+                Column(resolve_tag_key(UseCaseID.SESSIONS, org_id, "session.status")),
+                resolve_tag_value(UseCaseID.SESSIONS, org_id, "exited"),
             ),
         )
     ]
@@ -524,7 +609,12 @@ def histogram_snql_factory(
     )
 
 
-def rate_snql_factory(aggregate_filter, numerator, denominator=1.0, alias=None):
+def rate_snql_factory(
+    aggregate_filter: Function,
+    numerator: float,
+    denominator: float = 1.0,
+    alias: Optional[str] = None,
+) -> Function:
     return Function(
         "divide",
         [
@@ -549,10 +639,10 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
                         (
                             Column(
                                 resolve_tag_key(
-                                    UseCaseKey.PERFORMANCE, org_id, "measurement_rating"
+                                    UseCaseID.TRANSACTIONS, org_id, "measurement_rating"
                                 )
                             ),
-                            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, measurement_rating),
+                            resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, measurement_rating),
                         ),
                     ),
                 ],
@@ -570,7 +660,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
     def generate_transaction_name_filter(operation, transaction_name_identifier):
         if transaction_name_identifier == is_unparameterized:
             inner_tag_value = resolve_tag_value(
-                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
+                UseCaseID.TRANSACTIONS, org_id, "<< unparameterized >>"
             )
         elif transaction_name_identifier == is_null:
             inner_tag_value = ""
@@ -582,7 +672,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseKey.PERFORMANCE,
+                        UseCaseID.TRANSACTIONS,
                         org_id,
                         "transaction",
                     )
@@ -630,7 +720,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         team_key_conditions.add(
             (
                 project_id,
-                resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name),
+                resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, transaction_name),
             )
         )
 
@@ -639,7 +729,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         [
             (
                 Column("project_id"),
-                Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "transaction")),
+                Column(resolve_tag_key(UseCaseID.TRANSACTIONS, org_id, "transaction")),
             ),
             list(team_key_conditions),
         ],
@@ -647,7 +737,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
     )
 
 
-def _resolve_project_threshold_config(project_ids, org_id):
+def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -> SelectType:
     return resolve_project_threshold_config(
         tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
             use_case_id, org_id, value
@@ -657,7 +747,7 @@ def _resolve_project_threshold_config(project_ids, org_id):
         ),
         project_ids=project_ids,
         org_id=org_id,
-        use_case_id=UseCaseKey.PERFORMANCE,
+        use_case_id=UseCaseID.TRANSACTIONS,
     )
 
 
@@ -715,3 +805,122 @@ def min_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
 
 def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
+
+
+def total_count(aggregate_filter: Function) -> Function:
+    return Function("sumIf", [Column("value"), aggregate_filter])
+
+
+def on_demand_failure_rate_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+):
+    """Divide the number of transactions that failed from the total."""
+    return Function(
+        "divide",
+        [
+            on_demand_failure_count_snql_factory(
+                aggregate_filter, org_id, use_case_id, "failure_count"
+            ),
+            total_count(aggregate_filter),
+        ],
+        alias=alias,
+    )
+
+
+def on_demand_failure_count_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    """Count the number of transactions where the failure tag is set to true."""
+    return Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "failure")),
+                            resolve_tag_value(use_case_id, org_id, "true"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
+def on_demand_apdex_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+):
+    # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
+
+    satisfactory = Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+    )
+    tolerable_divided_by_2 = Function(
+        "divide",
+        [
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                                    resolve_tag_value(use_case_id, org_id, "tolerable"),
+                                ],
+                            ),
+                            aggregate_filter,
+                        ],
+                    ),
+                ],
+            ),
+            2,
+        ],
+    )
+
+    return Function(
+        "divide",
+        [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
+        alias=alias,
+    )
+
+
+def on_demand_epm_snql_factory(
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
+) -> Function:
+    return rate_snql_factory(aggregate_filter, interval, 60, alias)
+
+
+def on_demand_eps_snql_factory(
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
+) -> Function:
+    return rate_snql_factory(aggregate_filter, interval, 1, alias)

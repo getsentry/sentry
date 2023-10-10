@@ -2,10 +2,11 @@ from typing import Any, Mapping
 
 from rest_framework import serializers
 
-from sentry.models import Commit, Repository
+from sentry.models.commit import Commit
+from sentry.models.repository import Repository
 
 
-class InCommitValidator(serializers.Serializer):  # type: ignore
+class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 

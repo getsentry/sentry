@@ -1,23 +1,31 @@
-from datetime import timedelta
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
+from unittest.mock import Mock, patch
 
 import pytest
+import responses
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
-from sentry.models import Repository
+from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.tasks.commit_context import process_commit_context
-from sentry.testutils import TestCase
+from sentry.snuba.sessions_v2 import isoformat_z
+from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
-class TestCommitContext(TestCase):
+
+class TestCommitContextMixin(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.repo = Repository.objects.create(
@@ -72,11 +80,14 @@ class TestCommitContext(TestCase):
             project_id=self.project.id,
         )
 
+
+@region_silo_test(stable=True)
+class TestCommitContext(TestCommitContextMixin):
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -134,11 +145,47 @@ class TestCommitContext(TestCase):
             error_message="integration_failed",
         )
 
+    @patch("sentry.tasks.commit_context.logger")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=370)),
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "admin@localhost",
+        },
+    )
+    def test_found_commit_is_too_old(self, mock_get_commit_context, mock_logger):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert mock_logger.info.call_count == 1
+        mock_logger.info.assert_called_with(
+            "process_commit_context.find_commit_context",
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.group.project.organization_id,
+                "reason": "could_not_fetch_commit_context",
+                "code_mappings_count": 1,
+                "fallback": True,
+            },
+        )
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "asdfasdf",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -163,7 +210,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -248,7 +295,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -289,7 +336,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -330,7 +377,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -408,3 +455,353 @@ class TestCommitContext(TestCase):
                 )
 
             assert mock_suspect_commits.called
+
+
+@region_silo_test(stable=True)
+@patch(
+    "sentry.integrations.github.GitHubIntegration.get_commit_context",
+    Mock(
+        return_value={
+            "commitId": "asdfwreqr",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "admin@localhost",
+        }
+    ),
+)
+@patch("sentry.tasks.integrations.github.pr_comment.github_comment_workflow.delay")
+class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        super().setUp()
+        self.pull_request = PullRequest.objects.create(
+            organization_id=self.commit.organization_id,
+            repository_id=self.repo.id,
+            key="99",
+            author=self.commit.author,
+            message="foo",
+            title="bar",
+            merge_commit_sha=self.commit.key,
+            date_added=iso_format(before_now(days=1)),
+        )
+        self.repo.provider = "integrations:github"
+        self.repo.save()
+        self.pull_request_comment = PullRequestComment.objects.create(
+            pull_request=self.pull_request,
+            external_id=1,
+            created_at=iso_format(before_now(days=1)),
+            updated_at=iso_format(before_now(days=1)),
+            group_ids=[],
+        )
+        self.installation_id = "github:1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
+
+    def add_responses(self):
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
+
+    def test_gh_comment_not_github(self, mock_comment_workflow):
+        """Non github repos shouldn't be commented on"""
+        self.repo.provider = "integrations:gitlab"
+        self.repo.save()
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    def test_gh_comment_org_option(self, mock_comment_workflow):
+        """No comments on org with organization option disabled"""
+        OrganizationOption.objects.set_value(
+            organization=self.project.organization, key="sentry:github_pr_bot", value=False
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_no_pr_from_api(self, get_jwt, mock_comment_workflow):
+        """No comments on suspect commit with no pr returned from API response"""
+        self.pull_request.delete()
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json={"message": "No commit found for SHA"},
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry_sdk.capture_exception")
+    @responses.activate
+    def test_gh_comment_api_error(self, mock_capture_exception, get_jwt, mock_comment_workflow):
+        """Captures exception if Github API call errors"""
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=400,
+            json={"message": "error"},
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_capture_exception.called
+            assert not mock_comment_workflow.called
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
+        """No comments on commit not in default branch"""
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": "abcd"}, {"merge_commit_sha": "efgh"}],
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_no_pr_from_query(self, get_jwt, mock_comment_workflow):
+        """No comments on suspect commit with no pr row in table"""
+        self.pull_request.delete()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
+        """No comment on pr that's older than PR_COMMENT_WINDOW"""
+        self.pull_request.date_added = iso_format(before_now(days=PR_COMMENT_WINDOW + 1))
+        self.pull_request.save()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow):
+        """No comment on a pr that has a comment with the issue in the same pr list"""
+        self.pull_request_comment.group_ids.append(self.event.group_id)
+        self.pull_request_comment.save()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_create_queued(self, get_jwt, mock_comment_workflow):
+        """Task queued if no prior comment exists"""
+        self.pull_request_comment.delete()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
+
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0].commit == self.commit
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_create_queued_existing_pr_commit(self, get_jwt, mock_comment_workflow):
+        """Task queued if no prior comment exists"""
+        pr_commit = PullRequestCommit.objects.create(
+            commit=self.commit, pull_request=self.pull_request
+        )
+        self.pull_request_comment.delete()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
+
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0] == pr_commit
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow):
+        """Task queued if new issue for prior comment"""
+
+        self.add_responses()
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
+
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0].commit == self.commit
+
+    def test_gh_comment_no_repo(self, mock_comment_workflow):
+        """No comments on suspect commit if no repo row exists"""
+        self.repo.delete()
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow):
+        self.add_responses()
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.call_count == 1

@@ -14,7 +14,7 @@ import Modal, {
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelBody} from 'sentry/components/panels';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

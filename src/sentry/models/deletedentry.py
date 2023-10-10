@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model
 
 
 class DeletedEntry(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     actor_label = models.CharField(max_length=64, null=True)
     # if the entry was created via a user

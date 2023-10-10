@@ -15,14 +15,13 @@ function hasRootGroup(items: Items): items is ItemsWithChildren {
 }
 
 function filterItems(items: Items, inputValue: string): ItemsBeforeFilter {
-  return items.filter(
-    item =>
-      (typeof item.searchKey === 'string' && item.searchKey.length > 0
-        ? item.searchKey
-        : `${item.value} ${item.label}`
-      )
-        .toLowerCase()
-        .indexOf(inputValue.toLowerCase()) > -1
+  return items.filter(item =>
+    (typeof item.searchKey === 'string' && item.searchKey.length > 0
+      ? item.searchKey
+      : `${item.value} ${item.label}`
+    )
+      .toLowerCase()
+      .includes(inputValue.toLowerCase())
   );
 }
 

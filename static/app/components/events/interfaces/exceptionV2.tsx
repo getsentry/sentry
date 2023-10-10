@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
@@ -27,9 +27,9 @@ export function ExceptionV2({
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
-  /* in case there are threads in the event data, we don't render the
-   exception block.  Instead the exception is contained within the
-   thread interface. */
+  // in case there are threads in the event data, we don't render the
+  // exception block.  Instead the exception is contained within the
+  // thread interface.
   if (eventHasThreads) {
     return null;
   }
@@ -40,7 +40,7 @@ export function ExceptionV2({
 
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
-  function getPlatform(): PlatformType {
+  function getPlatform(): PlatformKey {
     const dataValue = data.values?.find(
       value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
     );
@@ -63,7 +63,6 @@ export function ExceptionV2({
     <TraceEventDataSection
       title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       type={EntryType.EXCEPTION}
-      stackType={STACK_TYPE.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
@@ -108,14 +107,14 @@ export function ExceptionV2({
         ) : (
           <ExceptionContent
             stackType={
-              display.includes('minified') ? STACK_TYPE.MINIFIED : STACK_TYPE.ORIGINAL
+              display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
             }
             stackView={
               display.includes('raw-stack-trace')
-                ? STACK_VIEW.RAW
+                ? StackView.RAW
                 : fullStackTrace
-                ? STACK_VIEW.FULL
-                : STACK_VIEW.APP
+                ? StackView.FULL
+                : StackView.APP
             }
             projectSlug={projectSlug}
             newestFirst={recentFirst}

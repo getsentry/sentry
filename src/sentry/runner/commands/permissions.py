@@ -1,4 +1,5 @@
 import click
+from django.db import router
 
 from sentry.runner.decorators import configuration
 
@@ -30,12 +31,12 @@ def add(user, permission):
     "Add a permission to a user."
     from django.db import IntegrityError, transaction
 
-    from sentry.models import UserPermission
+    from sentry.models.userpermission import UserPermission
 
     user = user_param_to_user(user)
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(UserPermission)):
             UserPermission.objects.create(user=user, permission=permission)
     except IntegrityError:
         click.echo(f"Permission already exists for `{user.username}`")
@@ -49,7 +50,7 @@ def add(user, permission):
 @configuration
 def remove(user, permission):
     "Remove a permission from a user."
-    from sentry.models import UserPermission
+    from sentry.models.userpermission import UserPermission
 
     user = user_param_to_user(user)
 
@@ -67,7 +68,7 @@ def remove(user, permission):
 @configuration
 def list(user):
     "List permissions for a user."
-    from sentry.models import UserPermission
+    from sentry.models.userpermission import UserPermission
 
     user = user_param_to_user(user)
     up_list = UserPermission.objects.filter(user=user).order_by("permission")

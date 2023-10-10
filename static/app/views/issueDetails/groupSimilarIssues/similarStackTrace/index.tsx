@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
@@ -38,7 +38,6 @@ type ItemState = {
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
-  const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
   const [items, setItems] = useState<ItemState>({
     similar: [],
     filtered: [],
@@ -56,20 +55,17 @@ function SimilarStackTrace({params, location, project}: Props) {
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
     if (hasSimilarityFeature) {
-      const version = isUsingSimilarityViewV2 ? '2' : '1';
-
       reqs.push({
-        endpoint: `/issues/${groupId}/similar/?${qs.stringify({
+        endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
-          version,
         })}`,
         dataKey: 'similar',
       });
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, isUsingSimilarityViewV2, hasSimilarityFeature]);
+  }, [location.query, groupId, orgId, hasSimilarityFeature]);
 
   const onGroupingChange = useCallback(
     ({
@@ -135,39 +131,21 @@ function SimilarStackTrace({params, location, project}: Props) {
     });
   }, [params, location.query, items]);
 
-  const hasSimilarityViewV2 = project.features.includes('similarity-view-v2');
   const hasSimilarItems =
-    hasSimilarityFeature &&
-    (items.similar.length > 0 || items.filtered.length > 0) &&
-    status === 'ready';
+    hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
 
   const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process merges.'
-          )}
-        </Alert>
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
-          {hasSimilarityViewV2 && (
-            <SegmentedControl
-              aria-label={t('Algorithm')}
-              size="sm"
-              value={isUsingSimilarityViewV2 ? 'new' : 'old'}
-              onChange={key => setIsUsingSimilarityViewV2(key === 'new')}
-            >
-              <SegmentedControl.Item key="old">
-                {t('Old Algorithm')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="new">
-                {t('New Algorithm')}
-              </SegmentedControl.Item>
-            </SegmentedControl>
-          )}
+          <small>
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
+            )}
+          </small>
         </HeaderWrapper>
         {status === 'loading' && <LoadingIndicator />}
         {status === 'error' && (
@@ -176,7 +154,14 @@ function SimilarStackTrace({params, location, project}: Props) {
             onRetry={fetchData}
           />
         )}
-        {hasSimilarItems && (
+        {status === 'ready' && !hasSimilarItems && (
+          <Panel>
+            <EmptyStateWarning>
+              <p>{t("There don't seem to be any similar issues.")}</p>
+            </EmptyStateWarning>
+          </Panel>
+        )}
+        {status === 'ready' && hasSimilarItems && (
           <IssuesReplayCountProvider groupIds={groupsIds}>
             <List
               items={items.similar}
@@ -186,7 +171,6 @@ function SimilarStackTrace({params, location, project}: Props) {
               project={project}
               groupId={groupId}
               pageLinks={items.pageLinks}
-              v2={isUsingSimilarityViewV2}
             />
           </IssuesReplayCountProvider>
         )}
@@ -198,12 +182,13 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  margin-bottom: 0;
+  margin-bottom: ${space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: ${space(2)};
+
+  small {
+    color: ${p => p.theme.subText};
+  }
 `;

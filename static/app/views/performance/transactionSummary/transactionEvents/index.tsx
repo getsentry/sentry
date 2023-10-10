@@ -55,7 +55,7 @@ function TransactionEvents(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Events}
+      tab={Tab.EVENTS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={EventsContentWrapper}
@@ -121,7 +121,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...sortQuery,
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
     browserHistory.push({
@@ -144,7 +144,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilterName === EventsDisplayFilterName.p100) {
+    if (newFilterName === EventsDisplayFilterName.P100) {
       delete nextQuery.showTransaction;
     }
 
@@ -244,7 +244,7 @@ function generateEventView({
     'timestamp',
   ];
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.None) {
+  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);

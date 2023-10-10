@@ -27,6 +27,7 @@ from snuba_sdk.query import SelectableExpression
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.issues.query import manual_group_on_time_aggregation
+from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
@@ -41,7 +42,7 @@ from sentry.utils.snuba import (
 @dataclasses.dataclass
 class SnubaModelQuerySettings:
     # The dataset in Snuba that we want to query
-    dataset: snuba.Dataset
+    dataset: Dataset
 
     # The column in Snuba that we want to put in the group by statement
     groupby: str
@@ -87,7 +88,7 @@ class SnubaTSDB(BaseTSDB):
     # outcomes
     project_filter_model_query_settings = {
         model: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "project_id",
             "quantity",
             [
@@ -101,7 +102,7 @@ class SnubaTSDB(BaseTSDB):
 
     outcomes_partial_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "org_id",
             "quantity",
             [
@@ -110,49 +111,49 @@ class SnubaTSDB(BaseTSDB):
             ],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "org_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "org_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "project_id",
             "quantity",
             [["outcome", "IN", TOTAL_RECEIVED_OUTCOMES], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "project_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "project_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "key_id",
             "quantity",
             [["outcome", "IN", TOTAL_RECEIVED_OUTCOMES], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "key_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes,
+            Dataset.Outcomes,
             "key_id",
             "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
@@ -164,49 +165,35 @@ class SnubaTSDB(BaseTSDB):
     # other models.
     # these query settings should use SnQL style parameters instead of the legacy format
     non_outcomes_snql_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, []),
-        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, []),
-        TSDBModel.group_performance: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            None,
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
-        ),
+        TSDBModel.project: SnubaModelQuerySettings(Dataset.Events, "project_id", None, []),
+        TSDBModel.group: SnubaModelQuerySettings(Dataset.Events, "group_id", None, []),
         TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, []
+            Dataset.Events, "tags[sentry:release]", None, []
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:user]", []
-        ),
-        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            "tags[sentry:user]",
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
+            Dataset.Events, "group_id", "tags[sentry:user]", []
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", []
+            Dataset.Events, "project_id", "tags[sentry:user]", []
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "environment", []
+            Dataset.Events, "group_id", "environment", []
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:release]", []
+            Dataset.Events, "group_id", "tags[sentry:release]", []
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "group_id", []
+            Dataset.Events, "project_id", "group_id", []
         ),
         TSDBModel.group_generic: SnubaModelQuerySettings(
-            snuba.Dataset.IssuePlatform,
+            Dataset.IssuePlatform,
             "group_id",
             None,
             [],
             None,
         ),
         TSDBModel.users_affected_by_generic_group: SnubaModelQuerySettings(
-            snuba.Dataset.IssuePlatform,
+            Dataset.IssuePlatform,
             "group_id",
             "tags[sentry:user]",
             [],
@@ -274,7 +261,7 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
-        tenant_ids: dict[str, str | int] = None,
+        tenant_ids: Optional[dict[str, str | int]] = None,
         referrer_suffix: Optional[str] = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
@@ -348,7 +335,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
         is_grouprelease: bool = False,
-        tenant_ids: dict[str, str | int] = None,
+        tenant_ids: Optional[dict[str, str | int]] = None,
         referrer_suffix: Optional[str] = None,
     ):
         """
@@ -535,8 +522,8 @@ class SnubaTSDB(BaseTSDB):
         model_aggregate = model_query_settings.aggregate
 
         # 10s is the only rollup under an hour that we support
-        if rollup == 10 and model_query_settings.dataset == snuba.Dataset.Outcomes:
-            model_dataset = snuba.Dataset.OutcomesRaw
+        if rollup == 10 and model_query_settings.dataset == Dataset.Outcomes:
+            model_dataset = Dataset.OutcomesRaw
         else:
             model_dataset = model_query_settings.dataset
 
@@ -733,7 +720,7 @@ class SnubaTSDB(BaseTSDB):
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
-        if model_query_settings.dataset == snuba.Dataset.Outcomes:
+        if model_query_settings.dataset == Dataset.Outcomes:
             aggregate_function = "sum"
         else:
             aggregate_function = "count()"

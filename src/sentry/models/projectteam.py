@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Sequence
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_delete, post_save
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -13,16 +14,13 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Team
-
-# TODO(dcramer): pull in enum library
-ProjectStatus = ObjectStatus
+    from sentry.models.team import Team
 
 
 class ProjectTeamManager(BaseManager):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
         project_teams = (
-            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
+            self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
             .order_by("project__name", "project__slug")
             .select_related("project")
         )
@@ -41,7 +39,7 @@ class ProjectTeamManager(BaseManager):
 
 @region_silo_only_model
 class ProjectTeam(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
@@ -57,7 +55,8 @@ class ProjectTeam(Model):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():
@@ -71,7 +70,7 @@ def process_resource_change(instance, **kwargs):
         except (Project.DoesNotExist, Organization.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(ProjectTeam))
 
 
 post_save.connect(

@@ -2,26 +2,32 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
-import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import Panel from 'sentry/components/panels/panel';
+import {DeprecatedAggregateFlamegraph} from 'sentry/components/profiling/flamegraph/deprecatedAggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
-  const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
+  const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
+    'profiling-flamegraph-collapsed-frames',
+    true
+  );
 
+  const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
   const isEmpty = data?.shared.frames.length === 0;
 
   return (
     <Flex column gap={space(1)}>
       <Flex align="center" gap={space(0.5)}>
-        <HeaderTitle>{t('Flamegraph')}</HeaderTitle>
+        <HeaderTitle>{t('Aggregate Flamegraph')}</HeaderTitle>
         <QuestionTooltip
           size="sm"
           position="right"
@@ -31,14 +37,19 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
               <p>{t('An aggregate of profiles for this transaction.')}</p>
               <p>
                 {t(
-                  'Navigate the flamegraph by scrolling and by double clicking a frame to zoom.'
+                  'Navigate the aggregate flamegraph by scrolling and by double clicking a frame to zoom.'
                 )}
               </p>
             </TooltipContent>
           }
         />
       </Flex>
-      <ProfileGroupProvider type="flamegraph" input={data ?? null} traceID="">
+      <ProfileGroupProvider
+        type="flamegraph"
+        input={data ?? null}
+        traceID=""
+        frameFilter={hideSystemFrames ? applicationFrameOnly : undefined}
+      >
         <FlamegraphStateProvider
           initialState={{
             preferences: {
@@ -51,13 +62,16 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
             <Panel>
               <Flex h={400} column justify="center">
                 {isLoading ? (
-                  <LoadingIndicator>{t('Loading Flamegraph')}</LoadingIndicator>
+                  <LoadingIndicator>{t('Loading Aggregate Flamegraph')}</LoadingIndicator>
                 ) : isEmpty ? (
                   <EmptyStateWarning>
-                    <p>{t(`A flamegraph isn't available for your query`)}</p>
+                    <p>{t(`Aggregate flamegraph isn't available for your query`)}</p>
                   </EmptyStateWarning>
                 ) : (
-                  <AggregateFlamegraph />
+                  <DeprecatedAggregateFlamegraph
+                    hideSystemFrames={hideSystemFrames}
+                    setHideSystemFrames={setHideSystemFrames}
+                  />
                 )}
               </Flex>
             </Panel>
@@ -66,6 +80,10 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
       </ProfileGroupProvider>
     </Flex>
   );
+}
+
+function applicationFrameOnly(frame: Frame): boolean {
+  return frame.is_application;
 }
 
 export const HeaderTitle = styled('span')`

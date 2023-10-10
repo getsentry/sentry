@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -19,7 +20,7 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
 class GroupLinkManager(BaseManager):
@@ -42,7 +43,7 @@ class GroupLink(Model):
     Link a group with an external resource like a commit, issue, or pull request
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     class Relationship:
         unknown = 0

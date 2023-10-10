@@ -1,3 +1,5 @@
+import {DetailedEvents} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 jest.mock('sentry/api');
 
 describe('Issues -> Merged View', function () {
-  const events = TestStubs.DetailedEvents();
+  const events = DetailedEvents();
   const mockData = {
     merged: [
       {
@@ -23,26 +25,21 @@ describe('Issues -> Merged View', function () {
     ],
   };
 
-  beforeAll(function () {
+  beforeEach(function () {
+    GroupingStore.init();
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/?limit=50&query=',
+      url: '/organizations/org-slug/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });
 
-  beforeEach(() => {
-    GroupingStore.init();
-  });
-
   it('renders initially with loading component', function () {
     const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       project: {
-        ...initializeOrg().project,
         slug: 'projectId',
       },
       router: {
-        ...initializeOrg().router,
         location: {
           query: {},
         },
@@ -68,20 +65,17 @@ describe('Issues -> Merged View', function () {
 
   it('renders with mocked data', async function () {
     const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       project: {
-        ...initializeOrg().project,
         slug: 'projectId',
       },
       router: {
-        ...initializeOrg().router,
         location: {
           query: {},
         },
       },
     });
 
-    const {container} = render(
+    render(
       <GroupMergedView
         organization={organization}
         project={project}
@@ -96,7 +90,5 @@ describe('Issues -> Merged View', function () {
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(container).toSnapshot();
   });
 });

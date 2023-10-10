@@ -2,26 +2,34 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
+from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
+from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.sentry_metrics.client import generic_metrics_backend
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.safe import safe_execute
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
 
@@ -45,7 +53,7 @@ class PostProcessJob(TypedDict, total=False):
 
 
 def _get_service_hooks(project_id):
-    from sentry.models import ServiceHook
+    from sentry.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
     result = cache.get(cache_key)
@@ -58,7 +66,8 @@ def _get_service_hooks(project_id):
 
 
 def _should_send_error_created_hooks(project):
-    from sentry.models import Organization, ServiceHook
+    from sentry.models.organization import Organization
+    from sentry.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks-error-created:1:{project.id}"
     result = cache.get(cache_key)
@@ -112,6 +121,21 @@ def _capture_event_stats(event: Event) -> None:
     metrics.timing("events.size.data", event.size, tags=tags)
 
 
+def _update_escalating_metrics(event: Event) -> None:
+    """
+    Update metrics for escalating issues when an event is processed.
+    """
+    generic_metrics_backend.counter(
+        UseCaseID.ESCALATING_ISSUES,
+        org_id=event.project.organization_id,
+        project_id=event.project.id,
+        metric_name="event_ingested",
+        value=1,
+        tags={"group": str(event.group_id)},
+        unit=None,
+    )
+
+
 def _capture_group_stats(job: PostProcessJob) -> None:
     event = job["event"]
     if not job["group_state"]["is_new"] or not should_write_event_stats(event):
@@ -150,14 +174,14 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import (
+            from sentry.models.groupowner import (
                 ASSIGNEE_DOES_NOT_EXIST_DURATION,
                 ASSIGNEE_EXISTS_DURATION,
                 ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
             )
+            from sentry.models.projectownership import ProjectOwnership
 
             event = job["event"]
             project, group = event.project, event.group
@@ -263,9 +287,22 @@ def handle_owner_assignment(job):
                                 handle_group_owners(project, group, issue_owners)
                             except Exception:
                                 logger.exception("Failed to store group owners")
+                        else:
+                            handle_invalid_group_owners(group)
 
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+def handle_invalid_group_owners(group):
+    from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+    invalid_group_owners = GroupOwner.objects.filter(
+        group=group,
+        type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
+    )
+    for owner in invalid_group_owners:
+        owner.delete()
 
 
 def handle_group_owners(project, group, issue_owners):
@@ -353,6 +390,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -368,7 +411,7 @@ def update_existing_attachments(job):
     # Patch attachments that were ingested on the standalone path.
     with metrics.timer("post_process.update_existing_attachments.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
-            from sentry.models import EventAttachment
+            from sentry.models.eventattachment import EventAttachment
 
             event = job["event"]
 
@@ -383,16 +426,31 @@ def fetch_buffered_group_stats(group):
     `times_seen`.
     """
     from sentry import buffer
-    from sentry.models import Group
+    from sentry.models.group import Group
 
-    result = buffer.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
     group.times_seen_pending = result["times_seen"]
+
+
+MAX_FETCH_ATTEMPTS = 3
+
+
+def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    from sentry.issues.occurrence_consumer import EventLookupError
+
+    return not attempt > MAX_FETCH_ATTEMPTS and (
+        isinstance(e, ServiceUnavailable) or isinstance(e, EventLookupError)
+    )
+
+
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def post_process_group(
     is_new,
@@ -414,9 +472,14 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
+            record_span_descriptions as record_span_descriptions_for_clustering,
+        )
+        from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
-        from sentry.models import Organization, Project
+        from sentry.issues.occurrence_consumer import EventLookupError
+        from sentry.models.organization import Organization
+        from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
         if occurrence_id is None:
@@ -466,16 +529,32 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(
-                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
-            )
+
+            def get_event_raise_exception() -> Event:
+                retrieved = eventstore.backend.get_event_by_id(
+                    project_id,
+                    occurrence.event_id,
+                    group_id=group_id,
+                    skip_transaction_groupevent=True,
+                )
+                if retrieved is None:
+                    raise EventLookupError(
+                        f"failed to retrieve event(project_id={project_id}, event_id={occurrence.event_id}, group_id={group_id}) from eventstore"
+                    )
+                return retrieved
+
+            event = fetch_retry_policy(get_event_raise_exception)
 
         set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
-            event.project = Project.objects.get_from_cache(id=event.project_id)
+            try:
+                event.project = Project.objects.get_from_cache(id=event.project_id)
+            except Project.DoesNotExist:
+                # project probably got deleted while this task was sitting in the queue
+                return
             event.project.set_cached_field_value(
                 "organization",
                 Organization.objects.get_from_cache(id=event.project.organization_id),
@@ -491,6 +570,7 @@ def post_process_group(
         # will not go through any post processing.
         if is_transaction_event:
             record_transaction_name_for_clustering(event.project, event.data)
+            record_span_descriptions_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
@@ -514,6 +594,11 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
+        if (
+            features.has("organizations:escalating-metrics-backend", event.project.organization)
+            and not is_transaction_event
+        ):
+            _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())
@@ -541,6 +626,13 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
+
+        if not is_reprocessed and event.data.get("received"):
+            metrics.timing(
+                "events.time-to-post-process",
+                time() - event.data["received"],
+                instance=event.data["platform"],
+            )
 
 
 def run_post_process_job(job: PostProcessJob):
@@ -575,7 +667,7 @@ def run_post_process_job(job: PostProcessJob):
 
 def process_event(data: dict, group_id: Optional[int]) -> Event:
     from sentry.eventstore.models import Event
-    from sentry.models import EventDict
+    from sentry.models.event import EventDict
 
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
@@ -599,6 +691,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
@@ -606,6 +700,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
@@ -623,6 +719,9 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
+    from sentry.models.group import Group, GroupStatus
+    from sentry.types.group import GroupSubStatus
+
     with metrics.timer("post_process.process_inbox_adds.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
             event = job["event"]
@@ -631,17 +730,29 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             is_regression = job["group_state"]["is_regression"]
             has_reappeared = job["has_reappeared"]
 
-            from sentry.models import GroupInboxReason
-            from sentry.models.groupinbox import add_group_to_inbox
+            from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
             if is_reprocessed and is_new:
+                # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
             ):  # If true, we added the .ONGOING reason already
                 if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.NEW)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.NEW
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
+                    # we don't need to update the group since that should've already been
+                    # handled on event ingest
+                    event.group.status = GroupStatus.UNRESOLVED
+                    event.group.substatus = GroupSubStatus.REGRESSED
                     add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
@@ -655,18 +766,14 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating
-    from sentry.models import (
-        Activity,
-        GroupInboxReason,
-        GroupSnooze,
-        GroupStatus,
-        GroupSubStatus,
-        add_group_to_inbox,
-    )
-    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.models.group import GroupStatus
+    from sentry.models.groupinbox import GroupInboxReason
+    from sentry.models.groupsnooze import GroupSnooze
+    from sentry.types.group import GroupSubStatus
 
-    group = job["event"].group
+    event = job["event"]
+    group = event.group
 
     # Check is group is escalating
     if (
@@ -674,7 +781,13 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        job["has_reappeared"] = is_escalating(group)
+        escalating, forecast = is_escalating(group)
+        if escalating:
+            manage_issue_states(
+                group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
+            )
+
+            job["has_reappeared"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -691,7 +804,23 @@ def process_snoozes(job: PostProcessJob) -> None:
             job["has_reappeared"] = False
             return
 
-        if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
+        # GroupSnooze row exists but the Group.status isn't ignored
+        # this shouldn't be possible, if this fires, there may be a race or bug
+        if snooze is not None and group.status is not GroupStatus.IGNORED:
+            # log a metric for now, we can potentially set the status and substatus but that might mask some other bug
+            metrics.incr(
+                "post_process.process_snoozes.mismatch_status",
+                tags={
+                    "group_status": group.status,
+                    "group_substatus": group.substatus,
+                },
+            )
+
+        snooze_condition_still_applies = snooze.is_valid(
+            group, test_rates=True, use_pending_data=True
+        )
+
+        if not snooze_condition_still_applies:
             snooze_details = {
                 "until": snooze.until,
                 "count": snooze.count,
@@ -699,24 +828,14 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            if features.has("organizations:issue-states", group.organization):
-                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-                record_group_history(group, GroupHistoryStatus.ONGOING)
+
+            if features.has("organizations:escalating-issues", group.organization):
+                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
             else:
-                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-                record_group_history(group, GroupHistoryStatus.UNIGNORED)
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data={"event_id": job["event"].event_id},
-            )
+                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             snooze.delete()
-            group.status = GroupStatus.UNRESOLVED
-            group.substatus = GroupSubStatus.ONGOING
-            group.save(update_fields=["status", "substatus"])
+
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
@@ -730,6 +849,48 @@ def process_snoozes(job: PostProcessJob) -> None:
 
         job["has_reappeared"] = False
         return
+
+
+def process_replay_link(job: PostProcessJob) -> None:
+    def _get_replay_id(event):
+        # replay ids can either come as a context, or a tag.
+        # right now they come as a context on non-js events,
+        # and javascript transaction (through DSC context)
+        # It comes as a tag on js errors.
+        # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
+        # logic.
+
+        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
+        return context_replay_id or event.get_tag("replayId")
+
+    if job["is_reprocessed"]:
+        return
+
+    if not features.has(
+        "organizations:session-replay-event-linking", job["event"].project.organization
+    ):
+        metrics.incr("post_process.process_replay_link.feature_not_enabled")
+        return
+
+    metrics.incr("post_process.process_replay_link.id_sampled")
+
+    group_event = job["event"]
+    replay_id = _get_replay_id(group_event)
+    if not replay_id:
+        return
+
+    metrics.incr("post_process.process_replay_link.id_exists")
+
+    publisher = initialize_replays_publisher(is_async=True)
+    try:
+        kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
+    except ValueError:
+        metrics.incr("post_process.process_replay_link.id_invalid")
+
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(kafka_payload),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -807,7 +968,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit
+    from sentry.models.commit import Commit
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -887,7 +1048,7 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import ProjectOwnership
+    from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
     try:
@@ -981,6 +1142,32 @@ def fire_error_processed(job: PostProcessJob):
         )
 
 
+def sdk_crash_monitoring(job: PostProcessJob):
+    from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:sdk-crash-detection", event.project.organization):
+        return
+
+    if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
+        logger.warning(
+            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set."
+        )
+        return None
+
+    with metrics.timer("post_process.sdk_crash_monitoring.duration"):
+        with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
+            sdk_crash_detection.detect_sdk_crash(
+                event=event,
+                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
+                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
+            )
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -1016,13 +1203,8 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
-    ],
-    GroupCategory.PERFORMANCE: [
-        process_snoozes,
-        process_inbox_adds,
-        process_rules,
-        # TODO: Uncomment this when we want to send perf issues out via plugins as well
-        # process_plugins,
+        sdk_crash_monitoring,
+        process_replay_link,
     ],
 }
 

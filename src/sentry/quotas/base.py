@@ -1,6 +1,7 @@
-import typing
+from __future__ import annotations
+
 from enum import IntEnum, unique
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,8 +11,9 @@ from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
-if typing.TYPE_CHECKING:
-    from sentry.models import Project
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.monitors.models import Monitor
 
 
 @unique
@@ -70,13 +72,13 @@ class QuotaConfig:
         categories=None,
         scope=None,
         scope_id=None,
-        limit=None,
+        limit: int | None = None,
         window=None,
         reason_code=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
-            assert type(limit) == int, "limit must be an integer"
+            assert isinstance(limit, int), "limit must be an integer"
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
@@ -168,7 +170,7 @@ class RateLimited(RateLimit):
         super().__init__(True, **kwargs)
 
 
-def _limit_from_settings(x):
+def _limit_from_settings(x: Any) -> int | None:
     """
     limit=0 (or any falsy value) in database means "no limit". Convert that to
     limit=None as limit=0 in code means "reject all".
@@ -215,6 +217,11 @@ class Quota(Service):
         "get_event_retention",
         "get_quotas",
         "get_blended_sample_rate",
+        "get_transaction_sampling_tier_for_volume",
+        "assign_monitor_seat",
+        "unassign_monitor_seat",
+        "enable_seat_recreate",
+        "disable_seat_recreate",
     )
 
     def __init__(self, **options):
@@ -364,7 +371,7 @@ class Quota(Service):
                 (DataCategory.SESSION,),
             ),
         ):
-            limit = 0
+            limit: int | None = 0
             abuse_window = global_abuse_window
             # compat_options were previously present in getsentry
             # for errors and transactions. The first one is the org
@@ -409,7 +416,8 @@ class Quota(Service):
                 )
 
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
+        from sentry.models.organization import Organization
 
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
@@ -432,7 +440,7 @@ class Quota(Service):
         return (quota, window)
 
     def get_organization_quota(self, organization):
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         account_limit = _limit_from_settings(
             OrganizationOption.objects.get_value(
@@ -463,11 +471,11 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, project: Optional["Project"], organization_id: Optional[int] = None
+        self, project: Optional[Project] = None, organization_id: Optional[int] = None
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the creation of a uniform rule with blended sample rate is not supported for that project or organization.
+        if the the organization doesn't have dynamic sampling.
 
         The reasoning for having two params as `Optional` is because this method was first designed to work with
         `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`
@@ -476,3 +484,47 @@ class Quota(Service):
         :param project: The project model.
         :param organization_id: The organization id.
         """
+
+    def get_transaction_sampling_tier_for_volume(
+        self, organization_id: int, volume: int
+    ) -> Optional[Tuple[int, float]]:
+        """
+        Returns the transaction sampling tier closest to a specific volume.
+
+        The organization_id is required because the tier is based on the organization's plan, and we have to check
+        whether the organization has dynamic sampling.
+
+        :param organization_id: The organization id.
+        :param volume: The volume of transaction of the given project.
+        """
+
+    def assign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ) -> int:
+        """
+        Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
+        will be updated from ACTIVE to OK if the seat assignment is accepted.
+        """
+        from sentry.monitors.models import MonitorStatus
+        from sentry.utils.outcomes import Outcome
+
+        monitor.update(status=MonitorStatus.OK)
+        return Outcome.ACCEPTED
+
+    def unassign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ):
+        """
+        Disables a monitor seat assignment and sets the Monitor status to DISABLED
+        """
+        from sentry.monitors.models import MonitorStatus
+
+        monitor.update(status=MonitorStatus.DISABLED)
+
+    def enable_seat_recreate(self, monitor: Monitor):
+        """Sets the monitor's seat assignment to automatically be recreated at renewal."""
+
+    def disable_seat_recreate(self, monitor: Monitor):
+        """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""

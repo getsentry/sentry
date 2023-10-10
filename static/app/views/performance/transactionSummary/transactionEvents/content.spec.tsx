@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -16,10 +18,9 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -27,12 +28,11 @@ function initializeData() {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: '1',
           transactionCursor: '1:0:0',
         },
       },
     },
-    project: 1,
     projects: [],
   });
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
@@ -183,9 +183,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           setError={() => {}}
           projectId="123"
@@ -223,9 +223,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}
@@ -247,5 +247,44 @@ describe('Performance Transaction Events Content', function () {
       .getAllByRole('columnheader')
       .map(elem => elem.textContent);
     expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
+  });
+
+  it('rendering with http.method', function () {
+    const _eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [1],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          eventView={_eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+          projectId="1"
+          projects={[TestStubs.Project({id: 1, platform: 'python'})]}
+        />
+      </OrganizationContext.Provider>,
+      {context: initialData.routerContext}
+    );
+
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
+    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('http.method')]));
   });
 });

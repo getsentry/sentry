@@ -3,9 +3,9 @@ from functools import cached_property
 import responses
 from django.urls import reverse
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 
@@ -59,6 +59,7 @@ class PagerDutyPluginTest(PluginTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")

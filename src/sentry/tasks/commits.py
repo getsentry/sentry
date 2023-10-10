@@ -1,23 +1,25 @@
+from __future__ import annotations
+
 import logging
 
 import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import (
-    Deploy,
-    LatestRepoReleaseEnvironment,
-    Organization,
-    Release,
-    ReleaseCommitError,
-    ReleaseHeadCommit,
-    Repository,
-    User,
-)
+from sentry.models.deploy import Deploy
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.organization import Organization
+from sentry.models.release import Release, ReleaseCommitError
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.plugins.base import bindings
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -68,9 +70,10 @@ def handle_invalid_identity(identity, commit_failure=False):
     queue="commits",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
-def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
+def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):
     # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []
 
@@ -88,11 +91,16 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             pass
 
     for ref in refs:
-        try:
-            repo = Repository.objects.get(
-                organization_id=release.organization_id, name=ref["repository"]
+        repo = (
+            Repository.objects.filter(
+                organization_id=release.organization_id,
+                name=ref["repository"],
+                status=ObjectStatus.ACTIVE,
             )
-        except Repository.DoesNotExist:
+            .order_by("-pk")
+            .first()
+        )
+        if not repo:
             logger.info(
                 "repository.missing",
                 extra={
@@ -245,14 +253,16 @@ def is_integration_provider(provider):
     return provider and provider.startswith("integrations:")
 
 
-def get_emails_for_user_or_org(user, orgId):
+def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
     emails = []
+    if not user:
+        return []
     if user.is_sentry_app:
         organization = Organization.objects.get(id=orgId)
-        members = organization.get_members_with_org_roles(roles=["owner"]).select_related("user")
-
-        for m in list(members):
-            emails.append(m.user.email)
+        members = organization.get_members_with_org_roles(roles=["owner"])
+        user_ids = [m.user_id for m in members if m.user_id]
+        emails = {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
+        emails = list(emails)
     else:
         emails = [user.email]
 

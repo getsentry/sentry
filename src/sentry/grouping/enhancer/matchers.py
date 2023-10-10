@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -83,8 +83,6 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
 
 
 class Match:
-    description = None
-
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         raise NotImplementedError()
 
@@ -113,13 +111,17 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
+InstanceKey = Tuple[str, str, bool]
+
+
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances = {}
+    instances: Dict[InstanceKey, Match] = {}
+    field: Any = None
 
     @classmethod
-    def from_key(cls, key, pattern, negated):
+    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
@@ -131,7 +133,7 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key, pattern, negated):
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         subclass = {
             "package": PackageMatch,
@@ -159,7 +161,7 @@ class FrameMatch(Match):
         self.negated = negated
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "{}:{}".format(
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
@@ -242,19 +244,20 @@ class InAppMatch(FrameMatch):
         return ref_val is not None and ref_val == match_frame["in_app"]
 
 
-class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-
-        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
-
-
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         field = match_frame[self.field]
         if field is None:
             return False
+        if field == self._encoded_pattern:
+            return True
 
         return cached(cache, glob_match, field, self._encoded_pattern)
+
+
+class FunctionMatch(FrameFieldMatch):
+
+    field = "function"
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -268,6 +271,8 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    field_path: List[str]
+
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         match_frame = None
         rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
@@ -300,7 +305,7 @@ class CallerMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"[ {self.caller.description} ] |"
 
     def _to_config_structure(self, version):
@@ -317,7 +322,7 @@ class CalleeMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"| [ {self.caller.description} ]"
 
     def _to_config_structure(self, version):

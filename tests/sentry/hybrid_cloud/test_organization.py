@@ -3,30 +3,30 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 import pytest
 
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
-    RpcProject,
     RpcTeam,
     RpcTeamMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import unescape_flag_name
+from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
+from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.hybrid_cloud import use_real_service
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
+def basic_filled_out_org() -> Tuple[Organization, List[User]]:
     owner = Factories.create_user()
     other_user = Factories.create_user()
     Factories.create_organization()  # unrelated org that shouldn't be in the result set
@@ -51,7 +51,8 @@ def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
     Factories.create_team_membership(team=team_3, user=owner)
     inactive_team_membership = Factories.create_team_membership(team=team_3, user=other_user)
     inactive_team_membership.is_active = False
-    inactive_team_membership.save()
+    with assume_test_silo_mode(SiloMode.REGION):
+        inactive_team_membership.save()
 
     return org, [owner, other_user]
 
@@ -93,6 +94,7 @@ def assert_for_list(a: List[Any], b: List[Any], assertion: Callable) -> None:
         assertion(a_thing, b_thing)
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.id == orm_team.id
     assert team.slug == orm_team.slug
@@ -101,6 +103,7 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.org_role == orm_team.org_role
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_project_equals(orm_project: Project, project: RpcProject):
     assert project.id == orm_project.id
     assert project.status == orm_project.status
@@ -109,6 +112,7 @@ def assert_project_equals(orm_project: Project, project: RpcProject):
     assert project.name == orm_project.name
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember):
     assert team_member.id == orm_team_member.id
     assert team_member.team_id == orm_team_member.team_id
@@ -120,6 +124,7 @@ def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_memb
     }
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_organization_member_equals(
     orm_organization_member: OrganizationMember, organization_member: RpcOrganizationMember
 ):
@@ -133,7 +138,7 @@ def assert_organization_member_equals(
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id=orm_organization_member.id,
                 is_active=True,
-                team__status=TeamStatus.VISIBLE,
+                team__status=TeamStatus.ACTIVE,
             )
         ),
         organization_member.member_teams,
@@ -142,7 +147,7 @@ def assert_organization_member_equals(
     assert set(organization_member.project_ids) == {
         p.id
         for p in Project.objects.get_for_team_ids(
-            omt.team_id for omt in organization_member.member_teams
+            [omt.team_id for omt in organization_member.member_teams]
         )
     }
 
@@ -152,6 +157,7 @@ def assert_organization_member_equals(
         )
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.id == orm_org.id
     assert org.name == orm_org.name
@@ -162,14 +168,18 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
         org_flag = getattr(org.flags, field_name)
         assert orm_flag == org_flag
 
-    assert_for_list(
-        list(Team.objects.filter(organization_id=org.id)), org.teams, assert_team_equals
-    )
-    assert_for_list(
-        list(Project.objects.filter(organization_id=org.id)), org.projects, assert_project_equals
-    )
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert_for_list(
+            list(Team.objects.filter(organization_id=org.id)), org.teams, assert_team_equals
+        )
+        assert_for_list(
+            list(Project.objects.filter(organization_id=org.id)),
+            org.projects,
+            assert_project_equals,
+        )
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: Organization):
     assert (
         organization_service.get_organization_by_id(
@@ -180,52 +190,99 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
     org_context = organization_service.get_organization_by_id(
         id=orm_org.id, user_id=user_context.id if user_context else None
     )
+    assert org_context is not None
     assert_orgs_equal(orm_org, org_context.organization)
     if user_context is None:
         assert org_context.user_id is None
         assert org_context.member is None
     else:
         assert org_context.user_id == user_context.id
+        assert org_context.member is not None
         assert_organization_member_equals(
             OrganizationMember.objects.get(user_id=user_context.id, organization_id=orm_org.id),
             org_context.member,
         )
 
 
-@pytest.mark.django_db(transaction=True)
-@all_silo_test
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
 @parameterize_with_orgs
-@use_real_service(organization_service, None)
-def test_get_organization_id(org_factory: Callable[[], Organization]):
+def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
 
     for user_context in itertools.chain([None], orm_users):
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
-@pytest.mark.django_db(transaction=True)
-@all_silo_test
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+@parameterize_with_orgs
+def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+    orm_org, orm_users = org_factory()
+    new_user = Factories.create_user()
+
+    for i in range(2):
+        member = organization_service.add_organization_member(
+            organization_id=orm_org.id, default_org_role=orm_org.default_role, user_id=new_user.id
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+
+        member = organization_service.add_organization_member(
+            organization_id=orm_org.id,
+            default_org_role=orm_org.default_role,
+            email="me@thing.com",
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
 @parameterize_with_orgs_with_owner_team
-@use_real_service(organization_service, None)
-def test_get_all_org_roles(org_factory: Callable[[], Organization]):
+def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     _, orm_users = org_factory()
-    member = OrganizationMember.objects.get(user_id=orm_users[1].id)
+    with assume_test_silo_mode(SiloMode.REGION):
+        member = OrganizationMember.objects.get(user_id=orm_users[1].id)
 
     all_org_roles = ["owner", "member", "manager"]
-    service_org_roles = organization_service.get_all_org_roles(
-        organization_member=None, member_id=member.id
+    service_org_roles = access_service.get_all_org_roles(
+        organization_id=member.organization_id, member_id=member.id
     )
     assert set(all_org_roles) == set(service_org_roles)
 
 
-@pytest.mark.django_db(transaction=True)
-@all_silo_test
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
 @parameterize_with_orgs_with_owner_team
-@use_real_service(organization_service, None)
-def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
+def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
-    members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
+    with assume_test_silo_mode(SiloMode.REGION):
+        members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
     all_top_dogs = [members[1].id, members[2].id]
-    service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
+    service_top_dogs = access_service.get_top_dog_team_member_ids(organization_id=orm_org.id)
     assert set(all_top_dogs) == set(service_top_dogs)
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_options():
+    org = Factories.create_organization()
+    organization_service.update_option(organization_id=org.id, key="test", value="a string")
+    organization_service.update_option(organization_id=org.id, key="test2", value=False)
+    organization_service.update_option(organization_id=org.id, key="test3", value=5)
+
+    assert organization_service.get_option(organization_id=org.id, key="test") == "a string"
+    assert organization_service.get_option(organization_id=org.id, key="test2") is False
+    assert organization_service.get_option(organization_id=org.id, key="test3") == 5
+
+
+class RpcOrganizationMemberTest(TestCase):
+    def test_get_audit_log_metadata(self):
+        org = self.create_organization(owner=self.user)
+        user = self.create_user(email="foobar@sentry.io")
+        member = self.create_member(user_id=user.id, role="owner", organization_id=org.id)
+        self.create_team(organization=org, slug="baz", members=[user])
+        rpc_member = serialize_member(member)
+        assert member.get_audit_log_data() == rpc_member.get_audit_log_metadata()

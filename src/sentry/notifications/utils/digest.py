@@ -10,7 +10,7 @@ from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
 def get_digest_subject(group: Group, counts: Counter[Group], date: datetime) -> str:
@@ -32,9 +32,7 @@ def should_send_as_alert_notification(context: Mapping[str, Any]) -> bool:
 
 
 def get_timestamp(record_param: Any) -> float:
-    # Explicitly typing to satisfy mypy.
-    time: float = record_param.timestamp
-    return time
+    return record_param.timestamp
 
 
 def send_as_alert_notification(

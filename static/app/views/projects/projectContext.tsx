@@ -34,9 +34,8 @@ type Props = {
   api: Client;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
   loadingProjects: boolean;
-  orgId: string;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   projects: Project[];
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
@@ -91,8 +90,8 @@ class ProjectContext extends Component<Props, State> {
     }
   }
 
-  componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.projectId === this.props.projectId) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    if (nextProps.projectSlug === this.props.projectSlug) {
       return;
     }
 
@@ -102,7 +101,7 @@ class ProjectContext extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, _prevState: State) {
-    if (prevProps.projectId !== this.props.projectId) {
+    if (prevProps.projectSlug !== this.props.projectSlug) {
       this.fetchData();
     }
 
@@ -129,7 +128,7 @@ class ProjectContext extends Component<Props, State> {
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: (typeof MemberListStore)['state']) => this.setState({memberList}),
+    ({members}: typeof MemberListStore.state) => this.setState({memberList: members}),
     undefined
   );
 
@@ -154,13 +153,12 @@ class ProjectContext extends Component<Props, State> {
   }
 
   identifyProject() {
-    const {projects, projectId} = this.props;
-    const projectSlug = projectId;
+    const {projects, projectSlug} = this.props;
     return projects.find(({slug}) => slug === projectSlug) || null;
   }
 
   async fetchData() {
-    const {orgId, projectId, skipReload} = this.props;
+    const {organization, projectSlug, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
     const hasAccess = activeProject && activeProject.hasAccess;
@@ -175,7 +173,7 @@ class ProjectContext extends Component<Props, State> {
     if (activeProject && hasAccess) {
       setActiveProject(null);
       const projectRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+        `/projects/${organization.slug}/${projectSlug}/`
       );
 
       try {
@@ -197,7 +195,7 @@ class ProjectContext extends Component<Props, State> {
         });
       }
 
-      fetchOrgMembers(this.props.api, orgId, [activeProject.id]);
+      fetchOrgMembers(this.props.api, organization.slug, [activeProject.id]);
 
       return;
     }
@@ -217,7 +215,9 @@ class ProjectContext extends Component<Props, State> {
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
-      await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+      await this.props.api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/`
+      );
     } catch (error) {
       this.setState({
         loading: false,

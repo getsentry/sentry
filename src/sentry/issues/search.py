@@ -9,8 +9,10 @@ from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 
@@ -32,7 +34,7 @@ class IntermediateSearchQueryPartial(Protocol):
 class SearchQueryPartial(Protocol):
     def __call__(
         self,
-        dataset: snuba.Dataset,
+        dataset: Dataset,
         selected_columns: Sequence[Any],
         filter_keys: Mapping[str, Sequence[int]],
         conditions: Sequence[Any],
@@ -122,7 +124,7 @@ def _query_params_for_error(
     )
 
     params = query_partial(
-        dataset=snuba.Dataset.Discover,
+        dataset=Dataset.Discover,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
@@ -183,13 +185,13 @@ def _query_params_for_perf(
             aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
         params = query_partial(
-            dataset=snuba.Dataset.Discover,
+            dataset=Dataset.Discover,
             selected_columns=selected_columns,
             filter_keys=filters,
             conditions=transaction_conditions,
             aggregations=aggregations,
             condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+                snuba.get_snuba_column_name, dataset=Dataset.Transactions
             ),
         )
 
@@ -232,13 +234,13 @@ def _query_params_for_generic(
             filters["group_id"] = sorted(group_ids)
 
         params = query_partial(
-            dataset=snuba.Dataset.IssuePlatform,
+            dataset=Dataset.IssuePlatform,
             selected_columns=selected_columns,
             filter_keys=filters,
             conditions=conditions,
             aggregations=aggregations,
             condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.IssuePlatform
+                snuba.get_snuba_column_name, dataset=Dataset.IssuePlatform
             ),
         )
 
@@ -246,26 +248,13 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies(
-    organization: Organization, actor: Optional[Any]
-) -> Mapping[int, GroupSearchStrategy]:
+def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
     strategies = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
-        elif group_category == GroupCategory.PERFORMANCE:
-            if not features.has(
-                "organizations:issue-platform-search-perf-issues", organization, actor=actor
-            ):
-                strategy = _query_params_for_perf
-            else:
-                strategy = functools.partial(
-                    _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
-                )
         else:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PROFILE]
-            )
+            strategy = functools.partial(_query_params_for_generic, categories=[group_category])
         strategies[group_category.value] = strategy
     return strategies
 
@@ -292,7 +281,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
-        for sf in search_filters
+        for sf in _update_profiling_search_filters(search_filters)
         if sf.key.name != "message"
     ],
     GroupCategory.PROFILE.value: _update_profiling_search_filters,

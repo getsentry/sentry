@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -8,19 +8,23 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import useResolveRoute from 'sentry/utils/useResolveRoute';
+import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import useOrganization from 'sentry/utils/useOrganization';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import Divider from './divider.styled';
 
 function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
+  // Allow null as we could be in an org-less User account view.
+  const currentOrganization = useOrganization({allowNull: true});
 
-  const route = useResolveRoute(
+  const route = resolveRoute(
     `/organizations/${organization.slug}/issues/`,
+    currentOrganization,
     organization
   );
 
@@ -38,17 +42,16 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 }
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
-  const currentOrganization = useContext(OrganizationContext);
-  const route = useResolveRoute('/organizations/new/');
-
+  const currentOrganization = useOrganization({allowNull: true});
   if (!canCreateOrganization) {
     return null;
   }
-
+  const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
+  const route = '/organizations/new/';
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
   if (currentOrganization?.features.includes('customer-domains')) {
-    menuItemProps.href = route;
+    menuItemProps.href = sentryUrl + route;
     menuItemProps.openInNewTab = false;
   } else {
     menuItemProps.to = route;

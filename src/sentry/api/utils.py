@@ -3,21 +3,25 @@ from __future__ import annotations
 import datetime
 import logging
 import re
+import sys
+import traceback
 from datetime import timedelta
-from typing import Any, List, Literal, Tuple, overload
+from typing import Any, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
+from sentry_sdk import Scope
 
 from sentry import options
-
-# Unfortunately, this function is imported as an export of this module in several places, keep it.
-from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.apikey import is_api_key_auth
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -27,6 +31,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 logger = logging.getLogger(__name__)
 
@@ -105,22 +110,23 @@ def get_date_range_from_params(
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
-    timeframe = params.get("timeframe")
-    timeframe_start = params.get("timeframeStart")
-    timeframe_end = params.get("timeframeEnd")
+    mutable_params = params.copy()
+    timeframe = mutable_params.get("timeframe")
+    timeframe_start = mutable_params.get("timeframeStart")
+    timeframe_end = mutable_params.get("timeframeEnd")
 
     if timeframe is not None:
-        params["statsPeriod"] = timeframe
+        mutable_params["statsPeriod"] = timeframe
 
     elif timeframe_start or timeframe_end:
         if not all([timeframe_start, timeframe_end]):
             raise InvalidParams("timeframeStart and timeframeEnd are both required")
         else:
-            params["statsPeriodStart"] = timeframe_start
-            params["statsPeriodEnd"] = timeframe_end
+            mutable_params["statsPeriodStart"] = timeframe_start
+            mutable_params["statsPeriodEnd"] = timeframe_end
 
     return get_date_range_from_stats_period(
-        params, optional=optional, default_stats_period=default_stats_period
+        mutable_params, optional=optional, default_stats_period=default_stats_period
     )
 
 
@@ -248,16 +254,16 @@ def generate_organization_hostname(org_slug: str) -> str:
 def generate_organization_url(org_slug: str) -> str:
     org_url_template: str = options.get("system.organization-url-template")
     if not org_url_template:
-        return options.get("system.url-prefix")  # type: ignore[no-any-return]
+        return options.get("system.url-prefix")
     return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
 
 
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None:
-        region_name = options.get("system.region") or None
+        region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
-        return options.get("system.url-prefix")  # type: ignore[no-any-return]
+        return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
 
 
@@ -292,17 +298,17 @@ def customer_domain_path(path: str) -> str:
     return path
 
 
-def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
+def method_dispatch(**dispatch_mapping):
     """
     Dispatches a incoming request to a different handler based on the HTTP method
 
-    >>> url('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
+    >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
 
-    def invalid_method(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+    def invalid_method(request, *args, **kwargs):
         return HttpResponseNotAllowed(dispatch_mapping.keys())
 
-    def dispatcher(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+    def dispatcher(request, *args, **kwargs):
         handler = dispatch_mapping.get(request.method, invalid_method)
         return handler(request, *args, **kwargs)
 
@@ -310,3 +316,33 @@ def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
         return csrf_exempt(dispatcher)
 
     return dispatcher
+
+
+def print_and_capture_handler_exception(
+    exception: Exception,
+    handler_context: Mapping[str, Any] | None = None,
+    scope: Scope | None = None,
+) -> str | None:
+    """
+    Logs the given exception locally, then sends it to Sentry, along with the given context data.
+    Returns the id of the captured event.
+    """
+
+    sys.stderr.write(traceback.format_exc())
+
+    scope = scope or Scope()
+    if handler_context:
+        merge_context_into_scope("Request Handler Data", handler_context, scope)
+    event_id: str | None = capture_exception(exception, scope=scope)
+
+    return event_id
+
+
+def get_auth_api_token_type(auth: object) -> str | None:
+    if is_api_token_auth(auth):
+        return "api_token"
+    if is_org_auth_token_auth(auth):
+        return "org_auth_token"
+    if is_api_key_auth(auth):
+        return "api_key"
+    return None

@@ -1,21 +1,20 @@
 from typing import Optional
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Integration,
-    NotificationSetting,
-    OrganizationIntegration,
-    Project,
-    ScheduledDeletion,
-    User,
-)
-from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.project import Project
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.models.user import User
+from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class SlackUninstallTest(APITestCase):
     """TODO(mgaeta): Extract the endpoint's DELETE logic to a helper and use it instead of API."""
 
@@ -39,7 +38,7 @@ class SlackUninstallTest(APITestCase):
         assert not OrganizationIntegration.objects.filter(
             integration=self.integration,
             organization_id=self.organization.id,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         ).exists()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
@@ -50,12 +49,14 @@ class SlackUninstallTest(APITestCase):
     ) -> NotificationSettingOptionValues:
         type = NotificationSettingTypes.ISSUE_ALERTS
         parent_specific_setting = NotificationSetting.objects.get_settings(
-            provider=provider, type=type, actor=RpcActor.from_orm_user(user), project=parent
+            provider=provider, type=type, user_id=user.id, project=parent
         )
         if parent_specific_setting != NotificationSettingOptionValues.DEFAULT:
             return parent_specific_setting
         parent_independent_setting = NotificationSetting.objects.get_settings(
-            provider=provider, type=type, actor=RpcActor.from_orm_user(user)
+            provider=provider,
+            type=type,
+            user_id=user.id,
         )
         if parent_independent_setting != NotificationSettingOptionValues.DEFAULT:
             return parent_independent_setting
@@ -72,9 +73,9 @@ class SlackUninstallTest(APITestCase):
         self, provider: ExternalProviders, value: NotificationSettingOptionValues
     ) -> None:
         type = NotificationSettingTypes.ISSUE_ALERTS
-        NotificationSetting.objects.update_settings(provider, type, value, user=self.user)
+        NotificationSetting.objects.update_settings(provider, type, value, user_id=self.user.id)
         NotificationSetting.objects.update_settings(
-            provider, type, value, user=self.user, project=self.project
+            provider, type, value, user_id=self.user.id, project=self.project
         )
 
     def test_uninstall_email_only(self):
@@ -99,6 +100,18 @@ class SlackUninstallTest(APITestCase):
 
         self.assert_settings(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)
         self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
+
+    def test_uninstall_generates_settings_with_userid(self):
+        self.uninstall()
+
+        self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
+        # Ensure uninstall sets user_id.
+        settings = NotificationSetting.objects.find_settings(
+            provider=ExternalProviders.SLACK,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user_id=self.user.id,
+        )
+        assert settings[0].user_id == self.user.id
 
     def test_uninstall_with_multiple_organizations(self):
         organization = self.create_organization(owner=self.user)

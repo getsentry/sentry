@@ -1,9 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {
@@ -17,12 +19,11 @@ describe('SettingsIndex', function () {
   };
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
-    expect(container).toSnapshot();
   });
 
   it('has loading when there is no organization', function () {
@@ -40,7 +41,7 @@ describe('SettingsIndex', function () {
 
     render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
 
@@ -55,17 +56,18 @@ describe('SettingsIndex', function () {
       id: '44',
       name: 'Org Index',
       slug: 'org-index',
-    } as Organization;
+      features: [],
+    } as unknown as TOrganization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    const api = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-    });
+    let orgApi: jest.Mock;
 
     beforeEach(function () {
       ConfigStore.set('isSelfHosted', false);
-      spy.mockClear();
-      api.mockClear();
+      MockApiClient.clearMockResponses();
+      orgApi = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+      });
     });
 
     it('fetches org details for SidebarDropdown', function () {
@@ -86,7 +88,7 @@ describe('SettingsIndex', function () {
         setActive: true,
         loadProjects: true,
       });
-      expect(api).toHaveBeenCalledTimes(1);
+      expect(orgApi).toHaveBeenCalledTimes(1);
     });
 
     it('does not fetch org details for SidebarDropdown', function () {
@@ -99,12 +101,12 @@ describe('SettingsIndex', function () {
       // org already has details
       rerender(
         <BreadcrumbContextProvider>
-          <SettingsIndex {...props} organization={TestStubs.Organization()} />
+          <SettingsIndex {...props} organization={Organization()} />
         </BreadcrumbContextProvider>
       );
 
       expect(spy).not.toHaveBeenCalledWith();
-      expect(api).not.toHaveBeenCalled();
+      expect(orgApi).not.toHaveBeenCalled();
     });
   });
 });

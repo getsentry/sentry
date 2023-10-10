@@ -1,14 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {t} from 'sentry/locale';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
-const api: Client = new Client();
+const api = new MockApiClient();
 
 function renderModal({initialData, widget}) {
   return render(
@@ -30,10 +29,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view', 'discover-query'],
-      apdexThreshold: 400,
     },
     router: {},
-    project: 1,
     projects: [],
   });
   let mockQuery;
@@ -69,10 +66,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -126,17 +119,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
       '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
-    );
-  });
-
-  it('links user to the query in discover with additional field when a world map query is selected from the modal', function () {
-    mockWidget.queries[0].fields = ['count()'];
-    mockWidget.queries[0].aggregates = ['count()'];
-    mockWidget.displayType = DisplayType.WORLD_MAP;
-    renderModal({initialData, widget: mockWidget});
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/discover/results/?display=worldmap&field=geo.country_code&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 });

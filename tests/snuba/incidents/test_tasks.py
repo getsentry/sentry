@@ -9,7 +9,6 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -23,6 +22,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentType,
     TriggerStatus,
@@ -33,9 +33,13 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
+
+pytestmark = [requires_kafka]
 
 
 @freeze_time()
@@ -53,7 +57,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        kafka_cluster = kafka_config.get_topic_definition(self.topic)["cluster"]
         create_topics(kafka_cluster, [self.topic])
 
     def tearDown(self):
@@ -99,7 +103,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @cached_property
     def producer(self):
-        cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        cluster_name = kafka_config.get_topic_definition(self.topic)["cluster"]
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
@@ -161,22 +165,27 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        message = handler.build_message(
+        incident_activity = (
+            IncidentActivity.objects.filter(incident=handler.incident).order_by("-id").first()
+        )
+        message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,
                 handler.incident,
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
+                notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
             self.user.id,
         )
 
         out = mail.outbox[0]
+        assert isinstance(out, mail.EmailMultiAlternatives)
         assert out.to == [self.user.email]
-        assert out.subject == message.subject
-        built_message = message.build(self.user.email)
+        assert out.subject == message_builder.subject
+        built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
     def test_arroyo(self):

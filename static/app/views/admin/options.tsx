@@ -1,12 +1,10 @@
 import keyBy from 'lodash/keyBy';
 
-import {
-  BooleanField,
-  EmailField,
-  NumberField,
-  RadioField,
-  TextField,
-} from 'sentry/components/forms';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
+import EmailField from 'sentry/components/forms/fields/emailField';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -18,7 +16,7 @@ type Section = {
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
-type Field = {
+export type Field = {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
@@ -28,6 +26,7 @@ type Field = {
   disabled?: boolean;
   disabledReason?: string;
   help?: React.ReactNode;
+  isSet?: boolean;
   max?: number;
   min?: number;
   placeholder?: string;
@@ -370,6 +369,52 @@ const performanceOptionDefinitions: Field[] = [
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for GA organizations.'
     ),
+  },
+  {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.consecutive_count_threshold',
+    label: t('Consecutive Count Threshold'),
+    help: t('The minimum number of offending spans that must occur consecutively.'),
+    defaultValue: () => '3',
+    component: NumberField,
+    min: 1,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.span_duration_threshold',
+    label: t('Span Duration Threshold'),
+    help: t(
+      'The duration, in ms, that a span must exceed for it to be considered an offending span.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
   },
   {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',

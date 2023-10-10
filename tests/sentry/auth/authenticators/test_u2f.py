@@ -3,15 +3,17 @@ from fido2.ctap2 import AuthenticatorData
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 
-from sentry.auth.authenticators import U2fInterface
 from sentry.auth.authenticators.base import ActivationChallengeResult
-from sentry.testutils import TestCase
+from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def verifiy_origin(origin):
     return True
 
 
+@control_silo_test(stable=True)
 class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()
@@ -60,6 +62,6 @@ class U2FInterfaceTest(TestCase):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
         result = self.u2f.activate(request)
-        assert type(result) == ActivationChallengeResult
+        assert isinstance(result, ActivationChallengeResult)
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert request.session["webauthn_authentication_state"]["user_verification"] is None

@@ -1,30 +1,32 @@
-import {Fragment} from 'react';
-import {RouteComponentProps, WithRouterProps} from 'react-router';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
+import {addMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
+import {Group, Project, SavedQueryVersions} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
   groupId: string;
@@ -37,50 +39,112 @@ type Props = {
   group: Group;
   environments?: string[];
   project?: Project;
-} & RouteComponentProps<RouteParams, {}>;
-
-type State = {
-  tag: Tag | null;
-  tagValueList: TagValue[] | null;
-  tagValueListPageLinks: string;
 };
 
 const DEFAULT_SORT = 'count';
 
-class GroupTagValues extends AsyncComponent<
-  Props & AsyncComponent['props'] & WithRouterProps,
-  State & AsyncComponent['state']
-> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {environments: environment} = this.props;
-    const {groupId, tagKey} = this.props.params;
-    return [
-      ['tag', `/issues/${groupId}/tags/${tagKey}/`],
-      [
-        'tagValueList',
-        `/issues/${groupId}/tags/${tagKey}/values/`,
-        {query: {environment, sort: this.getSort()}},
-      ],
-    ];
-  }
+function useTagQueries({
+  group,
+  tagKey,
+  environments,
+  sort,
+  cursor,
+}: {
+  group: Group;
+  sort: string | string[];
+  tagKey: string;
+  cursor?: string;
+  environments?: string[];
+}) {
+  const organization = useOrganization();
 
-  getSort(): string {
-    return this.props.location.query.sort || DEFAULT_SORT;
-  }
+  const {
+    data: tagValueList,
+    isLoading: tagValueListIsLoading,
+    isError: tagValueListIsError,
+    getResponseHeader,
+  } = useFetchIssueTagValues({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    tagKey,
+    environment: environments,
+    sort,
+    cursor,
+  });
+  const {data: tag, isError: tagIsError} = useFetchIssueTag({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    tagKey,
+  });
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  useEffect(() => {
+    if (tagIsError) {
+      addMessage(t('Failed to fetch total tag values'), 'error');
+    }
+  }, [tagIsError]);
 
-  renderResults() {
-    const {
-      baseUrl,
-      project,
-      environments: environment,
-      group,
-      params: {orgId, tagKey},
-    } = this.props;
-    const {tagValueList, tag} = this.state;
+  return {
+    tagValueList,
+    tag,
+    isLoading: tagValueListIsLoading,
+    isError: tagValueListIsError,
+    pageLinks: getResponseHeader?.('Link'),
+  };
+}
+
+function GroupTagValues({baseUrl, project, group, environments}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const {orgId, tagKey = ''} = useParams<RouteParams>();
+  const {cursor, page: _page, ...currentQuery} = location.query;
+
+  const title = tagKey === 'user' ? t('Affected Users') : tagKey;
+  const sort = location.query.sort || DEFAULT_SORT;
+  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+
+  const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
+    group,
+    sort,
+    tagKey,
+    environments,
+    cursor: typeof cursor === 'string' ? cursor : undefined,
+  });
+
+  const lastSeenColumnHeader = (
+    <StyledSortLink
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...currentQuery,
+          sort: 'date',
+        },
+      }}
+    >
+      {t('Last Seen')} {sort === 'date' && sortArrow}
+    </StyledSortLink>
+  );
+  const countColumnHeader = (
+    <StyledSortLink
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...currentQuery,
+          sort: 'count',
+        },
+      }}
+    >
+      {t('Count')} {sort === 'count' && sortArrow}
+    </StyledSortLink>
+  );
+  const renderResults = () => {
+    if (isError) {
+      return <StyledLoadingError message={t('There was an error loading tag details')} />;
+    }
+
+    if (isLoading) {
+      return null;
+    }
+
     const discoverFields = [
       'title',
       'release',
@@ -89,6 +153,7 @@ class GroupTagValues extends AsyncComponent<
       'timestamp',
     ];
 
+    const globalSelectionParams = extractSelectionParameters(location.query);
     return tagValueList?.map((tagValue, tagValueIdx) => {
       const pct = tag?.totalValues
         ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
@@ -105,7 +170,7 @@ class GroupTagValues extends AsyncComponent<
         orderby: '-timestamp',
         query: `issue:${group.shortId} ${issuesQuery}`,
         projects: [Number(project?.id)],
-        environment,
+        environment: environments,
         version: 2 as SavedQueryVersions,
         range: '90d',
       });
@@ -153,135 +218,92 @@ class GroupTagValues extends AsyncComponent<
             <TimeSince date={tagValue.lastSeen} />
           </RightAlignColumn>
           <RightAlignColumn>
-            <DropdownLink
-              anchorRight
-              alwaysRenderMenu={false}
-              caret={false}
-              title={
-                <Button
-                  tooltipProps={{
-                    containerDisplayMode: 'flex',
-                  }}
-                  size="sm"
-                  aria-label={t('Show more')}
-                  icon={<IconEllipsis size="xs" />}
-                />
-              }
-            >
-              <Feature features={['organizations:discover-basic']}>
-                <li>
-                  <Link to={discoverView.getResultsViewUrlTarget(orgId)}>
-                    {t('Open in Discover')}
-                  </Link>
-                </li>
-              </Feature>
-              <li>
-                <GlobalSelectionLink
-                  to={{pathname: issuesPath, query: {query: issuesQuery}}}
-                >
-                  {t('Search All Issues with Tag Value')}
-                </GlobalSelectionLink>
-              </li>
-            </DropdownLink>
+            <DropdownMenu
+              size="sm"
+              position="bottom-end"
+              triggerProps={{
+                size: 'xs',
+                showChevron: false,
+                icon: <IconEllipsis size="xs" />,
+                'aria-label': t('More'),
+              }}
+              items={[
+                {
+                  key: 'open-in-discover',
+                  label: t('Open in Discover'),
+                  to: discoverView.getResultsViewUrlTarget(orgId),
+                  hidden: !organization.features.includes('discover-basic'),
+                },
+                {
+                  key: 'search-issues',
+                  label: t('Search All Issues with Tag Value'),
+                  to: {
+                    pathname: issuesPath,
+                    query: {
+                      ...globalSelectionParams, // preserve page filter selections
+                      query: issuesQuery,
+                    },
+                  },
+                },
+              ]}
+            />
           </RightAlignColumn>
         </Fragment>
       );
     });
-  }
+  };
 
-  renderBody() {
-    const {
-      group,
-      params: {orgId, tagKey},
-      location: {query},
-      environments,
-    } = this.props;
-    const {tagValueList, tag, tagValueListPageLinks, loading} = this.state;
-    const {cursor: _cursor, page: _page, ...currentQuery} = query;
-
-    const title = tagKey === 'user' ? t('Affected Users') : tagKey;
-
-    const sort = this.getSort();
-    const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
-    const lastSeenColumnHeader = (
-      <StyledSortLink
-        to={{
-          pathname: location.pathname,
-          query: {
-            ...currentQuery,
-            sort: 'date',
-          },
-        }}
-      >
-        {t('Last Seen')} {sort === 'date' && sortArrow}
-      </StyledSortLink>
-    );
-    const countColumnHeader = (
-      <StyledSortLink
-        to={{
-          pathname: location.pathname,
-          query: {
-            ...currentQuery,
-            sort: 'count',
-          },
-        }}
-      >
-        {t('Count')} {sort === 'count' && sortArrow}
-      </StyledSortLink>
-    );
-
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <TitleWrapper>
-            <Title>{t('Tag Details')}</Title>
-            <ButtonBar gap={1}>
-              <Button
-                size="sm"
-                priority="default"
-                href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-              >
-                {t('Export Page to CSV')}
-              </Button>
-              <DataExport
-                payload={{
-                  queryType: ExportQueryType.IssuesByTag,
-                  queryInfo: {
-                    project: group.project.id,
-                    group: group.id,
-                    key: tagKey,
-                  },
-                }}
-              />
-            </ButtonBar>
-          </TitleWrapper>
-          <StyledPanelTable
-            isLoading={loading}
-            isEmpty={tagValueList?.length === 0}
-            headers={[
-              title,
-              <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
-              countColumnHeader,
-              lastSeenColumnHeader,
-              '',
-            ]}
-            emptyMessage={t('Sorry, the tags for this issue could not be found.')}
-            emptyAction={
-              environments?.length
-                ? t('No tags were found for the currently selected environments')
-                : null
-            }
-          >
-            {tagValueList && tag && this.renderResults()}
-          </StyledPanelTable>
-          <StyledPagination pageLinks={tagValueListPageLinks} />
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <TitleWrapper>
+          <Title>{t('Tag Details')}</Title>
+          <ButtonBar gap={1}>
+            <Button
+              size="sm"
+              priority="default"
+              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+            >
+              {t('Export Page to CSV')}
+            </Button>
+            <DataExport
+              payload={{
+                queryType: ExportQueryType.ISSUES_BY_TAG,
+                queryInfo: {
+                  project: group.project.id,
+                  group: group.id,
+                  key: tagKey,
+                },
+              }}
+            />
+          </ButtonBar>
+        </TitleWrapper>
+        <StyledPanelTable
+          isLoading={isLoading}
+          isEmpty={!isError && tagValueList?.length === 0}
+          headers={[
+            title,
+            <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
+            countColumnHeader,
+            lastSeenColumnHeader,
+            '',
+          ]}
+          emptyMessage={t('Sorry, the tags for this issue could not be found.')}
+          emptyAction={
+            environments?.length
+              ? t('No tags were found for the currently selected environments')
+              : null
+          }
+        >
+          {renderResults()}
+        </StyledPanelTable>
+        <StyledPagination pageLinks={pageLinks} />
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
-export default withSentryRouter(GroupTagValues);
+export default GroupTagValues;
 
 const TitleWrapper = styled('div')`
   display: flex;
@@ -308,6 +330,13 @@ const StyledPanelTable = styled(PanelTable)`
   & > * {
     padding: ${space(1)} ${space(2)};
   }
+`;
+
+const StyledLoadingError = styled(LoadingError)`
+  grid-column: 1 / -1;
+  margin-bottom: ${space(4)};
+  border-radius: 0;
+  border-width: 1px 0;
 `;
 
 const PercentColumnHeader = styled('div')`

@@ -91,7 +91,11 @@ export function getQuery({location, perPage = 40, activeRepository}: GetQueryPro
     return query;
   }
 
-  return {...query, repo_name: activeRepository.name};
+  return {
+    ...query,
+    repo_id: activeRepository.externalId,
+    repo_name: activeRepository.name,
+  };
 }
 
 /**
@@ -179,7 +183,9 @@ function generateReleaseMarkLine(
         formatter: hideLabel ? '' : title,
         // @ts-expect-error weird echart types
         font: 'Rubik',
-        fontSize: 11,
+        fontSize: 14,
+        color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
       data: [
         {

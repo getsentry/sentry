@@ -1,16 +1,18 @@
-from typing import Dict, List
+from datetime import datetime
+from typing import Dict, List, Optional
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundleFilesSerializer
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
-from sentry.models import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
@@ -51,6 +53,9 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -94,15 +99,23 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
             )
 
         def serialize_results(r):
-            release, dist = ArtifactBundle.get_release_dist_pair(
+            # Here we don't query with project_id under the assumption that the above's code checks for it. In case
+            # the get_release_associations method is going to be used in other places, a project_id check should
+            # still be performed to avoid any security problems.
+            associations = ArtifactBundle.get_release_associations(
                 project.organization.id, artifact_bundle
             )
+
+            def format_date(date: Optional[datetime]) -> Optional[str]:
+                return None if date is None else date.isoformat()[:19] + "Z"
 
             return serialize(
                 {
                     "bundleId": str(artifact_bundle.bundle_id),
-                    "release": release,
-                    "dist": dist if dist != "" else None,
+                    "date": format_date(artifact_bundle.date_uploaded),
+                    "dateModified": format_date(artifact_bundle.date_last_modified),
+                    "fileCount": artifact_bundle.artifact_count,
+                    "associations": associations,
                     "files": serialize(
                         # We need to convert the dictionary to a list in order to properly use the serializer.
                         r,

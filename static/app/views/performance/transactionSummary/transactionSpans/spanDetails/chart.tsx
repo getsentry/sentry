@@ -10,7 +10,7 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';

@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -14,7 +14,7 @@ import NavTabs from 'sentry/components/navTabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconCopy, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -100,11 +100,12 @@ function ReleaseHeader({
           <IdBadge project={project} avatarSize={28} hideName />
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
-            <Tooltip title={version} containerDisplayMode="flex">
-              <Clipboard value={version}>
-                <IconCopy />
-              </Clipboard>
-            </Tooltip>
+            <CopyToClipboardButton
+              borderless
+              size="zero"
+              text={version}
+              title={version}
+            />
           </IconWrapper>
           {!!url && (
             <IconWrapper>

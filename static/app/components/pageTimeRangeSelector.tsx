@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 

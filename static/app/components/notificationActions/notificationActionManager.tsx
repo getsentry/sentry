@@ -80,6 +80,8 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
+      [NotificationActionService.DISCORD]: [],
     };
     availableActions.forEach(a => {
       availableServicesMap[a.action.serviceType as NotificationActionService].push(a);
@@ -103,6 +105,8 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
+      [NotificationActionService.DISCORD]: [],
     };
     notificationActions.forEach((action, index) => {
       if (action.serviceType) {
@@ -129,6 +133,21 @@ function NotificationActionManager({
       return integrations;
     }, [availableServices]);
 
+  const opsgenieIntegrations: Record<number, AvailableNotificationAction[]> =
+    useMemo(() => {
+      const integrations: Record<number, AvailableNotificationAction[]> = {};
+      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+        const integrationId = team.action.integrationId;
+        if (integrationId) {
+          if (integrationId in integrations) {
+            integrations[integrationId].push(team);
+          } else {
+            integrations[integrationId] = [team];
+          }
+        }
+      });
+      return integrations;
+    }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];
@@ -145,6 +164,7 @@ function NotificationActionManager({
           action={action}
           recipientRoles={recipientRoles}
           availableActions={availableServices[serviceType]}
+          opsgenieIntegrations={opsgenieIntegrations}
           pagerdutyIntegrations={pagerdutyIntegrations}
           project={project}
           onDelete={removeNotificationAction}
@@ -153,6 +173,16 @@ function NotificationActionManager({
         />
       ));
     });
+  };
+  const getLabel = (serviceType: string) => {
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return t('Send a Sentry notification');
+      case NotificationActionService.OPSGENIE:
+        return t('Send an Opsgenie notification');
+      default:
+        return t('Send a %s notification', capitalize(serviceType));
+    }
   };
 
   const getMenuItems = () => {
@@ -168,15 +198,10 @@ function NotificationActionManager({
       ) {
         return;
       }
-
+      const label = getLabel(serviceType);
       menuItems.push({
         key: serviceType,
-        label: t(
-          'Send a %s notification',
-          serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-            ? capitalize(serviceType)
-            : 'Sentry'
-        ),
+        label,
         onAction: () => {
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];
@@ -191,13 +216,14 @@ function NotificationActionManager({
   const addAlertButton = (
     <Tooltip
       disabled={!disabled}
-      title={t('You do not have permission to add notification actions')}
+      title={t('You do not have permission to add notification actions for this project')}
     >
       <DropdownMenu
         items={getMenuItems()}
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
+            isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}

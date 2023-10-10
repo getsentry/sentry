@@ -32,6 +32,9 @@ export type TraceError = {
   project_slug: string;
   span: string;
   title: string;
+  event_type?: string;
+  generation?: number;
+  timestamp?: number;
 };
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
@@ -80,6 +83,11 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   tags?: EventTag[];
 };
 
+export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
+  orphan_errors: TraceError[];
+  transactions: U[];
+};
+
 export type TraceProps = {
   traceId: string;
   end?: string;
@@ -92,16 +100,19 @@ export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 export type EmptyQuickTrace = {
   trace: QuickTraceEvent[];
   type: 'empty' | 'missing';
+  orphanErrors?: TraceError[];
 };
 
 export type PartialQuickTrace = {
   trace: QuickTraceEvent[] | null;
   type: 'partial';
+  orphanErrors?: TraceError[];
 };
 
 export type FullQuickTrace = {
   trace: QuickTraceEvent[] | null;
   type: 'full';
+  orphanErrors?: TraceError[];
 };
 
 export type BaseTraceChildrenProps = Omit<
@@ -113,7 +124,7 @@ export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 
 export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
   QuickTrace & {
-    currentEvent: QuickTraceEvent | null;
+    currentEvent: QuickTraceEvent | TraceError | null;
   };
 
 export type TraceMeta = {

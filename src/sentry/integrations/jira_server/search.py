@@ -1,10 +1,14 @@
+from typing import Any
+
 from bs4 import BeautifulSoup
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 from .utils import build_user_choice
@@ -12,6 +16,9 @@ from .utils import build_user_choice
 
 @control_silo_endpoint
 class JiraServerSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     provider = "jira_server"
 
     def _get_integration(self, organization, integration_id):
@@ -21,7 +28,9 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
             provider=self.provider,
         )
 
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:

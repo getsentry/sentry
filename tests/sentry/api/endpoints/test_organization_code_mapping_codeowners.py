@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import Repository
-from sentry.testutils import APITestCase
+from sentry.models.repository import Repository
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 GITHUB_CODEOWNER = {

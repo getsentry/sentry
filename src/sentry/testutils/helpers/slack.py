@@ -5,18 +5,15 @@ import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.notifications import send_notification_as_slack
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    OrganizationIntegration,
-    Team,
-    User,
-)
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 
@@ -31,7 +28,7 @@ def get_response_text(data: SlackBody) -> str:
     )
 
 
-@exempt_from_silo_limits()
+@assume_test_silo_mode(SiloMode.CONTROL)
 def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -> Integration:
     integration = Integration.objects.create(
         external_id=workspace_id,
@@ -47,6 +44,7 @@ def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -
     return integration
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def add_identity(
     integration: Integration, user: User, external_id: str = "UXXXXXXX1"
 ) -> IdentityProvider:
@@ -72,6 +70,7 @@ def find_identity(idp: IdentityProvider, user: User) -> Optional[Identity]:
     return identities[0]
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def link_user(user: User, idp: IdentityProvider, slack_id: str) -> None:
     Identity.objects.create(
         external_id=slack_id,
@@ -84,17 +83,16 @@ def link_user(user: User, idp: IdentityProvider, slack_id: str) -> None:
 
 def link_team(team: Team, integration: Integration, channel_name: str, channel_id: str) -> None:
     ExternalActor.objects.create(
-        actor_id=team.actor_id,
+        team_id=team.id,
         organization=team.organization,
-        integration=integration,
+        integration_id=integration.id,
         provider=ExternalProviders.SLACK.value,
         external_name=channel_name,
         external_id=channel_id,
     )
 
 
-def send_notification(*args):
-    provider, *args_list = args
+def send_notification(provider, *args_list):
     if provider == ExternalProviders.SLACK:
         send_notification_as_slack(*args_list, {})
 

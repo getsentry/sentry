@@ -4,11 +4,15 @@ import confluent_kafka as kafka
 import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json
+
+pytestmark = [requires_kafka]
 
 
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):

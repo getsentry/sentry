@@ -14,7 +14,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationChart from 'sentry/views/performance/charts/chart';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {ViewProps} from 'sentry/views/performance/types';
 
@@ -65,7 +65,7 @@ function UserMiseryChart({
       <QuestionTooltip
         size="sm"
         position="top"
-        title={getTermHelp(organization as Organization, PERFORMANCE_TERM.USER_MISERY)}
+        title={getTermHelp(organization as Organization, PerformanceTerm.USER_MISERY)}
       />
     </HeaderTitleLegend>
   );

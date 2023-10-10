@@ -3,20 +3,20 @@ import {t} from 'sentry/locale';
 import {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 
-type Props = AsyncView['props'] & {
+type Props = DeprecatedAsyncView['props'] & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   provider: AuthProvider | null;
   providerList: AuthProvider[] | null;
 };
 
-class OrganizationAuth extends AsyncView<Props, State> {
+class OrganizationAuth extends DeprecatedAsyncView<Props, State> {
   componentDidUpdate() {
     const {organization} = this.props;
     const access = organization.access;
@@ -33,7 +33,7 @@ class OrganizationAuth extends AsyncView<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [
       ['providerList', `/organizations/${organization.slug}/auth-providers/`],

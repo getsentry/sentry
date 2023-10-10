@@ -1,12 +1,14 @@
 import os
-from typing import MutableSet
+from typing import MutableMapping
 
+import psutil
 import pytest
-from django.db.transaction import get_connection
+import responses
+from django.db import connections
 
 from sentry.silo import SiloMode
 
-pytest_plugins = ["sentry.utils.pytest"]
+pytest_plugins = ["sentry.testutils.pytest"]
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
@@ -20,6 +22,13 @@ pytest_plugins = ["sentry.utils.pytest"]
 #
 # Inspired by:
 # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/terminal.py
+
+
+@pytest.fixture(autouse=True)
+def unclosed_files():
+    fds = frozenset(psutil.Process().open_files())
+    yield
+    assert frozenset(psutil.Process().open_files()) == fds
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -96,36 +105,6 @@ def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
-_MODEL_MANIFEST_FILE_PATH = os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
-_model_manifest = None
-
-
-@pytest.fixture(scope="session", autouse=True)
-def create_model_manifest_file():
-    """Audit which models are touched by each test case and write it to file."""
-
-    # We have to construct the ModelManifest lazily, because importing
-    # sentry.testutils.modelmanifest too early causes a dependency cycle.
-    from sentry.testutils.modelmanifest import ModelManifest
-
-    if _MODEL_MANIFEST_FILE_PATH:
-        global _model_manifest
-        _model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
-        with _model_manifest.write():
-            yield
-    else:
-        yield
-
-
-@pytest.fixture(scope="class", autouse=True)
-def register_class_in_model_manifest(request: pytest.FixtureRequest):
-    if _model_manifest:
-        with _model_manifest.register(request.node.nodeid):
-            yield
-    else:
-        yield
-
-
 @pytest.fixture(autouse=True)
 def validate_silo_mode():
     # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
@@ -144,58 +123,68 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def protect_hybrid_cloud_deletions(request):
+def setup_simulate_on_commit(request):
+    from sentry.testutils.hybrid_cloud import simulate_on_commit
+
+    with simulate_on_commit(request):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def setup_enforce_monotonic_transactions(request):
+    from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
+
+    with enforce_no_cross_transaction_interactions():
+        yield
+
+
+@pytest.fixture(autouse=True)
+def audit_hybrid_cloud_writes_and_deletes(request):
     """
-    Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
-    by preventing any deletes that do not pass through a special 'connection'.
+    Ensure that write operations on hybrid cloud foreign keys are recorded
+    alongside outboxes or use a context manager to indicate that the
+    caller has considered outbox and didn't accidentally forget.
 
-    This logic creates an additional database role which cannot make deletions on special
-    restricted hybrid cloud objects, forcing code that would delete it in tests to explicitly
-    escalate their role -- the hope being that only codepaths that are smart about outbox
-    creation will do so.
+    Generally you can avoid assertion errors from these checks by:
 
-    If you are running into issues with permissions to delete objects, consider whether
-    you are deleting an object with a hybrid cloud foreign key pointing to it, and whether
-    there is an 'expected' way to delete it (usually through the ORM .delete() method, but
-    not the QuerySet.delete() or raw SQL delete).
+    1. Running deletion/write logic within an `outbox_context`.
+    2. Using Model.delete()/save methods that create outbox messages in the
+       same transaction as a delete operation.
 
-    If you are certain you need to delete the objects in a new codepath, check out User.delete
-    logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
-    create Outbox objects in the same transaction that matches what you delete.
+    Scenarios that are generally always unsafe are  using
+    `QuerySet.delete()`, `QuerySet.update()` or raw SQL to perform
+    writes.
+
+    The User.delete() method is a good example of how to safely
+    delete records and generate outbox messages.
     """
-    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+    from sentry.testutils.silo import validate_protected_queries
 
-    try:
-        with get_connection().cursor() as conn:
-            conn.execute("SET ROLE 'postgres'")
-    except (RuntimeError, AssertionError) as e:
-        # Tests that do not have access to the database should pass through.
-        # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
-        # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
-        if "Database access not allowed" in str(e) or "Database queries to" in str(e):
-            yield
-            return
+    debug_cursor_state: MutableMapping[str, bool] = {}
+    for conn in connections.all():
+        debug_cursor_state[conn.alias] = conn.force_debug_cursor
 
-    reset_test_role(role="postgres_unprivileged")
-
-    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
-    seen_models: MutableSet[type] = set()
-    for model in iter_models():
-        for field in model._meta.fields:
-            if not isinstance(field, HybridCloudForeignKey):
-                continue
-            fk_model = field.foreign_model
-            if fk_model is None or fk_model in seen_models:
-                continue
-            seen_models.add(fk_model)
-            restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
-
-    with get_connection().cursor() as conn:
-        conn.execute("SET ROLE 'postgres_unprivileged'")
+        conn.queries_log.clear()
+        conn.force_debug_cursor = True
 
     try:
         yield
     finally:
-        with get_connection().cursor() as conn:
-            conn.execute("SET ROLE 'postgres'")
+        for conn in connections.all():
+            conn.force_debug_cursor = debug_cursor_state[conn.alias]
+
+            validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def check_leaked_responses_mocks():
+    yield
+    leaked = responses.registered()
+    if leaked:
+        responses.reset()
+
+        leaked_s = "".join(f"- {item}\n" for item in leaked)
+        raise AssertionError(
+            f"`responses` were leaked outside of the test context:\n{leaked_s}"
+            f"(make sure to use `@responses.activate` or `with responses.mock:`)"
+        )

@@ -7,8 +7,11 @@ from django.http.request import HttpRequest
 
 from sentry import eventstore
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.models import Group, Project, User
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.models.group import Group
+from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -22,7 +25,7 @@ map_issue_args = make_type_coercer(
 
 def unfurl_issues(
     request: HttpRequest,
-    integration: RpcIntegration,
+    integration: Integration,
     links: List[UnfurlableUrl],
     user: Optional[User] = None,
 ) -> UnfurledUrl:
@@ -55,12 +58,12 @@ def unfurl_issues(
             # lookup the event by the id
             event_id = link.args["event_id"]
             event = (
-                eventstore.get_event_by_id(group.project_id, event_id, group.id)
+                eventstore.backend.get_event_by_id(group.project_id, event_id, group.id)
                 if event_id
                 else None
             )
             out[link.url] = build_group_attachment(
-                group_by_id[issue_id], event=event, link_to_event=True
+                group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
             )
     return out
 
@@ -73,7 +76,7 @@ customer_domain_issue_link_regex = re.compile(
     r"^https?\://(?#url_prefix)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
 )
 
-handler: Handler = Handler(
+handler = Handler(
     fn=unfurl_issues,
     matcher=[issue_link_regex, customer_domain_issue_link_regex],
     arg_mapper=map_issue_args,

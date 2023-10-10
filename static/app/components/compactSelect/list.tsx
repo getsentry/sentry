@@ -14,6 +14,7 @@ import {ListBox} from './listBox';
 import {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
 import {
   getDisabledOptions,
+  getEscapedKey,
   getHiddenOptions,
   getSelectedOptions,
   HiddenSectionToggle,
@@ -25,11 +26,19 @@ interface BaseListProps<Value extends React.Key>
   extends ListProps<any>,
     Omit<
       AriaListBoxOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     >,
     Omit<
       AriaGridListOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     > {
   items: SelectOptionOrSectionWithKey<Value>[];
   /**
@@ -138,15 +147,15 @@ function List<Value extends React.Key>({
     const disabledKeys = [
       ...getDisabledOptions(items, isOptionDisabled),
       ...hiddenOptions,
-    ].map(String);
+    ].map(getEscapedKey);
 
     if (multiple) {
       return {
         selectionMode: 'multiple',
         disabledKeys,
         // react-aria turns all keys into strings
-        selectedKeys: value?.map(String),
-        defaultSelectedKeys: defaultValue?.map(String),
+        selectedKeys: value?.map(getEscapedKey),
+        defaultSelectedKeys: defaultValue?.map(getEscapedKey),
         disallowEmptySelection,
         allowDuplicateSelectionEvents: true,
         onSelectionChange: selection => {
@@ -171,8 +180,10 @@ function List<Value extends React.Key>({
       selectionMode: 'single',
       disabledKeys,
       // react-aria turns all keys into strings
-      selectedKeys: defined(value) ? [String(value)] : undefined,
-      defaultSelectedKeys: defined(defaultValue) ? [String(defaultValue)] : undefined,
+      selectedKeys: defined(value) ? [getEscapedKey(value)] : undefined,
+      defaultSelectedKeys: defined(defaultValue)
+        ? [getEscapedKey(defaultValue)]
+        : undefined,
       disallowEmptySelection: disallowEmptySelection ?? true,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
@@ -232,7 +243,7 @@ function List<Value extends React.Key>({
 
     while (
       firstKey &&
-      (listState.collection.getItem(firstKey).type === 'section' ||
+      (listState.collection.getItem(firstKey)?.type === 'section' ||
         listState.selectionManager.isDisabled(firstKey))
     ) {
       firstKey = listState.collection.getKeyAfter(firstKey);
@@ -245,7 +256,7 @@ function List<Value extends React.Key>({
 
     while (
       lastKey &&
-      (listState.collection.getItem(lastKey).type === 'section' ||
+      (listState.collection.getItem(lastKey)?.type === 'section' ||
         listState.selectionManager.isDisabled(lastKey))
     ) {
       lastKey = listState.collection.getKeyBefore(lastKey);

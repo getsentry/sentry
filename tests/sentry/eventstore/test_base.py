@@ -7,10 +7,13 @@ from sentry import eventstore
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
@@ -77,12 +80,12 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
         with mock.patch.object(logger, "info") as mock_logger:
             # No differences to log
             _filter = eventstore.Filter(project_ids=[self.project.id])
-            eventstore.get_events(filter=_filter)
-            eventstore.get_event_by_id(self.project.id, "a" * 32)
+            eventstore.backend.get_events(filter=_filter)
+            eventstore.backend.get_event_by_id(self.project.id, "a" * 32)
             assert mock_logger.call_count == 0
 
             # Here we expect a difference since the original implementation handles type as a tag
-            event = eventstore.get_event_by_id(self.project.id, "a" * 32)
+            event = eventstore.backend.get_event_by_id(self.project.id, "a" * 32)
             _filter = eventstore.Filter(
                 project_ids=[self.project.id], conditions=[["type", "=", "transaction"]]
             )

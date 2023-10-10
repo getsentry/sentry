@@ -1,5 +1,5 @@
-from sentry.models import NotificationSetting
 from sentry.models.actor import get_actor_id_for_user
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     transform_to_notification_settings_by_scope,
@@ -10,9 +10,10 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import NotificationsService
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -21,33 +22,38 @@ class TransformTestCase(TestCase):
         self.user = self.create_user()
         self.project = self.create_project()
         self.group = self.create_group(project=self.project)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            actor_id = get_actor_id_for_user(self.user)
         self.notification_settings = [
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
-                target_id=get_actor_id_for_user(self.user),
+                target_id=actor_id,
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
-                target_id=get_actor_id_for_user(self.user),
+                target_id=actor_id,
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier=self.user.id,
             ),
         ]
 
-        self.user_actor = RpcActor.from_orm_user(self.user)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user_actor = RpcActor.from_orm_user(self.user)
         self.rpc_notification_settings = [
-            NotificationsService.serialize_notification_setting(setting)
-            for setting in self.notification_settings
+            serialize_notification_setting(setting) for setting in self.notification_settings
         ]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
     def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (

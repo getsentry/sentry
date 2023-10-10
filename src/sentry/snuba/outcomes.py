@@ -1,7 +1,18 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+)
 
 from django.http import QueryDict
 from snuba_sdk import Request
@@ -13,9 +24,9 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
+from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
-    AllowedResolution,
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
@@ -55,6 +66,8 @@ by these fields
 
 ResultSet = List[Dict[str, Any]]
 QueryCondition = Tuple[str, str, List[Any]]
+
+T = TypeVar("T")
 
 
 class Field(ABC):
@@ -107,9 +120,9 @@ class TimesSeenField(Field):
             return Function("count()", [Column("times_seen")], "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):  # type: ignore
+class Dimension(SimpleGroupBy, ABC, Generic[T]):
     @abstractmethod
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[T]:
         """
         Based on the input filter, map it back to the clickhouse representation
         """
@@ -123,7 +136,7 @@ class Dimension(SimpleGroupBy, ABC):  # type: ignore
         raise NotImplementedError()
 
 
-class CategoryDimension(Dimension):
+class CategoryDimension(Dimension[DataCategory]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
@@ -150,7 +163,7 @@ class CategoryDimension(Dimension):
             row["category"] = category.api_name()
 
 
-class OutcomeDimension(Dimension):
+class OutcomeDimension(Dimension[Outcome]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
         def _parse_outcome(outcome: str) -> Outcome:
             try:
@@ -165,7 +178,7 @@ class OutcomeDimension(Dimension):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
-class KeyDimension(Dimension):
+class KeyDimension(Dimension[int]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[int]:
         def _parse_value(key_id: str) -> int:
             try:
@@ -260,7 +273,7 @@ class QueryDefinition:
         stats_period: Optional[str] = None,
         organization_id: Optional[int] = None,
         project_ids: Optional[List[int]] = None,
-        key_id: Optional[int] = None,
+        key_id: Optional[str | int] = None,
         interval: Optional[str] = None,
         outcome: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
@@ -356,7 +369,9 @@ class QueryDefinition:
 
 
 def run_outcomes_query_totals(
-    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+    query: QueryDefinition,
+    *,
+    tenant_ids: dict[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -376,8 +391,9 @@ def run_outcomes_query_totals(
 
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
+    *,
+    tenant_ids: dict[str, int | str],
     referrer: str = "outcomes.timeseries",
-    tenant_ids: dict[str, Any] | None = None,
 ) -> ResultSet:
     """
     Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change

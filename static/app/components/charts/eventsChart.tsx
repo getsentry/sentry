@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, isValidElement} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Theme, withTheme} from '@emotion/react';
 import type {
@@ -20,12 +20,7 @@ import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {
-  getInterval,
-  processTableResults,
-  RELEASE_LINES_THRESHOLD,
-} from 'sentry/components/charts/utils';
-import {WorldMapChart, WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
+import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
@@ -47,14 +42,12 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
 
-import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
 
 type ChartComponent =
   | React.ComponentType<BarChartProps>
   | React.ComponentType<AreaChartProps>
-  | React.ComponentType<LineChartProps>
-  | React.ComponentType<WorldMapChartProps>;
+  | React.ComponentType<LineChartProps>;
 
 type ChartProps = {
   currentSeriesNames: string[];
@@ -105,7 +98,7 @@ type State = {
   seriesSelection: Record<string, boolean>;
 };
 
-class Chart extends React.Component<ChartProps, State> {
+class Chart extends Component<ChartProps, State> {
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -202,31 +195,13 @@ class Chart extends React.Component<ChartProps, State> {
       height,
       timeframe,
       topEvents,
-      tableData,
-      fromDiscover,
       timeseriesResultsTypes,
       additionalSeries,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
 
-    let Component = this.getChartComponent();
-
-    if (Component === WorldMapChart) {
-      const {data, title} = processTableResults(tableData);
-      const tableSeries = [
-        {
-          seriesName: title,
-          data,
-        },
-      ];
-      return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
-    }
-
-    Component = Component as Exclude<
-      ChartComponent,
-      React.ComponentType<WorldMapChartProps>
-    >;
+    const ChartComponent = this.getChartComponent();
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
@@ -341,11 +316,11 @@ class Chart extends React.Component<ChartProps, State> {
         },
       },
       ...(chartOptionsProp ?? {}),
-      animation: typeof Component === typeof BarChart ? false : undefined,
+      animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
     return (
-      <Component
+      <ChartComponent
         {...props}
         {...zoomRenderProps}
         {...chartOptions}
@@ -501,7 +476,7 @@ type ChartDataProps = {
   topEvents?: number;
 };
 
-class EventsChart extends React.Component<EventsChartProps> {
+class EventsChart extends Component<EventsChartProps> {
   isStacked() {
     const {topEvents, yAxis} = this.props;
     return (
@@ -564,7 +539,7 @@ class EventsChart extends React.Component<EventsChartProps> {
     const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
       if (yAxisLabel && yAxisLabel.length > 60) {
-        yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+        yAxisLabel = yAxisLabel.substring(0, 60) + '...';
       }
       return yAxisLabel;
     });
@@ -606,7 +581,7 @@ class EventsChart extends React.Component<EventsChartProps> {
         >
           <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
 
-          {React.isValidElement(chartHeader) && chartHeader}
+          {isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
             zoomRenderProps={zoomRenderProps}
@@ -671,34 +646,6 @@ class EventsChart extends React.Component<EventsChartProps> {
         {...props}
       >
         {zoomRenderProps => {
-          if (chartComponent === WorldMapChart) {
-            return (
-              <EventsGeoRequest
-                api={api}
-                organization={organization}
-                yAxis={yAxis}
-                query={query}
-                orderby={orderby}
-                projects={projects}
-                period={period}
-                start={start}
-                end={end}
-                environments={environments}
-                referrer={props.referrer}
-                dataset={dataset}
-              >
-                {({errored, loading, reloading, tableData}) =>
-                  chartImplementation({
-                    errored,
-                    loading,
-                    reloading,
-                    zoomRenderProps,
-                    tableData,
-                  })
-                }
-              </EventsGeoRequest>
-            );
-          }
           return (
             <EventsRequest
               {...props}

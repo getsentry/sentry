@@ -4,11 +4,12 @@ import uuid
 from itertools import chain
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
-from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.backup.scopes import RelocationScope
+from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -17,13 +18,15 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Project, SentryAppComponent
+    from sentry.models.apitoken import ApiToken
+    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.models.project import Project
 
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 
 
 def default_uuid():
@@ -41,25 +44,17 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
         return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
-    def get_by_api_token(self, token_id: str) -> QuerySet:
+    def get_by_api_token(self, token_id: int) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
-        from sentry.models import Project, SentryAppInstallationToken
+    def get_projects(self, token: ApiToken | AuthenticatedToken) -> QuerySet[Project]:
+        from sentry.models.apitoken import is_api_token_auth
+        from sentry.models.project import Project
 
-        try:
-            installation = self.get_by_api_token(token.id).get()
-        except SentryAppInstallation.DoesNotExist:
-            installation = None
-
-        if not installation:
+        if not is_api_token_auth(token) or token.organization_id is None:
             return Project.objects.none()
 
-        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
-        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
-            return SentryAppInstallationToken.objects.get_projects(token)
-
-        return Project.objects.filter(organization_id=installation.organization_id)
+        return Project.objects.filter(organization_id=token.organization_id)
 
     def get_related_sentry_app_components(
         self,
@@ -68,7 +63,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         type: str,
         group_by="sentry_app_id",
     ):
-        from sentry.models import SentryAppComponent
+        from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
         component_query = SentryAppComponent.objects.filter(
             sentry_app_id=OuterRef("sentry_app_id"), type=type
@@ -106,7 +101,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
 
 @control_silo_only_model
 class SentryAppInstallation(ParanoidModel):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="installations")
 
@@ -171,42 +166,37 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
-            for outbox in self.outboxes_for_update(
-                identifier=self.id,
-                org_id=self.organization_id,
-                api_application_id=self.api_application_id,
-            ):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(SentryAppInstallation)), flush=False
+        ):
+            for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)
 
     @property
-    def api_application_id(self) -> int:
-        from sentry.models import SentryApp
+    def api_application_id(self) -> int | None:
+        from sentry.models.integrations.sentry_app import SentryApp
 
         try:
             return self.sentry_app.application_id
         except SentryApp.DoesNotExist:
-            # In the case of a bad relation, it's ok to just replicate this in a special ordering.
-            return 0
+            return None
 
-    @classmethod
-    def outboxes_for_update(
-        cls, identifier: int, org_id: int, api_application_id: int
-    ) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> List[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=api_application_id,
-                object_identifier=identifier,
+                # In the case of a bad relation, it's ok to just replicate this in a special ordering.
+                shard_identifier=self.api_application_id or 0,
+                object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
                 region_name=region_name,
             )
-            for region_name in find_regions_for_orgs([org_id])
+            for region_name in find_regions_for_orgs([self.organization_id])
         ]
 
     def prepare_sentry_app_components(self, component_type, project=None, values=None):
-        from sentry.models import SentryAppComponent
+        from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
         try:
             component = SentryAppComponent.objects.get(
@@ -229,7 +219,7 @@ def prepare_sentry_app_components(
     project_slug: str | None = None,
     values: Any = None,
 ):
-    from sentry.models import SentryAppComponent
+    from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
     try:
         component = SentryAppComponent.objects.get(

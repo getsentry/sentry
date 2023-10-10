@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern
+from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern, Protocol
 
 from django.http.request import HttpRequest
 
-from sentry.models import Integration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.user import User
 
 UnfurledUrl = Mapping[Any, Any]
 ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]
@@ -22,10 +23,21 @@ class UnfurlableUrl(NamedTuple):
     args: Mapping[str, Any]
 
 
+class HandlerCallable(Protocol):
+    def __call__(
+        self,
+        request: HttpRequest,
+        integration: Integration,
+        links: list[UnfurlableUrl],
+        user: User | None = None,
+    ) -> UnfurledUrl:
+        ...
+
+
 class Handler(NamedTuple):
     matcher: list[Pattern[Any]]
     arg_mapper: ArgsMapper
-    fn: Callable[[HttpRequest, Integration, list[UnfurlableUrl], User | None], UnfurledUrl]
+    fn: HandlerCallable
 
 
 def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:

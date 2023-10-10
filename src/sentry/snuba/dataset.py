@@ -16,12 +16,14 @@ class Dataset(Enum):
     Profiles = "profiles"
     IssuePlatform = "search_issues"
     Functions = "functions"
+    SpansIndexed = "spans"
 
 
 @unique
 class EntityKey(Enum):
     Events = "events"
     Sessions = "sessions"
+    Spans = "spans"
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"
@@ -32,3 +34,4 @@ class EntityKey(Enum):
     GenericMetricsCounters = "generic_metrics_counters"
     GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"
+    Functions = "functions"

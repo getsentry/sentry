@@ -105,10 +105,8 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
-  ReactSelectProps<OptionType>,
-  'onChange' | 'value'
-> & {
+export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
+  extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value'> {
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
@@ -142,18 +140,19 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
    * can't have a good type here.
    */
   value?: any;
-};
+}
 
 /**
  * Additional props provided by forwardRef
  */
-type WrappedControlProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
+interface WrappedControlProps<OptionType extends OptionTypeBase>
+  extends ControlProps<OptionType> {
   /**
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
    */
   forwardedRef: React.Ref<ReactSelect>;
-};
+}
 
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
@@ -190,8 +189,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        // @ts-ignore Ignore merge errors as only defining the property once
-        // makes code harder to understand.
         ...{
           color: theme.formText,
           background: theme.background,
@@ -254,11 +251,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           background: 'transparent',
         },
       }),
-      valueContainer: provided => ({
+      valueContainer: (provided, state) => ({
         ...provided,
         alignItems: 'center',
         paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
         paddingRight: space(0.5),
+        // offset horizontal margin/padding from multiValue (space(0.25)) &
+        // multiValueLabel (space(0.75))
+        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
       }),
       input: provided => ({
         ...provided,
@@ -282,31 +282,32 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       }),
       multiValue: provided => ({
         ...provided,
-        color: '#007eff',
-        backgroundColor: '#ebf5ff',
+        color: theme.textColor,
+        backgroundColor: theme.background,
         borderRadius: '2px',
-        border: '1px solid #c2e0ff',
+        border: `1px solid ${theme.border}`,
         display: 'flex',
+        marginLeft: space(0.25),
       }),
       multiValueLabel: provided => ({
         ...provided,
-        color: '#007eff',
+        color: theme.textColor,
         padding: '0',
-        paddingLeft: '6px',
+        paddingLeft: space(0.75),
         lineHeight: '1.8',
       }),
       multiValueRemove: () => ({
         cursor: 'pointer',
         alignItems: 'center',
-        borderLeft: '1px solid #c2e0ff',
+        borderLeft: `1px solid ${theme.innerBorder}`,
         borderRadius: '0 2px 2px 0',
         display: 'flex',
         padding: '0 4px',
         marginLeft: '4px',
 
         '&:hover': {
-          color: '#6284b9',
-          background: '#cce5ff',
+          color: theme.headingColor,
+          background: theme.backgroundTertiary,
         },
       }),
       indicatorsContainer: () => ({
@@ -398,9 +399,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (isGroupedOptions<OptionType>(choicesOrOptions)) {
       flatOptions = choicesOrOptions.flatMap(option => option.options);
     } else {
-      // @ts-ignore The types used in react-select generics (OptionType) don't
-      // line up well with our option type (SelectValue). We need to do more work
-      // to get these types to align.
       flatOptions = choicesOrOptions.flatMap(option => option);
     }
     mappedValue =
@@ -472,7 +470,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
+export interface PickerProps<OptionType extends OptionTypeBase>
+  extends ControlProps<OptionType> {
   /**
    * Enable async option loading.
    */
@@ -485,7 +484,7 @@ type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> &
    * Enable 'create' mode which allows values to be created inline.
    */
   creatable?: boolean;
-};
+}
 
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,

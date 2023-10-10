@@ -1,9 +1,12 @@
-from django.db.models import Case, When
+from __future__ import annotations
+
+from django.db.models import Case, IntegerField, When
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -16,6 +19,10 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -40,11 +47,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "name" or key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(name__icontains=value)
+                    queryset = queryset.filter(name__icontains=" ".join(value))
                 elif key == "version":
-                    value = " ".join(value)
-                    queryset = queryset.filter(version=value)
+                    queryset = queryset.filter(version=" ".join(value))
                 else:
                     queryset = queryset.none()
 
@@ -55,16 +60,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             desc = False
 
         if sort_by == "name":
-            order_by = [
+            order_by: list[Case | str] = [
                 "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
 
         elif sort_by == "dateCreated":
-            order_by = "-date_created" if desc else "date_created"
+            order_by = ["-date_created" if desc else "date_created"]
 
         elif sort_by == "dateUpdated":
-            order_by = "-date_updated" if desc else "date_updated"
+            order_by = ["-date_updated" if desc else "date_updated"]
 
         elif sort_by == "mostPopular":
             order_by = [
@@ -73,19 +78,21 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = "last_visited" if desc else "-last_visited"
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "myqueries":
             order_by = [
-                Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default="created_by_id",
+                    output_field=IntegerField(),
+                ),
                 "-date_created",
             ]
 
         else:
-            order_by = "lower_name"
+            order_by = ["lower_name"]
 
-        if not isinstance(order_by, list):
-            order_by = [order_by]
         queryset = queryset.order_by(*order_by)
 
         # Old discover expects all queries and uses this parameter.

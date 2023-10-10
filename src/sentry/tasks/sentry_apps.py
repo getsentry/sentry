@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import celery
 
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.silo.base import SiloMode
 from sentry.tasks.sentry_functions import send_sentry_function_webhook
 
 if celery.version_info >= (5, 2):
@@ -21,19 +22,15 @@ from sentry import analytics, features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.models import (
-    Activity,
-    Group,
-    Organization,
-    Project,
-    SentryApp,
-    SentryAppInstallation,
-    SentryFunction,
-    ServiceHook,
-    ServiceHookProject,
-    User,
-)
-from sentry.models.integrations.sentry_app import VALID_EVENTS
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.integrations.sentry_app import VALID_EVENTS, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -46,12 +43,19 @@ TASK_OPTIONS = {
     "queue": "app_platform",
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
+    "record_timing": True,
+}
+CONTROL_TASK_OPTIONS = {
+    "queue": "app_platform.control",
+    "default_retry_delay": (60 * 5),  # Five minutes.
+    "max_retries": 3,
+    "silo_mode": SiloMode.CONTROL,
 }
 
-RETRY_OPTIONS = {
-    "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (ClientError,),
-}
+retry_decorator = retry(
+    on=(RequestException, ApiHostError, ApiTimeoutError),
+    ignore=(ClientError,),
+)
 
 # We call some models by a different name, publicly, than their class name.
 # For example the model Group is called "Issue" in the UI. We want the Service
@@ -87,8 +91,10 @@ def _webhook_event_data(event, group_id, project_id):
     return event_context
 
 
-@instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@instrumented_task(
+    name="sentry.tasks.sentry_apps.send_alert_event", silo_mode=SiloMode.REGION, **TASK_OPTIONS
+)
+@retry_decorator
 def send_alert_event(
     event: Event,
     rule: str,
@@ -233,13 +239,13 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@retry_decorator
 def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
-@instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
+@retry_decorator
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
 
@@ -261,10 +267,12 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@retry_decorator
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
-
+    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+    if not webhook_data:
+        return
+    install, issue, user = webhook_data
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
@@ -277,9 +285,12 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@retry_decorator
 def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
-    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+    if not webhook_data:
+        return
+    install, _, user = webhook_data
     data = kwargs.get("data", {})
     project_slug = data.get("project_slug")
     comment_id = data.get("comment_id")
@@ -291,7 +302,7 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
         "comment": data.get("comment"),
     }
     send_webhooks(installation=install, event=type, data=payload, actor=user)
-    # type is comment.created, comment.updated, or comment.deleted
+    # `type` is comment.created, comment.updated, or comment.deleted
     analytics.record(
         type,
         user_id=user_id,
@@ -305,6 +316,8 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
 def get_webhook_data(installation_id, issue_id, user_id):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
+        # TODO(hybridcloud) This needs to use the sentryapp service
+        # as we call this from region silos
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
         )
@@ -329,7 +342,7 @@ def get_webhook_data(installation_id, issue_id, user_id):
 
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+@retry_decorator
 def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
     try:
         installation = SentryAppInstallation.objects.get(

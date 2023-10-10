@@ -1,40 +1,43 @@
 import math
-from base64 import b64encode
-from datetime import timedelta
+import uuid
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
-from freezegun import freeze_time
-from pytz import utc
+from django.utils import timezone as django_timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
+from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    PerformanceIssueTestCase,
+    ProfilesSnubaTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-@region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -57,13 +60,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             kwargs={"organization_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None):
+    def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json")
+            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
@@ -87,6 +90,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
+
+@region_silo_test(stable=True)
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
 
@@ -95,35 +101,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["meta"] == {
             "tips": {"query": "Need at least one valid project to query."}
         }
-
-    def test_api_key_request(self):
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "environment": "staging",
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=self.project.id,
-        )
-
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
-        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
-
-        url = self.reverse_url()
-        response = self.client_get(
-            url,
-            query,
-            format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_environment_filter(self):
         self.create_environment(self.project, name="production")
@@ -178,6 +155,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
+
+    def test_multi_project_feature_gate_replays(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
+        assert response.status_code == 200
 
     def test_invalid_search_terms(self):
         self.create_project()
@@ -300,32 +287,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
-
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
-        self.create_project()
-
-        mock_snql_query.side_effect = RateLimitExceeded("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
-
-        mock_snql_query.side_effect = QueryExecutionError("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-        assert response.status_code == 500, response.content
-        assert response.data["detail"] == "Internal error. Your query failed to run."
-
-        mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
     def test_out_of_retention(self):
         self.create_project()
@@ -592,183 +553,27 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_filter(self):
-        data = load_data(
-            platform="transaction",
-            timestamp=self.ten_mins_ago,
-            start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-    def test_performance_issue_issue_platform_issue_ids_filter(self):
-        # Just a duplicate of `test_generic_issue_ids_filter` to verify that perf issues read from
-        # the issue platform correctly here. Remove once we kill the related flags.
-        data = load_data(
-            platform="transaction",
-            timestamp=self.ten_mins_ago,
-            start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            event = self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} issue:{event.groups[0].qualified_short_id}",
-            "dataset": "issuePlatform",
-        }
-        with self.feature(
-            ["organizations:issue-platform-search-perf-issues", "organizations:profiling"]
-        ):
-            response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-    def test_generic_issue_ids_filter(self):
-        user_data = {
-            "id": self.user.id,
-            "username": "user",
-            "email": "hellboy@bar.com",
-            "ip_address": "127.0.0.1",
-        }
-        event, _, group_info = self.store_search_issue(
-            self.project.id,
-            self.user.id,
-            [f"{ProfileFileIOGroupType.type_id}-group1"],
-            "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
-            user=user_data,
-        )
-        event, _, group_info = self.store_search_issue(
-            self.project.id,
-            self.user.id,
-            [f"{ProfileFileIOGroupType.type_id}-group2"],
-            "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
-            user=user_data,
-        )
-
-        query = {
-            "field": ["title", "release", "environment", "user.display", "timestamp"],
-            "statsPeriod": "90d",
-            "query": f"issue.id:{group_info.group.id}",
-            "dataset": "issuePlatform",
-        }
-        with self.feature(["organizations:profiling"]):
-            response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["title"] == group_info.group.title
-        assert response.data["data"][0]["environment"] == "prod"
-        assert response.data["data"][0]["user.display"] == user_data["email"]
-        assert response.data["data"][0]["timestamp"] == event.timestamp
-
-        query = {
-            "field": ["title", "release", "environment", "user.display", "timestamp"],
-            "statsPeriod": "90d",
-            "query": f"issue:{group_info.group.qualified_short_id}",
-            "dataset": "issuePlatform",
-        }
-        with self.feature(["organizations:profiling"]):
-            response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["title"] == group_info.group.title
-        assert response.data["data"][0]["environment"] == "prod"
-        assert response.data["data"][0]["user.display"] == user_data["email"]
-        assert response.data["data"][0]["timestamp"] == event.timestamp
-
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
-
-    def test_performance_issue_ids_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:undefined",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_performance_issue_ids_array_with_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefined]",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
     def test_performance_short_group_id(self):
-        project = self.create_project(name="foo bar")
-        data = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=project.id)
-
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
     def test_multiple_performance_short_group_ids_filter(self):
-        project = self.create_project(name="foo bar")
-        data1 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event1 = self.store_event(data=data1, project_id=project.id)
-
-        data2 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group2"],
-        )
-        event2 = self.store_event(data=data2, project_id=project.id)
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
@@ -1441,13 +1246,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -2663,6 +2468,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert data[0]["epm()"] == 0.5
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["epm()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
 
     def test_nonexistent_fields(self):
         self.store_event(
@@ -3088,41 +2896,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert len(data) == 2
         result = {r["user.display"] for r in data}
         assert result == {"catherine", "cathy@example.com"}
-
-    def test_user_display_issue_platform(self):
-        project1 = self.create_project()
-        user_data = {
-            "id": self.user.id,
-            "username": "user",
-            "email": "hellboy@bar.com",
-            "ip_address": "127.0.0.1",
-        }
-        _, _, group_info = self.store_search_issue(
-            project1.id,
-            1,
-            ["group1-fingerprint"],
-            None,
-            before_now(hours=1).replace(tzinfo=timezone.utc),
-            user=user_data,
-        )
-
-        features = {
-            "organizations:discover-basic": True,
-            "organizations:global-views": True,
-            "organizations:profiling": True,
-        }
-        query = {
-            "field": ["user.display"],
-            "query": f"user.display:hell* issue.id:{group_info.group.id}",
-            "statsPeriod": "24h",
-            "dataset": "issuePlatform",
-        }
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        result = {r["user.display"] for r in data}
-        assert result == {user_data["email"]}
 
     def test_user_display_with_aggregates(self):
         self.store_event(
@@ -4309,7 +4082,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -4330,73 +4103,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         query = {"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""}
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_valid_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "referrer": "api.performance.transaction-summary",
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_invalid_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "referrer": "api.performance.invalid",
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], self.referrer)
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_empty_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], self.referrer)
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
-        mock.return_value = {}
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
-
-        query = {
-            "field": ["project.name", "environment"],
-            "project": [self.project.id],
-        }
-
-        features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        url = self.reverse_url()
-
-        with self.feature(features):
-            self.client_get(
-                url,
-                query,
-                format="json",
-                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
-            )
-
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     def test_limit_number_of_fields(self):
         self.create_project()
@@ -5599,257 +5305,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 200, response.content
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    def test_profiles_dataset_simple(self, mock_snql_query):
-        mock_snql_query.side_effect = [
-            {
-                "data": [
-                    {
-                        "project": self.project.id,
-                        "transaction": "foo",
-                        "last_seen": "2022-10-20T16:41:22+00:00",
-                        "latest_event": "a" * 32,
-                        "count": 1,
-                        "count_unique_transaction": 1,
-                        "percentile_profile_duration_0_25": 1,
-                        "p50_profile_duration": 1,
-                        "p75_profile_duration": 1,
-                        "p95_profile_duration": 1,
-                        "p99_profile_duration": 1,
-                        "p100_profile_duration": 1,
-                        "min_profile_duration": 1,
-                        "max_profile_duration": 1,
-                        "avg_profile_duration": 1,
-                        "sum_profile_duration": 1,
-                    },
-                ],
-                "meta": [
-                    {
-                        "name": "project",
-                        "type": "UInt64",
-                    },
-                    {
-                        "name": "transaction",
-                        "type": "LowCardinality(String)",
-                    },
-                    {
-                        "name": "last_seen",
-                        "type": "DateTime",
-                    },
-                    {
-                        "name": "latest_event",
-                        "type": "String",
-                    },
-                    {
-                        "name": "count",
-                        "type": "UInt64",
-                    },
-                    {
-                        "name": "count_unique_transaction",
-                        "type": "UInt64",
-                    },
-                    {
-                        "name": "percentile_profile_duration_0_25",
-                        "type": "Float64",
-                    },
-                    *[
-                        {
-                            "name": f"{fn}_profile_duration",
-                            "type": "Float64",
-                        }
-                        for fn in ["p50", "p75", "p95", "p99", "p100", "min", "max", "avg", "sum"]
-                    ],
-                ],
-            },
-        ]
-
-        fields = [
-            "project",
-            "transaction",
-            "last_seen()",
-            "latest_event()",
-            "count()",
-            "count_unique(transaction)",
-            "percentile(profile.duration, 0.25)",
-            "p50(profile.duration)",
-            "p75(profile.duration)",
-            "p95(profile.duration)",
-            "p99(profile.duration)",
-            "p100(profile.duration)",
-            "min(profile.duration)",
-            "max(profile.duration)",
-            "avg(profile.duration)",
-            "sum(profile.duration)",
-        ]
-
-        query = {
-            "field": fields,
-            "project": [self.project.id],
-            "dataset": "profiles",
-        }
-        response = self.do_request(query, features={"organizations:profiling": True})
-        assert response.status_code == 200, response.content
-
-        # making sure the response keys are in the form we expect and not aliased
-        data_keys = {key for row in response.data["data"] for key in row}
-        field_keys = {key for key in response.data["meta"]["fields"]}
-        unit_keys = {key for key in response.data["meta"]["units"]}
-        assert set(fields) == data_keys
-        assert set(fields) == field_keys
-        assert set(fields) == unit_keys
-
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    def test_functions_dataset_simple(self, mock_snql_query):
-        mock_snql_query.side_effect = [
-            {
-                "data": [
-                    {
-                        "name": "foo_fn",
-                        "transaction": "foo_tx",
-                        "is_application": 1,
-                        "project": "python",
-                        "release": "backend@1",
-                        "platform.name": "python",
-                        "os.name": "Darwin",
-                        "retention_days": 90,
-                        "path": "/lib/foo",
-                        "package": "lib_foo",
-                        "environment": "development",
-                        "os.version": "22.3.0",
-                        "p95()": 92592143.6,
-                        "p50()": 34695708.0,
-                        "p99()": 103764495.12000002,
-                        "p75()": 45980969.0,
-                        "examples()": [
-                            "b04bafc3-78ea-421b-83b8-680fd1caea52",
-                            "ceac40e4-0a0c-44ad-b7f7-b1e07f02586f",
-                            "6919e407-6b4a-46bb-af1f-3ef1f0666147",
-                            "68acd0a8-bdea-46a5-9ba2-3907152b1ce5",
-                            "8ad29465-8669-4c1b-83d8-17fab3bccbc1",
-                        ],
-                        "worst()": "6919e407-6b4a-46bb-af1f-3ef1f0666147",
-                        "count()": 12,
-                    },
-                ],
-                "meta": [
-                    {
-                        "name": "name",
-                        "type": "String",
-                    },
-                    {
-                        "name": "transaction",
-                        "type": "String",
-                    },
-                    {
-                        "name": "is_application",
-                        "type": "UInt8",
-                    },
-                    {
-                        "name": "project",
-                        "type": "String",
-                    },
-                    {
-                        "name": "release",
-                        "type": "String",
-                    },
-                    {
-                        "name": "platform.name",
-                        "type": "String",
-                    },
-                    {
-                        "name": "os.name",
-                        "type": "String",
-                    },
-                    {
-                        "name": "retention_days",
-                        "type": "UInt16",
-                    },
-                    {
-                        "name": "path",
-                        "type": "String",
-                    },
-                    {
-                        "name": "package",
-                        "type": "String",
-                    },
-                    {
-                        "name": "environment",
-                        "type": "String",
-                    },
-                    {
-                        "name": "os.version",
-                        "type": "String",
-                    },
-                    {
-                        "name": "p95()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p50()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p99()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p75()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "examples()",
-                        "type": "Array(String)",
-                    },
-                    {
-                        "name": "worst()",
-                        "type": "String",
-                    },
-                    {
-                        "name": "count()",
-                        "type": "UInt64",
-                    },
-                ],
-            }
-        ]
-
-        fields = [
-            "transaction",
-            "project",
-            "name",
-            "package",
-            "path",
-            "is_application",
-            "platform.name",
-            "environment",
-            "release",
-            "os.name",
-            "os.version",
-            "retention_days",
-            "count()",
-            "worst()",
-            "examples()",
-            "p50()",
-            "p75()",
-            "p95()",
-            "p99()",
-        ]
-
-        query = {
-            "field": fields,
-            "project": [self.project.id],
-            "dataset": "profile_functions",
-        }
-        response = self.do_request(query, features={"organizations:profiling": True})
-        assert response.status_code == 200, response.content
-
-        # making sure the response keys are in the form we expect and not aliased
-        data_keys = {key for row in response.data["data"] for key in row}
-        field_keys = {key for key in response.data["meta"]["fields"]}
-        unit_keys = {key for key in response.data["meta"]["units"]}
-        assert set(fields) == data_keys
-        assert set(fields) == field_keys
-        assert set(fields) == unit_keys
-
     def test_readable_device_name(self):
         data = self.load_data()
         data["tags"] = {"device": "iPhone14,3"}
@@ -6189,3 +5644,402 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["epm()"] == 12.5
         assert data[0]["floored_epm()"] == 10
+
+
+@region_silo_test
+class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_profiles_dataset_simple(self, mock_snql_query):
+        mock_snql_query.side_effect = [
+            {
+                "data": [
+                    {
+                        "project": self.project.id,
+                        "transaction": "foo",
+                        "last_seen": "2022-10-20T16:41:22+00:00",
+                        "latest_event": "a" * 32,
+                        "count": 1,
+                        "count_unique_transaction": 1,
+                        "percentile_profile_duration_0_25": 1,
+                        "p50_profile_duration": 1,
+                        "p75_profile_duration": 1,
+                        "p95_profile_duration": 1,
+                        "p99_profile_duration": 1,
+                        "p100_profile_duration": 1,
+                        "min_profile_duration": 1,
+                        "max_profile_duration": 1,
+                        "avg_profile_duration": 1,
+                        "sum_profile_duration": 1,
+                    },
+                ],
+                "meta": [
+                    {
+                        "name": "project",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "transaction",
+                        "type": "LowCardinality(String)",
+                    },
+                    {
+                        "name": "last_seen",
+                        "type": "DateTime",
+                    },
+                    {
+                        "name": "latest_event",
+                        "type": "String",
+                    },
+                    {
+                        "name": "count",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "count_unique_transaction",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "percentile_profile_duration_0_25",
+                        "type": "Float64",
+                    },
+                    *[
+                        {
+                            "name": f"{fn}_profile_duration",
+                            "type": "Float64",
+                        }
+                        for fn in ["p50", "p75", "p95", "p99", "p100", "min", "max", "avg", "sum"]
+                    ],
+                ],
+            },
+        ]
+
+        fields = [
+            "project",
+            "transaction",
+            "last_seen()",
+            "latest_event()",
+            "count()",
+            "count_unique(transaction)",
+            "percentile(profile.duration, 0.25)",
+            "p50(profile.duration)",
+            "p75(profile.duration)",
+            "p95(profile.duration)",
+            "p99(profile.duration)",
+            "p100(profile.duration)",
+            "min(profile.duration)",
+            "max(profile.duration)",
+            "avg(profile.duration)",
+            "sum(profile.duration)",
+        ]
+
+        query = {
+            "field": fields,
+            "project": [self.project.id],
+            "dataset": "profiles",
+        }
+        response = self.do_request(query, features={"organizations:profiling": True})
+        assert response.status_code == 200, response.content
+
+        # making sure the response keys are in the form we expect and not aliased
+        data_keys = {key for row in response.data["data"] for key in row}
+        field_keys = {key for key in response.data["meta"]["fields"]}
+        unit_keys = {key for key in response.data["meta"]["units"]}
+        assert set(fields) == data_keys
+        assert set(fields) == field_keys
+        assert set(fields) == unit_keys
+
+
+@region_silo_test
+class OrganizationEventsProfileFunctionsDatasetEndpointTest(
+    OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
+):
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=before_now(hours=3),
+        )
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [150 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=before_now(hours=1),
+        )
+
+        mid = before_now(hours=2)
+
+        fields = [
+            "transaction",
+            "project",
+            "function",
+            "package",
+            "is_application",
+            "platform.name",
+            "environment",
+            "release",
+            "count()",
+            "examples()",
+            "p50()",
+            "p75()",
+            "p95()",
+            "p99()",
+            "avg()",
+            "sum()",
+            f"percentile_before(function.duration, 0.95, {int(mid.timestamp())})",
+            f"percentile_after(function.duration, 0.95, {int(mid.timestamp())})",
+            f"percentile_delta(function.duration, 0.95, {int(mid.timestamp())})",
+        ]
+
+        response = self.do_request(
+            {
+                "field": fields,
+                "statsPeriod": "4h",
+                "project": [self.project.id],
+                "dataset": "profileFunctions",
+            },
+            features={"organizations:profiling": True},
+        )
+        assert response.status_code == 200, response.content
+
+        # making sure the response keys are in the form we expect and not aliased
+        data_keys = {key for row in response.data["data"] for key in row}
+        field_keys = {key for key in response.data["meta"]["fields"]}
+        unit_keys = {key for key in response.data["meta"]["units"]}
+        assert set(fields) == data_keys
+        assert set(fields) == field_keys
+        assert set(fields) == unit_keys
+        assert response.data["meta"]["units"] == {
+            "transaction": None,
+            "project": None,
+            "function": None,
+            "package": None,
+            "is_application": None,
+            "platform.name": None,
+            "environment": None,
+            "release": None,
+            "count()": None,
+            "examples()": None,
+            "p50()": "nanosecond",
+            "p75()": "nanosecond",
+            "p95()": "nanosecond",
+            "p99()": "nanosecond",
+            "avg()": "nanosecond",
+            "sum()": "nanosecond",
+            f"percentile_before(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
+            f"percentile_after(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
+            f"percentile_delta(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
+        }
+
+
+@region_silo_test
+class OrganizationEventsIssuePlatformDatasetEndpointTest(
+    OrganizationEventsEndpointTestBase, SearchIssueTestMixin, PerformanceIssueTestCase
+):
+    def test_performance_issue_id_filter(self):
+        event = self.create_performance_issue()
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"issue.id:{event.group.id}",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_generic_issue_ids_filter(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        event, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+        event, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group2"],
+            "prod",
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+        assert group_info is not None
+
+        query = {
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue.id:{group_info.group.id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(["organizations:profiling"]):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert response.data["data"][0]["user.display"] == user_data["email"]
+        assert response.data["data"][0]["timestamp"] == event.timestamp
+
+        query = {
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue:{group_info.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(["organizations:profiling"]):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert response.data["data"][0]["user.display"] == user_data["email"]
+        assert response.data["data"][0]["timestamp"] == event.timestamp
+
+    def test_performance_short_group_id(self):
+        event = self.create_performance_issue()
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_multiple_performance_short_group_ids_filter(self):
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2
+
+    def test_user_display_issue_platform(self):
+        project1 = self.create_project()
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        _, _, group_info = self.store_search_issue(
+            project1.id,
+            1,
+            ["group1-fingerprint"],
+            None,
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+        assert group_info is not None
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:profiling": True,
+        }
+        query = {
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_info.group.id}",
+            "statsPeriod": "24h",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["user.display"] for r in data}
+        assert result == {user_data["email"]}
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        profile_id = str(uuid.uuid4())
+        event = self.create_performance_issue(
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay_id},
+                "profile": {"profile_id": profile_id},
+            },
+            user_data=user_data,
+        )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "url",
+                "runtime",
+                "replayId",
+                "profile.id",
+                "transaction.duration",
+                "timestamp",
+            ],
+            "statsPeriod": "1h",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "transaction": event.transaction,
+            "project.name": event.project.name.lower(),
+            "title": event.group.title,
+            "release": event.release,
+            "environment": event.get_environment().name,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "url": event.interfaces.data["request"].full_url,
+            "runtime": dict(event.get_raw_data()["tags"])["runtime"],
+            "replayId": replay_id.replace("-", ""),
+            "profile.id": profile_id.replace("-", ""),
+            "transaction.duration": 3000,
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }

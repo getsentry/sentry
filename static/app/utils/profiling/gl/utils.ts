@@ -3,11 +3,12 @@ import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp} from '../colors/utils';
+import {clamp, colorComponentsToRGBA} from '../colors/utils';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
@@ -134,14 +135,11 @@ function onResize(entries: ResizeObserverEntry[]) {
     let width;
     let height;
     let dpr = window.devicePixelRatio;
-    // @ts-ignore use as a progressive enhancement, some browsers don't support this yet
     if (entry.devicePixelContentBoxSize) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      // @ts-ignore
       width = entry.devicePixelContentBoxSize[0].inlineSize;
-      // @ts-ignore
       height = entry.devicePixelContentBoxSize[0].blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
@@ -149,9 +147,9 @@ function onResize(entries: ResizeObserverEntry[]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-ignore
+        // @ts-expect-error
         width = entry.contentBoxSize.inlineSize;
-        // @ts-ignore
+        // @ts-expect-error
         height = entry.contentBoxSize.blockSize;
       }
     } else {
@@ -256,7 +254,7 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
 // Exported separately as writing export function for each overload as
 // breaks the line width rules and makes it harder to read.
 export {getContext};
-
+export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
     return Rect.Empty();
@@ -284,6 +282,16 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
 export function upperBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
+): number;
+export function upperBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function upperBound<T extends {end: number; start: number} | {x: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T> | Record<any, any>,
+  getValue?: (value: T) => number
 ) {
   let low = 0;
   let high = values.length;
@@ -293,13 +301,20 @@ export function upperBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].start < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].start < target
+      ? 1
+      : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].start;
 
-    if (values[mid].start < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -319,7 +334,17 @@ export function upperBound<T extends {end: number; start: number}>(
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
-) {
+): number;
+export function lowerBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue?: (value: T) => number
+): number {
   let low = 0;
   let high = values.length;
 
@@ -328,13 +353,20 @@ export function lowerBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].end < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].end < target
+      ? 1
+      : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].end;
 
-    if (values[mid].end < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -350,23 +382,25 @@ export function formatColorForSpan(
 ): string {
   const color = renderer.getColorForFrame(frame);
   if (Array.isArray(color)) {
-    if (color.length === 4) {
-      return `rgba(${color
-        .slice(0, 3)
-        .map(n => n * 255)
-        .join(',')}, ${color[3]})`;
-    }
-
-    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return colorComponentsToRGBA(color);
   }
   return '';
 }
 
+export function formatColorForFrame(frame: FlamegraphFrame, color: ColorChannels): string;
 export function formatColorForFrame(
   frame: FlamegraphFrame,
-  renderer: FlamegraphRenderer
+  color: FlamegraphRenderer
+): string;
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  rendererOrColor: FlamegraphRenderer | ColorChannels
 ): string {
-  const color = renderer.getColorForFrame(frame);
+  if (Array.isArray(rendererOrColor)) {
+    return colorComponentsToRGBA(rendererOrColor);
+  }
+
+  const color = rendererOrColor.getColorForFrame(frame);
   if (color.length === 4) {
     return `rgba(${color
       .slice(0, 3)
@@ -377,7 +411,6 @@ export function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
-export const ELLIPSIS = '\u2026';
 export interface TrimTextCenter {
   end: number;
   length: number;
@@ -385,6 +418,14 @@ export interface TrimTextCenter {
   text: string;
 }
 
+export function hexToColorChannels(color: string, alpha: number): ColorChannels {
+  return [
+    parseInt(color.slice(1, 3), 16) / 255,
+    parseInt(color.slice(3, 5), 16) / 255,
+    parseInt(color.slice(5, 7), 16) / 255,
+    alpha,
+  ];
+}
 // Utility function to compute a clamped view. This is essentially a bounds check
 // to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(

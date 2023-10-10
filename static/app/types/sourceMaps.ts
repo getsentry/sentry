@@ -1,20 +1,28 @@
+export type DebugIdBundleAssociation = {
+  dist: string[] | string | null;
+  release: string;
+};
+
 export type DebugIdBundle = {
+  associations: DebugIdBundleAssociation[];
   bundleId: string;
   date: string;
-  dist: string | null;
+  dateModified: string;
   fileCount: number;
-  release: string | null;
 };
 
 export type DebugIdBundleArtifact = {
+  associations: DebugIdBundleAssociation[];
   bundleId: string;
-  dist: string | null;
+  date: string;
+  dateModified: string;
+  fileCount: number;
   files: {
     debugId: string;
     filePath: string;
     fileSize: number;
     fileType: number;
     id: string;
+    sourcemap: string | null;
   }[];
-  release: string | null;
 };

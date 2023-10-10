@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   DashboardDetails,
   DisplayType,
@@ -109,7 +111,7 @@ describe('Dashboards util', () => {
     beforeEach(() => {
       widget = {
         title: 'Test Query',
-        displayType: DisplayType.WORLD_MAP,
+        displayType: DisplayType.AREA,
         widgetType: WidgetType.DISCOVER,
         interval: '5m',
         queries: [
@@ -124,41 +126,10 @@ describe('Dashboards util', () => {
         ],
       };
     });
-    it('attaches a geo.country_code condition and field to a World Map widget if it does not already have one', () => {
-      const eventView = eventViewFromWidget(
-        widget.title,
-        widget.queries[0],
-        selection,
-        widget.displayType
-      );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
-      expect(eventView.query).toEqual('has:geo.country_code');
-    });
-    it('does not attach geo.country_code condition and field to a World Map widget if it already has one', () => {
-      widget.queries.fields = ['geo.country_code', 'count()'];
-      widget.conditions = 'has:geo.country_code';
-      const eventView = eventViewFromWidget(
-        widget.title,
-        widget.queries[0],
-        selection,
-        widget.displayType
-      );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
-      expect(eventView.query).toEqual('has:geo.country_code');
-    });
     it('handles sorts in function format', () => {
       const query = {...widget.queries[0], orderby: '-count()'};
-      const eventView = eventViewFromWidget(
-        widget.title,
-        query,
-        selection,
-        widget.displayType
-      );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
-      expect(eventView.query).toEqual('has:geo.country_code');
+      const eventView = eventViewFromWidget(widget.title, query, selection);
+      expect(eventView.fields[0].field).toEqual('count()');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
     });
   });
@@ -200,7 +171,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the discover url of the widget query', () => {
-      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -222,7 +193,7 @@ describe('Dashboards util', () => {
           ],
         },
       };
-      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -247,7 +218,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the issue url of the widget query', () => {
-      const url = getWidgetIssueUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetIssueUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );

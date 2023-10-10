@@ -1,4 +1,4 @@
-import {ForwardedRef, forwardRef} from 'react';
+import {ForwardedRef, forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -8,14 +8,20 @@ const PANEL_WIDTH = '50vw';
 type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
+  onOpen?: () => void;
 };
 
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children}: SlideOverPanelProps,
+  {collapsed, children, onOpen}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
+  useEffect(() => {
+    if (!collapsed && onOpen) {
+      onOpen();
+    }
+  }, [collapsed, onOpen]);
   return (
     <_SlideOverPanel
       ref={ref}
@@ -35,7 +41,7 @@ function SlideOverPanel(
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['animate', 'transition'].includes(prop) ||
+    ['animate', 'transition', 'initial'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
   collapsed: boolean;

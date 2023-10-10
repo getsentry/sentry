@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,15 +11,13 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 describe('Breadcrumb Data Default', function () {
   const project = TestStubs.Project({
     id: '0',
-    relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+    relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
   });
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
       location: {query: {project: '0'}},
     },
-    project: '0',
     projects: [project],
   });
 

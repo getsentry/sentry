@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -161,7 +163,7 @@ describe('Request entry', function () {
 
     render(<Request event={event} data={event.entries[0].data} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 
@@ -182,9 +184,10 @@ describe('Request entry', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  describe('getBodySection', function () {
+  describe('body section', function () {
     it('should return plain-text when given unrecognized inferred Content-Type', function () {
       const data: EntryRequest['data'] = {
+        apiTarget: null,
         query: [],
         data: 'helloworld',
         headers: [],
@@ -208,7 +211,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -219,6 +222,7 @@ describe('Request entry', function () {
 
     it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
       const data: EntryRequest['data'] = {
+        apiTarget: null,
         query: [],
         data: {foo: ['bar'], bar: ['baz']},
         headers: [],
@@ -242,7 +246,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -253,6 +257,7 @@ describe('Request entry', function () {
 
     it('should return a ContextData element when inferred Content-Type is application/json', function () {
       const data: EntryRequest['data'] = {
+        apiTarget: null,
         query: [],
         data: {foo: 'bar'},
         headers: [],
@@ -276,7 +281,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -289,6 +294,7 @@ describe('Request entry', function () {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
       const data: EntryRequest['data'] = {
+        apiTarget: null,
         query: 'a%AFc',
         data: '',
         headers: [],
@@ -312,7 +318,7 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
           },
         })
       ).not.toThrow();
@@ -320,6 +326,7 @@ describe('Request entry', function () {
 
     it("should not cause an invariant violation if data.data isn't a string", function () {
       const data: EntryRequest['data'] = {
+        apiTarget: null,
         query: [],
         data: [{foo: 'bar', baz: 1}],
         headers: [],
@@ -343,10 +350,89 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
           },
         })
       ).not.toThrow();
+    });
+
+    describe('graphql', function () {
+      it('should render a graphql query and variables', function () {
+        const data: EntryRequest['data'] = {
+          apiTarget: 'graphql',
+          method: 'POST',
+          url: '/graphql/',
+          data: {
+            query: 'query Test { test }',
+            variables: {foo: 'bar'},
+            operationName: 'Test',
+          },
+        };
+
+        const event = {
+          ...TestStubs.Event(),
+          entries: [
+            {
+              type: EntryType.REQUEST,
+              data,
+            },
+          ],
+        };
+
+        render(<Request event={event} data={event.entries[0].data} />);
+
+        expect(screen.getByText('query Test { test }')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'operationName Test'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('row', {name: 'variables { foo : bar }'})
+        ).toBeInTheDocument();
+      });
+
+      it('highlights graphql query lines with errors', async function () {
+        const data: EntryRequest['data'] = {
+          apiTarget: 'graphql',
+          method: 'POST',
+          url: '/graphql/',
+          data: {
+            query: 'query Test { test }',
+            variables: {foo: 'bar'},
+            operationName: 'Test',
+          },
+        };
+
+        const event = {
+          ...TestStubs.Event(),
+          entries: [
+            {
+              type: EntryType.REQUEST,
+              data,
+            },
+          ],
+          contexts: {
+            response: {
+              data: {
+                errors: [{message: 'Very bad error', locations: [{line: 1, column: 2}]}],
+              },
+            },
+          },
+        };
+
+        const {container} = render(
+          <Request event={event} data={event.entries[0].data} />
+        );
+
+        expect(container.querySelector('.line-highlight')).toBeInTheDocument();
+        expect(
+          container.querySelector('.line-highlight')?.getAttribute('data-start')
+        ).toBe('1');
+        expect(
+          screen.getByText('There was 1 GraphQL error raised during this request.')
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByText(/There was 1 GraphQL error/i));
+
+        expect(screen.getByText('Line 1 Column 2: Very bad error')).toBeInTheDocument();
+      });
     });
   });
 });

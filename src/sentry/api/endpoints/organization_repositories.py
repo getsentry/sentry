@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -10,7 +11,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -21,6 +22,10 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 @region_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -39,14 +44,18 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
+        integration_id = request.GET.get("integration_id", None)
+        if integration_id:
+            queryset = queryset.filter(integration_id=integration_id)
+
         status = request.GET.get("status", "active")
         query = request.GET.get("query")
         if query:
             queryset = queryset.filter(Q(name__icontains=query))
         if status == "active":
-            queryset = queryset.filter(status=ObjectStatus.VISIBLE)
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
-            queryset = queryset.exclude(status=ObjectStatus.VISIBLE)
+            queryset = queryset.exclude(status=ObjectStatus.ACTIVE)
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":
@@ -63,9 +72,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             for i in integrations:
                 try:
-                    installation = integration_service.get_installation(
-                        integration=i, organization_id=organization.id
-                    )
+                    installation = i.get_installation(organization_id=organization.id)
                     repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()
@@ -77,6 +84,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         elif status:
             queryset = queryset.none()
+        elif status is None:
+            queryset = queryset.exclude(status=ObjectStatus.HIDDEN)
 
         return self.paginate(
             request=request,

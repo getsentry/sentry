@@ -1,5 +1,6 @@
 from typing import List
 
+from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import (
     IGNORE_HEALTH_CHECKS_FACTOR,
@@ -7,19 +8,7 @@ from sentry.dynamic_sampling.rules.utils import (
     PolymorphicRule,
     RuleType,
 )
-from sentry.models import Project
-
-# https://kubernetes.io/docs/reference/using-api/health-checks/
-# Also it covers: livez, readyz
-HEALTH_CHECK_GLOBS = [
-    "*healthcheck*",
-    "*healthy*",
-    "*live*",
-    "*ready*",
-    "*heartbeat*",
-    "*/health",
-    "*/healthz",
-]
+from sentry.models.project import Project
 
 
 class IgnoreHealthChecksBias(Bias):

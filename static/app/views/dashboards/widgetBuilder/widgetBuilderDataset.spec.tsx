@@ -1,5 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {SessionsField} from 'sentry-fixture/sessions';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -28,11 +31,6 @@ const defaultOrgFeatures = [
   'dashboards-rh-widget',
 ];
 
-// Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart', () => ({
-  WorldMapChart: () => null,
-}));
-
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
     id: '1',
@@ -60,7 +58,6 @@ function renderTestComponent({
   query?: Record<string, any>;
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -204,11 +201,6 @@ describe('WidgetBuilder', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
-    });
-
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -216,23 +208,19 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsField(`sum(session)`),
     });
 
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsField('sum(sentry.sessions.session)'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     measurementsMetaMock = MockApiClient.addMockResponse({
@@ -589,32 +577,6 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('render release dataset disabled when the display type is world map', async function () {
-      renderTestComponent({
-        query: {
-          source: DashboardWidgetSource.DISCOVERV2,
-        },
-      });
-
-      await userEvent.click(await screen.findByText('Table'));
-      await userEvent.click(screen.getByText('World Map'));
-
-      await waitFor(() =>
-        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
-      );
-
-      expect(
-        screen.getByRole('radio', {
-          name: 'Errors and Transactions',
-        })
-      ).toBeEnabled();
-      expect(
-        screen.getByRole('radio', {
-          name: 'Issues (States, Assignment, Time, etc.)',
-        })
-      ).toBeDisabled();
-    });
-
     it('renders with a release search bar', async function () {
       renderTestComponent();
 
@@ -843,7 +805,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
         const countFields = screen.getAllByText('count()');
@@ -1047,7 +1009,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));

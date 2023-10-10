@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import os
+from typing import Any
 
 import sentry_sdk
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.eventstore.models import Event
-from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
-from sentry.models import Project, ProjectDebugFile
+from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
@@ -28,7 +31,7 @@ def has_proguard_file(data):
     return get_path(images, 0, "type") == "proguard"
 
 
-def get_proguard_images(event: Event):
+def get_proguard_images(event: dict[str, Any]) -> set[str]:
     images = set()
     for image in get_path(
         event, "debug_meta", "images", filter=is_valid_proguard_image, default=()
@@ -37,7 +40,7 @@ def get_proguard_images(event: Event):
     return images
 
 
-def get_jvm_images(event: Event):
+def get_jvm_images(event: dict[str, Any]) -> set[str]:
     images = set()
     for image in get_path(event, "debug_meta", "images", filter=is_valid_jvm_image, default=()):
         images.add(str(image["debug_id"]).lower())
@@ -67,7 +70,7 @@ def get_proguard_mapper(uuid: str, project: Project):
     return mapper
 
 
-def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
+def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
     """
     Deobfuscates a view hierarchy in-place.
 

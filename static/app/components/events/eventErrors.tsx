@@ -10,7 +10,12 @@ import findBestThread from 'sentry/components/events/interfaces/threads/threadSe
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  CocoaProcessingErrors,
+  GenericSchemaErrors,
+  JavascriptProcessingErrors,
+  NativeProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -21,11 +26,28 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {semverCompare} from 'sentry/utils/versions';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {DataSection} from './styles';
 
-const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
+const ERRORS_TO_HIDE = [
+  JavascriptProcessingErrors.JS_MISSING_SOURCE,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP_LOCATION,
+  JavascriptProcessingErrors.JS_TOO_MANY_REMOTE_SOURCES,
+  JavascriptProcessingErrors.JS_INVALID_SOURCE_ENCODING,
+  JavascriptProcessingErrors.JS_SCRAPING_DISABLED,
+  GenericSchemaErrors.UNKNOWN_ERROR,
+  GenericSchemaErrors.MISSING_ATTRIBUTE,
+  NativeProcessingErrors.NATIVE_NO_CRASHED_THREAD,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
+  NativeProcessingErrors.NATIVE_MISSING_SYSTEM_DSYM,
+  NativeProcessingErrors.NATIVE_MISSING_SYMBOL,
+  NativeProcessingErrors.NATIVE_SIMULATOR_FRAME,
+  NativeProcessingErrors.NATIVE_UNKNOWN_IMAGE,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -45,6 +67,29 @@ function isDataMinified(str: string | null) {
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
 }
 
+function shouldErrorBeShown(error: EventErrorData, event: Event) {
+  if (
+    ERRORS_TO_HIDE.includes(
+      error.type as
+        | JavascriptProcessingErrors
+        | GenericSchemaErrors
+        | NativeProcessingErrors
+    )
+  ) {
+    return false;
+  }
+  if (
+    error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
+    event.sdk?.name === 'sentry.cocoa' &&
+    error.data?.name === 'contexts.trace.sampled' &&
+    semverCompare(event.sdk?.version || '', '8.7.4') === -1
+  ) {
+    // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
+    return false;
+  }
+  return true;
+}
+
 const hasThreadOrExceptionMinifiedFrameData = (
   definedEvent: Event,
   bestThread?: Thread
@@ -53,18 +98,20 @@ const hasThreadOrExceptionMinifiedFrameData = (
     const exceptionValues: Array<ExceptionValue> =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
-    return !!exceptionValues.find(exceptionValue =>
-      exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
+    return !!exceptionValues.find(
+      exceptionValue =>
+        exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
     );
   }
 
   const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
 
   return !!(threadExceptionValues
-    ? threadExceptionValues.find(threadExceptionValue =>
-        threadExceptionValue.stacktrace?.frames?.find(frame =>
-          isDataMinified(frame.module)
-        )
+    ? threadExceptionValues.find(
+        threadExceptionValue =>
+          threadExceptionValue.stacktrace?.frames?.find(frame =>
+            isDataMinified(frame.module)
+          )
       )
     : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
 };
@@ -240,8 +287,8 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors].filter(
-    error => !ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)
+  const errors = [...otherErrors, ...proguardErrors].filter(e =>
+    shouldErrorBeShown(e, event)
   );
 
   if (proguardErrorsLoading) {

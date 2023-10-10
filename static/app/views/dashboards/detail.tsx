@@ -87,7 +87,7 @@ const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
-  widgetId?: number;
+  widgetId?: number | string;
   widgetIndex?: number;
 };
 
@@ -154,7 +154,12 @@ class DashboardDetail extends Component<Props, State> {
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
-        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+        (dashboard.widgets.find(({id}) => {
+          // This ternary exists because widgetId is in some places typed as string, while
+          // in other cases it is typed as number. Instead of changing the type everywhere,
+          // we check for both cases at runtime as I am not sure which is the correct type.
+          return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
+        }) ??
           dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
@@ -165,6 +170,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
+          dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -458,6 +464,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -578,6 +585,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -638,6 +646,7 @@ class DashboardDetail extends Component<Props, State> {
       <PageFiltersContainer
         desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
         hideDesyncRevertButton
+        disablePersistence
         defaultSelection={{
           datetime: {
             start: null,
@@ -683,7 +692,6 @@ class DashboardDetail extends Component<Props, State> {
                 organization={organization}
                 eventView={EventView.fromLocation(location)}
                 location={location}
-                hideLoadingIndicator
               >
                 {metricsDataSide => (
                   <MEPSettingProvider
@@ -759,6 +767,7 @@ class DashboardDetail extends Component<Props, State> {
         <PageFiltersContainer
           desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
           hideDesyncRevertButton
+          disablePersistence
           defaultSelection={{
             datetime: {
               start: null,
@@ -816,7 +825,6 @@ class DashboardDetail extends Component<Props, State> {
                       organization={organization}
                       eventView={eventView}
                       location={location}
-                      hideLoadingIndicator
                     >
                       {metricsDataSide => (
                         <MEPSettingProvider
@@ -883,6 +891,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}

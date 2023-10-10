@@ -1,7 +1,8 @@
+import {EventsStats} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
@@ -10,17 +11,24 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
-  const eventStatsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
-    body: TestStubs.EventsStats(),
+  let eventStatsMock: jest.Func;
+  let eventCountsMock: jest.Func;
+  beforeEach(() => {
+    eventStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStats(),
+    });
+
+    eventCountsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+  });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
-  const eventCountsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-meta/',
-    body: {count: 5},
-  });
-
-  const api = new Client();
+  const api = new MockApiClient();
 
   it('renders a metric', async () => {
     const {organization, project, router} = initializeOrg();
@@ -41,7 +49,7 @@ describe('Incident Rules Create', () => {
         resolveThreshold={null}
         thresholdType={AlertRuleThresholdType.BELOW}
         newAlertOrQuery
-        handleMEPAlertDataset={() => {}}
+        onDataLoaded={() => {}}
         isQueryValid
       />
     );

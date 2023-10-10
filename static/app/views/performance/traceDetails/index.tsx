@@ -13,21 +13,47 @@ import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceFullDetailed,
+  TraceMeta,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
+import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
+import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
   api: Client;
   organization: Organization;
 };
 
+type State = {
+  limit: number;
+};
+
 class TraceSummary extends Component<Props> {
+  state: State = {
+    limit: DEFAULT_TRACE_ROWS_LIMIT,
+  };
+
+  componentDidMount(): void {
+    const {query} = this.props.location;
+
+    if (query.limit) {
+      this.setState({limit: query.limit});
+    }
+  }
+
+  handleLimitChange = (newLimit: number) => {
+    this.setState({limit: newLimit});
+  };
+
   getDocumentTitle(): string {
-    return [t('Trace Details'), t('Performance')].join(' - ');
+    return [t('Trace Details'), t('Performance')].join(' — ');
   }
 
   getTraceSlug(): string {
@@ -79,21 +105,30 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: TraceFullDetailed[] | null;
-    }) => (
-      <TraceDetailsContent
-        location={location}
-        organization={organization}
-        params={params}
-        traceSlug={traceSlug}
-        traceEventView={this.getTraceEventView()}
-        dateSelected={dateSelected}
-        isLoading={isLoading}
-        error={error}
-        traces={traces}
-        meta={meta}
-      />
-    );
+      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+    }) => {
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+        traces ?? [],
+        organization
+      );
+
+      return (
+        <TraceDetailsContent
+          location={location}
+          organization={organization}
+          params={params}
+          traceSlug={traceSlug}
+          traceEventView={this.getTraceEventView()}
+          dateSelected={dateSelected}
+          isLoading={isLoading}
+          error={error}
+          orphanErrors={orphanErrors}
+          traces={transactions ?? (traces as TraceFullDetailed[])}
+          meta={meta}
+          handleLimitChange={this.handleLimitChange}
+        />
+      );
+    };
 
     if (!dateSelected) {
       return content({
@@ -112,6 +147,7 @@ class TraceSummary extends Component<Props> {
         start={start}
         end={end}
         statsPeriod={statsPeriod}
+        limit={this.state.limit}
       >
         {traceResults => (
           <TraceMetaQuery

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.issues.grouptype import (
     ErrorGroupType,
@@ -9,17 +11,20 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
 )
-from sentry.models import Activity, Group, Project
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
     PREVIEW_TIME_RANGE,
+    GroupActivityMap,
     get_events,
     get_top_groups,
     preview,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
@@ -35,7 +40,7 @@ def get_hours(time: timedelta) -> int:
 
 @freeze_time()
 @region_silo_test
-class ProjectRulePreviewTest(TestCase, SnubaTestCase):
+class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.transaction_data = load_data(
@@ -77,6 +82,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
     def _test_preview(self, condition, expected):
         conditions = [{"id": condition}]
         result = preview(self.project, conditions, [], "all", "all", 60)
+        assert result is not None
         assert len(result) == expected
 
     def test_first_seen(self):
@@ -130,6 +136,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                 older.append(group)
 
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert result is not None
         assert all(g.id in result for g in newer)
         assert all(g.id not in result for g in older)
 
@@ -162,6 +169,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
 
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert result is not None
         for i in range(threshold + 1):
             assert groups[i].id not in result
         for i in range(threshold + 1, hours):
@@ -196,6 +204,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert result is not None
         assert all(group.id in result for group in errors)
         assert all(group.id not in result for group in n_plus_one)
 
@@ -225,10 +234,11 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupCategory.PROFILE.value,
+                "value": GroupCategory.PERFORMANCE.value,
             }
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert result is not None
         assert all(group.id not in result for group in errors)
         assert all(group.id in result for group in profile_file_io_main_thread)
 
@@ -238,15 +248,18 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [{"id": "sentry.rules.filters.level.LevelFilter", "level": "40", "match": "eq"}]
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id in results
 
         filters[0]["match"] = "gte"
         filters[0]["level"] = "50"
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id not in results
 
         filters[0]["match"] = "lte"
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id in results
 
     def test_tagged(self):
@@ -262,10 +275,12 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
 
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id in results
 
         filters[0]["value"] = "baz"
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id not in results
 
     def test_event_attribute(self):
@@ -281,10 +296,12 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
 
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id in results
 
         filters[0]["value"] = "goodbye world"
         results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
         assert event.group.id not in results
 
     def test_unsupported_conditions(self):
@@ -329,17 +346,18 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
 
         result = preview(self.project, mutually_exclusive, [], "all", "all", 60)
+        assert result is not None
         assert len(result) == 0
 
     def test_multiple_projects(self):
         other_project = Project.objects.create(organization=self.organization)
         prev_hour = timezone.now() - timedelta(hours=1)
-        groups = [[], []]
+        groups = []
         for i, project in enumerate((self.project, other_project)):
             first_seen = Group.objects.create(project=project, first_seen=prev_hour)
             regression = Group.objects.create(project=project)
             reappearance = Group.objects.create(project=project)
-            groups[i] = [first_seen, regression, reappearance]
+            groups.append((first_seen, regression, reappearance))
             Activity.objects.create(
                 project=project,
                 group=regression,
@@ -360,6 +378,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
         ]
         result = preview(self.project, conditions, [], "any", "all", 0)
+        assert result is not None
         # result should only contain groups of `self.project`
         assert all(g.id in result for g in groups[0])
         assert all(g.id not in result for g in groups[1])
@@ -387,22 +406,13 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert not result
+        assert result == {}
 
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = self.transaction_data.copy()
-        event.update(
-            {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
-                "tags": {"foo": "bar"},
-                "transaction": "this is where a transaction's 'message' is stored",
-            }
-        )
-        transaction = self.store_event(project_id=self.project.id, data=event)
+        transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
-        perf_issue = transaction.groups[0]
+        perf_issue = transaction.group
         perf_issue.update(first_seen=prev_hour)
         Activity.objects.create(
             project=self.project,
@@ -421,10 +431,12 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             }
         ]
         result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert result is not None
         assert perf_issue.id in result
 
         filters[0]["value"] = "baz"
         result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert result is not None
         assert perf_issue.id not in result
 
         filters = [
@@ -432,14 +444,16 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
                 "attribute": "message",
                 "match": "eq",
-                "value": "this is where a transaction's 'message' is stored",
+                "value": "N+1 Query",
             }
         ]
         result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert result is not None
         assert perf_issue.id in result
 
         filters[0]["value"] = "wrong message"
         result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert result is not None
         assert perf_issue.id not in result
         # this can be tested when SNS-1891 is fixed
         """
@@ -451,6 +465,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             "value": "bar",
         }]
         result = preview(self.project, conditions, filters, "all", "all", 0)
+        assert result is not None
         assert perf_issue.id in result
         """
 
@@ -463,17 +478,9 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         issue = error.group
         issue.update(first_seen=prev_hour)
 
-        event = self.transaction_data.copy()
-        event.update(
-            {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
-                "tags": {"foo": "bar"},
-            }
-        )
-        transaction = self.store_event(project_id=self.project.id, data=event)
+        transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
-        perf_issue = transaction.groups[0]
+        perf_issue = transaction.group
         perf_issue.update(first_seen=timezone.now() - timedelta(weeks=3))
         Activity.objects.create(
             project=self.project,
@@ -496,6 +503,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             }
         ]
         result = preview(self.project, conditions, filters, "any", "all", 0)
+        assert result is not None
         assert issue.id in result and perf_issue.id in result
 
     def test_triggered_times(self):
@@ -512,15 +520,19 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert result[self.group.id] == prev_hour
 
         result = preview(self.project, conditions, [], "all", "all", 180)
+        assert result is not None
         assert result[self.group.id] == prev_two_hour
 
 
 @freeze_time()
 @region_silo_test
-class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
+class FrequencyConditionTest(
+    TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
+):
     def setUp(self):
         super().setUp()
         self.transaction_data = load_data(
@@ -530,7 +542,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_top_groups(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        group_activity = {}
+        group_activity: GroupActivityMap = {}
         dataset_map = {}
         top_groups = set()
         for i in range(FREQUENCY_CONDITION_GROUP_LIMIT):
@@ -579,7 +591,6 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def test_event_frequency_condition(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         prev_two_hour = timezone.now() - timedelta(hours=2)
-        group = None
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 group = self.store_event(
@@ -592,7 +603,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 datetime=time,
             )
 
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -601,28 +612,32 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[1]["value"] = 5
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
         conditions[1]["interval"] = "1d"
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
     def test_transaction(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = self.transaction_data.copy()
-        event.update(
+        event_data = load_data("transaction-n-plus-one")
+
+        event_data.update(
             {
                 "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
                 "timestamp": iso_format(prev_hour),
                 "tags": {"foo": "bar"},
             }
         )
-        transaction = self.store_event(project_id=self.project.id, data=event)
-        group = transaction.groups[0]
+        transaction = self.create_performance_issue(event_data=event_data)
+        group = transaction.group
 
         Activity.objects.create(
             project=self.project,
@@ -632,7 +647,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"event_id": transaction.event_id},
         )
 
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -642,54 +657,16 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[1]["value"] = 1
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
-    def test_transaction_issue_platform(self):
-        # Duplicated test_transaction, remove once perf issues are migrated to the issue platform
-        prev_hour = timezone.now() - timedelta(hours=1)
-        event = self.transaction_data.copy()
-        event.update(
-            {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
-                "tags": {"foo": "bar"},
-            }
-        )
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            transaction = self.store_event(project_id=self.project.id, data=event)
-        group = transaction.groups[0]
-
-        Activity.objects.create(
-            project=self.project,
-            group=group,
-            type=ActivityType.SET_REGRESSION.value,
-            datetime=prev_hour,
-            data={"event_id": transaction.event_id},
-        )
-
-        conditions = [
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "value": 0,
-                "interval": "5m",
-            },
-        ]
-
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            result = preview(self.project, conditions, [], *MATCH_ARGS)
-            assert group.id in result
-
-            conditions[1]["value"] = 1
-            result = preview(self.project, conditions, [], *MATCH_ARGS)
-            assert group.id not in result
-
     def test_no_activity_event_filter(self):
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -699,7 +676,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert not result
+        assert result == {}
 
     def test_frequency_condition_alone(self):
         prev_hour = timezone.now() - timedelta(hours=1)
@@ -708,6 +685,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             group = self.store_event(
                 project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
             ).group
+        assert group is not None
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -716,10 +694,12 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             }
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[0]["value"] = 5
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
     def test_frequency_conditions(self):
@@ -731,6 +711,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 group = self.store_event(
                     project_id=self.project.id, data={"timestamp": iso_format(time)}
                 ).group
+        assert group is not None
 
         conditions = [
             {
@@ -745,13 +726,16 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[0]["value"] = 5
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
         result = preview(self.project, conditions, [], "any", "all", 0)
+        assert result is not None
         assert group.id in result
 
     def test_frequency_conditions_issue_platform(self):
@@ -781,13 +765,16 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert event.group.id in result
 
         conditions[0]["value"] = 5
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert event.group.id not in result
 
         result = preview(self.project, conditions, [], "any", "all", 0)
+        assert result is not None
         assert event.group.id in result
 
     def test_interval_comparison(self):
@@ -798,6 +785,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 group = self.store_event(
                     project_id=self.project.id, data={"timestamp": iso_format(time)}
                 ).group
+        assert group is not None
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -808,10 +796,12 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         ]
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[0]["value"] = 100
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
         conditions.append(
@@ -824,6 +814,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             }
         )
         result = preview(self.project, conditions, [], "any", "all", 0)
+        assert result is not None
         assert group.id in result
 
     def test_unique_user(self):
@@ -835,6 +826,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                     project_id=self.project.id,
                     data={"timestamp": iso_format(prev_hour), "user": {"id": str(user)}},
                 ).group
+        assert group is not None
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -844,10 +836,12 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[0]["value"] = 3
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
     def tests_multiple_freq_cond_types(self):
@@ -871,10 +865,12 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
 
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id in result
 
         conditions[1]["value"] = 1
         result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert result is not None
         assert group.id not in result
 
 

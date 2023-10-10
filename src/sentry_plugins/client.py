@@ -1,3 +1,4 @@
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 
@@ -56,7 +57,7 @@ class AuthApiClient(ApiClient):
         self.logger.info(
             "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
         )
-        self.auth.refresh_token()
+        usersocialauth_service.refresh_token(filter={"id": self.auth.id})
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
 

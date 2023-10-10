@@ -1,80 +1,115 @@
 # Please do not use
 #     from __future__ import annotations
-# in modules such as this one where hybrid cloud service classes and data models are
+# in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Optional, cast
+from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, router, transaction
 
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
+    RpcOrganizationMemberMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
+    serialize_org_member_mapping,
+)
+from sentry.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
-    def create_mapping(
+    def upsert_mapping(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
-        role: str,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
+        organizationmember_id: int,
+        mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user or email"
-        with transaction.atomic():
-            org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
-                organizationmember_id=organizationmember_id,
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                defaults={
-                    "role": role,
-                    "inviter_id": inviter_id,
-                    "invite_status": invite_status,
-                },
-            )
-        return self._serialize_rpc(org_member_mapping)
+        def apply_update(orm_mapping: OrganizationMemberMapping) -> None:
+            adding_user = orm_mapping.user_id is None and mapping.user_id is not None
+            orm_mapping.role = mapping.role
+            orm_mapping.user_id = mapping.user_id
+            orm_mapping.email = mapping.email
+            orm_mapping.inviter_id = mapping.inviter_id
+            orm_mapping.invite_status = mapping.invite_status
+            orm_mapping.organizationmember_id = organizationmember_id
+            orm_mapping.save()
 
-    def create_with_organization_member(
-        self, *, org_member: OrganizationMember
-    ) -> RpcOrganizationMemberMapping:
-        return self.create_mapping(
-            organizationmember_id=org_member.id,
-            organization_id=org_member.organization_id,
-            role=org_member.role,
-            user_id=org_member.user_id,
-            email=org_member.email,
-            inviter_id=org_member.inviter_id,
-            invite_status=org_member.invite_status,
+            if adding_user:
+                try:
+                    user = orm_mapping.user
+                except User.DoesNotExist:
+                    return
+                for outbox in user.outboxes_for_update():
+                    outbox.save()
+
+        orm_mapping: OrganizationMemberMapping = OrganizationMemberMapping(
+            organization_id=organization_id
         )
 
-    def delete_with_organization_member(
+        try:
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
+                orm_mapping = (
+                    self._find_organization_member(
+                        organization_id=organization_id,
+                        organizationmember_id=organizationmember_id,
+                    )
+                    or orm_mapping
+                )
+
+                apply_update(orm_mapping)
+                return serialize_org_member_mapping(orm_mapping)
+        except IntegrityError as e:
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
+            # This is "safe" since the upsert here should be a no-op.
+            if "fk_auth_user" in str(e):
+                if "inviter_id" in str(e):
+                    mapping.inviter_id = None
+                else:
+                    mapping.user_id = None
+            else:
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
+
+                if existing is None:
+                    raise e
+                else:
+                    orm_mapping = existing
+
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
+                apply_update(orm_mapping)
+
+        return serialize_org_member_mapping(orm_mapping)
+
+    def _find_organization_member(
+        self,
+        organization_id: int,
+        organizationmember_id: int,
+    ) -> Optional[OrganizationMemberMapping]:
+        return OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id, organizationmember_id=organizationmember_id
+        ).first()
+
+    def delete(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
+        organizationmember_id: int,
     ) -> None:
-        OrganizationMemberMapping.objects.filter(
+        org_member_map = self._find_organization_member(
             organization_id=organization_id,
             organizationmember_id=organizationmember_id,
-        ).delete()
-
-    def close(self) -> None:
-        pass
-
-    def _serialize_rpc(
-        self, org_member_mapping: OrganizationMemberMapping
-    ) -> RpcOrganizationMemberMapping:
-        return cast(
-            RpcOrganizationMemberMapping,
-            RpcOrganizationMemberMapping.serialize_by_field_name(org_member_mapping),
         )
+        if org_member_map:
+            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
+                org_member_map.delete()

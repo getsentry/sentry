@@ -1,7 +1,8 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -9,7 +10,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features: ['dashboards-edit'],
     }),
     router: {orgId: 'orgId'},
@@ -42,7 +43,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
-  const api = new Client();
+  const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

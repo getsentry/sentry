@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
@@ -11,49 +11,48 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertRuleAction,
+} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
-enum MetricValues {
+export enum MetricValues {
   ERRORS,
   USERS,
 }
-enum Actions {
+
+export enum RuleAction {
   ALERT_ON_EVERY_ISSUE,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
 }
 
-const UNIQUE_USER_FREQUENCY_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
-const EVENT_FREQUENCY_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
-export const EVENT_FREQUENCY_PERCENT_CONDITION =
-  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
-export const REAPPEARED_EVENT_CONDITION =
-  'sentry.rules.conditions.reappeared_event.ReappearedEventCondition';
 const ISSUE_ALERT_DEFAULT_ACTION: Omit<
   IssueAlertRuleAction,
   'label' | 'name' | 'prompt'
 > = {
-  id: 'sentry.mail.actions.NotifyEmailAction',
+  id: IssueAlertActionType.NOTIFY_EMAIL,
   targetType: 'IssueOwners',
 };
 
 const METRIC_CONDITION_MAP = {
-  [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
-  [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
+  [MetricValues.ERRORS]: IssueAlertConditionType.EVENT_FREQUENCY,
+  [MetricValues.USERS]: IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY,
 } as const;
 
-const DEFAULT_PLACEHOLDER_VALUE = '10';
-
 type StateUpdater = (updatedData: RequestDataFragment) => void;
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   onChange: StateUpdater;
   organization: Organization;
+  alertSetting?: string;
+  interval?: string;
+  metric?: MetricValues;
+  threshold?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   alertSetting: string;
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
@@ -82,10 +81,10 @@ function getConditionFrom(
   let condition: string;
   switch (metricValue) {
     case MetricValues.ERRORS:
-      condition = EVENT_FREQUENCY_CONDITION;
+      condition = IssueAlertConditionType.EVENT_FREQUENCY;
       break;
     case MetricValues.USERS:
-      condition = UNIQUE_USER_FREQUENCY_CONDITION;
+      condition = IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY;
       break;
     default:
       throw new RangeError('Supplied metric value is not handled');
@@ -111,16 +110,16 @@ function unpackConditions(conditions: any[]) {
   return {intervalChoices, interval: intervalChoices?.[0]?.[0]};
 }
 
-class IssueAlertOptions extends AsyncComponent<Props, State> {
+class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: Actions.ALERT_ON_EVERY_ISSUE.toString(),
-      metric: MetricValues.ERRORS,
-      interval: '',
-      threshold: '',
+      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
+      metric: this.props.metric ?? MetricValues.ERRORS,
+      interval: this.props.interval ?? '',
+      threshold: this.props.threshold ?? '10',
     };
   }
 
@@ -139,15 +138,15 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [string, string | React.ReactElement][] {
     const customizedAlertOption: [string, React.ReactNode] = [
-      Actions.CUSTOMIZED_ALERTS.toString(),
+      RuleAction.CUSTOMIZED_ALERTS.toString(),
       <CustomizeAlertsGrid
-        key={Actions.CUSTOMIZED_ALERTS}
+        key={RuleAction.CUSTOMIZED_ALERTS}
         onClick={e => {
           // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
           // propagation of the click up to the label, causing it to focus
           // the radio input and lose focus on the select.
           e.preventDefault();
-          const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();
+          const alertSetting = RuleAction.CUSTOMIZED_ALERTS.toString();
           this.setStateAndUpdateParents({alertSetting});
         }}
       >
@@ -156,7 +155,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           type="number"
           min="0"
           name=""
-          placeholder={DEFAULT_PLACEHOLDER_VALUE}
+          placeholder="10"
           value={this.state.threshold}
           onChange={threshold =>
             this.setStateAndUpdateParents({threshold: threshold.target.value})
@@ -181,9 +180,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     ];
 
     const options: [string, React.ReactNode][] = [
-      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
-      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
+      [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
     return options.map(([choiceValue, node]) => [
       choiceValue,
@@ -194,17 +193,17 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   getUpdatedData(): RequestDataFragment {
     let defaultRules: boolean;
     let shouldCreateCustomRule: boolean;
-    const alertSetting: Actions = parseInt(this.state.alertSetting, 10);
+    const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
-      case Actions.ALERT_ON_EVERY_ISSUE:
+      case RuleAction.ALERT_ON_EVERY_ISSUE:
         defaultRules = true;
         shouldCreateCustomRule = false;
         break;
-      case Actions.CREATE_ALERT_LATER:
+      case RuleAction.CREATE_ALERT_LATER:
         defaultRules = false;
         shouldCreateCustomRule = false;
         break;
-      case Actions.CUSTOMIZED_ALERTS:
+      case RuleAction.CUSTOMIZED_ALERTS:
         defaultRules = false;
         shouldCreateCustomRule = true;
         break;
@@ -254,7 +253,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['conditions', `/projects/${this.props.organization.slug}/rule-conditions/`]];
   }
 
@@ -285,10 +284,16 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       return;
     }
 
+    const newInterval =
+      this.props.interval &&
+      intervalChoices.some(intervalChoice => intervalChoice[0] === this.props.interval)
+        ? this.props.interval
+        : interval;
+
     this.setStateAndUpdateParents({
       conditions,
       intervalChoices,
-      interval,
+      interval: newInterval,
     });
   }
 
@@ -296,6 +301,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
+
     return (
       <Fragment>
         <PageHeadingWithTopMargins withMargins>

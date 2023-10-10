@@ -1,5 +1,5 @@
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
 
 # AuditLogEvents with custom render functions
@@ -119,6 +119,28 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
         return "edited project settings " + items_string
 
 
+class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=178,
+            name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
+            api_name="project.change-performance-issue-detection",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        from sentry.api.endpoints.project_performance_issue_settings import (
+            internal_only_project_settings_to_group_map as map,
+        )
+
+        data = audit_log_entry.data
+        items_string = ", ".join(
+            f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+            for (key, value) in data.items()
+            if key in map.keys()
+        )
+        return "edited project performance issue detector settings " + items_string
+
+
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
@@ -144,6 +166,16 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         return render_project_action(audit_log_entry, "disable")
+
+
+class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        return "modified ownership rules"
 
 
 class SSOEditAuditLogEvent(AuditLogEvent):
@@ -180,6 +212,15 @@ class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         full_url = audit_log_entry.data.get("url")
         return f'removed the service hook for "{truncatechars(full_url, 64)}"'
+
+
+class IntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        provider = audit_log_entry.data.get("provider") or ""
+        return f"disabled {provider} integration".format(**audit_log_entry.data)
 
 
 class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
@@ -239,3 +280,16 @@ class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
         return f"created internal integration {integration_name}"
+
+
+class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=131,
+            name="INTERNAL_INTEGRATION_DISABLED",
+            api_name="internal-integration.disable",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        integration_name = audit_log_entry.data.get("name") or ""
+        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)

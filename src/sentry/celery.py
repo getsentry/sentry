@@ -1,4 +1,5 @@
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+from datetime import datetime
 from itertools import chain
 
 import celery
@@ -21,8 +22,6 @@ LEGACY_PICKLE_TASKS = frozenset(
         "sentry.tasks.process_buffer.process_incr",
         "sentry.tasks.process_resource_change_bound",
         "sentry.tasks.sentry_apps.send_alert_event",
-        "sentry.tasks.store.symbolicate_event",
-        "sentry.tasks.store.symbolicate_event_low_priority",
         "sentry.tasks.unmerge",
         "src.sentry.notifications.utils.async_send_notification",
         # basic tasks that can already deal with primary keys passed
@@ -83,6 +82,10 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
+    def delay(self, *args, **kwargs):
+        kwargs["__start_time"] = datetime.now().timestamp()
+        return super().delay(*args, **kwargs)
+
     def apply_async(self, *args, **kwargs):
         # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
         # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
@@ -109,7 +112,3 @@ class SentryCelery(Celery):
 app = SentryCelery("sentry")
 app.config_from_object(settings)
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-
-from sentry.utils.monitors import connect
-
-connect(app)

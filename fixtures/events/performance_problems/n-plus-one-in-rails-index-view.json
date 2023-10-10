@@ -191,7 +191,7 @@
           "controller": "BooksController",
           "db_runtime": 3405.640000164509,
           "format": "html",
-          "method": "GET",
+          "http.method": "GET",
           "params": {"action": "index", "controller": "books"},
           "path": "/books",
           "status": 200,

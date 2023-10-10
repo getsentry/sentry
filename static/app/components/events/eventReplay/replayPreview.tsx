@@ -1,70 +1,94 @@
-import {useMemo} from 'react';
+import {ComponentProps, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
+import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconPlay} from 'sentry/icons';
+import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  event: Event;
+  eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
+  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event}: Props) {
+function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError, replayId} = useReplayData({
+  const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
-  const eventTimestamp = event.dateCreated
-    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
-    : 0;
 
-  const replayRecord = replay?.getReplay();
-
-  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
-
+  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
   const initialTimeOffsetMs = useMemo(() => {
-    if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs);
+    if (eventTimestampMs && startTimestampMs) {
+      return Math.abs(eventTimestampMs - startTimestampMs);
     }
 
     return 0;
-  }, [eventTimestamp, startTimestampMs]);
+  }, [eventTimestampMs, startTimestampMs]);
+
+  if (replayRecord?.is_archived) {
+    return (
+      <Alert type="warning" data-test-id="replay-error">
+        <Flex gap={space(0.5)}>
+          <IconDelete color="gray500" size="sm" />
+          {t('The replay for this event has been deleted.')}
+        </Flex>
+      </Alert>
+    );
+  }
 
   if (fetchError) {
     const reasons = [
-      t('The replay is still processing'),
-      t('The replay has been deleted by a member in your organization'),
-      t('There is an internal system error'),
+      tct(
+        'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
+        {
+          link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
+        }
+      ),
+      t('The replay has been deleted by a member in your organization.'),
+      t('There were network errors and the replay was not saved.'),
+      tct('[link:Read the docs] to understand why.', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+        ),
+      }),
     ];
 
     return (
-      <Alert type="info" showIcon data-test-id="replay-error">
+      <Alert
+        type="info"
+        showIcon
+        data-test-id="replay-error"
+        trailingItems={
+          <LinkButton
+            external
+            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
+            size="xs"
+          >
+            {t('Read Docs')}
+          </LinkButton>
+        }
+      >
         <p>
-          {tct(
-            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to these reasons:',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-              ),
-            }
+          {t(
+            'The replay for this event cannot be found. This could be due to these reasons:'
           )}
         </p>
         <List symbol="bullet">
@@ -87,7 +111,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
+    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
@@ -99,20 +123,24 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffsetMs={initialTimeOffsetMs}
+      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+          <LinkButton
+            {...buttonProps}
+            icon={<IconPlay />}
+            priority="primary"
+            to={fullReplayUrl}
+          >
             {t('Open Replay')}
-          </Button>
+          </LinkButton>
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
-          <ReplaysFeatureBadge />
         </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>
@@ -121,7 +149,6 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   gap: ${space(1)};
   max-height: 448px;

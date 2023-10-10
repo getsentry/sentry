@@ -1,10 +1,11 @@
 import datetime
 
-from sentry.models import LostPasswordHash
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.services.hybrid_cloud.lost_password_hash import (
     LostPasswordHashService,
     RpcLostPasswordHash,
 )
+from sentry.services.hybrid_cloud.lost_password_hash.serial import serialize_lostpasswordhash
 
 
 class DatabaseLostPasswordHashService(LostPasswordHashService):
@@ -23,7 +24,4 @@ class DatabaseLostPasswordHashService(LostPasswordHashService):
             password_hash.date_added = datetime.datetime.now()
             password_hash.set_hash()
             password_hash.save()
-        return self.serialize_lostpasswordhash(password_hash)
-
-    def close(self) -> None:
-        pass
+        return serialize_lostpasswordhash(password_hash)

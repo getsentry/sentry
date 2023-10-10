@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,22 +17,20 @@ describe('OrganizationCreate', function () {
   });
 
   it('renders without terms', function () {
-    const wrapper = render(<OrganizationCreate />);
-    expect(wrapper.container).toSnapshot();
+    render(<OrganizationCreate />);
   });
 
   it('renders with terms', function () {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
-    const wrapper = render(<OrganizationCreate />);
-    expect(wrapper.container).toSnapshot();
+    render(<OrganizationCreate />);
   });
 
   it('creates a new org', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: TestStubs.Organization(),
+      body: Organization(),
     });
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
@@ -63,7 +63,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: TestStubs.Organization({
+      body: Organization({
         features: ['customer-domains'],
       }),
     });

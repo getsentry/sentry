@@ -5,14 +5,19 @@ from typing import Any, Dict
 from django.utils import timezone
 
 from sentry import eventstore
-from sentry.models import UserReport
+from sentry.models.userreport import UserReport
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.update_user_reports", queue="update")  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.update_user_reports",
+    queue="update",
+    silo_mode=SiloMode.REGION,
+)
 def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()
     user_reports = UserReport.objects.filter(
@@ -42,7 +47,9 @@ def update_user_reports(**kwargs: Any) -> None:
                 start=now - timedelta(days=2),
                 end=now + timedelta(minutes=5),  # Just to catch clock skew
             )
-            events_chunk = eventstore.get_events(filter=snuba_filter)
+            events_chunk = eventstore.backend.get_events(
+                filter=snuba_filter, referrer="tasks.update_user_reports"
+            )
             events.extend(events_chunk)
 
         for event in events:

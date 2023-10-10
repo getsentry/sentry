@@ -1,18 +1,20 @@
 import ipaddress
 import logging
+from datetime import timezone
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
-from sentry.models import Commit, CommitAuthor, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email
@@ -63,7 +65,7 @@ class PushEventWebhook(Webhook):
                 else:
                     author = authors[author_email]
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(Commit)):
 
                         Commit.objects.create(
                             repository_id=repo.id,
@@ -78,14 +80,14 @@ class PushEventWebhook(Webhook):
                     pass
 
 
-class BitbucketWebhookEndpoint(View):
+class BitbucketPluginWebhookEndpoint(View):
     _handlers = {"repo:push": PushEventWebhook}
 
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 

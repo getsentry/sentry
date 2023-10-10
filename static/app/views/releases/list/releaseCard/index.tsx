@@ -8,7 +8,8 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -129,7 +130,11 @@ class ReleaseCard extends Component<Props> {
           </ReleaseInfoHeader>
           <ReleaseInfoSubheader>
             {versionInfo?.package && (
-              <PackageName ellipsisDirection="left">{versionInfo.package}</PackageName>
+              <PackageName>
+                <TextOverflow ellipsisDirection="left">
+                  {versionInfo.package}
+                </TextOverflow>
+              </PackageName>
             )}
             <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
             {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
@@ -243,9 +248,12 @@ const ReleaseInfoSubheader = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const PackageName = styled(TextOverflow)`
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const ReleaseProjects = styled('div')`

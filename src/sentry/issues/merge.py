@@ -6,7 +6,11 @@ from uuid import uuid4
 import rest_framework
 
 from sentry import eventstream
-from sentry.models import Activity, Group, GroupCategory, GroupStatus, Project, User
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 
@@ -35,7 +39,7 @@ def handle_merge(
     primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
-    eventstream_state = eventstream.start_merge(
+    eventstream_state = eventstream.backend.start_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import re
 import unittest
@@ -5,6 +7,7 @@ import zipfile
 from copy import deepcopy
 from io import BytesIO
 from time import time
+from typing import Any
 from unittest.mock import ANY, MagicMock, call, patch
 from uuid import uuid4
 
@@ -24,7 +27,6 @@ from sentry.lang.javascript.processor import (
     Fetcher,
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
-    cache,
     discover_sourcemap,
     fetch_release_archive_for_url,
     fetch_release_file,
@@ -37,23 +39,23 @@ from sentry.lang.javascript.processor import (
     should_retry_fetch,
     trim_line,
 )
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    EventError,
-    File,
     ProjectArtifactBundle,
-    Release,
     ReleaseArtifactBundle,
-    ReleaseFile,
     SourceFileType,
 )
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
+from sentry.models.eventerror import EventError
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile, update_artifact_index
 from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
+from sentry.utils.cache import cache
 from sentry.utils.strings import truncatechars
 
 base64_sourcemap = "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0="
@@ -118,7 +120,6 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         data = {
-            "is_exception": True,
             "platform": "javascript",
             "project": project.id,
             "exception": {
@@ -146,7 +147,8 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         }
 
         stacktrace_infos = [
-            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+            stacktrace
+            for stacktrace in find_stacktraces_in_data(data, include_empty_exceptions=True)
         ]
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version, "dist": "foo", "timestamp": 123.4},
@@ -166,7 +168,6 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         data = {
-            "is_exception": True,
             "platform": "javascript",
             "project": project.id,
             "exception": {
@@ -201,7 +202,8 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         }
 
         stacktrace_infos = [
-            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+            stacktrace
+            for stacktrace in find_stacktraces_in_data(data, include_empty_exceptions=True)
         ]
 
         processor = JavaScriptStacktraceProcessor(
@@ -2370,7 +2372,7 @@ class GenerateModulesTest(unittest.TestCase):
     def test_ensure_module_names(self):
         from sentry.lang.javascript.plugin import generate_modules
 
-        data = {
+        data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
             "exception": {
@@ -2440,7 +2442,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
         for x in range(3):
-            data = {
+            data: dict[str, Any] = {
                 "platform": "javascript",
                 "exception": {
                     "values": [
@@ -2495,7 +2497,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -2542,7 +2544,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -2692,7 +2694,7 @@ class ErrorMappingTest(unittest.TestCase):
 
     @responses.activate
     def test_skip_none_values(self):
-        expected = {"exception": {"values": [None, {}]}}
+        expected: dict[str, Any] = {"exception": {"values": [None, {}]}}
 
         actual = deepcopy(expected)
         assert not rewrite_exception(actual)

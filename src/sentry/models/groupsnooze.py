@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -30,13 +31,13 @@ class GroupSnooze(Model):
     - If ``user_count`` is set, the snooze is lfited when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
-    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurances
+    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurrences
       exceeds the forecasted counts.
 
     NOTE: `window` and `user_window` are specified in minutes
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     until = models.DateTimeField(null=True)
@@ -95,8 +96,8 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category, self.group.project),
+        rate = tsdb.backend.get_sums(
+            model=get_issue_tsdb_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,
@@ -117,8 +118,8 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)
 
-        rate = tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category, self.group.project),
+        rate = tsdb.backend.get_distinct_counts_totals(
+            model=get_issue_tsdb_user_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,

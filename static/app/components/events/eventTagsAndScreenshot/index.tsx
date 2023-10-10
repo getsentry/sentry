@@ -72,7 +72,7 @@ export function EventTagsAndScreenshot({
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({
-      orgSlug: organization.id,
+      orgSlug: organization.slug,
       projectSlug,
       eventId: event.id,
       attachmentId,

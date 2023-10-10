@@ -43,16 +43,19 @@ else like actual grouping happens elsewhere like test_variants.py.
    If you push any intermediate step into master or even just a PR, you just
    leaked PII to the public and all of this will have been for nothing.
 """
+from __future__ import annotations
 
 import contextlib
 import json  # NOQA
 import os
 import uuid
+from unittest import mock
 
 import pytest
 from django.utils.functional import cached_property
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
+from sentry.grouping.enhancer.actions import VarAction
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils.safe import get_path
 
@@ -128,13 +131,11 @@ def test_categorization(input: CategorizationInput, insta_snapshot, track_enhanc
 
 @pytest.fixture(scope="session", autouse=True)
 def track_enhancers_coverage():
-    from sentry.grouping.enhancer import VarAction
-
     old_apply = VarAction.apply_modifications_to_frame
 
-    used_inputs = {}
+    used_inputs: dict[str, list[CategorizationInput]] = {}
 
-    current_input = None
+    current_input: CategorizationInput | None = None
 
     def new_apply(self, frames, match_frames, idx, rule=None):
         if current_input is not None:
@@ -159,12 +160,11 @@ def track_enhancers_coverage():
         assert current_input is None, "context manager does not support multithreading"
         current_input = input
 
-        VarAction.apply_modifications_to_frame = new_apply
-        try:
-            yield
-        finally:
-            current_input = None
-            VarAction.apply_modifications_to_frame = old_apply
+        with mock.patch.object(VarAction, "apply_modifications_to_frame", new_apply):
+            try:
+                yield
+            finally:
+                current_input = None
 
     yield inner
 
@@ -205,7 +205,7 @@ def track_enhancers_coverage():
         if input.filename in delete_filenames:
             continue
 
-        data = dict(input.data)  # type: ignore
+        data = dict(input.data)
 
         modified = False
         modified |= _strip_sensitive_keys(data, ["exception", "platform", "event_id"])

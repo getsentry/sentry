@@ -1,12 +1,14 @@
 from django.urls import reverse
 
-from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import PermissionTestCase, TestCase
+from sentry.testutils.cases import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class RestoreOrganizationPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -45,12 +47,12 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path)
 
@@ -58,7 +60,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is False
 
     def test_renders_with_context_customer_domain(self):
@@ -70,12 +74,12 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
 
@@ -83,7 +87,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is False
 
     def test_success(self):
@@ -93,12 +99,10 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_too_late_still_restores(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.post(self.path)
 
@@ -106,14 +110,14 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_org_already_deleted(self):
-        assert ScheduledDeletion.objects.count() == 0
+        assert RegionScheduledDeletion.objects.count() == 0
 
         org_id = self.organization.id
-        Organization.objects.filter(id=org_id).update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(self.organization, days=0)
+        self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = RegionScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

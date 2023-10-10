@@ -1,17 +1,17 @@
 import responses
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    NotificationSetting,
-    UserOption,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, install_slack, link_team
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class AssignedNotificationAPITest(APITestCase):
@@ -34,7 +34,7 @@ class AssignedNotificationAPITest(APITestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         Identity.objects.create(
@@ -51,9 +51,11 @@ class AssignedNotificationAPITest(APITestCase):
         assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.group.qualified_short_id}</a> to themselves</p>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()
@@ -74,7 +76,8 @@ class AssignedNotificationAPITest(APITestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         url = f"/api/0/issues/{self.group.id}/"

@@ -1,21 +1,32 @@
 from __future__ import annotations
 
 import abc
+import uuid
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from urllib.parse import urlencode
 
 import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Environment, NotificationSetting
-from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
+from sentry.models.environment import Environment
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
+    NotificationSettingEnum,
+    NotificationSettingTypes,
+    get_notification_setting_type_name,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 
 # TODO: add abstractmethod decorators
@@ -23,14 +34,16 @@ class BaseNotification(abc.ABC):
     provider_to_url_format = {
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
+        ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
     analytics_event: str = ""
 
-    def __init__(self, organization: Organization):
+    def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
+        self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
 
     @property
     def from_email(self) -> str | None:
@@ -116,6 +129,8 @@ class BaseNotification(abc.ABC):
         params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
+            "id": recipient.id,
+            "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
         if recipient.actor_type == ActorType.USER:
@@ -153,6 +168,7 @@ class BaseNotification(abc.ABC):
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
                 category=self.metrics_key,
+                notification_uuid=self.notification_uuid if self.notification_uuid else "",
                 **self.get_log_params(recipient),
             )
             # record an optional second event
@@ -160,7 +176,7 @@ class BaseNotification(abc.ABC):
                 self.record_analytics(
                     self.analytics_event,
                     self.analytics_instance,
-                    providers=provider.name.lower(),
+                    providers=provider.name.lower() if provider.name else "",
                     **self.get_custom_analytics_params(recipient),
                 )
 
@@ -170,7 +186,7 @@ class BaseNotification(abc.ABC):
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
-            referrer += "-" + str(recipient.actor_type.value).lower()
+            referrer += "-" + str(recipient.actor_type).lower()
         return referrer
 
     def get_sentry_query_params(
@@ -181,7 +197,13 @@ class BaseNotification(abc.ABC):
         If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
         The recipient may be omitted.
         """
-        return f"?referrer={self.get_referrer(provider, recipient)}"
+        query = urlencode(
+            {
+                "referrer": self.get_referrer(provider, recipient),
+                "notification_uuid": self.notification_uuid,
+            }
+        )
+        return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
@@ -200,7 +222,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[RpcActor]:
+    def determine_recipients(self) -> list[RpcActor]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
@@ -212,10 +234,25 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+        setting_type = (
+            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
+            if self.notification_setting_type
+            else NotificationSettingEnum.ISSUE_ALERTS
+        )
+        if should_use_notifications_v2(self.organization):
+            controller = NotificationController(
+                recipients=recipients,
+                organization_id=self.organization.id,
+                type=setting_type,
+            )
+            return controller.get_notification_recipients(type=setting_type)
+
         accepting_recipients: Mapping[
             ExternalProviders, Iterable[RpcActor]
         ] = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
+            self.organization,
+            recipients,
+            self.notification_setting_type or NotificationSettingTypes.ISSUE_ALERTS,
         )
         return accepting_recipients
 
@@ -250,16 +287,13 @@ class BaseNotification(abc.ABC):
 
 
 class ProjectNotification(BaseNotification, abc.ABC):
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: Project, notification_uuid: str | None = None) -> None:
         self.project = project
-        super().__init__(project.organization)
+        super().__init__(project.organization, notification_uuid)
 
     def get_project_link(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        return str(
-            self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
-            )
+        return self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
         )
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:

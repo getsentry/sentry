@@ -8,7 +8,13 @@ until we have a proper metadata store set up. To keep things simple, and hopeful
 efficient, we only look at the past 24 hours.
 """
 
-__all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
+__all__ = (
+    "get_metrics_meta",
+    "get_all_tags",
+    "get_tag_values",
+    "get_series",
+    "get_single_metric_info",
+)
 
 import logging
 from collections import defaultdict, deque
@@ -22,20 +28,28 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
+    bulk_reverse_resolve,
+    bulk_reverse_resolve_tag_value,
     resolve_tag_key,
-    reverse_resolve,
-    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
-from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
+from sentry.snuba.metrics.fields.base import (
+    SnubaDataType,
+    get_derived_metrics,
+    org_id_from_projects,
+)
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    get_available_operations,
+    is_custom_measurement,
+    parse_mri,
+)
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -64,21 +78,35 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
+def _build_use_case_id_filter(use_case_id: UseCaseID):
+    use_case_values = [use_case_id.value]
+
+    if use_case_id == UseCaseID.SESSIONS:
+        # For sessions, the `use_case_id` field in Clickhouse is stored as "" but this has been fixed and a back-fill
+        # should happen which will make this condition superfluous.
+        # TODO(iambriccardo): Remove this condition once the backfill is done.
+        use_case_values.append("")
+
+    return Condition(Column("use_case_id"), Op.IN, use_case_values)
+
+
 def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
     org_id: int,
+    use_case_id: UseCaseID,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
-) -> Mapping[str, Any]:
+) -> List[SnubaDataType]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[],
+        where=[_build_use_case_id_filter(use_case_id)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
+        use_case_id=use_case_id,
         start=start,
         end=end,
     )
@@ -87,7 +115,7 @@ def _get_metrics_for_entity(
 def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
@@ -135,64 +163,71 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
-    assert projects
+def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+    metas = []
+    stored_mris = get_stored_mris(projects, use_case_id) if projects else []
 
-    metrics_meta = []
-    metric_ids_in_entities = {}
+    for mri in stored_mris:
+        parsed_mri = parse_mri(mri)
 
-    for metric_type in ("counter", "set", "distribution"):
-        metric_ids_in_entities.setdefault(metric_type, set())
-        org_id = projects[0].organization_id
-        for row in _get_metrics_for_entity(
-            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            project_ids=[project.id for project in projects],
-            org_id=org_id,
-        ):
-            try:
-                mri_string = reverse_resolve(use_case_id, org_id, row["metric_id"])
-                metrics_meta.append(
-                    MetricMeta(
-                        name=get_public_name_from_mri(mri_string),
-                        type=metric_type,
-                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                        unit=None,  # snuba does not know the unit
-                        metric_id=row["metric_id"],
-                        mri_string=mri_string,
-                    )
-                )
-            except InvalidParams:
-                # An instance of `InvalidParams` exception is raised here when there is no reverse
-                # mapping from MRI to public name because of the naming change
-                logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
-                continue
-            metric_ids_in_entities[metric_type].add(row["metric_id"])
+        # TODO(ogi): check how is this possible
+        if parsed_mri is None:
+            continue
 
-    # In the previous loop, we find all available metric ids per entity with respect to the
-    # projects filter, and so to figure out which derived metrics are supported for these
-    # projects, we need to iterate over the list of derived metrics and generate the ids of
-    # their constituent metrics. A derived metric should be added to the response list if its
-    # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
-    # SingularEntityDerivedMetric.
-    found_derived_metrics = get_available_derived_metrics(
-        projects, metric_ids_in_entities, use_case_id
-    )
-    public_derived_metrics = get_derived_metrics(exclude_private=True)
+        ops = get_available_operations(parsed_mri)
 
-    for derived_metric_mri in found_derived_metrics:
-        derived_metric_obj = public_derived_metrics[derived_metric_mri]
-        metrics_meta.append(
+        metas.append(
             MetricMeta(
-                name=get_public_name_from_mri(derived_metric_obj.metric_mri),
-                type=derived_metric_obj.result_type,
-                operations=derived_metric_obj.generate_available_operations(),
-                unit=derived_metric_obj.unit,
-                # Derived metrics won't have an id
-                metric_id=None,
-                mri_string=derived_metric_mri,
+                mri=mri,
+                name=parsed_mri.name,
+                operations=ops,
+                # TODO: check unit casting
+                unit=parsed_mri.unit,
+                # TODO: add entity letter to entity key mapping i.e. c -> counter
+                type=parsed_mri.entity,
             )
         )
-    return sorted(metrics_meta, key=itemgetter("name"))
+
+    return metas
+
+
+def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+    org_id = projects[0].organization_id
+    project_ids = [project.id for project in projects]
+
+    # To reduce the number of queries, we scope down the number of entity keys, since we know that sessions are stored
+    # separately from all the other entity keys.
+    if use_case_id == UseCaseID.SESSIONS:
+        entity_keys = {
+            EntityKey.MetricsCounters,
+            EntityKey.MetricsSets,
+            EntityKey.MetricsDistributions,
+        }
+    else:
+        entity_keys = {
+            EntityKey.GenericMetricsCounters,
+            EntityKey.GenericMetricsSets,
+            EntityKey.GenericMetricsDistributions,
+        }
+
+    stored_metrics = []
+    for entity_key in entity_keys:
+        stored_metrics += _get_metrics_for_entity(
+            entity_key=entity_key,
+            project_ids=project_ids,
+            org_id=org_id,
+            use_case_id=use_case_id,
+        )
+
+    logger.debug("stored_metrics: %s", stored_metrics)
+
+    mris = bulk_reverse_resolve(
+        use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
+    ).values()
+
+    logger.debug("mris: %s", mris)
+
+    return list(mris)
 
 
 def get_custom_measurements(
@@ -200,21 +235,27 @@ def get_custom_measurements(
     organization_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
-    use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+    use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
 ) -> Sequence[MetricMeta]:
     assert project_ids
 
     metrics_meta = []
     for metric_type in CUSTOM_MEASUREMENT_DATASETS:
-        for row in _get_metrics_for_entity(
+        rows = _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
             project_ids=project_ids,
             org_id=organization_id,
+            use_case_id=use_case_id,
             start=start,
             end=end,
-        ):
-            mri = reverse_resolve(use_case_id, organization_id, row["metric_id"])
-            parsed_mri = parse_mri(mri)
+        )
+
+        mri_indexes = {row["metric_id"] for row in rows}
+        mris = bulk_reverse_resolve(use_case_id, organization_id, mri_indexes)
+
+        for row in rows:
+            mri_index = row.get("metric_id")
+            parsed_mri = parse_mri(mris.get(mri_index))
             if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
                     MetricMeta(
@@ -225,7 +266,7 @@ def get_custom_measurements(
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
-                        mri_string=parsed_mri.mri_string,
+                        mri=parsed_mri.mri_string,
                     )
                 )
 
@@ -233,7 +274,7 @@ def get_custom_measurements(
 
 
 def _get_metrics_filter_ids(
-    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseKey
+    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
 ) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
@@ -272,7 +313,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> None:
     """
     Function that takes metric_mris list and a mapping of entity to its metric ids, and ensures
@@ -296,32 +337,49 @@ def _validate_requested_derived_metrics_in_input_metrics(
         )
 
 
-def _fetch_tags_or_values_per_ids(
+def _fetch_tags_or_values_for_metrics(
     projects: Sequence[Project],
     metric_names: Optional[Sequence[str]],
     referrer: str,
     column: str,
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
+) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+    metric_mris = []
+
+    # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
+    # there will be the need, the support for custom metrics MRIs will have to be added but with additional
+    # complexity.
+    for metric_name in metric_names or ():
+        if is_mri(metric_name):
+            metric_mris.append(metric_name)
+        else:
+            metric_mris.append(get_mri(metric_name))
+
+    return _fetch_tags_or_values_for_mri(projects, metric_mris, referrer, column, use_case_id)
+
+
+def _fetch_tags_or_values_for_mri(
+    projects: Sequence[Project],
+    metric_mris: Optional[Sequence[str]],
+    referrer: str,
+    column: str,
+    use_case_id: UseCaseID,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
-    Function that takes as input projects, metric_names, and a column, and based on the column
+    Function that takes as input projects, metric_mris, and a column, and based on the column
     selection, either returns tags or tag values for the combination of projects and metric_names
     selected or in the case of no metric_names passed, returns basically all the tags or the tag
     values available for those projects. In addition, when exactly one metric name is passed in
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
-    assert len({p.organization_id for p in projects}) == 1
     org_id = projects[0].organization_id
 
-    metric_mris = None
-    if metric_names is not None:
-        metric_mris = [get_mri(metric_name) for metric_name in metric_names]
-
+    if metric_mris is not None:
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
             get_derived_metrics(exclude_private=True).keys()
         )
         if set(metric_mris).intersection(private_derived_metrics) != set():
-            raise InvalidParams(f"Metric names {metric_names} do not exist")
+            raise InvalidParams(f"Metric MRIs {metric_mris} do not exist")
 
     try:
         metric_ids = _get_metrics_filter_ids(
@@ -329,7 +387,7 @@ def _fetch_tags_or_values_per_ids(
         )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
-            f"Some or all of the metric names in {metric_names} do not exist in the indexer"
+            f"Some or all of the metric names in {metric_mris} do not exist in the indexer"
         )
     else:
         where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
@@ -340,8 +398,15 @@ def _fetch_tags_or_values_per_ids(
     # entity by validating that the ids of the constituent metrics all lie in the same entity
     supported_metric_ids_in_entities = {}
 
-    for metric_type in ("counter", "set", "distribution"):
+    release_health_metric_types = ("counter", "set", "distribution")
+    performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
 
+    if use_case_id == UseCaseID.SESSIONS:
+        metric_types = release_health_metric_types
+    else:
+        metric_types = performance_metric_types
+
+    for metric_type in metric_types:
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         rows = run_metrics_query(
             entity_key=entity_key,
@@ -351,6 +416,7 @@ def _fetch_tags_or_values_per_ids(
             referrer=referrer,
             project_ids=[p.id for p in projects],
             org_id=org_id,
+            use_case_id=use_case_id,
         )
 
         for row in rows:
@@ -366,20 +432,21 @@ def _fetch_tags_or_values_per_ids(
     # If we get not results back from snuba, then raise an InvalidParams with an appropriate
     # error message
     if not tag_or_value_ids_per_metric_id:
-        if metric_names:
-            error_str = f"The following metrics {metric_names} do not exist in the dataset"
+        if metric_mris:
+            error_str = f"The following metrics {metric_mris} do not exist in the dataset"
         else:
             error_str = "Dataset contains no metric data for your project selection"
         raise InvalidParams(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
-    if metric_names:
+    tag_or_value_ids: Set[Union[int, str, None]]
+    if metric_mris:
         # If there are metric_ids that map to the metric_names provided as an arg that were not
         # found in the dataset, then we raise an instance of InvalidParams exception
         if metric_ids != set(tag_or_value_ids_per_metric_id.keys()):
-            # This can occur for metric names that don't have an equivalent in the dataset.
+            # This can occur for MRIs that don't have an equivalent in the dataset.
             raise InvalidParams(
-                f"Not all the requested metrics or the constituent metrics in {metric_names} have "
+                f"Not all the requested metrics or the constituent metrics in {metric_mris} have "
                 f"data in the dataset"
             )
 
@@ -401,34 +468,40 @@ def _fetch_tags_or_values_per_ids(
 
     if column.startswith(("tags[", "tags_raw[")):
         tag_id = column.split("[")[1].split("]")[0]
+        resolved_ids = bulk_reverse_resolve_tag_value(
+            use_case_id, org_id, [int(tag_id), *tag_or_value_ids]
+        )
+        resolved_key = resolved_ids.get(int(tag_id))
         tags_or_values = [
             {
-                "key": reverse_resolve(use_case_id, org_id, int(tag_id)),
-                "value": reverse_resolve_tag_value(use_case_id, org_id, value_id),
+                "key": resolved_key,
+                "value": resolved_ids.get(value_id),
             }
             for value_id in tag_or_value_ids
         ]
         tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))
     else:
-        tags_or_values = [
-            {"key": reversed_tag}
-            for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(use_case_id, org_id, tag_id)) not in UNALLOWED_TAGS
-        ]
+        tags_or_values = []
+        resolved_ids = bulk_reverse_resolve(use_case_id, org_id, tag_or_value_ids)
+        for tag_id in tag_or_value_ids:
+            resolved = resolved_ids.get(tag_id)
+            if resolved is not None and resolved not in UNALLOWED_TAGS:
+                tags_or_values.append({"key": resolved})
+
         tags_or_values.sort(key=itemgetter("key"))
 
-    if metric_names and len(metric_names) == 1:
+    if metric_mris and len(metric_mris) == 1:
         metric_type = list(supported_metric_ids_in_entities.keys())[0]
         return tags_or_values, metric_type
     return tags_or_values, None
 
 
 def get_single_metric_info(
-    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseKey
+    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseID
 ) -> MetricMetaWithTagKeys:
     assert projects
 
-    tags, metric_type = _fetch_tags_or_values_per_ids(
+    tags, metric_type = _fetch_tags_or_values_for_metrics(
         projects=projects,
         metric_names=[metric_name],
         column="tags.key",
@@ -459,14 +532,14 @@ def get_single_metric_info(
     return response_dict
 
 
-def get_tags(
-    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseKey
+def get_all_tags(
+    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseID
 ) -> Sequence[Tag]:
-    """Get all metric tags for the given projects and metric_names"""
+    """Get all metric tags for the given projects and metric_names."""
     assert projects
 
     try:
-        tags, _ = _fetch_tags_or_values_per_ids(
+        tags, _ = _fetch_tags_or_values_for_metrics(
             projects=projects,
             metric_names=metric_names,
             column="tags.key",
@@ -475,6 +548,7 @@ def get_tags(
         )
     except InvalidParams:
         return []
+
     return tags
 
 
@@ -482,23 +556,22 @@ def get_tag_values(
     projects: Sequence[Project],
     tag_name: str,
     metric_names: Optional[Sequence[str]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
-    """Get all known values for a specific tag"""
+    """Get all known values for a specific tag for the given projects and metric_names."""
     assert projects
-
-    org_id = org_id_from_projects(projects)
 
     if tag_name in UNALLOWED_TAGS:
         raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
 
     try:
+        org_id = org_id_from_projects(projects)
         tag_id = resolve_tag_key(use_case_id, org_id, tag_name)
     except MetricIndexNotFound:
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
     try:
-        tags, _ = _fetch_tags_or_values_per_ids(
+        tags, _ = _fetch_tags_or_values_for_metrics(
             projects=projects,
             column=tag_id,
             metric_names=metric_names,
@@ -507,6 +580,7 @@ def get_tag_values(
         )
     except InvalidParams:
         return []
+
     return tags
 
 
@@ -541,7 +615,7 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseKey
+    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseID
 ) -> Optional[GroupLimitFilters]:
     if not metrics_query.groupby or not results:
         return None
@@ -671,14 +745,17 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
 def get_series(
     projects: Sequence[Project],
     metrics_query: MetricsQuery,
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
     include_meta: bool = False,
     tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Get time series for the given query"""
 
     organization_id = projects[0].organization_id if projects else None
-    tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
+    tenant_ids = dict()
+    if organization_id is not None:
+        tenant_ids["organization_id"] = organization_id
+    tenant_ids["use_case_id"] = use_case_id.value
 
     if metrics_query.interval is not None:
         interval = metrics_query.interval

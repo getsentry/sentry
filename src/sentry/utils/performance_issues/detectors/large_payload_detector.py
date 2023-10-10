@@ -1,18 +1,36 @@
 from __future__ import annotations
 
+import re
+from datetime import timedelta
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
-from sentry.models import Organization, Project
+from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_http_spans
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_http_spans,
+    get_notification_attachment_body,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+# Matches a file extension, ignoring query parameters at the end
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+EXTENSION_ALLOW_LIST = ("JSON",)
+
+MINIMUM_SPAN_DURATION = timedelta(milliseconds=100)  # ms
 
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.LARGE_HTTP_PAYLOAD
+    type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
 
     def init(self):
@@ -24,6 +42,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
+        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
+        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
         encoded_body_size = data and (
             data.get("http.response_content_length", None) or data.get("Encoded Body Size")
         )
@@ -36,7 +56,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def _store_performance_problem(self, span) -> None:
         fingerprint = self._fingerprint(span)
-        offender_span_ids = span.get("span_id", None)
+        offender_span_ids = []
+        if offender_span_id := span.get("span_id", None):
+            offender_span_ids.append(offender_span_id)
         desc: str = span.get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
@@ -47,12 +69,26 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "http",
+                        desc,
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
             evidence_data={
                 "parent_span_ids": [],
                 "cause_span_ids": [],
                 "offender_span_ids": offender_span_ids,
                 "op": "http",
+                "transaction_name": self._event.get("description", ""),
+                "repeating_spans": get_span_evidence_value(span),
+                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                "num_repeating_spans": str(len(offender_span_ids)),
             },
         )
 
@@ -66,16 +102,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not span_id or not op or not hash or not description:
             return False
 
-        normalized_description = description.strip().upper()
-
-        if not normalized_description.startswith(
-            ("GET", "POST", "DELETE", "PUT", "PATCH")
-        ):  # Just using all methods to see if anything interesting pops up
+        # This detector is only available for HTTP spans
+        if not op.startswith("http"):
             return False
 
-        if normalized_description.endswith(
-            (".JS", ".CSS", ".SVG", ".PNG", ".MP3", ".JPG", ".JPEG")
-        ):
+        if get_span_duration(span) < MINIMUM_SPAN_DURATION:
+            return False
+
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
@@ -93,4 +129,4 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True
+        return self.settings["detection_enabled"]

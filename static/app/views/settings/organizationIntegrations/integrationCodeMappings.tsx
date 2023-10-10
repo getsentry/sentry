@@ -4,12 +4,15 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -37,19 +40,19 @@ import RepositoryProjectPathConfigRow, {
   OutputPathColumn,
 } from './repositoryProjectPathConfigRow';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouteAnalyticsProps & {
     integration: Integration;
     organization: Organization;
     projects: Project[];
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
 };
 
-class IntegrationCodeMappings extends AsyncComponent<Props, State> {
+class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -77,7 +80,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.state.repos.filter(repo => repo.integrationId === this.integrationId);
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgSlug = this.props.organization.slug;
     return [
       [
@@ -94,6 +97,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.props.setEventNames(
       'integrations.code_mappings_viewed',
       'Integrations: Code Mappings Viewed'
@@ -125,12 +129,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       this.setState({pathConfigs});
       addSuccessMessage(t('Deletion successful'));
     } catch (err) {
-      addErrorMessage(
-        tct('[status]: [text]', {
-          status: err.statusText,
-          text: err.responseText,
-        })
-      );
+      addErrorMessage(`${err.statusText}: ${err.responseText}`);
     }
   };
 
@@ -197,11 +196,29 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     });
   };
 
+  getDocsLink(): string {
+    /** Accounts for some asymmetry between docs links and provider keys */
+    const {integration} = this.props;
+    let docsKey = integration.provider.key;
+    switch (integration.provider.key) {
+      case 'vsts':
+        docsKey = 'azure-devops';
+        break;
+      case 'github_enterprise':
+        docsKey = 'github';
+        break;
+      default:
+        docsKey = integration.provider.key;
+        break;
+    }
+    return `https://docs.sentry.io/product/integrations/source-code-mgmt/${docsKey}/#stack-trace-linking`;
+  }
+
   renderBody() {
     const pathConfigs = this.pathConfigs;
     const {integration} = this.props;
     const {pathConfigsPageLinks} = this.state;
-    const docsLink = `https://docs.sentry.io/product/integrations/source-code-mgmt/${integration.provider.key}/#stack-trace-linking`;
+    const docsLink = this.getDocsLink();
 
     return (
       <Fragment>

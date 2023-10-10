@@ -2,76 +2,77 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
-    get_metrics,
+    get_all_tags,
+    get_metrics_meta,
     get_series,
     get_single_metric_info,
     get_tag_values,
-    get_tags,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_use_case_id(use_case: str) -> UseCaseKey:
+def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Get use_case from str and validate it against UseCaseKey enum type
-    if use_case parameter has wrong value just raise an ParseError.
+    Get useCase from query params and validate it against UseCaseID enum type
+    Raise a ParseError if the use_case parameter is invalid.
     """
-    try:
-        if use_case == "releaseHealth":
-            use_case = "release-health"
 
-        return UseCaseKey(use_case)
+    try:
+        use_case_param = request.GET.get("useCase", "sessions")
+        return string_to_use_case_id(use_case_param)
     except ValueError:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
 
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get metric name, available operations and the metric unit"""
 
-    def get(self, request: Request, organization) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(
-            projects, use_case_id=get_use_case_id(request.GET.get("useCase", "release-health"))
-        )
-        # TODO: replace this with a serializer so that if the structure of MetricMeta changes the response of this
-        # endpoint does not
-        for metric in metrics:
-            del metric["metric_id"]
-            del metric["mri_string"]
+
+        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+
         return Response(metrics, status=200)
 
 
 @region_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get metric name, available operations, metric unit and available tags"""
 
-    def get(self, request: Request, organization, metric_name) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
+
         try:
             metric = get_single_metric_info(
                 projects,
                 metric_name,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
@@ -83,6 +84,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -90,21 +94,19 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     If the ``metric`` query param is provided more than once, the *intersection*
     of available tags is used.
-
     """
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization) -> Response:
-
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
-        metric_names = request.GET.getlist("metric") or None
+        metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+
         try:
-            tags = get_tags(
+            tags = get_all_tags(
                 projects,
                 metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -114,42 +116,42 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get all existing tag values for a metric"""
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization, tag_name) -> Response:
-
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
         metric_names = request.GET.getlist("metric") or None
-
         projects = self.get_projects(request, organization)
+
         try:
             tag_values = get_tag_values(
                 projects,
                 tag_name,
                 metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
-            msg = str(exc)
-            # TODO: Use separate error type once we have real data
-            if "Unknown tag" in msg:
-                raise ResourceDoesNotExist(f"tag '{tag_name}'")
-            else:
-                raise ParseError(msg)
+            raise ParseError(str(exc))
 
         return Response(tag_values, status=200)
 
 
 @region_silo_endpoint
 class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:
@@ -158,12 +160,15 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int):
             try:
                 query = QueryDefinition(
-                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                    projects,
+                    request.GET,
+                    allow_mri=True,
+                    paginator_kwargs={"limit": limit, "offset": offset},
                 )
                 data = get_series(
                     projects,
-                    query.to_metrics_query(),
-                    use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                    metrics_query=query.to_metrics_query(),
+                    use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
                 data["query"] = query.query

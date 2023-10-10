@@ -15,13 +15,15 @@ from typing import Any, List, Tuple, Type
 from uuid import uuid4
 
 import sentry_sdk
+from celery import Task
 from django.apps import apps
 from django.db import connections, router
-from django.db.models import Manager, Max
+from django.db.models import Max
+from django.db.models.manager import BaseManager
 from django.utils import timezone
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import TombstoneBase
+from sentry.models.tombstone import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
@@ -33,16 +35,6 @@ class WatermarkBatch:
     up: int
     has_more: bool
     transaction_id: str
-
-
-def deletion_silo_modes() -> List[SiloMode]:
-    cur = SiloMode.get_current_mode()
-    result: List[SiloMode] = []
-    if cur != SiloMode.REGION:
-        result.append(SiloMode.CONTROL)
-    if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
-    return result
 
 
 def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
@@ -57,7 +49,10 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
             result = (0, uuid4().hex)
             client.set(key, json.dumps(result))
             return result
-        return tuple(json.loads(v))
+        lower, transaction_id = json.loads(v)
+        if not (isinstance(lower, int) and isinstance(transaction_id, str)):
+            raise TypeError("Expected watermarks data to be a tuple of (int, str)")
+        return lower, transaction_id
 
 
 def set_watermark(
@@ -78,8 +73,8 @@ def set_watermark(
     )
 
 
-def chunk_watermark_batch(
-    prefix: str, field: HybridCloudForeignKey, manager: Manager, *, batch_size: int
+def _chunk_watermark_batch(
+    prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     upper = manager.aggregate(Max("id"))["id__max"] or 0
@@ -96,41 +91,93 @@ def chunk_watermark_batch(
 
 
 @instrumented_task(
+    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+    queue="cleanup",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def schedule_hybrid_cloud_foreign_key_jobs_control():
+    _schedule_hybrid_cloud_foreign_key(
+        SiloMode.CONTROL, process_hybrid_cloud_foreign_key_cascade_batch_control
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     queue="cleanup",
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def schedule_hybrid_cloud_foreign_key_jobs():
-    for silo_mode in deletion_silo_modes():
-        for app, app_models in apps.all_models.items():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
+    _schedule_hybrid_cloud_foreign_key(
+        SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
+    )
+
+
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
+    for app, app_models in apps.all_models.items():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+
+            # Only process models local this operational mode.
+            if silo_mode not in model._meta.silo_limit.modes:
+                continue
+
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
                     continue
 
-                # Only process models local this operational mode.
-                if silo_mode not in model._meta.silo_limit.modes:
-                    continue
+                cascade_task.delay(
+                    app_name=app,
+                    model_name=model.__name__,
+                    field_name=field.name,
+                    silo_mode=silo_mode.name,
+                )
 
-                for field in model._meta.fields:
-                    if not isinstance(field, HybridCloudForeignKey):
-                        continue
 
-                    process_hybrid_cloud_foreign_key_cascade_batch.delay(
-                        app_name=app,
-                        model_name=model.__name__,
-                        field_name=field.name,
-                        silo_mode=silo_mode.name,
-                    )
+@instrumented_task(
+    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch_control",
+    queue="cleanup.control",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def process_hybrid_cloud_foreign_key_cascade_batch_control(
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
+) -> None:
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name=app_name,
+        model_name=model_name,
+        field_name=field_name,
+        process_task=process_hybrid_cloud_foreign_key_cascade_batch_control,
+        silo_mode=SiloMode.CONTROL,
+    )
 
 
 @instrumented_task(
     name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch",
     queue="cleanup",
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
-    app_name: str, model_name: str, field_name: str, silo_mode: str
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name=app_name,
+        model_name=model_name,
+        field_name=field_name,
+        process_task=process_hybrid_cloud_foreign_key_cascade_batch,
+        silo_mode=SiloMode.REGION,
+    )
+
+
+def _process_hybrid_cloud_foreign_key_cascade(
+    app_name: str, model_name: str, field_name: str, process_task: Task, silo_mode: SiloMode
+) -> None:
+    """
+    Called by the silo bound tasks above.
+    """
     try:
         model = apps.get_model(app_label=app_name, model_name=model_name)
         try:
@@ -141,7 +188,8 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
             sentry_sdk.capture_exception(err)
             raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
 
-        tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
+        tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
+        assert tombstone_cls, "A tombstone class is required"
 
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
@@ -149,12 +197,12 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         if _process_tombstone_reconciliation(
             field, model, tombstone_cls, True
         ) or _process_tombstone_reconciliation(field, model, tombstone_cls, False):
-            process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
+            process_task.apply_async(
                 kwargs=dict(
                     app_name=app_name,
                     model_name=model_name,
                     field_name=field_name,
-                    silo_mode=silo_mode,
+                    silo_mode=silo_mode.name,
                 ),
                 countdown=15,
             )
@@ -186,14 +234,14 @@ def _process_tombstone_reconciliation(
     from sentry import deletions
 
     prefix = "tombstone"
-    watermark_manager: Manager = tombstone_cls.objects
+    watermark_manager: BaseManager = tombstone_cls.objects
     watermark_target = "t"
     if row_after_tombstone:
         prefix = "row"
-        watermark_manager: Manager = field.model.objects
+        watermark_manager = field.model.objects
         watermark_target = "r"
 
-    watermark_batch = chunk_watermark_batch(
+    watermark_batch = _chunk_watermark_batch(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     has_more = watermark_batch.has_more

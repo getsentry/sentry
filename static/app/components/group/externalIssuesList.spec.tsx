@@ -1,3 +1,6 @@
+import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -8,7 +11,7 @@ describe('ExternalIssuesList', () => {
   const event = TestStubs.Event();
   const group = TestStubs.Group();
   const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   beforeEach(() => {
     SentryAppInstallationStore.init!();
@@ -21,13 +24,13 @@ describe('ExternalIssuesList', () => {
 
   const setupCTA = 'Track this issue in Jira, GitHub, etc.';
 
-  it('renders setup CTA', () => {
+  it('renders setup CTA', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/groups/1/external-issues/',
+      url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
     render(
@@ -39,16 +42,16 @@ describe('ExternalIssuesList', () => {
       />,
       {organization}
     );
-    expect(screen.getByText(setupCTA)).toBeInTheDocument();
+    expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
-  it('renders sentry app issues', () => {
+  it('renders sentry app issues', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/external-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
     const component = TestStubs.SentryAppComponent();
@@ -66,15 +69,15 @@ describe('ExternalIssuesList', () => {
       />,
       {organization}
     );
+    expect(await screen.findByText('Foo Issue')).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
-    expect(screen.getByText('Foo Issue')).toBeInTheDocument();
   });
 
   it('renders integrations with issues first', async () => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
-        TestStubs.JiraIntegration({status: 'active', externalIssues: []}),
+        JiraIntegration({status: 'active', externalIssues: []}),
         TestStubs.GitHubIntegration({
           status: 'active',
           externalIssues: [
@@ -91,7 +94,7 @@ describe('ExternalIssuesList', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/external-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
     const component = TestStubs.SentryAppComponent();

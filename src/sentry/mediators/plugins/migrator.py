@@ -1,12 +1,19 @@
-from sentry.mediators import Mediator, Param
-from sentry.models import Repository
+from typing import List
+
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.plugins.base import plugins
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.services.hybrid_cloud.repository.model import RpcRepository
 from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
-    integration = Param("sentry.models.integrations.integration.Integration")
-    organization = Param("sentry.models.organization.Organization")
+    integration = Param(RpcIntegration)
+    organization = Param(RpcOrganization)
+    using = None
 
     def call(self):
         for project in self.projects:
@@ -35,12 +42,12 @@ class Migrator(Mediator):
         return [r for r in self.repositories if r.provider == provider]
 
     @property
-    def repositories(self):
-        return Repository.objects.filter(organization_id=self.organization.id)
+    def repositories(self) -> List[RpcRepository]:
+        return repository_service.get_repositories(organization_id=self.organization.id)
 
     @memoize
     def projects(self):
-        return list(self.organization.project_set.all())
+        return list(self.organization.projects)
 
     @property
     def plugins(self):

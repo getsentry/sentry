@@ -1,26 +1,25 @@
-import pytest
-
-from sentry.models import ApiKey, AuthProvider
+from sentry.models.apikey import ApiKey
+from sentry.models.authprovider import AuthProvider
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,
     RpcOrganizationAuthConfig,
     auth_service,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
-from sentry.testutils.hybrid_cloud import use_real_service
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@pytest.mark.django_db(transaction=True)
-@all_silo_test
-@use_real_service(auth_service, None)
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
 def test_get_org_auth_config():
     org_with_many_api_keys = Factories.create_organization()
     org_without_api_keys = Factories.create_organization()
     Factories.create_organization()  # unrelated, not in the results.
 
-    with exempt_from_silo_limits():
+    with assume_test_silo_mode(SiloMode.CONTROL):
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ap = AuthProvider.objects.create(
@@ -49,6 +48,9 @@ def test_get_org_auth_config():
                     allow_unlinked=True,
                     scim_enabled=False,
                 ),
+                config=ap.config,
+                default_role=ap.default_role,
+                default_global_access=ap.default_global_access,
             ),
             has_api_key=False,
         ),

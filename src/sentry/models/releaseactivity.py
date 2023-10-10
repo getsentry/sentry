@@ -1,7 +1,7 @@
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -13,11 +13,11 @@ from sentry.types.releaseactivity import CHOICES
 
 @region_silo_only_model
 class ReleaseActivity(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)
     type = BoundedPositiveIntegerField(null=False, choices=CHOICES)
-    data = JSONField(default=dict)
+    data = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

@@ -1,4 +1,6 @@
 ---
+created: '2023-10-02T11:41:08.185986Z'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -81,54 +83,21 @@ config:
     errorMessages:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+      - 'ChunkLoadError: Loading chunk *'
+    ignoreTransactions:
+      isEnabled: true
+      patterns:
+      - '*healthcheck*'
+      - '*healthy*'
+      - '*live*'
+      - '*ready*'
+      - '*heartbeat*'
+      - '*/health'
+      - '*/healthz'
+      - '*/ping'
   groupingConfig:
-    enhancements: eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ
-    id: newstyle:2019-10-29
-  measurements:
-    builtinMeasurements:
-    - name: app_start_cold
-      unit: millisecond
-    - name: app_start_warm
-      unit: millisecond
-    - name: cls
-      unit: none
-    - name: fcp
-      unit: millisecond
-    - name: fid
-      unit: millisecond
-    - name: fp
-      unit: millisecond
-    - name: frames_frozen_rate
-      unit: ratio
-    - name: frames_frozen
-      unit: none
-    - name: frames_slow_rate
-      unit: ratio
-    - name: frames_slow
-      unit: none
-    - name: frames_total
-      unit: none
-    - name: inp
-      unit: millisecond
-    - name: lcp
-      unit: millisecond
-    - name: stall_count
-      unit: none
-    - name: stall_longest_time
-      unit: millisecond
-    - name: stall_percentage
-      unit: ratio
-    - name: stall_total_time
-      unit: millisecond
-    - name: ttfb.requesttime
-      unit: millisecond
-    - name: ttfb
-      unit: millisecond
-    - name: time_to_full_display
-      unit: millisecond
-    - name: time_to_initial_display
-      unit: millisecond
-    maxCustomMeasurements: 10
+    enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    id: newstyle:2023-01-11
   piiConfig:
     applications:
       $string:

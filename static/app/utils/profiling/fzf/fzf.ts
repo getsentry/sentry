@@ -41,10 +41,10 @@ const bonusConsecutive = -(scoreGapStart + scoreGapExtention);
 const bonusFirstCharMultiplier = 2;
 
 enum CharTypes {
-  charLower,
-  charUpper,
-  charNumber,
-  charNonWord,
+  CHAR_LOWER,
+  CHAR_UPPER,
+  CHAR_NUMBER,
+  CHAR_NON_WORD,
 }
 
 const CharCodes = {
@@ -58,15 +58,15 @@ const CharCodes = {
 
 function getCharClass(c: number): CharTypes {
   if (c >= CharCodes.lowerA && c <= CharCodes.lowerZ) {
-    return CharTypes.charLower;
+    return CharTypes.CHAR_LOWER;
   }
   if (c >= CharCodes.upperA && c <= CharCodes.upperZ) {
-    return CharTypes.charUpper;
+    return CharTypes.CHAR_UPPER;
   }
   if (c >= CharCodes.zero && c <= CharCodes.nine) {
-    return CharTypes.charNumber;
+    return CharTypes.CHAR_NUMBER;
   }
-  return CharTypes.charNonWord;
+  return CharTypes.CHAR_NON_WORD;
 }
 
 // Algo functions make two assumptions
@@ -146,18 +146,18 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
 }
 
 function bonusForCharClass(prevClass: CharTypes, currentClass: CharTypes): number {
-  if (prevClass === CharTypes.charNonWord && currentClass !== CharTypes.charNonWord) {
+  if (prevClass === CharTypes.CHAR_NON_WORD && currentClass !== CharTypes.CHAR_NON_WORD) {
     // Word boundary
     return bonusBoundary;
   }
   if (
-    (prevClass === CharTypes.charLower && currentClass === CharTypes.charUpper) ||
-    (prevClass !== CharTypes.charNumber && currentClass === CharTypes.charNumber)
+    (prevClass === CharTypes.CHAR_LOWER && currentClass === CharTypes.CHAR_UPPER) ||
+    (prevClass !== CharTypes.CHAR_NUMBER && currentClass === CharTypes.CHAR_NUMBER)
   ) {
     // camelCase letter123
     return bonusCamel123;
   }
-  if (currentClass === CharTypes.charNonWord) {
+  if (currentClass === CharTypes.CHAR_NON_WORD) {
     return bonusNonWord;
   }
   return 0;
@@ -177,7 +177,7 @@ function calculateScore(
   let firstBonus = 0;
   let consecutive = 0;
 
-  let prevCharClass = CharTypes.charNonWord;
+  let prevCharClass = CharTypes.CHAR_NON_WORD;
   const pos: number[] = new Array(pattern.length);
 
   if (sidx > 0) {

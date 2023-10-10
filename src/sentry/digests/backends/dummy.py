@@ -5,7 +5,7 @@ from sentry.digests.backends.base import Backend
 
 if TYPE_CHECKING:
     from sentry.digests import Record, ScheduleEntry
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 
 class DummyBackend(Backend):
@@ -17,7 +17,7 @@ class DummyBackend(Backend):
         maximum_delay: Optional[int] = None,
         timestamp: Optional[float] = None,
     ) -> bool:
-        pass
+        return False
 
     def enabled(self, project: "Project") -> bool:
         return False
@@ -28,9 +28,8 @@ class DummyBackend(Backend):
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None
-    ) -> Optional[Iterable["ScheduleEntry"]]:
-        return None
-        # yield  # TODO(mgaeta): Make this a generator and fix return type.
+    ) -> Iterable["ScheduleEntry"]:
+        yield from ()
 
     def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         pass

@@ -1,19 +1,24 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -331,27 +336,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert list(response.data) == ["Dashboard with that title already exists."]
 
     def test_add_widget(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
                 {"id": str(self.widget_2.id)},
                 {"id": str(self.widget_3.id)},
                 {"id": str(self.widget_4.id)},
-                {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
                 {
                     "title": "Errors per project",
                     "displayType": "table",
@@ -372,17 +363,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_with_field_aliases(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -416,7 +407,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_aggregates_and_columns(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -440,20 +431,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "aggregates": [],
                 },
                 {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": [],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
-                {
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -473,14 +450,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_missing_title(self):
         data = {
@@ -768,7 +745,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_update_widget_add_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -806,7 +783,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][1], queries[1])
 
     def test_update_widget_remove_and_update_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {

@@ -4,9 +4,12 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.locks import locks
-from sentry.models import Commit, Project, Release
+from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.tasks.base import instrumented_task
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.silo import SiloMode
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers
@@ -120,7 +123,9 @@ def _process_suspect_commits(
     queue="group_owners.process_suspect_commits",
     default_retry_delay=5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
+@retry
 def process_suspect_commits(
     event_id,
     event_platform,

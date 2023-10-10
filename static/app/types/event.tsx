@@ -1,18 +1,16 @@
 import type {
+  AggregateSpanType,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {IssueType} from 'sentry/types';
+import type {IssueType, PlatformKey} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
-export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -150,9 +148,24 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
-  lockReason?: string | null;
+  heldLocks?: Record<string, Lock> | null;
   name?: string | null;
   state?: string | null;
+}
+
+export type Lock = {
+  type: LockType;
+  address?: string | null;
+  class_name?: string | null;
+  package_name?: string | null;
+  thread_id?: number | null;
+};
+
+export enum LockType {
+  LOCKED = 1,
+  WAITING = 2,
+  SLEEPING = 4,
+  BLOCKED = 8,
 }
 
 export type Frame = {
@@ -167,7 +180,7 @@ export type Frame = {
   lineNo: number | null;
   module: string | null;
   package: string | null;
-  platform: PlatformType | null;
+  platform: PlatformKey | null;
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
@@ -176,10 +189,13 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  lock?: Lock | null;
+  // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
@@ -247,6 +263,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  AGGREGATE_TRANSACTION = 'aggregateTransaction',
   GENERIC = 'generic',
 }
 
@@ -272,7 +289,7 @@ export enum EntryType {
   RESOURCES = 'resources',
 }
 
-type EntryDebugMeta = {
+export type EntryDebugMeta = {
   data: {
     images: Array<Image | null>;
   };
@@ -298,13 +315,18 @@ export type EntryException = {
   type: EntryType.EXCEPTION;
 };
 
-type EntryStacktrace = {
+export type EntryStacktrace = {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
 };
 
 export type EntrySpans = {
   data: RawSpanType[];
+  type: EntryType.SPANS;
+};
+
+export type AggregateEntrySpans = {
+  data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -316,22 +338,35 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export type EntryRequest = {
+export interface EntryRequestDataDefault {
+  apiTarget: null;
+  method: string;
+  url: string;
+  cookies?: [key: string, value: string][];
+  data?: string | null | Record<string, any> | [key: string, value: any][];
+  env?: Record<string, string>;
+  fragment?: string | null;
+  headers?: [key: string, value: string][];
+  inferredContentType?:
+    | null
+    | 'application/json'
+    | 'application/x-www-form-urlencoded'
+    | 'multipart/form-data';
+  query?: [key: string, value: string][] | string;
+}
+
+export interface EntryRequestDataGraphQl
+  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+  apiTarget: 'graphql';
   data: {
-    method: string;
-    url: string;
-    cookies?: [key: string, value: string][];
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    env?: Record<string, string>;
-    fragment?: string | null;
-    headers?: [key: string, value: string][];
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-    query?: [key: string, value: string][] | string;
+    query: string;
+    variables: Record<string, string | number | null>;
+    operationName?: string;
   };
+}
+
+export type EntryRequest = {
+  data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
 };
 
@@ -600,6 +635,11 @@ export interface BrowserContext {
   version: string;
 }
 
+export interface ResponseContext {
+  data: unknown;
+  type: 'response';
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -613,7 +653,9 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  profile?: ProfileContext;
   replay?: ReplayContext;
+  response?: ResponseContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
@@ -649,7 +691,7 @@ type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -668,6 +710,24 @@ type EventOccurrence = {
   subtitle: string;
   type: number;
 };
+
+type EventRelease = Pick<
+  Release,
+  | 'commitCount'
+  | 'data'
+  | 'dateCreated'
+  | 'dateReleased'
+  | 'deployCount'
+  | 'id'
+  | 'lastCommit'
+  | 'lastDeploy'
+  | 'ref'
+  | 'status'
+  | 'url'
+  | 'userAgent'
+  | 'version'
+  | 'versionInfo'
+>;
 
 interface EventBase {
   contexts: EventContexts;
@@ -711,10 +771,11 @@ interface EventBase {
   nextEventID?: string | null;
   oldestEventID?: string | null;
   packages?: Record<string, string>;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   previousEventID?: string | null;
   projectSlug?: string;
-  release?: Release | null;
+  release?: EventRelease | null;
+  resolvedWith?: string[];
   sdk?: {
     name: string;
     version: string;
@@ -734,10 +795,38 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
+  entries: (EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;
+}
+
+export interface AggregateEventTransaction
+  extends Omit<
+    EventTransaction,
+    | 'crashFile'
+    | 'culprit'
+    | 'dist'
+    | 'dateReceived'
+    | 'errors'
+    | 'location'
+    | 'metadata'
+    | 'message'
+    | 'occurrence'
+    | 'type'
+    | 'size'
+    | 'user'
+    | 'eventID'
+    | 'fingerprints'
+    | 'id'
+    | 'projectID'
+    | 'tags'
+    | 'title'
+  > {
+  count: number;
+  frequency: number;
+  total: number;
+  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {

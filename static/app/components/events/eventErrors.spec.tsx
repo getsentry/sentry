@@ -2,7 +2,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventErrors} from 'sentry/components/events/eventErrors';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  GenericSchemaErrors,
+  JavascriptProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('EventErrors', () => {
@@ -56,6 +59,38 @@ describe('EventErrors', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not render hidden cocoa errors', async () => {
+    const eventWithErrors = TestStubs.Event({
+      errors: [
+        {
+          type: 'not_invalid_data',
+          data: {
+            name: 'logentry',
+          },
+          message: 'no message present',
+        },
+        {
+          type: 'invalid_data',
+          data: {
+            name: 'contexts.trace.sampled',
+          },
+          message: 'expected an object',
+        },
+      ],
+      sdk: {
+        name: 'sentry.cocoa',
+        version: '8.7.3',
+      },
+    });
+
+    render(<EventErrors {...defaultProps} event={eventWithErrors} />);
+
+    await userEvent.click(screen.getByText(/there was 1 problem processing this event/i));
+    const errorItem = screen.getByTestId('event-error-item');
+    expect(errorItem).toBeInTheDocument();
+    expect(within(errorItem).getByText('logentry')).toBeInTheDocument();
+  });
+
   it('hides source map not found error', () => {
     const eventWithDifferentDist = TestStubs.Event({
       errors: [
@@ -66,6 +101,19 @@ describe('EventErrors', () => {
     });
 
     render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
+    expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
+  });
+
+  it('hides event error that is hidden', () => {
+    const eventWithUnknownError = TestStubs.Event({
+      errors: [
+        {
+          type: GenericSchemaErrors.UNKNOWN_ERROR,
+        },
+      ],
+    });
+
+    render(<EventErrors {...defaultProps} event={eventWithUnknownError} />);
     expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
   });
 

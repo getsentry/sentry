@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.utils import json
 
@@ -105,7 +105,7 @@ class RedmineOptionsForm(forms.Form):
 
         if not isinstance(extra_fields_dict, dict):
             raise forms.ValidationError("JSON dictionary must be specified")
-        return json.dumps(extra_fields_dict, indent=4)
+        return json.dumps(extra_fields_dict)
 
 
 class RedmineNewIssueForm(forms.Form):

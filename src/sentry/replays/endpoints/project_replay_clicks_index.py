@@ -25,6 +25,7 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
@@ -47,6 +48,10 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 
 @region_silo_endpoint
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
@@ -74,6 +79,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                organization_id=project.organization.id,
             )
 
         return self.paginate(
@@ -91,6 +97,7 @@ def query_replay_clicks(
     limit: int,
     offset: int,
     search_filters: SearchFilter,
+    organization_id: int,
 ):
     """Query replay clicks.
 
@@ -152,6 +159,7 @@ def query_replay_clicks(
             offset=Offset(offset),
             granularity=Granularity(3600),
         ),
+        tenant_ids={"organization_id": organization_id, "referrer": "replay-backend-web"},
     )
     return raw_snql_query(snuba_request, REFERRER)
 

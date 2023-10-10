@@ -5,19 +5,21 @@ import time
 
 import pytest
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Limit, Offset, Op
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import MetricField, MetricGroupByField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -48,7 +50,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         assert data["meta"] == sorted(
             [
@@ -68,7 +70,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     "session.healthy",
                     "session.anr_rate",
                 ],
-                "includeSeries": "0",
+                "includeSeries": ["0"],
             }
         )
         query = QueryDefinition([self.project], query_params)
@@ -76,7 +78,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )["meta"] == sorted(
             [
                 {"name": "session.errored", "type": "Float64"},
@@ -94,14 +96,14 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=count_value,
                 minutes_before_now=4,
             )
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -123,7 +125,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["errored_sessions_alias"] == 7
@@ -170,7 +172,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
@@ -203,7 +205,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
@@ -226,7 +228,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags.update({"abnormal_mechanism": anr_mechanism})
 
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags=tags,
                 value=count_value,
                 minutes_before_now=4,
@@ -254,7 +256,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["anr_alias"] == 0.5
@@ -303,7 +305,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         data = get_series(
             [self.project],
             metrics_query=metrics_query,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         groups = data["groups"]

@@ -11,18 +11,10 @@ import {useLocation} from './useLocation';
 jest.mock('react-router');
 jest.mock('./useLocation');
 
-const MockBrowserHistoryListen = browserHistory.listen as jest.MockedFunction<
-  typeof browserHistory.listen
->;
-const MockBrowserHistoryReplace = browserHistory.replace as jest.MockedFunction<
-  typeof browserHistory.replace
->;
+const MockBrowserHistoryListen = jest.mocked(browserHistory.listen);
+const MockBrowserHistoryReplace = jest.mocked(browserHistory.replace);
 
-const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
-MockUseLocation.mockReturnValue({
-  pathname: '/home',
-} as Location);
+jest.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
 
 type QueryParams = {cursor: string; limit: number; project: string};
 
@@ -48,6 +40,30 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     unmount();
 
     expect(unsubscriber).toHaveBeenCalled();
+  });
+
+  it('should not update the history if shouldLeave returns false', () => {
+    MockBrowserHistoryListen.mockImplementation(onRouteLeave => {
+      onRouteLeave(
+        TestStubs.location({
+          pathname: '/next',
+          query: {
+            cursor: '0:1:0',
+            limit: '5',
+          },
+        })
+      );
+      return () => {};
+    });
+
+    reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+      initialProps: {
+        fieldsToClean: ['cursor'],
+        shouldClean: () => false,
+      },
+    });
+
+    expect(MockBrowserHistoryReplace).not.toHaveBeenCalled();
   });
 
   it('should not update the history if the pathname is unchanged', () => {

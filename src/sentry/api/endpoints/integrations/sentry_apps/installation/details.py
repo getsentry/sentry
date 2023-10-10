@@ -1,10 +1,11 @@
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
@@ -20,6 +21,12 @@ from sentry.utils.functional import extract_lazy_object
 
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, installation) -> Response:
         return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 
@@ -28,7 +35,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         user = extract_lazy_object(request.user)
         if isinstance(user, RpcUser):
             user = User.objects.get(id=user.id)
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
                 InstallationNotifier.run(install=installation, user=user, action="deleted")
             # if the error is from a request exception, log the error and continue

@@ -5,10 +5,11 @@ from hashlib import sha256
 
 from django.db import models
 from django.db.models import QuerySet
-from django.template.defaultfilters import slugify
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework.request import Request
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     SENTRY_APP_SLUG_MAX_LENGTH,
     SentryAppInstallationStatus,
@@ -107,7 +108,7 @@ class SentryAppManager(ParanoidManager):
 
 @control_silo_only_model
 class SentryApp(ParanoidModel, HasApiScopes):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(
         "sentry.ApiApplication", null=True, on_delete=models.SET_NULL, related_name="sentry_app"
@@ -193,7 +194,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        from sentry.models import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
             organization_id=organization.id,
@@ -211,7 +212,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return set(self.scope_list).issubset(encoded_scopes)
 
     def delete(self):
-        from sentry.models import SentryAppAvatar
+        from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
+
+    def _disable(self):
+        self.events = []
+        self.save(update_fields=["events"])

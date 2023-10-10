@@ -1,7 +1,11 @@
 from sentry import roles
-from sentry.models import OrganizationMember, User
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.models.userrole import manage_default_super_admin_role
+from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
-from sentry.testutils import CliTestCase
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -9,6 +13,11 @@ from sentry.testutils.silo import control_silo_test
 class CreateUserTest(CliTestCase):
     command = createuser
     default_args = ["--no-input"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        create_default_projects()
+        manage_default_super_admin_role()
 
     def test_superuser(self):
         rv = self.invoke("--email=you@somewhereawesome.com", "--password=awesome", "--superuser")
@@ -53,7 +62,9 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert member.user.email == "you@somewhereawesome.com"
+            u = user_service.get_user(user_id=member.user_id)
+            assert u
+            assert u.email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == member.organization.default_role
 
@@ -64,7 +75,9 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert member.user.email == "you@somewhereawesome.com"
+            u = user_service.get_user(user_id=member.user_id)
+            assert u
+            assert u.email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == roles.get_top_dog().id
 

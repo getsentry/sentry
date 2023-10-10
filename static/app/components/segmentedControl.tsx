@@ -1,16 +1,15 @@
 import {useMemo, useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useRadio, useRadioGroup} from '@react-aria/radio';
+import {AriaRadioProps, useRadio, useRadioGroup} from '@react-aria/radio';
 import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {RadioGroupState, useRadioGroupState} from '@react-stately/radio';
-import {AriaRadioGroupProps, AriaRadioProps} from '@react-types/radio';
+import {RadioGroupProps, RadioGroupState, useRadioGroupState} from '@react-stately/radio';
 import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
@@ -36,15 +35,15 @@ export interface SegmentedControlItemProps<Value extends string>
   /**
    * Additional props to be passed into <Tooltip />.
    */
-  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
 type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
-  extends Omit<AriaRadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
+  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
     CollectionBase<any> {
   defaultValue?: Value;
-  disabled?: AriaRadioGroupProps['isDisabled'];
+  disabled?: RadioGroupProps['isDisabled'];
   onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
@@ -65,7 +64,7 @@ export function SegmentedControl<Value extends string>({
   const ref = useRef<HTMLDivElement>(null);
 
   const collection = useCollection(props, collectionFactory);
-  const ariaProps: AriaRadioGroupProps = {
+  const ariaProps: RadioGroupProps = {
     ...props,
     // Cast value/defaultValue as string to comply with AriaRadioGroupProps. This is safe
     // as value and defaultValue are already strings (their type, Value, extends string)
@@ -290,7 +289,9 @@ const SegmentInteractionStateLayer = styled(InteractionStateLayer)<{
   /* Prevent small gaps between adjacent pairs of selected & hovered radios (due to their
   border radius) by extending the hovered radio's interaction state layer into and
   behind the selected radio. */
-  transition: left 0.2s, right 0.2s;
+  transition:
+    left 0.2s,
+    right 0.2s;
   ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.borderRadius} - 2px);`}
   ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.borderRadius} - 2px);`}
 `;

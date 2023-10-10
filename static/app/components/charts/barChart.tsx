@@ -1,15 +1,15 @@
-import type {BarSeriesOption} from 'echarts';
+import {BarSeriesOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 
 import BarSeries from './series/barSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
+export interface BarChartSeries
+  extends Omit<BarSeriesOption, 'data' | 'color' | 'id'>,
+    Series {}
 
-export type BarChartSeries = Series & Omit<BarSeriesOption, 'data' | 'name'>;
-
-export interface BarChartProps extends Omit<ChartProps, 'series'> {
+export interface BarChartProps extends BaseChartProps {
   series: BarChartSeries[];
   animation?: boolean;
   stacked?: boolean;
@@ -24,7 +24,7 @@ export function BarChart({series, stacked, xAxis, animation, ...props}: BarChart
         BarSeries({
           name: seriesName,
           stack: stacked ? 'stack1' : undefined,
-          data: data.map(({value, name, itemStyle}) => {
+          data: data?.map(({value, name, itemStyle}) => {
             if (itemStyle === undefined) {
               return [name, value];
             }

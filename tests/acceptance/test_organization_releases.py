@@ -2,11 +2,11 @@ from datetime import datetime
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test(stable=True)
+@no_silo_test(stable=True)
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 
@@ -30,7 +30,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.create_release(project=self.project, version="1.0", date_added=self.release_date)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases - with releases")
         # TODO(releases): add health data
 
     def test_detail(self):
@@ -41,7 +40,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-        self.browser.snapshot("organization releases - detail")
         # TODO(releases): add health data
 
     def test_detail_pick_project(self):
@@ -65,5 +63,4 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("organization releases - detail with discover and performance")
             # TODO(releases): add health data

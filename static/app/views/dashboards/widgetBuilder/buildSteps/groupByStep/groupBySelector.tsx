@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -63,7 +63,10 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   const columnFieldsAsString = columns.map(generateFieldAsString);
 
   const {filteredFieldOptions, columnsAsFieldOptions} = useMemo(() => {
-    return Object.keys(fieldOptions).reduce(
+    return Object.keys(fieldOptions).reduce<{
+      columnsAsFieldOptions: FieldOptions[];
+      filteredFieldOptions: FieldOptions;
+    }>(
       (acc, key) => {
         const value = fieldOptions[key];
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
@@ -79,18 +82,15 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
       {
         filteredFieldOptions: {},
         columnsAsFieldOptions: [],
-      } as {
-        columnsAsFieldOptions: FieldOptions[];
-        filteredFieldOptions: FieldOptions;
       }
     );
   }, [fieldOptions, columnFieldsAsString]);
 
   const items = useMemo(() => {
-    return columns.reduce((acc, _column, index) => {
+    return columns.reduce<string[]>((acc, _column, index) => {
       acc.push(String(index));
       return acc;
-    }, [] as string[]);
+    }, []);
   }, [columns]);
 
   return (

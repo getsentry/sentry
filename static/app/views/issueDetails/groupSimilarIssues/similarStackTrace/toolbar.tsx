@@ -1,9 +1,9 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {PanelHeader} from 'sentry/components/panels';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 
 type Props = {
   onMerge: () => void;
-  v2: boolean;
 };
 
 const initialState = {
@@ -40,7 +39,7 @@ class SimilarToolbar extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge, v2} = this.props;
+    const {onMerge} = this.props;
     const {mergeCount} = this.state;
 
     return (
@@ -50,22 +49,15 @@ class SimilarToolbar extends Component<Props, State> {
           message={t('Are you sure you want to merge these issues?')}
           onConfirm={onMerge}
         >
-          <Button size="sm" title={t('Merging %s issues', mergeCount)}>
+          <Button size="xs" title={t('Merging %s issues', mergeCount)}>
             {t('Merge %s', `(${mergeCount || 0})`)}
           </Button>
         </Confirm>
 
         <Columns>
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
-
-          {v2 ? (
-            <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
-          ) : (
-            <Fragment>
-              <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
-              <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
-            </Fragment>
-          )}
+          <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+          <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
         </Columns>
       </PanelHeader>
     );

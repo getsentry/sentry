@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import (
     Any,
     Callable,
@@ -22,20 +23,25 @@ from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import AliasedExpression, Column, Function
+from snuba_sdk import Column, Function
 
 from sentry import constants, eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
-from sentry.models import Group, Organization
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import Dataset, bulk_snql_query
+from sentry.utils.snuba import bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -85,6 +91,9 @@ class TraceError(TypedDict):
     project_slug: str
     title: str
     level: str
+    timestamp: str
+    event_type: str
+    generation: int
 
 
 class TracePerformanceIssue(TypedDict):
@@ -156,6 +165,7 @@ class TraceEvent:
         parent: Optional[str],
         generation: Optional[int],
         light: bool = False,
+        snuba_params: Optional[ParamsType] = None,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
@@ -169,19 +179,19 @@ class TraceEvent:
         # Added as required because getting the nodestore_event is expensive
         self._nodestore_event: Optional[Event] = None
         self.fetched_nodestore: bool = False
-        self.load_performance_issues(light)
+        self.load_performance_issues(light, snuba_params)
 
     @property
     def nodestore_event(self) -> Optional[Event]:
         with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
             if self._nodestore_event is None and not self.fetched_nodestore:
                 self.fetched_nodestore = True
-                self._nodestore_event = eventstore.get_event_by_id(
+                self._nodestore_event = eventstore.backend.get_event_by_id(
                     self.event["project.id"], self.event["id"]
                 )
         return self._nodestore_event
 
-    def load_performance_issues(self, light: bool) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: ParamsType) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -196,21 +206,30 @@ class TraceEvent:
                 span = [self.event["trace.span"]]
             else:
                 if self.nodestore_event is not None:
-                    hashes = self.nodestore_event.get_hashes().hashes
-                    problems = [
-                        eventproblem.problem
-                        for eventproblem in EventPerformanceProblem.fetch_multi(
-                            [(self.nodestore_event, event_hash) for event_hash in hashes]
-                        )
-                    ]
+                    occurrence_query = QueryBuilder(
+                        Dataset.IssuePlatform,
+                        snuba_params,
+                        query=f"event_id:{self.nodestore_event.event_id}",
+                        selected_columns=["occurrence_id"],
+                    )
+                    occurrence_ids = occurrence_query.process_results(
+                        occurrence_query.run_query("api.trace-view.get-occurrence-ids")
+                    )["data"]
+
+                    problems = IssueOccurrence.fetch_multi(
+                        [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
+                        self.nodestore_event.project_id,
+                    )
                     unique_spans: Set[str] = set()
                     for problem in problems:
-                        if problem.parent_span_ids is not None:
-                            unique_spans = unique_spans.union(problem.parent_span_ids)
+                        parent_span_ids = problem.evidence_data.get("parent_span_ids")
+                        if parent_span_ids is not None:
+                            unique_spans = unique_spans.union(parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
-                            if event_span.get("span_id") in problem.offender_span_ids:
+                            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+                            if event_span.get("span_id") in offender_span_ids:
                                 try:
                                     start_timestamp = float(event_span.get("start_timestamp"))
                                     if start is None:
@@ -329,21 +348,19 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
     transaction_query = QueryBuilder(
-        Dataset.Transactions,
+        Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
         selected_columns=[],
         limit=MAX_TRACE_SIZE,
     )
-    transaction_query.columns.append(
-        Function("sum", [Function("length", [Column("group_ids")])], "total_groups")
-    )
+    transaction_query.columns.append(Function("count()", alias="total_groups"))
     count = transaction_query.run_query("api.trace-view.count-performance-issues")
     return cast(int, count["data"][0].get("total_groups", 0))
 
 
 def query_trace_data(
-    trace_id: str, params: Mapping[str, str]
+    trace_id: str, params: Mapping[str, str], limit: int
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_query = QueryBuilder(
         Dataset.Transactions,
@@ -365,9 +382,23 @@ def query_trace_data(
         # We want to guarantee at least getting the root, and hopefully events near it with timestamp
         # id is just for consistent results
         orderby=["-root", "timestamp", "id"],
-        limit=MAX_TRACE_SIZE,
+        limit=limit,
     )
-    transaction_query.columns.append(AliasedExpression(Column("group_ids"), "issue.ids"))
+    occurrence_query = QueryBuilder(
+        Dataset.IssuePlatform,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=["event_id"],
+        groupby_columns=["event_id"],
+        config=QueryBuilderConfig(
+            functions_acl=["groupArray"],
+        ),
+    )
+    occurrence_query.columns.append(
+        Function("groupArray", parameters=[Column("group_id")], alias="issue.ids")
+    )
+    occurrence_query.groupby = [Column("event_id")]
+
     error_query = QueryBuilder(
         Dataset.Events,
         params,
@@ -385,23 +416,40 @@ def query_trace_data(
         ],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
         orderby=["id"],
-        auto_fields=False,
-        limit=MAX_TRACE_SIZE,
+        limit=limit,
+        config=QueryBuilderConfig(
+            auto_fields=False,
+        ),
     )
     results = bulk_snql_query(
-        [transaction_query.get_snql_query(), error_query.get_snql_query()],
+        [
+            transaction_query.get_snql_query(),
+            error_query.get_snql_query(),
+            occurrence_query.get_snql_query(),
+        ],
         referrer="api.trace-view.get-events",
     )
+
     transformed_results = [
         query.process_results(result)["data"]
-        for result, query in zip(results, [transaction_query, error_query])
+        for result, query in zip(results, [transaction_query, error_query, occurrence_query])
     ]
+
+    # Join group IDs from the occurrence dataset to transactions data
+    occurrence_dict = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
+    for result in transformed_results[0]:
+        result["issue.ids"] = occurrence_dict.get(result["id"], [])
+
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
     )
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
@@ -417,6 +465,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
+            "timestamp": to_timestamp_from_iso_format(event["timestamp"]),
+            "event_type": "error",
+            "generation": 0,
         }
 
     @staticmethod
@@ -477,16 +528,32 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
         except NoProjects:
             return Response(status=404)
 
+        trace_view_load_more_enabled = features.has(
+            "organizations:trace-view-load-more",
+            organization,
+            actor=request.user,
+        )
+
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        limit: int = (
+            min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
+            if trace_view_load_more_enabled
+            else MAX_TRACE_SIZE
+        )
         event_id: Optional[str] = request.GET.get("event_id")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
+        tracing_without_performance_enabled = features.has(
+            "organizations:performance-tracing-without-performance",
+            organization,
+            actor=request.user,
+        )
         with self.handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params)
-            if len(transactions) == 0:
+            transactions, errors = query_trace_data(trace_id, params, limit)
+            if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
@@ -507,15 +574,32 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             )
 
         return Response(
-            self.serialize(transactions, errors, roots, warning_extra, event_id, detailed)
+            self.serialize(
+                limit,
+                transactions,
+                errors,
+                roots,
+                warning_extra,
+                event_id,
+                detailed,
+                tracing_without_performance_enabled,
+                trace_view_load_more_enabled,
+            )
         )
 
 
 @region_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @staticmethod
     def get_current_transaction(
-        transactions: Sequence[SnubaTransaction], errors: Sequence[SnubaError], event_id: str
+        transactions: Sequence[SnubaTransaction],
+        errors: Sequence[SnubaError],
+        event_id: str,
+        allow_orphan_errors: bool,
     ) -> Tuple[SnubaTransaction, Event]:
         """Given an event_id return the related transaction event
 
@@ -528,7 +612,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
             transactions, lambda item: item is not None and item["id"] == event_id
         )
         if transaction_event is not None:
-            return transaction_event, eventstore.get_event_by_id(
+            return transaction_event, eventstore.backend.get_event_by_id(
                 transaction_event["project.id"], transaction_event["id"]
             )
 
@@ -543,7 +627,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 transactions, lambda item: item is not None and item["trace.span"] == error_span
             )
             if transaction_event is not None:
-                return transaction_event, eventstore.get_event_by_id(
+                return transaction_event, eventstore.backend.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
             # We didn't get lucky, time to talk to nodestore...
@@ -551,7 +635,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 if transaction_event["transaction"] != error_event["transaction"]:
                     continue
 
-                nodestore_event = eventstore.get_event_by_id(
+                nodestore_event = eventstore.backend.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
                 transaction_spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -559,22 +643,30 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     if span["span_id"] == error_event["trace.span"]:
                         return transaction_event, nodestore_event
 
+        if allow_orphan_errors:
+            return None, None
+
         # The current event couldn't be found in errors or transactions
         raise Http404()
 
     def serialize(
         self,
+        limit: int,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
+        allow_orphan_errors: bool = False,
+        allow_load_more: bool = False,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
-        snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
+        snuba_event, nodestore_event = self.get_current_transaction(
+            transactions, errors, event_id, allow_orphan_errors
+        )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         trace_results: List[TraceEvent] = []
@@ -582,18 +674,38 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
+
+            # Check if the event is an orphan_error
+            if not snuba_event and not nodestore_event and allow_orphan_errors:
+                orphan_error = find_event(
+                    errors, lambda item: item is not None and item["id"] == event_id
+                )
+                if orphan_error:
+                    return {
+                        "transactions": [],
+                        "orphan_errors": [self.serialize_error(orphan_error)],
+                    }
+                else:
+                    # The current event couldn't be found in errors or transactions
+                    raise Http404()
+
             # Going to nodestore is more expensive than looping twice so check if we're on the root first
             for root in roots:
                 if root["id"] == snuba_event["id"]:
                     current_generation = 0
                     break
 
+            params = self.get_snuba_params(
+                self.request, self.request.organization, check_global_views=False
+            )
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
                     if root["id"] != snuba_event["id"]:
                         # Get the root event and see if the current event's span is in the root event
-                        root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
+                        root_event = eventstore.backend.get_event_by_id(
+                            root["project.id"], root["id"]
+                        )
                         root_spans: NodeSpans = root_event.data.get("spans", [])
                         root_span = find_event(
                             root_spans,
@@ -611,12 +723,15 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     None,
                                     0,
                                     True,
+                                    snuba_params=params,
                                 )
                             )
                             current_generation = 1
                             break
 
-            current_event = TraceEvent(snuba_event, root_id, current_generation, True)
+            current_event = TraceEvent(
+                snuba_event, root_id, current_generation, True, snuba_params=params
+            )
             trace_results.append(current_event)
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -647,10 +762,17 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     else None
                                 ),
                                 True,
+                                snuba_params=params,
                             )
                             for child_event in child_events
                         ]
                     )
+
+        if allow_orphan_errors:
+            return {
+                "transactions": [result.to_dict() for result in trace_results],
+                "orphan_errors": [],
+            }
 
         return [result.to_dict() for result in trace_results]
 
@@ -658,7 +780,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
-    def update_children(event: TraceEvent) -> None:
+    def update_children(event: TraceEvent, limit: int) -> None:
         """Updates the children of subtraces
 
         - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
@@ -667,7 +789,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """
         parents = [event]
         iteration = 0
-        while parents and iteration < MAX_TRACE_SIZE:
+        while parents and iteration < limit:
             iteration += 1
             parent = parents.pop()
             parent.children.sort(key=child_sort_key)
@@ -675,38 +797,68 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 child.generation = parent.generation + 1 if parent.generation is not None else None
                 parents.append(child)
 
+    # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
+    # to the associated nodestore event.
+    @staticmethod
+    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> Dict[str, Optional[Event]]:
+        map = {}
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_event = {
+                executor.submit(
+                    eventstore.backend.get_event_by_id, event["project.id"], event["id"]
+                ): event
+                for event in events
+            }
+
+            for future in as_completed(future_to_event):
+                event_id = future_to_event[future]["id"]
+                nodestore_event = future.result()
+                map[event_id] = nodestore_event
+
+        return map
+
     def serialize(
         self,
+        limit: int,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
+        allow_orphan_errors: bool = False,
+        allow_load_more: bool = False,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
         if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
         possible
         """
+        event_id_to_nodestore_event = (
+            self.nodestore_event_map(transactions) if allow_load_more else {}
+        )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
         results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
+        params = self.get_snuba_params(
+            self.request, self.request.organization, check_global_views=False
+        )
         # The root of the orphan tree we're currently navigating through
         orphan_root: Optional[SnubaTransaction] = None
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0)
+            root_event = TraceEvent(root, None, 0, snuba_params=params)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
 
+        iteration = 0
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
-            iteration = 0
             has_orphans = False
+
             while parent_map or to_check:
                 if len(to_check) == 0:
                     has_orphans = True
@@ -719,7 +871,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0
+                        current_event, None, 0, snuba_params=params
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -739,11 +891,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             del parent_map[to_remove["trace.parent_span"]]
                     to_check = deque()
 
-                spans: NodeSpans = (
-                    previous_event.nodestore_event.data.get("spans", [])
-                    if previous_event.nodestore_event
-                    else []
-                )
+                spans: NodeSpans = []
+                if allow_load_more:
+                    previous_event_id = previous_event.event["id"]
+                    if previous_event_id in event_id_to_nodestore_event:
+                        previous_event.fetched_nodestore = True
+                        nodestore_event = event_id_to_nodestore_event[previous_event_id]
+                        previous_event._nodestore_event = nodestore_event
+                        spans = nodestore_event.data.get("spans", [])
+                else:
+                    if previous_event.nodestore_event:
+                        spans = previous_event.nodestore_event.data.get("spans", [])
 
                 # Need to include the transaction as a span as well
                 #
@@ -789,6 +947,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             previous_event.generation + 1
                             if previous_event.generation is not None
                             else None,
+                            snuba_params=params,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])
@@ -796,7 +955,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         to_check.append(child_event)
                 # Limit iterations just to be safe
                 iteration += 1
-                if iteration > MAX_TRACE_SIZE:
+                if iteration > limit:
                     sentry_sdk.set_tag("discover.trace-view.warning", "surpassed-trace-limit")
                     logger.warning(
                         "discover.trace-view.surpassed-trace-limit",
@@ -804,11 +963,24 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
+        # We are now left with orphan errors in the error_map,
+        # that we need to serialize and return with our results.
+        orphan_errors: List[TraceError] = []
+        if allow_orphan_errors and iteration < limit:
+            for errors in error_map.values():
+                for error in errors:
+                    orphan_errors.append(self.serialize_error(error))
+                    iteration += 1
+                    if iteration > limit:
+                        break
+                if iteration > limit:
+                    break
+
         root_traces: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
-                self.update_children(subtrace)
+                self.update_children(subtrace, limit)
             if index > 0 or len(roots) == 0:
                 orphans.extend(result)
             elif len(roots) > 0:
@@ -816,18 +988,32 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
+        orphan_errors = sorted(orphan_errors, key=lambda k: k["timestamp"])
 
         if len(orphans) > 0:
             sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
             logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
 
-        return [trace.full_dict(detailed) for trace in root_traces] + [
-            orphan.full_dict(detailed) for orphan in orphans
-        ]
+        if allow_orphan_errors:
+            return {
+                "transactions": [trace.full_dict(detailed) for trace in root_traces]
+                + [orphan.full_dict(detailed) for orphan in orphans],
+                "orphan_errors": [orphan for orphan in orphan_errors],
+            }
+
+        return (
+            [trace.full_dict(detailed) for trace in root_traces]
+            + [orphan.full_dict(detailed) for orphan in orphans]
+            + [orphan for orphan in orphan_errors]
+        )
 
 
 @region_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)

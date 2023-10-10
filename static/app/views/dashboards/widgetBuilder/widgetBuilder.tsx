@@ -10,6 +10,9 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import InputField from 'sentry/components/forms/fields/inputField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -22,6 +25,7 @@ import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   explodeField,
@@ -54,16 +58,22 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
 
+import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
+import ThresholdsStep, {
+  ThresholdMaxKeys,
+  ThresholdsConfig,
+} from './buildSteps/thresholdsStep/thresholdsStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
@@ -129,8 +139,12 @@ interface State {
   queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
+  dataType?: string;
+  dataUnit?: string;
+  description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
+  thresholds?: ThresholdsConfig | null;
   widgetToBeUpdated?: Widget;
 }
 
@@ -199,6 +213,7 @@ function WidgetBuilder({
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(WidgetType.DISCOVER)
   );
+  const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -207,8 +222,12 @@ function WidgetBuilder({
         DisplayType.TABLE,
       interval: '5m',
       queries: [],
+      thresholds: defaultThresholds,
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
+      description: undefined,
+      dataType: undefined,
+      dataUnit: undefined,
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
@@ -299,12 +318,14 @@ function WidgetBuilder({
 
       setState({
         title: widgetFromDashboard.title,
+        description: widgetFromDashboard.description,
         displayType: newDisplayType,
         interval: widgetFromDashboard.interval,
         queries,
         errors: undefined,
         loading: false,
         userHasModified: false,
+        thresholds: widgetFromDashboard.thresholds ?? defaultThresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
@@ -343,7 +364,9 @@ function WidgetBuilder({
 
   const currentWidget = {
     title: state.title,
+    description: state.description,
     displayType: state.displayType,
+    thresholds: state.thresholds,
     interval: state.interval,
     queries: state.queries,
     limit: state.limit,
@@ -474,22 +497,23 @@ function WidgetBuilder({
     });
   }
 
-  function handleDisplayTypeOrTitleChange<
-    F extends keyof Pick<State, 'displayType' | 'title'>
+  function handleDisplayTypeOrAnnotationChange<
+    F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    trackAnalytics('dashboards_views.widget_builder.change', {
-      from: source,
-      field,
-      value,
-      widget_type: widgetType,
-      organization,
-      new_widget: !isEditing,
-    });
+    value &&
+      trackAnalytics('dashboards_views.widget_builder.change', {
+        from: source,
+        field,
+        value,
+        widget_type: widgetType,
+        organization,
+        new_widget: !isEditing,
+      });
 
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
-      if (field === 'title') {
+      if (['title', 'description'].includes(field)) {
         set(newState, 'userHasModified', true);
       }
       return {...newState, errors: undefined};
@@ -563,6 +587,7 @@ function WidgetBuilder({
       return {...newState, errors: undefined};
     });
   }
+
   function getHandleColumnFieldChange(isMetricsData?: boolean) {
     function handleColumnFieldChange(newFields: QueryFieldValue[]) {
       const fieldStrings = newFields.map(generateFieldAsString);
@@ -654,6 +679,8 @@ function WidgetBuilder({
       );
     }
 
+    newState.thresholds = defaultThresholds;
+
     setState(newState);
   }
 
@@ -744,6 +771,10 @@ function WidgetBuilder({
 
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
+
+    if (widgetData.thresholds && !hasThresholdMaxValue(widgetData.thresholds)) {
+      widgetData.thresholds = null;
+    }
 
     if (widgetToBeUpdated) {
       widgetData.layout = widgetToBeUpdated?.layout;
@@ -888,6 +919,59 @@ function WidgetBuilder({
     );
   }
 
+  function handleThresholdChange(maxKey: ThresholdMaxKeys, value: string) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      if (value === '') {
+        delete newState.thresholds?.max_values[maxKey];
+
+        if (newState.thresholds && !hasThresholdMaxValue(newState.thresholds)) {
+          newState.thresholds.max_values = {};
+        }
+      } else {
+        if (newState.thresholds) {
+          newState.thresholds.max_values[maxKey] = Number(value);
+        }
+      }
+
+      return newState;
+    });
+  }
+
+  function handleThresholdUnitChange(unit: string) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      if (newState.thresholds) {
+        newState.thresholds.unit = unit;
+      }
+
+      return newState;
+    });
+  }
+
+  function handleWidgetDataFetched(tableData: TableDataWithTitle[]) {
+    const tableMeta = {...tableData[0].meta};
+    const keys = Object.keys(tableMeta);
+    const field = keys[0];
+    const dataType = tableMeta[field];
+    const dataUnit = tableMeta.units?.[field];
+
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+
+      if (newState.thresholds && !newState.thresholds.unit) {
+        newState.thresholds.unit = dataUnit ?? null;
+      }
+
+      return newState;
+    });
+  }
+
   function isFormInvalid() {
     if (
       (notDashboardsOrigin && !state.selectedDashboard) ||
@@ -907,11 +991,9 @@ function WidgetBuilder({
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
 
-  const hideLegendAlias = [
-    DisplayType.TABLE,
-    DisplayType.WORLD_MAP,
-    DisplayType.BIG_NUMBER,
-  ].includes(state.displayType);
+  const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
+    state.displayType
+  );
 
   // Tabular visualizations will always have only one query and that query cannot be deleted,
   // so we will always have the first query available to get data from.
@@ -976,19 +1058,49 @@ function WidgetBuilder({
                     <Layout.Page>
                       <Header
                         orgSlug={orgSlug}
-                        title={state.title}
                         dashboardTitle={dashboard.title}
                         goBackLocation={previousLocation}
-                        onChangeTitle={newTitle => {
-                          handleDisplayTypeOrTitleChange('title', newTitle);
-                        }}
                       />
                       <Body>
                         <MainWrapper>
                           <Main>
                             <BuildSteps symbol="colored-numeric">
+                              <NameWidgetStep title={t('Name your widget')}>
+                                <TitleInput
+                                  name="title"
+                                  inline={false}
+                                  aria-label={t('Widget title')}
+                                  placeholder={t('Enter title')}
+                                  error={state.errors?.title}
+                                  data-test-id="widget-builder-title-input"
+                                  onChange={newTitle => {
+                                    handleDisplayTypeOrAnnotationChange(
+                                      'title',
+                                      newTitle
+                                    );
+                                  }}
+                                  value={state.title}
+                                />
+                                <StyledTextAreaField
+                                  name="description"
+                                  rows={4}
+                                  autosize
+                                  inline={false}
+                                  aria-label={t('Widget Description')}
+                                  placeholder={t('Enter description (Optional)')}
+                                  error={state.errors?.description}
+                                  onChange={newDescription => {
+                                    handleDisplayTypeOrAnnotationChange(
+                                      'description',
+                                      newDescription
+                                    );
+                                  }}
+                                  value={state.description}
+                                />
+                              </NameWidgetStep>
                               <VisualizationStep
                                 location={location}
+                                onDataFetched={handleWidgetDataFetched}
                                 widget={currentWidget}
                                 dashboardFilters={dashboard.filters}
                                 organization={organization}
@@ -996,7 +1108,7 @@ function WidgetBuilder({
                                 displayType={state.displayType}
                                 error={state.errors?.displayType}
                                 onChange={newDisplayType => {
-                                  handleDisplayTypeOrTitleChange(
+                                  handleDisplayTypeOrAnnotationChange(
                                     'displayType',
                                     newDisplayType
                                   );
@@ -1086,6 +1198,20 @@ function WidgetBuilder({
                                   tags={tags}
                                 />
                               )}
+                              {state.displayType === 'big_number' &&
+                                state.dataType !== 'date' &&
+                                organization.features.includes(
+                                  'dashboard-widget-indicators'
+                                ) && (
+                                  <ThresholdsStep
+                                    onThresholdChange={handleThresholdChange}
+                                    onUnitChange={handleThresholdUnitChange}
+                                    thresholdsConfig={state.thresholds ?? null}
+                                    dataType={state.dataType}
+                                    dataUnit={state.dataUnit}
+                                    errors={state.errors?.thresholds}
+                                  />
+                                )}
                             </BuildSteps>
                           </Main>
                           <Footer
@@ -1137,6 +1263,10 @@ function WidgetBuilder({
 }
 
 export default withPageFilters(withTags(WidgetBuilder));
+
+const TitleInput = styled(InputField)`
+  padding: 0 ${space(2)} 0 0;
+`;
 
 const BuildSteps = styled(List)`
   gap: ${space(4)};
@@ -1207,4 +1337,15 @@ const MainWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/-1;
   }
+`;
+
+const NameWidgetStep = styled(BuildStep)`
+  ${FieldWrapper} {
+    padding: 0 ${space(2)} 0 0;
+    border-bottom: none;
+  }
+`;
+
+const StyledTextAreaField = styled(TextareaField)`
+  margin-top: ${space(1.5)};
 `;

@@ -7,6 +7,7 @@ import {
   InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
+  updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,12 +29,18 @@ type InitializeUrlStateProps = Omit<
   'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
-type Props = InitializeUrlStateProps & {
+interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
   /**
    * Custom alert message for the desynced filter state.
    */
   desyncedAlertMessage?: string;
+  /**
+   * When true, changes to page filters' value won't be saved to local storage, and will
+   * be forgotten when the user navigates to a different page. This is useful for local
+   * filtering contexts like in Dashboard Details.
+   */
+  disablePersistence?: boolean;
   /**
    * Whether to hide the revert button in the desynced filter alert.
    */
@@ -42,13 +49,22 @@ type Props = InitializeUrlStateProps & {
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
-};
+  /**
+   * If provided, will store page filters separately from the rest of Sentry
+   */
+  storageNamespace?: string;
+}
 
 /**
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function Container({skipLoadLastUsed, children, ...props}: Props) {
+function Container({
+  skipLoadLastUsed,
+  skipLoadLastUsedEnvironment,
+  children,
+  ...props
+}: Props) {
   const {
     forceProject,
     organization,
@@ -57,8 +73,10 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     skipInitializeUrlParams,
+    disablePersistence,
     desyncedAlertMessage,
     hideDesyncRevertButton,
+    storageNamespace,
   } = props;
   const router = useRouter();
   const location = useLocation();
@@ -78,20 +96,24 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
-  const doInitialization = () =>
+  const doInitialization = () => {
     initializeUrlState({
       organization,
       queryParams: location.query,
       router,
       skipLoadLastUsed,
+      skipLoadLastUsedEnvironment,
       memberProjects,
       defaultSelection,
       forceProject,
       shouldForceProject,
       shouldEnforceSingleProject: enforceSingleProject,
+      shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
+      storageNamespace,
     });
+  };
 
   // Initializes GlobalSelectionHeader
   //
@@ -110,6 +132,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
+  // Update store persistence when `disablePersistence` changes
+  useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
+
   const lastQuery = useRef(location.query);
 
   // This happens e.g. using browser's navigation button, in which case
@@ -125,7 +150,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
     const newSelectionQuery = extractSelectionParameters(location.query);
 
-    // XXX: This re-initialization is only required in new-page-filters
+    // XXX: This re-initialization is only required in new-page-filter
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
     if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
@@ -178,11 +203,13 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      <DesyncedFilterAlert
-        router={router}
-        message={desyncedAlertMessage}
-        hideRevertButton={hideDesyncRevertButton}
-      />
+      {!organization.features.includes('new-page-filter') && (
+        <DesyncedFilterAlert
+          router={router}
+          message={desyncedAlertMessage}
+          hideRevertButton={hideDesyncRevertButton}
+        />
+      )}
       {children}
     </Fragment>
   );

@@ -1,11 +1,12 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {Organization} from 'sentry-fixture/organization';
 
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {render} from 'sentry-test/reactTestingLibrary';
+
 import QuickTrace from 'sentry/views/issueDetails/quickTrace';
 
 describe('IssueQuickTrace', () => {
   const defaultProps = {
-    organization: TestStubs.Organization({features: ['performance-view']}),
+    organization: Organization({features: ['performance-view']}),
     event: TestStubs.Event({contexts: {trace: {trace_id: 100}}}),
     group: TestStubs.Group(),
     location: TestStubs.location(),
@@ -13,7 +14,7 @@ describe('IssueQuickTrace', () => {
 
   it('renders nothing without performance-view flag', () => {
     const {container} = render(
-      <QuickTrace {...defaultProps} organization={TestStubs.Organization()} />
+      <QuickTrace {...defaultProps} organization={Organization()} />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -25,17 +26,5 @@ describe('IssueQuickTrace', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders a placeholder if event has a trace context but finds nothing', () => {
-    MockApiClient.addMockResponse({});
-
-    render(
-      <QuickTraceContext.Provider value={undefined}>
-        <QuickTrace {...defaultProps} />
-      </QuickTraceContext.Provider>
-    );
-
-    expect(screen.getByTestId('missing-trace-placeholder')).toBeInTheDocument();
   });
 });

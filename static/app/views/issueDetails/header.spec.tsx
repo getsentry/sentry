@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,10 +9,12 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const organization = Organization();
+  const project = TestStubs.Project({
+    teams: [TestStubs.Team()],
+  });
 
-  describe('issue category: error', () => {
+  describe('issue category: error, js project', () => {
     const defaultProps = {
       organization,
       baseUrl,
@@ -21,18 +24,29 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
-        features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
+      const orgWithFeatures = Organization({
+        features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const projectWithSimilarityView = TestStubs.Project({
+      const jsProjectWithSimilarityView = TestStubs.Project({
         features: ['similarity-view'],
+        platform: 'javascript',
+      });
+
+      const MOCK_GROUP = TestStubs.Group();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {
+          [MOCK_GROUP.id]: ['replay42', 'replay256'],
+        },
       });
 
       render(
         <GroupHeader
           {...defaultProps}
           organization={orgWithFeatures}
-          project={projectWithSimilarityView}
+          project={jsProjectWithSimilarityView}
         />,
         {organization: orgWithFeatures}
       );
@@ -61,11 +75,54 @@ describe('groupDetails', () => {
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
 
-      await userEvent.click(screen.getByRole('tab', {name: /grouping/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/grouping/');
+      await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
+      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/replays/');
+
+      expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
+    });
+  });
+
+  describe('issue category: error, mobile project', () => {
+    const defaultProps = {
+      organization,
+      baseUrl,
+      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
+      project,
+    };
+
+    it('displays the correct tabs with all features enabled', async () => {
+      const orgWithFeatures = Organization({
+        features: ['similarity-view', 'event-attachments', 'session-replay'],
+      });
+      const mobileProjectWithSimilarityView = TestStubs.Project({
+        features: ['similarity-view'],
+        platform: 'apple-ios',
+      });
+
+      const MOCK_GROUP = TestStubs.Group();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {
+          [MOCK_GROUP.id]: ['replay42', 'replay256'],
+        },
+      });
+
+      render(
+        <GroupHeader
+          {...defaultProps}
+          organization={orgWithFeatures}
+          project={mobileProjectWithSimilarityView}
+        />,
+        {organization: orgWithFeatures}
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
+
+      expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
   });
 
@@ -79,12 +136,22 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
-        features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
+      const orgWithFeatures = Organization({
+        features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
       const projectWithSimilarityView = TestStubs.Project({
         features: ['similarity-view'],
+      });
+
+      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {
+          [MOCK_GROUP.id]: ['replay42', 'replay256'],
+        },
       });
 
       render(
@@ -102,7 +169,7 @@ describe('groupDetails', () => {
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
 
-      await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
@@ -111,10 +178,10 @@ describe('groupDetails', () => {
       expect(screen.queryByRole('tab', {name: /user feedback/i})).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /attachments/i})).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /merged issues/i})).not.toBeInTheDocument();
-      expect(screen.queryByRole('tab', {name: /grouping/i})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
   });
 });

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +10,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
@@ -17,7 +18,6 @@ describe('OrgDashboards', () => {
   beforeEach(() => {
     initialData = initializeOrg({
       organization,
-      project: 1,
       projects: [],
       router: {
         location: TestStubs.location(),
@@ -177,7 +177,6 @@ describe('OrgDashboards', () => {
   it('does not add query params for page filters if one of the filters is defined', () => {
     initialData = initializeOrg({
       organization,
-      project: 1,
       projects: [],
       router: {
         location: {

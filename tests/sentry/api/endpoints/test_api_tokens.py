@@ -1,8 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models import ApiToken
-from sentry.testutils import APITestCase
+from sentry.models.apitoken import ApiToken
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -26,7 +26,17 @@ class ApiTokensListTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_deny_token_access(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=[])
+
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        assert response.status_code == 403, response.content
 
 
 @control_silo_test(stable=True)
@@ -52,7 +62,24 @@ class ApiTokensCreateTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.post(url, data={"scopes": ["event:read"]})
         assert response.status_code == 201
-        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_invalid_choice(self):
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.post(
+            url,
+            data={
+                "scopes": [
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                ]
+            },
+        )
+        assert response.status_code == 400
+        assert not ApiToken.objects.filter(user=self.user).exists()
 
 
 @control_silo_test(stable=True)
@@ -71,7 +98,10 @@ class ApiTokensDeleteTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.delete(url, data={"token": token.token})
         assert response.status_code == 204
-        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
 
 
 @control_silo_test(stable=True)

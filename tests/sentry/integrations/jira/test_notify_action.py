@@ -1,12 +1,18 @@
 import responses
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.models import ExternalIssue, GroupLink, Integration, Rule
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import Rule
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
@@ -104,16 +110,11 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         data = self.create_issue_base(event)
 
         # Make assertions about what would be POSTed to api/2/issue.
+        assert data["fields"]["summary"] == "N+1 Query"
         assert (
-            data["fields"]["summary"]
-            == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
-        )
-        assert (
-            "*Transaction Name* | db - SELECT `books_author`.`id`, `books_author`"
+            "*Offending Spans* | db - SELECT `books_author`.`id`, `books_author`"
             in data["fields"]["description"]
         )
-        assert data["fields"]["issuetype"]["id"] == "1"
-
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
 

@@ -1,8 +1,11 @@
 from django.urls import reverse
 
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -34,6 +37,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "orderby": "count()",
                 },
             ],
+            "description": "Valid widget description",
         }
         response = self.do_request(
             "post",
@@ -68,6 +72,45 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_blank_descriptions_are_allowed(self):
+        data = {
+            "title": "Errors over time",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
+                {
+                    "name": "errors",
+                    "conditions": "(level:error OR title:*Error*) !release:latest",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                    "orderby": "count()",
+                },
+            ],
+            "description": "Valid widget description",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+        data["description"] = ""
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
 
     def test_invalid_widget_permissions(self):
         self.create_user_member_role()
@@ -320,6 +363,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         data = {
             "title": "EPM Big Number",

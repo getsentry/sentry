@@ -31,7 +31,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
-  const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
+  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {
@@ -180,7 +180,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+          <Button
+            size="sm"
+            href="https://docs.sentry.io/platforms/javascript/session-replay/"
+            external
+          >
             {t('Go to Sentry Documentation')}
           </Button>
         </div>

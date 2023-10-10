@@ -21,6 +21,29 @@ export async function deleteMonitor(api: Client, orgId: string, monitorSlug: str
   }
 }
 
+export async function deleteMonitorEnvironment(
+  api: Client,
+  orgId: string,
+  monitorSlug: string,
+  environment: string
+): Promise<boolean> {
+  addLoadingMessage(t('Deleting Environment...'));
+
+  try {
+    await api.requestPromise(`/organizations/${orgId}/monitors/${monitorSlug}/`, {
+      method: 'DELETE',
+      query: {
+        environment,
+      },
+    });
+    clearIndicators();
+    return true;
+  } catch {
+    addErrorMessage(t('Unable to remove environment from monitor.'));
+  }
+  return false;
+}
+
 export async function updateMonitor(
   api: Client,
   orgId: string,

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -14,7 +16,7 @@ import {
 jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
-  const organization = TestStubs.Organization({});
+  const organization = Organization({});
   const project = TestStubs.Project();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [
@@ -107,7 +109,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText('Event missing Release tag')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps'
     );
   });
 
@@ -141,7 +143,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 
@@ -177,7 +179,37 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
+  });
+
+  it('should show source maps wizard alert for DEBUG_ID_NO_SOURCEMAPS', async () => {
+    const error: SourceMapDebugError = {
+      type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS,
+      message: '',
+    };
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {errors: [error]},
+    });
+
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText("You're not a computer, so why parse minified code?")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. Learn more'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('npx @sentry/wizard@latest -i sourcemaps'))
+    ).toBeInTheDocument();
   });
 });

@@ -27,7 +27,7 @@ function TransactionAnomalies(props: Props) {
         location={location}
         organization={organization}
         projects={projects}
-        tab={Tab.Anomalies}
+        tab={Tab.ANOMALIES}
         generateEventView={generateAnomaliesEventView}
         getDocumentTitle={getDocumentTitle}
         childComponent={AnomaliesContent}

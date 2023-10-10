@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from urllib.parse import urlencode
 
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
-from sentry.models import Activity, Commit, CommitFileChange, OrganizationMember, Project, UserEmail
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,
@@ -16,6 +21,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -35,19 +41,23 @@ class ReleaseActivityNotification(ActivityNotification):
 
         if not self.release:
             self.email_list: set[str] = set()
-            self.user_ids: set[int] = set()
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: set[Project] = set()
             self.version = "unknown"
             self.version_parsed = self.version
+            self.user_ids = set()
             return
 
         self.projects = set(self.release.projects.all())
         self.commit_list = list(Commit.objects.get_for_release(self.release))
         self.email_list = {c.author.email for c in self.commit_list if c.author}
-        users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
-        self.user_ids = {u.id for u in users.values()}
-        self.repos = get_repos(self.commit_list, users, self.organization)
+        users = user_service.get_many_by_email(
+            emails=list(self.email_list),
+            organization_id=self.organization.id,
+            is_verified=True,
+        )
+        self.user_ids = {u.id for u in users}
+        self.repos = get_repos(self.commit_list, {u.email: u for u in users}, self.organization)
         self.environment = get_environment_for_deploy(self.deploy)
         self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
 
@@ -76,7 +86,10 @@ class ReleaseActivityNotification(ActivityNotification):
             "release": self.release,
             "repos": self.repos,
             "setup_repo_link": self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/repos/"
+                f"/organizations/{self.organization.slug}/repos/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             ),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
             "version_parsed": self.version_parsed,
@@ -87,8 +100,7 @@ class ReleaseActivityNotification(ActivityNotification):
             return set()
 
         if recipient.actor_type == ActorType.USER:
-            if recipient.is_superuser or self.organization.flags.allow_joinleave:
-                # Admins can see all projects.
+            if self.organization.flags.allow_joinleave:
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]
         else:
@@ -105,7 +117,10 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = self.get_projects(recipient)
         release_links = [
             self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
+                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
             for p in projects
         ]
@@ -145,7 +160,7 @@ class ReleaseActivityNotification(ActivityNotification):
                         name=project.slug,
                         url=self.organization.absolute_url(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/",
-                            query=f"project={project.id}&unselectedSeries=Healthy",
+                            query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",
                         ),
                     )
                     for project in self.release.projects.all()

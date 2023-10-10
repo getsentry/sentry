@@ -26,12 +26,12 @@ This document is structured by resource with each resource having actions that c
     Members: + s + m + h + d + w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -65,6 +65,8 @@ This document is structured by resource with each resource having actions that c
     | click.textContent | string        | The text-content of an HTML element.                           |
     | click.title       | string        | The title attribute of an HTML element.                        |
     | click.selector    | string        | A valid CSS selector.                                          |
+    | dead.selector     | string        | A valid CSS selector.                                          |
+    | rage.selector     | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -77,12 +79,14 @@ Retrieve a collection of replays.
 | activity          | number                        | -                                                      |
 | browser.name      | optional[string]              | -                                                      |
 | browser.version   | optional[string]              | -                                                      |
+| count_dead_clicks | number                        | The number of dead clicks present in the replay.       |
+| count_rage_clicks | number                        | The number of rage clicks present in the replay.       |
 | count_errors      | number                        | The number of errors associated with the replay.       |
 | count_segments    | number                        | The number of segments that make up the replay.        |
 | count_urls        | number                        | The number of urls visited in the replay.              |
 | device.brand      | optional[string]              | -                                                      |
 | device.family     | optional[string]              | -                                                      |
-| device.model_id   | optional[string]              | Same search field as Events                            |
+| device.model      | optional[string]              | Same search field as Events                            |
 | device.name       | optional[string]              | -                                                      |
 | dist              | optional[string]              | -                                                      |
 | duration          | number                        | Difference of `finishedAt` and `startedAt` in seconds. |
@@ -119,13 +123,15 @@ Retrieve a collection of replays.
           "name": "Chome",
           "version": "103.0.38"
         },
+        "count_dead_clicks": 6,
+        "count_rage_clicks": 1,
         "count_errors": 1,
         "count_segments": 0,
         "count_urls": 1,
         "device": {
           "brand": "Apple",
           "family": "iPhone",
-          "model_id": "11",
+          "model": "11",
           "name": "iPhone 11"
         },
         "dist": null,
@@ -140,7 +146,7 @@ Retrieve a collection of replays.
           "version": "16.2"
         },
         "platform": "Sentry",
-        "project_dd": "639195",
+        "project_id": "639195",
         "releases": ["version@1.4"],
         "sdk": {
           "name": "Thundercat",
@@ -156,7 +162,7 @@ Retrieve a collection of replays.
           "display_name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
-          "ip_address": "213.164.1.114",
+          "ip": "213.164.1.114",
           "username": "John Doe"
         }
       }
@@ -183,13 +189,15 @@ Retrieve a single replay instance.
         "name": "Chome",
         "version": "103.0.38"
       },
+      "count_dead_clicks": 6,
+      "count_rage_clicks": 1,
       "count_errors": 1,
       "count_segments": 0,
       "count_urls": 1,
       "device": {
         "brand": "Apple",
         "family": "iPhone",
-        "model_id": "11",
+        "model": "11",
         "name": "iPhone 11"
       },
       "dist": null,
@@ -231,6 +239,79 @@ Retrieve a single replay instance.
 Deletes a replay instance.
 
 - Response 204
+
+## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
+
+- Parameters
+
+  - project (optional, string)
+  - sort (optional, string)
+    Default: -count_dead_clicks
+    Members:
+    - count_dead_clicks
+    - -count_dead_clicks
+    - count_rage_clicks
+    - -count_rage_clicks
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
+    Default: 7d
+    Members:
+    - s
+    - m
+    - h
+    - d
+    - w
+  - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+  - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - per_page (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replay Selectors [GET]
+
+Retrieve a collection of selectors.
+
+**Attributes**
+
+| Column             | Type           | Description                                        |
+| ------------------ | ------         | -------------------------------------------------- |
+| count_dead_clicks  | number         | The number of dead clicks for a given DOM element. |
+| count_rage_clicks  | number         | The number of rage clicks for a given DOM element. |
+| dom_element        | string         | -                                                  |
+| element.alt        | string         | -                                                  |
+| element.aria_label | string         | -                                                  |
+| element.class      | array[string]  | -                                                  |
+| element.id         | string         | -                                                  |
+| element.role       | string         | -                                                  |
+| element.tag        | string         | -                                                  |
+| element.testid     | string         | -                                                  |
+| element.title      | string         | -                                                  |
+| project_id         | string         | -                                                  |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "count_dead_clicks": 2,
+        "count_rage_clicks": 1,
+        "dom_element": "div#myid.class1.class2",
+        "element": {
+          "alt": "",
+          "aria_label": "",
+          "class": ["class1", "class2"],
+          "id": "myid",
+          "role": "",
+          "tag": "div",
+          "testid": "",
+          "title": ""
+        },
+        "project_id": "1"
+      }
+    ]
+  }
+  ```
 
 ## Replay Recording Segments [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/]
 
@@ -374,7 +455,7 @@ Parameters:
 
 | Parameter | Type   | Default | Description                                  |
 | --------- | ------ | ------- | -------------------------------------------- |
-| limit     | number | 100     |                                              |
+| per_page  | number | 100     |                                              |
 | offset    | number | 0       |                                              |
 | query     | string | 0       | Space-separated string of field, value pairs |
 
@@ -392,6 +473,13 @@ Queryable fields:
 | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
 | click.textContent | string        | The text-content of an HTML element.                           |
 | click.title       | string        | The title attribute of an HTML element.                        |
+
+Queryable fields for rage and dead clicks:
+
+| Field         | Type   | Description           |
+| ------------- | ------ | --------------------- |
+| dead.selector | string | A valid CSS selector. |
+| rage.selector | string | A valid CSS selector. |
 
 ### Fetch Replay Clicks [GET]
 

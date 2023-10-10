@@ -21,7 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
@@ -37,7 +37,7 @@ import {
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
-import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
+import {getTermHelp, PerformanceTerm} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
@@ -162,7 +162,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.APDEX)
+            ? getTermHelp(organization, PerformanceTerm.APDEX)
             : noPerformanceTooltip,
       },
       {
@@ -174,7 +174,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)
+            ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
             : noPerformanceTooltip,
       },
       {
@@ -186,7 +186,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.TPM)
+            ? getTermHelp(organization, PerformanceTerm.TPM)
             : noPerformanceTooltip,
       },
       {
@@ -335,7 +335,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+                  help={getTermHelp(organization, PerformanceTerm.APDEX)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
@@ -352,7 +352,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.FAILURE_RATE && (
                 <ProjectBaseEventsChart
                   title={t('Failure Rate')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+                  help={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
@@ -369,7 +369,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.TPM && (
                 <ProjectBaseEventsChart
                   title={t('Transactions Per Minute')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+                  help={getTermHelp(organization, PerformanceTerm.TPM)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',

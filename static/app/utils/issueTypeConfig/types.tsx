@@ -1,4 +1,4 @@
-import {IssueType, PlatformType} from 'sentry/types';
+import {IssueType, PlatformKey} from 'sentry/types';
 
 export type ResourceLink = {
   link: string;
@@ -33,10 +33,6 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   /**
-   * Is the Grouping tab shown for this issue
-   */
-  grouping: DisabledWithReasonConfig;
-  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
@@ -57,7 +53,7 @@ export type IssueTypeConfig = {
     /**
      * Platform-specific resource links
      */
-    linksByPlatform: Partial<Record<PlatformType, ResourceLink[]>>;
+    linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
    * Is the Similar Issues tab shown for this issue

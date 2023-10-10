@@ -1,10 +1,10 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, PermissionTestCase, SCIMTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase, SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +17,7 @@ class OrganizationAuthProviderPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -43,7 +43,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             response = self.client.get(self.path)
             assert response.status_code == 200
             assert response.data == {
-                "id": str(self.auth_provider.id),
+                "id": str(self.auth_provider_inst.id),
                 "provider_name": "dummy",
                 "pending_links_count": 1,
                 "login_url": f"http://testserver/organizations/{self.organization.slug}/issues/",
@@ -57,7 +57,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             response = self.client.get(self.path)
             assert response.status_code == 200
             assert response.data == {
-                "id": str(self.auth_provider.id),
+                "id": str(self.auth_provider_inst.id),
                 "provider_name": "dummy",
                 "pending_links_count": 1,
                 "login_url": f"http://{self.organization.slug}.testserver/issues/",

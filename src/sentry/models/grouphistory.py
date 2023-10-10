@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -18,7 +19,10 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Release, Team, User
+    from sentry.models.group import Group
+    from sentry.models.release import Release
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -120,7 +124,11 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
     GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
-    GroupHistoryStatus.ESCALATING: (GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,),
+    GroupHistoryStatus.ESCALATING: (
+        GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+        GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
+        GroupHistoryStatus.IGNORED,
+    ),
 }
 
 ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
@@ -129,13 +137,15 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
-    ActivityType.AUTO_SET_ONGOING: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.AUTO_SET_ONGOING.value: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.SET_ESCALATING.value: GroupHistoryStatus.ESCALATING,
 }
 
 
 class GroupHistoryManager(BaseManager):
     def filter_to_team(self, team):
-        from sentry.models import GroupAssignee, Project
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.project import Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
@@ -158,7 +168,7 @@ class GroupHistory(Model):
     - Issue Activity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupHistoryManager()
 
@@ -237,7 +247,8 @@ def record_group_history_from_activity_type(
     # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
-        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
+        if status_str is not None:
+            status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
 
     if status is not None:
         return record_group_history(group, status, actor, release)
@@ -249,7 +260,8 @@ def record_group_history(
     actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
     prev_history = get_prev_history(group, status)
@@ -271,4 +283,44 @@ def record_group_history(
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
+    )
+
+
+def bulk_record_group_history(
+    groups: List["Group"],
+    status: int,
+    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
+    from sentry.models.team import Team
+    from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import RpcUser
+
+    def get_prev_history_date(group, status):
+        prev_history = get_prev_history(group, status)
+        return prev_history.date_added if prev_history else None
+
+    actor_id = None
+    if actor:
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
+            actor_id = get_actor_id_for_user(actor)
+        elif isinstance(actor, Team):
+            actor_id = actor.actor_id
+        else:
+            raise ValueError("record_group_history actor argument must be RPCUser or Team")
+
+    return GroupHistory.objects.bulk_create(
+        [
+            GroupHistory(
+                organization=group.project.organization,
+                group=group,
+                project=group.project,
+                release=release,
+                actor_id=actor_id,
+                status=status,
+                prev_history=get_prev_history(group, status),
+                prev_history_date=get_prev_history_date(group, status),
+            )
+            for group in groups
+        ]
     )

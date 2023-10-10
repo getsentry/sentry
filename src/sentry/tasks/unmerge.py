@@ -1,27 +1,30 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from functools import reduce
 from typing import Any, Mapping, Optional, Tuple
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
-from sentry.models import (
-    Activity,
-    Environment,
-    EventAttachment,
-    EventUser,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupRelease,
-    Project,
-    Release,
-    UserReport,
-)
+from sentry.eventstore.models import BaseEvent
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventuser import EventUser
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.query import celery_run_batch_query
@@ -164,7 +167,7 @@ def get_group_backfill_attributes(caches, group, events):
     }
 
 
-def get_fingerprint(event):
+def get_fingerprint(event: BaseEvent) -> str | None:
     # TODO: This *might* need to be protected from an IndexError?
     return event.get_primary_hash()
 
@@ -178,6 +181,14 @@ def migrate_events(
     opt_destination_id: Optional[int],
     opt_eventstream_state: Optional[Mapping[str, Any]],
 ) -> Tuple[int, Mapping[str, Any]]:
+    logger.info(
+        "migrate_events.start",
+        extra={
+            "source_id": args.source_id,
+            "opt_destination_id": opt_destination_id,
+            "migrate_args": args,
+        },
+    )
     if opt_destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
@@ -202,6 +213,8 @@ def migrate_events(
         destination_id = opt_destination_id
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
+
+    logger.info("migrate_events.migrate", extra={"destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
         eventstream_state = args.replacement.start_snuba_replacement(
@@ -260,14 +273,14 @@ def truncate_denormalizations(project, group):
         Environment.objects.filter(projects=group.project).values_list("id", flat=True)
     )
 
-    tsdb.delete([tsdb.models.group], [group.id], environment_ids=environment_ids)
+    tsdb.delete([TSDBModel.group], [group.id], environment_ids=environment_ids)
 
     tsdb.delete_distinct_counts(
-        [tsdb.models.users_affected_by_group], [group.id], environment_ids=environment_ids
+        [TSDBModel.users_affected_by_group], [group.id], environment_ids=environment_ids
     )
 
     tsdb.delete_frequencies(
-        [tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group],
+        [TSDBModel.frequent_releases_by_group, TSDBModel.frequent_environments_by_group],
         [group.id],
     )
 
@@ -380,15 +393,15 @@ def collect_tsdb_data(caches, project, events):
     for event in events:
         environment = caches["Environment"](project.organization_id, get_environment_name(event))
 
-        counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
+        counters[event.datetime][TSDBModel.group][(event.group_id, environment.id)] += 1
 
         user = event.data.get("user")
         if user:
-            sets[event.datetime][tsdb.models.users_affected_by_group][
+            sets[event.datetime][TSDBModel.users_affected_by_group][
                 (event.group_id, environment.id)
             ].add(get_event_user_from_interface(user).tag_value)
 
-        frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][
+        frequencies[event.datetime][TSDBModel.frequent_environments_by_group][event.group_id][
             environment.id
         ] += 1
 
@@ -402,7 +415,7 @@ def collect_tsdb_data(caches, project, events):
                 caches["Release"](project.organization_id, release).id,
             )
 
-            frequencies[event.datetime][tsdb.models.frequent_releases_by_group][event.group_id][
+            frequencies[event.datetime][TSDBModel.frequent_releases_by_group][event.group_id][
                 grouprelease.id
             ] += 1
 
@@ -437,7 +450,7 @@ def repair_denormalizations(caches, project, events):
 
 
 def lock_hashes(project_id, source_id, fingerprints):
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         eligible_hashes = list(
             GroupHash.objects.filter(
                 project_id=project_id, group_id=source_id, hash__in=fingerprints
@@ -461,7 +474,11 @@ def unlock_hashes(project_id, locked_primary_hashes):
     ).update(state=GroupHash.State.UNLOCKED)
 
 
-@instrumented_task(name="sentry.tasks.unmerge", queue="unmerge")
+@instrumented_task(
+    name="sentry.tasks.unmerge",
+    queue="unmerge",
+    silo_mode=SiloMode.REGION,
+)
 def unmerge(*posargs, **kwargs):
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
 
@@ -491,12 +508,23 @@ def unmerge(*posargs, **kwargs):
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
     )
+    # Log info related to this unmerge
+    logger.info(
+        "unmerge.check",
+        extra={
+            "source_id": source.id,
+            "num_events": len(events),
+        },
+    )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
-            logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
+            logger.warning(
+                f"Unmerge complete (eventstream state: {eventstream_state})",
+                extra={"source_id": source.id},
+            )
             if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
         return
@@ -521,6 +549,16 @@ def unmerge(*posargs, **kwargs):
             source.update(**get_group_backfill_attributes(caches, source, source_events))
 
     destinations = dict(args.destinations)
+    # Log info related to this unmerge
+    logger.info(
+        "unmerge.destinations",
+        extra={
+            "source_id": source.id,
+            "source_events": len(source_events),
+            "destination_events": len(destination_events),
+            "source_fields_reset": source_fields_reset,
+        },
+    )
 
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we

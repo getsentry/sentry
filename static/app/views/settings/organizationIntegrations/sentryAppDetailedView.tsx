@@ -6,10 +6,10 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +37,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   tabs: Tab[] = ['overview'];
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       organization,
       params: {integrationSlug},
@@ -243,7 +243,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       return (
         <Confirm
           disabled={!userHasAccess}
-          message={tct('Are you sure you want to remove the [slug] installation?', {
+          message={tct('Are you sure you want to uninstall the [slug] installation?', {
             slug: capitalizedSlug,
           })}
           onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action

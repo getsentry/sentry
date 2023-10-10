@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -12,21 +13,19 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [project],
   });
-  const initialOrgData = {
+  const initialData = initializeOrg({
     organization,
     router: {
       location: {
         query: {...query},
       },
     },
-    project: parseInt(project.id, 10),
     projects: [],
-  };
-  const initialData = initializeOrg(initialOrgData);
+  });
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
@@ -38,7 +37,7 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     initialData.router.location
   );
 
-  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.None;
+  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
 
   return {

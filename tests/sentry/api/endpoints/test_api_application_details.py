@@ -1,7 +1,8 @@
 from django.urls import reverse
 
-from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
-from sentry.testutils import APITestCase
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

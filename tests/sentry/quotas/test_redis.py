@@ -7,7 +7,7 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.redis import clusters
 

@@ -1,16 +1,17 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Group, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
@@ -18,12 +19,12 @@ type Props = {
 };
 
 const VISIBLE_COLUMNS = [
-  ReplayColumns.replay,
-  ReplayColumns.os,
-  ReplayColumns.browser,
-  ReplayColumns.duration,
-  ReplayColumns.countErrors,
-  ReplayColumns.activity,
+  ReplayColumn.REPLAY,
+  ReplayColumn.OS,
+  ReplayColumn.BROWSER,
+  ReplayColumn.DURATION,
+  ReplayColumn.COUNT_ERRORS,
+  ReplayColumn.ACTIVITY,
 ];
 
 function GroupReplays({group}: Props) {
@@ -36,6 +37,16 @@ function GroupReplays({group}: Props) {
     organization,
   });
 
+  useEffect(() => {
+    trackAnalytics('replay.render-issues-group-list', {
+      project_id: group.project.id,
+      platform: group.project.platform,
+      organization,
+    });
+    // we only want to fire this event once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!eventView) {
     return (
       <StyledLayoutPage withPadding>
@@ -45,6 +56,7 @@ function GroupReplays({group}: Props) {
           replays={[]}
           sort={undefined}
           visibleColumns={VISIBLE_COLUMNS}
+          showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
@@ -67,14 +79,15 @@ function GroupReplaysTable({
   eventView: EventView;
   organization: Organization;
   pageLinks: string | null;
-  visibleColumns: ReplayColumns[];
+  visibleColumns: ReplayColumn[];
 }) {
-  const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
+  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
     location,
     organization,
+    queryReferrer: 'issueReplays',
   });
 
   return (
@@ -85,6 +98,7 @@ function GroupReplaysTable({
         replays={replays}
         sort={undefined}
         visibleColumns={visibleColumns}
+        showDropdownFilters={false}
       />
     </StyledLayoutPage>
   );

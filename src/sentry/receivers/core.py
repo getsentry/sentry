@@ -4,16 +4,24 @@ from functools import wraps
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db import connections, transaction
-from django.db.models.signals import post_migrate, post_save
+from django.db import connections, router, transaction
+from django.db.models.signals import post_save
 from django.db.utils import OperationalError, ProgrammingError
 from packaging.version import parse as parse_version
 
 from sentry import options
-from sentry.db.models import get_model_if_available
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
-from sentry.signals import project_created
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.signals import post_upgrade, project_created
+from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
+from sentry.utils.settings import is_self_hosted
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -23,11 +31,11 @@ SELECT setval('sentry_project_id_seq', (
 DEFAULT_SENTRY_PROJECT_ID = 1
 
 
-def handle_db_failure(func):
+def handle_db_failure(func, using=None):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            with transaction.atomic():
+            with transaction.atomic(using or router.db_for_write(Organization)):
                 return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
             logging.exception("Failed processing signal %s", func.__name__)
@@ -36,11 +44,9 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(app_config, verbosity=2, **kwargs):
-    if app_config and app_config.name != "sentry":
-        return
-
-    if not get_model_if_available(app_config, "Project"):
+def create_default_projects(**kwds):
+    if not in_test_environment() and not is_self_hosted():
+        # No op in production SaaS environments.
         return
 
     create_default_project(
@@ -49,7 +55,6 @@ def create_default_projects(app_config, verbosity=2, **kwargs):
         id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID,
         name="Internal",
         slug="internal",
-        verbosity=verbosity,
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
@@ -57,29 +62,26 @@ def create_default_projects(app_config, verbosity=2, **kwargs):
             id=settings.SENTRY_FRONTEND_PROJECT,
             name="Frontend",
             slug="frontend",
-            verbosity=verbosity,
         )
 
 
+@region_silo_function
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
     if Project.objects.filter(id=id).exists():
         return
 
-    try:
-        user = User.objects.filter(is_superuser=True)[0]
-    except IndexError:
-        user = None
+    user = user_service.get_first_superuser()
 
     org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
     if user:
-        OrganizationMember.objects.get_or_create(user=user, organization=org, role="owner")
+        OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")
 
     team, _ = Team.objects.get_or_create(
         organization=org, slug="sentry", defaults={"name": "Sentry"}
     )
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Project)):
         project = Project.objects.create(
             id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
         )
@@ -119,7 +121,9 @@ def set_sentry_version(latest=None, **kwargs):
     if latest == version:
         return
 
-    options.set("sentry:latest_version", (latest or current))
+    options.set(
+        "sentry:latest_version", (latest or current), channel=options.UpdateChannel.APPLICATION
+    )
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):
@@ -151,8 +155,11 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
-post_migrate.connect(
-    handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
+post_upgrade.connect(
+    handle_db_failure(create_default_projects),
+    dispatch_uid="create_default_project",
+    weak=False,
+    sender=SiloMode.MONOLITH,
 )
 
 post_save.connect(

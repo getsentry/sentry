@@ -3,8 +3,9 @@ from unittest import mock
 import pytest
 
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.models import OrganizationMember, UserEmail
-from sentry.testutils import TestCase
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
+from sentry.testutils.cases import TestCase
 
 
 class EmailResolverTest(TestCase):
@@ -35,7 +36,7 @@ class EmailResolverTest(TestCase):
         org = self.create_organization()
         UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
         UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=False)
-        OrganizationMember.objects.create(organization=org, user=self.user2)
+        OrganizationMember.objects.create(organization=org, user_id=self.user2.id)
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == self.user1
@@ -47,7 +48,7 @@ class EmailResolverTest(TestCase):
         org = self.create_organization()
         UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
         UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=True)
-        OrganizationMember.objects.create(organization=org, user=self.user2)
+        OrganizationMember.objects.create(organization=org, user_id=self.user2.id)
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == self.user2

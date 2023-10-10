@@ -53,13 +53,19 @@ export function TabPanels(props: TabPanelsProps) {
 TabPanels.Item = Item;
 
 interface TabPanelProps extends AriaTabPanelProps {
-  orientation: Orientation;
   state: TabListState<any>;
   children?: React.ReactNode;
   className?: string;
+  orientation?: Orientation;
 }
 
-function TabPanel({state, orientation, className, children, ...props}: TabPanelProps) {
+function TabPanel({
+  state,
+  orientation = 'horizontal',
+  className,
+  children,
+  ...props
+}: TabPanelProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {tabPanelProps} = useTabPanel(props, state, ref);
 
@@ -84,7 +90,8 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 
   &.focus-visible {
     outline: none;
-    box-shadow: inset ${p => p.theme.focusBorder} 0 0 0 1px,
+    box-shadow:
+      inset ${p => p.theme.focusBorder} 0 0 0 1px,
       ${p => p.theme.focusBorder} 0 0 0 1px;
     z-index: 1;
   }

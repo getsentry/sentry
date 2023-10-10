@@ -5,7 +5,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -110,7 +110,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   );
 }
 
-const StyledPanel = styled(Panel)`
+export const StyledPanel = styled(Panel)`
   margin: 0;
 `;
 

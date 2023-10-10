@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
@@ -17,7 +18,7 @@ import {
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,26 +29,54 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
+import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
+
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps {
+export interface ProjectPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<number>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'onReplace'
+      | 'onToggle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'checkboxWrapper'
+      | 'shouldCloseOnInteractOutside'
+    >
+  > {
   /**
    * Message to show in the menu footer
    */
-  footerMessage?: string;
-  /**
-   * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
-   */
-  onChange?: (selected: number[]) => void;
+  footerMessage?: React.ReactNode;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
 }
 
+/**
+ * Maximum number of projects that can be selected at a time (due to server limits). This
+ * does not apply to special values like "My Projects" and "All Projects".
+ */
+const SELECTION_COUNT_LIMIT = 50;
+
 export function ProjectPageFilter({
   onChange,
+  onClear,
+  disabled,
+  sizeLimit,
+  sizeLimitMessage,
+  emptyMessage,
+  menuTitle,
+  menuWidth,
+  trigger,
   resetParamsOnChange,
   footerMessage,
   ...selectProps
@@ -81,6 +110,7 @@ export function ProjectPageFilter({
   const {
     selection: {projects: pageFilterValue},
     isReady: pageFilterIsReady,
+    desyncedFilters,
   } = usePageFilters();
 
   /**
@@ -135,12 +165,18 @@ export function ProjectPageFilter({
     [memberProjects]
   );
 
-  const [value, setValue] = useState<number[]>(mapURLValueToNormalValue(pageFilterValue));
+  const value = useMemo<number[]>(
+    () => mapURLValueToNormalValue(pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue]
+  );
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
+      if (isEqual(newValue, value)) {
+        return;
+      }
+
       onChange?.(newValue);
-      setValue(newValue);
 
       trackAnalytics('projectselector.update', {
         count: newValue.length,
@@ -159,6 +195,7 @@ export function ProjectPageFilter({
       });
     },
     [
+      value,
       resetParamsOnChange,
       router,
       allowMultiple,
@@ -187,12 +224,13 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const onClear = useCallback(() => {
+  const handleClear = useCallback(() => {
+    onClear?.();
     trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [routes, organization]);
+  }, [onClear, routes, organization]);
 
   const options = useMemo<SelectOptionOrSection<number>[]>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -261,7 +299,6 @@ export function ProjectPageFilter({
             label:
               memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
             options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple && memberProjects.length > 0,
           },
         ]
       : sortBy(memberProjects, listSort).map(getProjectItem);
@@ -274,7 +311,8 @@ export function ProjectPageFilter({
     pageFilterValue,
   ]);
 
-  const menuWidth = useMemo(() => {
+  const desynced = desyncedFilters.has('projects');
+  const defaultMenuWidth = useMemo(() => {
     const flatOptions: SelectOption<number>[] = options.flatMap(item =>
       'options' in item ? item.options : [item]
     );
@@ -287,13 +325,38 @@ export function ProjectPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 20 and 28em.
-    // Within that range, the width is a function of the length of the longest slug. The
-    // project slugs take up to (longestSlugLength * 0.6)em of horizontal space (each
-    // character occupies roughly 0.6em). We also need to add 12em to account for padding,
-    // trailing buttons, and the checkbox.
-    return `${Math.max(20, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
-  }, [options]);
+    // Calculate an appropriate width for the menu. It should be between 20 (22 if
+    // there's a desynced message) and 28em. Within that range, the width is a function
+    // of the length of the longest slug. The project slugs take up to (longestSlugLength
+    // * 0.6)em of horizontal space (each character occupies roughly 0.6em). We also need
+    // to add 12em to account for padding, trailing buttons, and the checkbox.
+    return `${Math.max(
+      desynced ? 22 : 20,
+      Math.min(28, longestSlugLength * 0.6 + 12)
+    )}em`;
+  }, [options, desynced]);
+
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+  const selectionLimitExceeded = useMemo(() => {
+    const mappedValue = mapNormalValueToURLValue(stagedValue);
+    return mappedValue.length > SELECTION_COUNT_LIMIT;
+  }, [stagedValue, mapNormalValueToURLValue]);
+
+  const menuFooterMessage = useMemo(() => {
+    if (selectionLimitExceeded) {
+      return hasStagedChanges =>
+        hasStagedChanges
+          ? tct(
+              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
+              {limit: SELECTION_COUNT_LIMIT}
+            )
+          : footerMessage;
+    }
+
+    return footerMessage;
+  }, [selectionLimitExceeded, footerMessage]);
+
+  const hasProjectWrite = organization.access.includes('project:write');
 
   return (
     <HybridFilter
@@ -303,38 +366,50 @@ export function ProjectPageFilter({
       options={options}
       value={value}
       onChange={handleChange}
+      onStagedValueChange={setStagedValue}
+      onClear={handleClear}
       onReplace={onReplace}
       onToggle={onToggle}
-      onClear={onClear}
-      disabled={!projectsLoaded || !pageFilterIsReady}
-      sizeLimit={25}
-      sizeLimitMessage={t('Use search to find more projects…')}
-      emptyMessage={t('No projects found')}
-      menuTitle={t('Filter Projects')}
-      menuWidth={menuWidth}
+      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      disableCommit={selectionLimitExceeded}
+      sizeLimit={sizeLimit ?? 25}
+      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
+      emptyMessage={emptyMessage ?? t('No projects found')}
+      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuWidth={menuWidth ?? defaultMenuWidth}
+      menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
-        <ProjectPageFilterMenuFooter
-          handleChange={handleChange}
-          showNonMemberProjects={showNonMemberProjects}
-        />
+        hasProjectWrite && (
+          <ProjectPageFilterMenuFooter
+            handleChange={handleChange}
+            showNonMemberProjects={showNonMemberProjects}
+          />
+        )
       }
-      menuFooterMessage={footerMessage}
-      trigger={triggerProps => (
-        <ProjectPageFilterTrigger
-          value={value}
-          memberProjects={memberProjects}
-          nonMemberProjects={nonMemberProjects}
-          ready={projectsLoaded && pageFilterIsReady}
-          {...triggerProps}
-        />
-      )}
+      menuFooterMessage={menuFooterMessage}
+      trigger={
+        trigger ??
+        ((triggerProps, isOpen) => (
+          <ProjectPageFilterTrigger
+            {...triggerProps}
+            isOpen={isOpen}
+            size={selectProps.size}
+            value={value}
+            memberProjects={memberProjects}
+            nonMemberProjects={nonMemberProjects}
+            ready={projectsLoaded && pageFilterIsReady}
+            desynced={desynced}
+            {...triggerProps}
+          />
+        ))
+      }
       checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
   );
 }
 
-function shouldCloseOnInteractOutside(target: HTMLElement) {
+function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
   return !powerHovercard || !powerHovercard.contains(target);

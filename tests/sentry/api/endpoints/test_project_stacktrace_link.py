@@ -6,11 +6,13 @@ import pytest
 import responses
 
 from sentry import options
-from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 git_blame = [
@@ -81,9 +83,10 @@ class BaseProjectStacktraceLink(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
     def setUp(self):
-        self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.organization, self.user)
-        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration.add_organization(self.organization, self.user)
+            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
         self.repo = self.create_repo(
             project=self.project,
@@ -111,7 +114,7 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -263,7 +266,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)
@@ -428,7 +431,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=404,
+            status=500,
             content_type="application/json",
         )
 
@@ -448,7 +451,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Expecting value: line 1 column 1 (char 0). Continuing execution.",
+                "Codecov HTTP error: 500. Continuing execution.",
             )
         ]
 
@@ -512,9 +515,6 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
 
     def test_multiple_code_mapping_matches_order(self):
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-
-        configs = self.code_mappings
         # Expected configs: stack_root, automatically_generated
         expected_config_order = [
             self.code_mapping3,  # "usr/src/getsentry/", False
@@ -524,7 +524,7 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
             self.code_mapping2,  # "usr/src/getsentry/src/", True
         ]
 
-        sorted_configs = project_stacktrace_link_endpoint.sort_code_mapping_configs(configs)
+        sorted_configs = get_code_mapping_configs(self.project)
         assert sorted_configs == expected_config_order
 
     def test_multiple_code_mapping_matches(self):

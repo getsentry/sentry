@@ -1,4 +1,3 @@
-import random
 import uuid
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -13,8 +12,8 @@ from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
-from sentry.models import Group
-from sentry.testutils import SnubaTestCase
+from sentry.models.group import Group
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
 
 
@@ -66,7 +65,7 @@ class OccurrenceTestMixin:
 
 class SearchIssueTestMixin(OccurrenceTestMixin):
     def store_search_issue(
-        self: SnubaTestCase,
+        self,
         project_id: int,
         user_id: int,
         fingerprints: Sequence[str],
@@ -114,7 +113,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
 
         result = snuba.raw_query(
-            dataset=snuba.Dataset.IssuePlatform,
+            dataset=Dataset.IssuePlatform,
             start=insert_timestamp - timedelta(days=1),
             end=insert_timestamp + timedelta(days=1),
             selected_columns=[
@@ -128,6 +127,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
             groupby=None,
             filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
             referrer="test_utils.store_search_issue",
+            tenant_ids={"referrer": "test_utils.store_search_issue", "organization_id": 1},
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
@@ -168,7 +168,7 @@ def get_mock_groups_past_counts_response(
                         {
                             "group_id": group.id,
                             "hourBucket": hourly_time.strftime("%Y-%m-%dT%H:%M:%S%f") + "+00:00",
-                            "count()": random.randint(1, 10),
+                            "count()": 10,
                             "project_id": group.project.id,
                         }
                     )

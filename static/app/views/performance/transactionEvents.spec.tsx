@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -16,10 +18,9 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   return initializeOrg({
     organization,
@@ -33,17 +34,12 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
         },
       },
     },
-    project: 1,
     projects: [],
   });
 }
 
 describe('Performance > TransactionSummary', function () {
-  beforeAll(function () {
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -149,6 +145,11 @@ describe('Performance > TransactionSummary', function () {
     });
   });
 
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+  });
+
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
@@ -177,7 +178,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Sampled Events'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Tags'})).toBeInTheDocument();
 
     ProjectsStore.reset();

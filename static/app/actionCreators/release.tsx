@@ -96,7 +96,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
       method: 'POST',
       data: {
-        status: ReleaseStatus.Archived,
+        status: ReleaseStatus.ARCHIVED,
         projects: [],
         version: releaseVersion,
       },
@@ -124,7 +124,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
       method: 'POST',
       data: {
-        status: ReleaseStatus.Active,
+        status: ReleaseStatus.ACTIVE,
         projects: [],
         version: releaseVersion,
       },

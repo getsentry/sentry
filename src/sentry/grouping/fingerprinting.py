@@ -1,7 +1,8 @@
 import inspect
 
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -384,7 +385,7 @@ class Rule:
 
 
 class FingerprintingVisitor(NodeVisitor):
-    visit_comment = visit_empty = lambda *a: None
+    visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
     def visit_comment(self, node, children):

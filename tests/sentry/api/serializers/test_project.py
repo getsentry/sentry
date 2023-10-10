@@ -10,21 +10,21 @@ from django.utils import timezone
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
+    DetailedProjectSerializer,
     ProjectSummarySerializer,
     ProjectWithOrganizationSerializer,
     ProjectWithTeamSerializer,
     bulk_fetch_project_latest_releases,
 )
-from sentry.models import (
-    Deploy,
-    Environment,
-    EnvironmentProject,
-    Project,
-    Release,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.app import env
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -34,7 +34,7 @@ TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -165,6 +165,26 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
+    def test_superuser(self):
+        self.user = self.create_user(username="foo", is_superuser=True)
+        req = self.make_request()
+        req.user = self.user
+        req.superuser.set_logged_in(req.user)
+
+        with mock.patch.object(env, "request", req):
+            result = serialize(self.project, self.user)
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
+
+            self.organization.flags.allow_joinleave = False
+            self.organization.save()
+            result = serialize(self.project, self.user)
+            # after changing to allow_joinleave=False
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
+
     def test_member_on_owner_team(self):
         organization = self.create_organization()
         manager_team = self.create_team(organization=organization, org_role="manager")
@@ -234,12 +254,18 @@ class ProjectSerializerTest(TestCase):
             def _check_for_batch(self, feature_name, organization, actor):
                 return organization == early_adopter
 
+            def batch_has(self, *a, **k):
+                raise NotImplementedError("unreachable")
+
         def create_color_handler(color_flag, included_projects):
             class ProjectColorFeatureHandler(features.FeatureHandler):
                 features = {color_flag}
 
                 def has(self, feature, actor):
                     return feature.project in included_projects
+
+                def batch_has(self, *a, **k):
+                    raise NotImplementedError("unreachable")
 
             return ProjectColorFeatureHandler()
 
@@ -267,7 +293,7 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -622,7 +648,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert check_has_health_data.call_count == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -638,7 +664,44 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
+class DetailedProjectSerializerTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.user = self.create_user(username="foo")
+        self.organization = self.create_organization(owner=self.user)
+        team = self.create_team(organization=self.organization)
+        self.project = self.create_project(teams=[team], organization=self.organization, name="foo")
+        self.project.flags.has_releases = True
+        self.project.save()
+
+        self.release = self.create_release(self.project)
+
+    def test_truncated_latest_release(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert result["id"] == str(self.project.id)
+        assert result["name"] == self.project.name
+        assert result["slug"] == self.project.slug
+        assert result["firstEvent"] == self.project.first_event
+        assert "releases" in result["features"]
+        assert result["platform"] == self.project.platform
+        assert result["latestRelease"] == {"version": self.release.version}
+
+    def test_symbol_sources(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key="sentry:symbol_sources",
+            value='[{"id":"1","name":"hello","password":"password",}]',
+        )
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert "sentry:token" not in result["options"]
+        assert "sentry:symbol_sources" not in result["options"]
+
+
+@region_silo_test(stable=True)
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):

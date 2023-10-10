@@ -36,15 +36,11 @@ describe('EventOrGroupHeader', function () {
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />
-      );
-
-      expect(container).toSnapshot();
+      render(<EventOrGroupHeader organization={organization} data={group} {...router} />);
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -54,12 +50,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -73,8 +67,6 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders metadata values in message for error events', function () {
@@ -116,7 +108,7 @@ describe('EventOrGroupHeader', function () {
 
   describe('Event', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -126,11 +118,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -140,11 +131,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -158,11 +148,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('hides level tag', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           hideLevel
           organization={organization}
@@ -176,7 +165,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {
@@ -235,5 +223,33 @@ describe('EventOrGroupHeader', function () {
         '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
       );
     });
+  });
+
+  it('renders group tombstone without link to group', function () {
+    render(
+      <EventOrGroupHeader
+        organization={organization}
+        data={{
+          id: '123',
+          level: 'error',
+          message: 'numTabItems is not defined ReferenceError something',
+          culprit:
+            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
+          type: EventOrGroupType.ERROR,
+          metadata: {
+            value: 'numTabItems is not defined',
+            type: 'ReferenceError',
+            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
+            function: 'useOverflowTabs',
+            display_title_with_tree_label: false,
+          },
+          actor: TestStubs.User(),
+          isTombstone: true,
+        }}
+        {...router}
+      />
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

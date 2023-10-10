@@ -1,4 +1,5 @@
 import moment from 'moment';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -10,15 +11,14 @@ import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
 jest.mock('sentry/utils/usePageFilters');
 
-const usePageFilters = importedUsePageFilters as jest.MockedFunction<
-  typeof importedUsePageFilters
->;
+const usePageFilters = jest.mocked(importedUsePageFilters);
 
 const makeFilterProps = (
   filters: Partial<PageFilters>
 ): ReturnType<typeof importedUsePageFilters> => {
   return {
     isReady: true,
+    shouldPersist: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
     selection: {
@@ -74,7 +74,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -105,7 +105,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -130,7 +130,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -157,7 +157,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -182,7 +182,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -209,7 +209,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -236,7 +236,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));

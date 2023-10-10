@@ -1,95 +1,112 @@
-from datetime import datetime, timedelta
-from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
+from unittest import mock
 
-import pytz
-
-from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.tasks.auto_ongoing_issues import (
-    schedule_auto_transition_new,
-    schedule_auto_transition_regressed,
+    TRANSITION_AFTER_DAYS,
+    schedule_auto_transition_to_ongoing,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-new-ongoing")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_simple(self, inbox_in):
-        now = datetime.now(tz=pytz.UTC)
-        project = self.create_project()
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
+        organization = self.organization
+        project = self.create_project(organization=organization)
         group = self.create_group(
-            project=project,
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-        group_inbox.date_added = now - timedelta(days=3, hours=1)
-        group_inbox.save()
+        group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group.save()
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_reprocessed(self, inbox_in):
-        now = datetime.now(tz=pytz.UTC)
+        assert not GroupInbox.objects.filter(group=group).exists()
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 7}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
+
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_reprocessed(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
 
         project = self.create_project()
 
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group_inbox = add_group_to_inbox(group, GroupInboxReason.REPROCESSED)
-        group_inbox.date_added = now - timedelta(days=3, hours=1)
-        group_inbox.save()
+        group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group.save()
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
-    def test_multiple_old_new(self):
-        now = datetime.now(tz=pytz.UTC)
+        assert not GroupInbox.objects.filter(group=group).exists()
+
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_multiple_old_new(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         new_groups = []
         older_groups = []
         for day, hours in [
-            (0, 0),
-            (1, 1),
-            (2, 2),
-            (2, 9),  # recent group_inbox should stay the same
-            (3, 1),
-            (3, 2),
-            (3, 3),
-            (3, 12),
-            (3, 15),
-            (3, 18),
-            (3, 21),
-            (3, 24),  # 3+ day olds ones
-            (7, 14),
-            (12, 1),
+            (17, 2),  # really old issues would be created first
             (15, 5),
-            (17, 2),  # really old issues
+            (12, 1),
+            (7, 14),
+            (3, 24),  # 3+ day olds ones
+            (3, 21),
+            (3, 18),
+            (3, 15),
+            (3, 12),
+            (3, 3),
+            (3, 2),
+            (3, 1),
+            (2, 9),  # recent group_inbox should stay the same
+            (2, 2),
+            (1, 1),
+            (0, 0),
         ]:
             group = self.create_group(
                 project=project,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
             )
+            first_seen = now - timedelta(days=day, hours=hours)
+            group.first_seen = first_seen
+            group.save()
 
-            group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-            date_added = now - timedelta(days=day, hours=hours)
-            group_inbox.date_added = date_added
-            group_inbox.save()
-
-            if (now - date_added).days >= 3:
+            if (now - first_seen).days >= 7:
                 older_groups.append(group)
             else:
                 new_groups.append(group)
@@ -97,27 +114,17 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(
-            project=project, reason=GroupInboxReason.NEW.value
-        ).count() == len(new_groups) + len(older_groups)
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
         # after
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(project=project).count() == len(older_groups) + len(
-            new_groups
-        )
-        assert GroupInbox.objects.filter(
-            project=project, reason=GroupInboxReason.NEW.value
-        ).count() == len(new_groups)
-
-        assert GroupInbox.objects.filter(
-            project_id=project.id, reason=GroupInboxReason.ONGOING.value
-        ).count() == len(older_groups)
+        assert not GroupInbox.objects.filter(group=group).exists()
 
         assert set(
             Group.objects.filter(
@@ -134,71 +141,275 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).values_list("id", flat=True)
         ) == {g.id for g in older_groups}
 
-    def test_paginated_transition(self):
-        now = datetime.now(tz=pytz.UTC)
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.utils.metrics.incr")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
-
-        groups = Group.objects.bulk_create(
-            [
-                Group(project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-                for _ in range(1010)
-            ]
-        )
-
-        for idx, group in enumerate(groups, 1):
-            group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-            group_inbox.date_added = now - timedelta(days=3, hours=idx)
-            group_inbox.save(update_fields=["date_added"])
+        groups_count = 110
+        for day, hours in [(TRANSITION_AFTER_DAYS, 1) for _ in range(groups_count)]:
+            self.create_group(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+                first_seen=now - timedelta(days=day, hours=hours),
+            )
 
         # before
-        assert Group.objects.filter(project_id=project.id).count() == len(groups) == 1010
-        assert (
-            GroupInbox.objects.filter(project=project, reason=GroupInboxReason.NEW.value).count()
-            == len(groups)
-            == 1010
-        )
-
-        with self.tasks():
-            schedule_auto_transition_new()
-
-        # after
         assert (
             Group.objects.filter(
-                project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+                project_id=project.id, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
             ).count()
-            == 0
+            == groups_count
         )
-        assert set(
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        # after
+
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+            ).count()
+            == 10
+        )
+        assert (
             Group.objects.filter(
                 project=project,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.ONGOING,
-            ).values_list("id", flat=True)
-        ) == {g.id for g in groups}
-        assert set(
-            GroupInbox.objects.filter(
-                project=project, reason=GroupInboxReason.ONGOING.value
-            ).values_list("group_id", flat=True)
-        ) == {g.id for g in groups}
+            ).count()
+            == 100
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 100},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-regressed-ongoing")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_simple(self, inbox_in):
-        now = datetime.now(tz=pytz.UTC)
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
             project=project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+            first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1),
         )
         group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
-        group_inbox.date_added = now - timedelta(days=14, hours=1)
-        group_inbox.save()
+        group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_inbox.save(update_fields=["date_added"])
+        group_history = record_group_history(
+            group, GroupHistoryStatus.REGRESSED, actor=None, release=None
+        )
+        group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_regressed()
+            schedule_auto_transition_to_ongoing()
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 7}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
+
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.utils.metrics.incr")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+        now = datetime.now(tz=timezone.utc)
+        project = self.create_project()
+        groups_count = 110
+        for day, hours in [(TRANSITION_AFTER_DAYS, 1) for _ in range(groups_count)]:
+            group = self.create_group(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.REGRESSED,
+                first_seen=now - timedelta(days=day, hours=hours),
+            )
+            group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
+            group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+            group_inbox.save(update_fields=["date_added"])
+            group_history = record_group_history(
+                group, GroupHistoryStatus.REGRESSED, actor=None, release=None
+            )
+            group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+            group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.REGRESSED,
+            ).count()
+            == 10
+        )
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+            ).count()
+            == 100
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 100},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+
+
+@apply_feature_flag_on_cls("organizations:escalating-issues")
+class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
+        project = self.create_project()
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1),
+        )
+        group_inbox = add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+        group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_inbox.save(update_fields=["date_added"])
+        group_history = record_group_history(
+            group, GroupHistoryStatus.ESCALATING, actor=None, release=None
+        )
+        group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 7}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
+
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.utils.metrics.incr")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+        now = datetime.now(tz=timezone.utc)
+        project = self.create_project()
+        groups_count = 110
+
+        for day, hours in [(TRANSITION_AFTER_DAYS, 1) for _ in range(groups_count)]:
+            group = self.create_group(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ESCALATING,
+                first_seen=now - timedelta(days=day, hours=hours),
+            )
+            group_inbox = add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+            group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+            group_inbox.save(update_fields=["date_added"])
+            group_history = record_group_history(
+                group, GroupHistoryStatus.ESCALATING, actor=None, release=None
+            )
+            group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+            group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ESCALATING,
+            ).count()
+            == 10
+        )
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+            ).count()
+            == 100
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 100},
+        )

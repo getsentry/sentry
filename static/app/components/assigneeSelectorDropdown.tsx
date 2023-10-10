@@ -59,7 +59,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
-  assignedTo?: Actor;
+  assignedTo?: Actor | null;
   disabled?: boolean;
   memberList?: User[];
   onAssign?: OnAssignCallback;
@@ -80,7 +80,10 @@ export class AssigneeSelectorDropdown extends Component<
 
   getInitialState() {
     const group = GroupStore.get(this.props.id);
-    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
+    const memberList = MemberListStore.state.loading
+      ? undefined
+      : MemberListStore.getAll();
+
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
     const suggestedOwners = group?.owners;
 
@@ -92,7 +95,7 @@ export class AssigneeSelectorDropdown extends Component<
     };
   }
 
-  componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
     const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
@@ -137,8 +140,8 @@ export class AssigneeSelectorDropdown extends Component<
 
   unlisteners = [
     GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
-    MemberListStore.listen((users: User[]) => {
-      this.handleMemberListUpdate(users);
+    MemberListStore.listen(({members}: typeof MemberListStore.state) => {
+      this.handleMemberListUpdate(members);
     }, undefined),
   ];
 
@@ -183,14 +186,23 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   assignToUser(user: User | Actor) {
-    assignToUser({id: this.props.id, user, assignedBy: 'assignee_selector'});
+    const {organization} = this.props;
+    assignToUser({
+      id: this.props.id,
+      orgSlug: organization.slug,
+      user,
+      assignedBy: 'assignee_selector',
+    });
     this.setState({loading: true});
   }
 
   assignToTeam(team: Team) {
+    const {organization} = this.props;
+
     assignToActor({
       actor: {id: team.id, type: 'team'},
       id: this.props.id,
+      orgSlug: organization.slug,
       assignedBy: 'assignee_selector',
     });
     this.setState({loading: true});
@@ -222,8 +234,10 @@ export class AssigneeSelectorDropdown extends Component<
   };
 
   clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
+    const {organization} = this.props;
+
     // clears assignment
-    clearAssignment(this.props.id, 'assignee_selector');
+    clearAssignment(this.props.id, organization.slug, 'assignee_selector');
     this.setState({loading: true});
     e.stopPropagation();
   };

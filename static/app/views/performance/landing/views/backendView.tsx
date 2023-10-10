@@ -7,7 +7,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {BACKEND_COLUMN_TITLES} from '../data';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from '../widgets/utils';
@@ -36,22 +36,27 @@ function getAllowedChartsSmall(
 
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.MOST_IMPROVED,
-    PerformanceWidgetSetting.MOST_REGRESSED,
   ];
 
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  if (canUseMetricsData(props.organization)) {
+    if (props.organization.features.includes('performance-new-trends')) {
+      doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
+    }
+
+    if (props.organization.features.includes('performance-database-view')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+    }
+  } else {
+    doubleChartRowCharts.push(
+      ...[PerformanceWidgetSetting.MOST_REGRESSED, PerformanceWidgetSetting.MOST_IMPROVED]
+    );
   }
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div>
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow

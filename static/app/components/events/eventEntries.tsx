@@ -4,10 +4,12 @@ import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   Entry,
+  EntryType,
   Event,
   Group,
   Organization,
@@ -87,7 +89,7 @@ function EventEntries({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={orgSlug}
+            orgSlug={orgSlug}
             issueId={group.id}
           />
         </EventDataSection>
@@ -123,6 +125,7 @@ function EventEntries({
           showGroupingConfig={
             orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
           }
+          group={group}
         />
       )}
       {!isShare && (
@@ -130,6 +133,32 @@ function EventEntries({
       )}
     </div>
   );
+}
+
+// The ordering for event entries is owned by the interface serializers on the backend.
+// Because replays are not an interface, we need to manually insert the replay section
+// into the array of entries. The long-term solution here is to move the ordering
+// logic to this component, similar to how GroupEventDetailsContent works.
+function partitionEntriesForReplay(entries: Entry[]) {
+  let replayIndex = 0;
+
+  for (const [i, entry] of entries.entries()) {
+    if (
+      [
+        // The following entry types should be placed before the replay
+        // This is similar to the ordering in GroupEventDetailsContent
+        EntryType.MESSAGE,
+        EntryType.STACKTRACE,
+        EntryType.EXCEPTION,
+        EntryType.THREADS,
+        EntryType.SPANS,
+      ].includes(entry.type)
+    ) {
+      replayIndex = i + 1;
+    }
+  }
+
+  return [entries.slice(0, replayIndex), entries.slice(replayIndex)];
 }
 
 function Entries({
@@ -147,18 +176,26 @@ function Entries({
     return null;
   }
 
+  const [beforeReplayEntries, afterReplayEntries] = partitionEntriesForReplay(
+    definedEvent.entries
+  );
+
+  const eventEntryProps = {
+    projectSlug,
+    group,
+    organization,
+    event: definedEvent,
+    isShare,
+  };
+
   return (
     <Fragment>
-      {(definedEvent.entries as Array<Entry>).map((entry, entryIdx) => (
-        <EventEntry
-          key={entryIdx}
-          projectSlug={projectSlug}
-          group={group}
-          organization={organization}
-          event={definedEvent}
-          entry={entry}
-          isShare={isShare}
-        />
+      {beforeReplayEntries.map((entry, entryIdx) => (
+        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
+      ))}
+      {!isShare && <EventReplay {...eventEntryProps} />}
+      {afterReplayEntries.map((entry, entryIdx) => (
+        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
       ))}
     </Fragment>
   );

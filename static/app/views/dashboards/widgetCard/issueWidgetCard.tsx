@@ -54,12 +54,7 @@ export function IssueWidgetCard({
     ? query.fields
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[0],
-    selection,
-    widget.displayType
-  );
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
 
   return (
     <StyledSimpleTableChart

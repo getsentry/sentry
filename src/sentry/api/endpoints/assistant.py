@@ -9,9 +9,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.assistant import manager
-from sentry.models import AssistantActivity
+from sentry.models.assistant import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
 
@@ -55,6 +56,10 @@ class AssistantSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class AssistantEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

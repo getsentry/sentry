@@ -1,7 +1,7 @@
 import time
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -9,37 +9,35 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    Activity,
-    ApiToken,
-    ExternalIssue,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupLink,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Integration,
-    OrganizationIntegration,
-    Release,
-    UserOption,
-)
+from sentry.models.activity import Activity
+from sentry.models.apitoken import ApiToken
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.user_option import UserOption
+from sentry.models.release import Release
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -338,7 +336,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scopes=256)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scopes=256)
         response = self.client.get(
             self.path, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
@@ -356,7 +355,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -440,21 +439,23 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         org = self.organization
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
         )[0]
@@ -496,19 +497,20 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         GroupResolution.objects.create(group=group, release=release)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
@@ -548,9 +550,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project_id=None, user=user
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=user
+            )
 
         self.login_as(user=user)
         url = f"{self.path}?id={group.id}"
@@ -567,7 +570,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user_id=user.id, group=group, is_active=True
         ).exists()
 
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_self_assign_issue_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -575,9 +579,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project_id=None, user=self.user
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=self.user
+            )
 
         self.login_as(user=self.user)
 
@@ -602,7 +607,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         assert activity.data["version"] == ""
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_selective_status_update(self):
         group1 = self.create_group(status=GroupStatus.RESOLVED)
@@ -961,6 +967,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         now = timezone.now()
 
         assert snooze.count is None
+        assert snooze.until is not None
         assert snooze.until > now + timedelta(minutes=29)
         assert snooze.until < now + timedelta(minutes=31)
         assert snooze.user_count is None
@@ -1004,7 +1011,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
-        event = {}
         for i in range(10):
             event = self.store_event(
                 data={
@@ -1180,7 +1186,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -1214,7 +1220,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -1347,17 +1353,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group1.id).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @cached_property
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -1378,7 +1383,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         response = self.client.delete(url, format="json")
 
-        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+        mock_eventstream.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id]
         )
 
@@ -1401,7 +1406,13 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         with self.tasks():
             response = self.client.delete(url, format="json")
 
-        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
+        # XXX(markus): Something is sending duplicated replacements to snuba --
+        # once from within tasks.deletions.groups and another time from
+        # sentry.deletions.defaults.groups
+        assert mock_eventstream.end_delete_groups.call_args_list == [
+            call(eventstream_state),
+            call(eventstream_state),
+        ]
 
         assert response.status_code == 204
 
@@ -1417,11 +1428,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_performance_issue_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
             status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id

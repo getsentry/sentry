@@ -1,5 +1,5 @@
 import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
-import {useHover, useKeyboard, usePress} from '@react-aria/interactions';
+import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
@@ -37,11 +37,16 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
-  /*
+  /**
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.
    */
   isSubmenu?: boolean;
+  /**
+   * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
+   * to enable search & keyboard select.
+   */
+  label?: MenuListItemProps['label'];
   /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
@@ -52,6 +57,11 @@ export interface MenuItemProps extends MenuListItemProps {
    * if `children` is defined and `isSubmenu` is true)
    */
   submenuTitle?: string;
+  /**
+   * A plain text version of the `label` prop if the label is not a string. Used for
+   * filtering and keyboard select (quick-focusing on options by typing the first letter).
+   */
+  textValue?: string;
   /**
    * Destination if this menu item is a link.
    */
@@ -105,7 +115,8 @@ function BaseDropdownMenuItem(
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, ...itemProps} = node.value;
+  const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
+    node.value ?? {};
   const {size} = node.props;
 
   const actionHandler = () => {
@@ -113,18 +124,14 @@ function BaseDropdownMenuItem(
       return;
     }
     if (isSubmenu) {
-      state.selectionManager.select(node.key);
+      state.selectionManager.toggleSelection(node.key);
       return;
     }
-    onAction?.(key);
+    key && onAction?.(key);
   };
 
   // Open submenu on hover
   const {hoverProps, isHovered} = useHover({});
-  // Toggle submenu on press
-  const {pressProps} = usePress({
-    onPress: () => state.selectionManager.toggleSelection(node.key),
-  });
   const prevIsHovered = usePrevious(isHovered);
   const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
@@ -134,7 +141,7 @@ function BaseDropdownMenuItem(
 
     if (isHovered && isFocused) {
       if (isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
       state.selectionManager.clearSelection();
@@ -162,7 +169,7 @@ function BaseDropdownMenuItem(
       }
 
       if (e.key === 'ArrowRight' && isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
 
@@ -189,13 +196,7 @@ function BaseDropdownMenuItem(
 
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const mergedProps = mergeProps(
-    props,
-    menuItemProps,
-    hoverProps,
-    keyboardProps,
-    pressProps
-  );
+  const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
   const innerWrapProps = {as: to ? Link : 'div', to};
 
@@ -211,17 +212,19 @@ function BaseDropdownMenuItem(
       innerWrapProps={innerWrapProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      trailingItems={
+        isSubmenu ? (
+          <Fragment>
+            {trailingItems}
+            <IconChevron size="xs" direction="right" aria-hidden="true" />
+          </Fragment>
+        ) : (
+          trailingItems
+        )
+      }
       size={size}
       {...mergedProps}
       {...itemProps}
-      {...(isSubmenu && {
-        trailingItems: (
-          <Fragment>
-            {itemProps.trailingItems}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
-          </Fragment>
-        ),
-      })}
     />
   );
 }

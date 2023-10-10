@@ -125,7 +125,7 @@ class Broadcasts extends Component<Props, State> {
             data-test-id="sidebar-broadcasts"
             orientation={orientation}
             collapsed={collapsed}
-            active={currentPanel === SidebarPanelKey.Broadcasts}
+            active={currentPanel === SidebarPanelKey.BROADCASTS}
             badge={unseenPosts.length}
             icon={<IconBroadcast size="md" />}
             label={t("What's new")}
@@ -133,7 +133,7 @@ class Broadcasts extends Component<Props, State> {
             id="broadcasts"
           />
 
-          {currentPanel === SidebarPanelKey.Broadcasts && (
+          {currentPanel === SidebarPanelKey.BROADCASTS && (
             <SidebarPanel
               data-test-id="sidebar-broadcasts-panel"
               orientation={orientation}

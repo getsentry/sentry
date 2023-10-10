@@ -5,13 +5,13 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import ReleaseProjectEnvironment
+from sentry import release_health
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -74,7 +74,6 @@ def make_session(project, **kwargs):
     )
 
 
-@region_silo_test
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def adjust_start(self, date, interval):
         return date  # sessions do not adjust start & end intervals
@@ -103,28 +102,26 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
-        self.store_session(
-            make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0")
+        self.bulk_store_sessions(
+            [
+                make_session(self.project1, started=SESSION_STARTED + 12 * 60),
+                make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0"),
+                make_session(self.project1, started=SESSION_STARTED - 60 * 60),
+                make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60),
+                make_session(self.project2, status="crashed"),
+                make_session(self.project2, environment="development"),
+                make_session(self.project3, errors=1, release="foo@1.2.0"),
+                make_session(
+                    self.project3,
+                    distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
+                    started=SESSION_STARTED - 60 * 60,
+                ),
+                make_session(
+                    self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
+                ),
+                make_session(self.project4),
+            ]
         )
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 60 * 60))
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60))
-        self.store_session(make_session(self.project2, status="crashed"))
-        self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
-        self.store_session(
-            make_session(
-                self.project3,
-                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=SESSION_STARTED - 60 * 60,
-            )
-        )
-        self.store_session(
-            make_session(
-                self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
-            )
-        )
-        self.store_session(make_session(self.project4))
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
@@ -352,9 +349,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
 
-            from sentry.api.endpoints.organization_sessions import release_health
-
-            if release_health.is_metrics_based():
+            if release_health.backend.is_metrics_based():
                 # With the metrics backend, we should get exactly what we asked for,
                 # 6 intervals with 10 second length. However, because of rounding,
                 # we get it rounded to the next minute (see
@@ -398,9 +393,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = req()
         assert response.status_code == 200
 
-        from sentry.api.endpoints.organization_sessions import release_health
-
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
@@ -416,7 +409,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = req(field=["anr_rate()", "sum(session)"])
         assert response.status_code == 200
 
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
@@ -1322,19 +1315,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-@region_silo_test
+@region_silo_test(stable=True)
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
-    def adjust_start(self, start: datetime, interval: int) -> datetime:
+    def adjust_start(self, start: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         start, _end, _num_intervals = to_intervals(
             start, start + datetime.timedelta(minutes=1), interval
         )
         return start
 
-    def adjust_end(self, end: datetime, interval: int) -> datetime:
+    def adjust_end(self, end: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         _start, end, _num_intervals = to_intervals(
             end - datetime.timedelta(minutes=1), end, interval
@@ -1495,6 +1488,33 @@ class OrganizationSessionsEndpointMetricsTest(
                 ).status_code
                 == 200
             )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_wildcard_search(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "2d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="release:foo@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* AND release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* OR release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="(release:foo@* OR release:bar) OR project:1")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
@@ -1893,7 +1913,8 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@region_silo_test(stable=True)
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)

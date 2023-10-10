@@ -10,14 +10,15 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.post_process_forwarder import PostProcessForwarder
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
 
+pytestmark = [requires_kafka]
+
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
-SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
@@ -43,14 +44,9 @@ def kafka_message_payload() -> Any:
     ]
 
 
-class PostProcessForwarderTest(TestCase):  # type: ignore
+class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
-        conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
-                "bootstrap.servers"
-            ],
-            "session.timeout.ms": 6000,
-        }
+        conf = settings.KAFKA_CLUSTERS[cluster_name]["common"]
         return Producer(conf)
 
     def setUp(self) -> None:
@@ -89,7 +85,7 @@ class PostProcessForwarderTest(TestCase):  # type: ignore
         commit_log_producer = self._get_producer("default")
         message = json.dumps(kafka_message_payload()).encode()
 
-        ppf = PostProcessForwarder(_get_task_kwargs_and_dispatch)
+        ppf = PostProcessForwarder()
         consumer = ppf._build_streaming_consumer(
             consumer_group=consumer_group,
             topic=self.events_topic,

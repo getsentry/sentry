@@ -2,15 +2,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
+@extend_schema_field(str)
 class ActorField(serializers.Field):
+    def __init__(self, *args, **kwds):
+        self.as_actor = kwds.pop("as_actor", False)
+        super().__init__(*args, **kwds)
+
     def to_representation(self, value):
         return value.get_actor_identifier()
 
@@ -37,4 +46,7 @@ class ActorField(serializers.Field):
                 organization=self.context["organization"], user_id=obj.id
             ).exists():
                 raise serializers.ValidationError("User is not a member of this organization")
+
+        if self.as_actor:
+            return actor.resolve_to_actor()
         return actor

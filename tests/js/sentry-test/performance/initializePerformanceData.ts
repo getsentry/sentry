@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -10,15 +12,15 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export interface initializeDataSettings {
+export interface InitializeDataSettings {
   features?: string[];
   project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
   query?: {};
-  selectedProject?: number | string;
+  selectedProject?: any;
 }
 
-export function initializeData(settings?: initializeDataSettings) {
+export function initializeData(settings?: InitializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -29,11 +31,11 @@ export function initializeData(settings?: initializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
-  const routerLocation: {query: {project?: number}} = {
+  const routerLocation: {query: {project?: string}} = {
     query: {
       ...query,
     },
@@ -231,6 +233,7 @@ export function generateSampleSpan(
     throw new Error('Event entries data is not an array');
   }
 
-  event.entries[0].data.push(span);
+  const data = event.entries[0].data as RawSpanType[];
+  data.push(span);
   return span;
 }

@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -79,7 +79,7 @@ function OrganizationApiKeysList({
 
       <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
         {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
+          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
           {
             tokens: <u />,
           }

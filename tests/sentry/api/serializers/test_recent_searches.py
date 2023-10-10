@@ -1,7 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class RecentSearchSerializerTest(TestCase):

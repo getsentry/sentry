@@ -39,6 +39,9 @@ interface BaseConfig {
   checkin_margin: number;
   max_runtime: number;
   timezone: string;
+  alert_rule_id?: number;
+  failure_issue_threshold?: number | null;
+  recovery_threshold?: number | null;
 }
 
 /**
@@ -61,7 +64,7 @@ export interface IntervalConfig extends BaseConfig {
    */
   schedule: [
     value: number,
-    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute'
+    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute',
   ];
   schedule_type: ScheduleType.INTERVAL;
 }
@@ -70,9 +73,9 @@ export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvironment {
   dateCreated: string;
-  lastCheckIn: string;
+  lastCheckIn: string | null;
   name: string;
-  nextCheckIn: string;
+  nextCheckIn: string | null;
   status: MonitorStatus;
 }
 
@@ -86,6 +89,13 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   type: MonitorType;
+  alertRule?: {
+    targets: Array<{
+      targetIdentifier: number;
+      targetType: 'Member' | 'Team';
+    }>;
+    environment?: string;
+  };
 }
 
 export interface MonitorStat {
@@ -93,5 +103,16 @@ export interface MonitorStat {
   error: number;
   missed: number;
   ok: number;
+  timeout: number;
   ts: number;
+}
+
+export interface CheckIn {
+  attachmentId: number | null;
+  dateCreated: string;
+  duration: number;
+  expectedTime: string;
+  id: string;
+  status: CheckInStatus;
+  groups?: {id: number; shortId: string}[];
 }

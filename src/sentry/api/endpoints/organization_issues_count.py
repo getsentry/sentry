@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
@@ -20,6 +21,9 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 @region_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -52,7 +56,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
             query_kwargs["actor"] = request.user
-
+        with start_span(op="start_search") as span:
+            span.set_data("query_kwargs", query_kwargs)
             result = search.query(**query_kwargs)
             return result.hits
 
@@ -72,8 +77,12 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

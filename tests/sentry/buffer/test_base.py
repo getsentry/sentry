@@ -4,12 +4,18 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
-from sentry.testutils import TestCase
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.team import Team
+from sentry.receivers import create_default_projects
+from sentry.testutils.cases import TestCase
 
 
 class BufferTest(TestCase):
     def setUp(self):
+        create_default_projects()
         self.buf = Buffer()
 
     @mock.patch("sentry.buffer.base.process_incr")

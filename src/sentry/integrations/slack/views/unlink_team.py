@@ -1,21 +1,25 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
-from sentry.models import ExternalActor, Integration
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
+from ..utils import is_valid_role, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
+
+ALLOWED_METHODS = ["GET", "POST"]
 
 
 def build_team_unlinking_url(
@@ -37,14 +41,18 @@ def build_team_unlinking_url(
     )
 
 
+@region_silo_view
 class SlackUnlinkTeamView(BaseView):
     """
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
     """
 
     @transaction_start("SlackUnlinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    @method_decorator(never_cache)
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
+        if request.method not in ALLOWED_METHODS:
+            return HttpResponse(status=405)
+
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
@@ -57,16 +65,17 @@ class SlackUnlinkTeamView(BaseView):
         if not integration:
             raise Http404
 
-        idp = identity_service.get_provider(
-            provider_ext_id=integration.external_id,
-            provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-        )
-
         om = OrganizationMember.objects.get_for_integration(
             integration, request.user, organization_id=params["organization_id"]
         ).first()
         organization = om.organization if om else None
         if organization is None:
+            raise Http404
+        if not is_valid_role(om):
+            logger.info(
+                "slack.action.invalid-role",
+                extra={"slack_id": integration.external_id, "user_id": request.user.id},
+            )
             raise Http404
 
         channel_name = params["channel_name"]
@@ -82,9 +91,12 @@ class SlackUnlinkTeamView(BaseView):
         if len(external_teams) == 0:
             return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        team = external_teams[0].actor.resolve()
+        if external_teams[0].team_id is None:
+            return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        if request.method != "POST":
+        team = external_teams[0].team
+
+        if request.method == "GET":
             return render_to_response(
                 "sentry/integrations/slack/unlink-team.html",
                 request=request,
@@ -95,8 +107,13 @@ class SlackUnlinkTeamView(BaseView):
                 },
             )
 
+        idp = identity_service.get_provider(
+            provider_ext_id=integration.external_id,
+            provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        )
+
         if not idp or not identity_service.get_identity(
-            provider_id=idp.id, identity_ext_id=params["slack_id"]
+            filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         ):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 

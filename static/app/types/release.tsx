@@ -1,12 +1,12 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/types/project';
 
 import type {TimeseriesValue} from './core';
 import type {Commit} from './integrations';
 import type {User} from './user';
 
 export enum ReleaseStatus {
-  Active = 'open',
-  Archived = 'archived',
+  ACTIVE = 'open',
+  ARCHIVED = 'archived',
 }
 
 export type SourceMapsArchive = {
@@ -37,11 +37,24 @@ export type Deploy = {
   version: string;
 };
 
+interface RawVersion {
+  raw: string;
+}
+
+export interface SemverVerison extends RawVersion {
+  buildCode: string | null;
+  components: number;
+  major: number;
+  minor: number;
+  patch: number;
+  pre: string | null;
+}
+
 export type VersionInfo = {
   buildHash: string | null;
   description: string;
   package: string | null;
-  version: {raw: string};
+  version: RawVersion | SemverVerison;
 };
 
 export interface BaseRelease {
@@ -109,21 +122,22 @@ export type CurrentRelease = {
 };
 
 export type ReleaseProject = {
-  hasHealthData: boolean;
   id: number;
   name: string;
   newGroups: number;
   platform: PlatformKey;
   platforms: PlatformKey[];
   slug: string;
+  hasHealthData?: boolean;
   healthData?: Health;
 };
 
 export type ReleaseMeta = {
-  bundleId: string | null;
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
+  isArtifactBundle: boolean;
+  newGroups: number;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;

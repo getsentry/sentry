@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -16,7 +17,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
-const project = TestStubs.ProjectDetails({
+const project = TestStubs.Project({
   id: '2448',
   name: 'project name',
   slug: 'project',
@@ -30,7 +31,7 @@ const group = TestStubs.Group({
   project,
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -50,7 +51,7 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = render(
+      render(
         <GroupActions
           group={group}
           project={project}
@@ -58,7 +59,6 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 
@@ -208,10 +208,10 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = {
+    const org = Organization({
       ...organization,
       access: [...organization.access, 'event:admin'],
-    };
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'PUT',
@@ -273,7 +273,9 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
@@ -295,12 +297,14 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
+      })
     );
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues-ui']};
+    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -322,13 +326,17 @@ describe('GroupActions', function () {
     expect(issuesApi).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: {status: 'ignored', statusDetails: {}, substatus: 'until_escalating'},
+        data: {
+          status: 'ignored',
+          statusDetails: {},
+          substatus: 'archived_until_escalating',
+        },
       })
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
       expect.objectContaining({
-        action_substatus: 'until_escalating',
+        action_substatus: 'archived_until_escalating',
         action_type: 'ignored',
       })
     );

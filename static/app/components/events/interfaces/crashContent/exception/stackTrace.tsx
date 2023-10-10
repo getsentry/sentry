@@ -1,11 +1,11 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import {Panel} from 'sentry/components/panels';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformType} from 'sentry/types';
+import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
@@ -18,21 +18,22 @@ type Props = {
   data: ExceptionValue['stacktrace'];
   event: Event;
   hasHierarchicalGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
+  stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
-  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   newestFirst?: boolean;
-  stackView?: STACK_VIEW;
+  stackView?: StackView;
+  threadId?: number;
 };
 
 function StackTrace({
   stackView,
   stacktrace,
   chainedException,
-  debugFrames,
   platform,
   newestFirst,
   groupingCurrentLevel,
@@ -41,13 +42,16 @@ function StackTrace({
   expandFirstFrame,
   event,
   meta,
+  threadId,
+  frameSourceMapDebuggerData,
+  stackType,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
   }
 
   if (
-    stackView === STACK_VIEW.APP &&
+    stackView === StackView.APP &&
     (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
@@ -70,7 +74,7 @@ function StackTrace({
   }
 
   const includeSystemFrames =
-    stackView === STACK_VIEW.FULL ||
+    stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
@@ -108,7 +112,6 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        debugFrames={debugFrames}
       />
     );
   }
@@ -122,7 +125,9 @@ function StackTrace({
       newestFirst={newestFirst}
       event={event}
       meta={meta}
-      debugFrames={debugFrames}
+      threadId={threadId}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+      hideSourceMapDebugger={stackType === StackType.MINIFIED}
     />
   );
 }

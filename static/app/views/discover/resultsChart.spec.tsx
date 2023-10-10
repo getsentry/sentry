@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ describe('Discover > ResultsChart', function () {
     pathname: '/',
   });
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [TestStubs.Project()],
   });
@@ -22,7 +24,6 @@ describe('Discover > ResultsChart', function () {
     router: {
       location,
     },
-    project: 1,
     projects: [],
   });
 
@@ -93,43 +94,5 @@ describe('Discover > ResultsChart', function () {
     );
 
     expect(screen.getByText(/No Y-Axis selected/)).toBeInTheDocument();
-  });
-
-  it('disables equation y-axis options when in World Map display mode', async function () {
-    eventView.display = DisplayModes.WORLDMAP;
-    eventView.fields = [
-      {field: 'count()'},
-      {field: 'count_unique(user)'},
-      {field: 'equation|count() + 2'},
-    ];
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-geo/`,
-      body: [],
-    });
-
-    render(
-      <ResultsChart
-        router={TestStubs.router()}
-        organization={organization}
-        eventView={eventView}
-        location={location}
-        onAxisChange={() => undefined}
-        onDisplayChange={() => undefined}
-        onIntervalChange={() => undefined}
-        total={1}
-        confirmedQuery
-        yAxis={['count()']}
-        onTopEventsChange={() => {}}
-      />,
-      {context: initialData.routerContext}
-    );
-
-    await userEvent.click(await screen.findByText(/Y-Axis/));
-
-    expect(screen.getAllByRole('option')).toHaveLength(2);
-
-    expect(screen.getByRole('option', {name: 'count()'})).toBeEnabled();
-    expect(screen.getByRole('option', {name: 'count_unique(user)'})).toBeEnabled();
   });
 });

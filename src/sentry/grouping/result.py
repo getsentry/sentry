@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
 
+from sentry.db.models import NodeData
 from sentry.utils.safe import get_path, safe_execute, set_path
 
-EventData = Dict[str, Any]
 EventMetadata = Dict[str, Any]
 
 
@@ -34,7 +34,9 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 # To get around this, we truncate the tree label down to some arbitrary
 # number of functions. This does not apply to the grouping breakdown, as in
 # grouping_level_new_issues endpoint we populate the tree labels not through
-# this function at all.
+# this function at all. EDIT: This endpoint is no longer, nor is the FE it
+# powered. Does the "grouping breakdown" exist anywhere else, or can this part
+# of the comment go away?
 #
 # The reason we do this on the backend instead of the frontend's title
 # component is because JIRA/Slack/Email titles suffer from the same issue:
@@ -63,7 +65,7 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: EventData) -> None:
+def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: NodeData) -> None:
     event_labels: List[Optional[StrippedTreeLabel]] = []
     event_data["hierarchical_tree_labels"] = event_labels
 
@@ -97,7 +99,7 @@ class CalculatedHashes:
     hierarchical_hashes: Sequence[str]
     tree_labels: Sequence[Optional[TreeLabel]]
 
-    def write_to_event(self, event_data: EventData) -> None:
+    def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
 
         if self.hierarchical_hashes:
@@ -106,7 +108,7 @@ class CalculatedHashes:
             safe_execute(_write_tree_labels, self.tree_labels, event_data, _with_transaction=False)
 
     @classmethod
-    def from_event(cls, event_data: EventData) -> Optional["CalculatedHashes"]:
+    def from_event(cls, event_data: NodeData) -> Optional["CalculatedHashes"]:
         hashes = event_data.get("hashes")
         hierarchical_hashes = event_data.get("hierarchical_hashes") or []
         tree_labels = event_data.get("hierarchical_tree_labels") or []

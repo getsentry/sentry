@@ -14,38 +14,6 @@ register_scheme("app")
 register_scheme("chrome-extension")
 
 
-def patch_httprequest_repr():
-    try:
-        from django.http import HttpRequest
-    except ImportError:
-        # This module is potentially imported before Django is installed
-        # during a setup.py run
-        return
-
-    # Intentionally strip all GET/POST/COOKIE values out of repr() for HttpRequest
-    # and subclass WSGIRequest. This prevents sensitive information from getting
-    # logged. This was yanked out of Django master anyhow.
-    # https://code.djangoproject.com/ticket/12098
-    def safe_httprequest_repr(self):
-        return f"<{self.__class__.__name__}: {self.method} {self.get_full_path()!r}>"
-
-    HttpRequest.__repr__ = safe_httprequest_repr
-
-
-def patch_django_views_debug():
-    # Prevent exposing any Django SETTINGS on our debug error page
-    # This information is not useful for Sentry development
-    # and poses a significant security risk if this is exposed by accident
-    # in any production system if, by change, it were deployed
-    # with DEBUG=True.
-    try:
-        from django.views import debug
-    except ImportError:
-        return
-
-    debug.get_safe_settings = lambda: {}
-
-
 def patch_celery_imgcat():
     # Remove Celery's attempt to display an rgb image in iTerm 2, as that
     # attempt just prints out base64 trash in tmux.
@@ -57,10 +25,21 @@ def patch_celery_imgcat():
     term.imgcat = lambda *a, **kw: b""
 
 
-for patch in (
-    patch_httprequest_repr,
-    patch_django_views_debug,
-    patch_celery_imgcat,
-    patch_pickle_loaders,
-):
-    patch()
+def patch_memcached():
+    # Fixes a bug in Django 3.2
+    try:
+        from django.core.cache.backends.memcached import MemcachedCache
+    except ImportError:
+        return
+
+    def fixed_delete(self, key, version=None):
+        key = self.make_key(key, version=version)
+        self.validate_key(key)
+        return bool(self._cache.delete(key))
+
+    MemcachedCache.delete = fixed_delete  # type: ignore[method-assign]
+
+
+patch_celery_imgcat()
+patch_pickle_loaders()
+patch_memcached()

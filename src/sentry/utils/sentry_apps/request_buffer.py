@@ -37,7 +37,7 @@ class SentryAppWebhookRequestsBuffer:
     def __init__(self, sentry_app):
         self.sentry_app = sentry_app
 
-        cluster_id = getattr(settings, "SENTRY_WEBHOOK_LOG_REDIS_CLUSTER", "default")
+        cluster_id = settings.SENTRY_WEBHOOK_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
 
     def _get_redis_key(self, event, error=False):
@@ -143,18 +143,14 @@ class SentryAppWebhookRequestsBuffer:
                     try:
                         json.loads(response.content)
                         # if the type is jsonifiable, treat it as such
-                        prettified_response_body = json.dumps(
-                            response.content, indent=2, separators=(",", ": ")
-                        )
+                        prettified_response_body = json.dumps(response.content)
                         request_data["response_body"] = prettified_response_body[:MAX_SIZE]
                     except (json.JSONDecodeError, TypeError):
                         request_data["response_body"] = response.content[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
-                        prettified_request_body = json.dumps(
-                            request_body, indent=2, separators=(",", ": ")
-                        )
+                        prettified_request_body = json.dumps(request_body)
                         request_data["request_body"] = prettified_request_body[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway

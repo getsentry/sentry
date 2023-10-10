@@ -3,6 +3,10 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @pytest.fixture(autouse=True)
@@ -56,7 +60,7 @@ def openai_policy():
         openai_policy_check.disconnect(policy)
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_consent(client, default_project, test_event, openai_policy):
     path = reverse(
         "sentry-api-0-event-ai-fix-suggest",

@@ -27,7 +27,9 @@ from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
     from sentry.features.handler import FeatureHandler
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
 
 
 class RegisteredFeatureManager:
@@ -142,7 +144,7 @@ class FeatureManager(RegisteredFeatureManager):
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
         """
-        return {k: v for k, v in self._feature_registry.items() if v == feature_type}
+        return {k: v for k, v in self._feature_registry.items() if issubclass(v, feature_type)}
 
     def add(
         self,

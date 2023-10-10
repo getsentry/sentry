@@ -11,7 +11,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
-type Props = WithRouterProps<{}> & {
+interface Props extends WithRouterProps<{}> {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
@@ -25,7 +25,7 @@ type Props = WithRouterProps<{}> & {
    * fusejs options.
    */
   searchOptions?: Fuse.IFuseOptions<FormSearchField>;
-};
+}
 
 type State = {
   fuzzy: null | Fuse<FormSearchField>;

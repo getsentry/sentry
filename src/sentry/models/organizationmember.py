@@ -1,40 +1,49 @@
 from __future__ import annotations
 
+import datetime
+import secrets
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
-from bitfield import BitField
+from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.db.models.outboxes import ReplicatedRegionModel
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
+    organizationmember_mapping_service,
+)
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -42,6 +51,18 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
+
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+    },
+)
+
 
 INVITE_DAYS_VALID = 30
 
@@ -78,20 +99,26 @@ class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
-        return self.select_related("user").filter(
+        return self.filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
-            user__isnull=False,
+            user_id__isnull=False,
         )
 
-    def delete_expired(self, threshold: int) -> None:
+    def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
         from sentry.services.hybrid_cloud.auth import auth_service
 
         orgs_with_scim = auth_service.get_org_ids_with_scim()
-        self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
-            email__exact=None
-        ).exclude(organization_id__in=orgs_with_scim).delete()
+        for member in (
+            self.filter(
+                token_expires_at__lt=threshold,
+                user_id__exact=None,
+            )
+            .exclude(email__exact=None)
+            .exclude(organization_id__in=orgs_with_scim)
+        ):
+            member.delete()
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
@@ -128,7 +155,7 @@ class OrganizationMemberManager(BaseManager):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
             ],
-            user__isnull=True,
+            user_id__isnull=True,
             id=id,
         )
 
@@ -140,20 +167,23 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
-            "id", flat=True
+        users_by_email = user_service.get_many(
+            filter=dict(
+                emails=[email],
+                is_active=True,
+            )
         )
 
         # may be empty
         team_members = set(
             OrganizationMemberTeam.objects.filter(
                 team_id__org_role=role,
-                organizationmember_id__in=org_members,
+                organizationmember__user_id__in=[u.id for u in users_by_email],
             ).values_list("organizationmember_id", flat=True)
         )
 
         org_members = set(
-            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
                 "id", flat=True
             )
         )
@@ -163,7 +193,7 @@ class OrganizationMemberManager(BaseManager):
 
 
 @region_silo_only_model
-class OrganizationMember(Model):
+class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.
 
@@ -172,27 +202,21 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
+    category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
 
     objects = OrganizationMemberManager()
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
-    )
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
+    # This email indicates the invite state of this membership -- it will be cleared when the user is set.
+    # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
-    flags = BitField(
-        flags=(
-            ("sso:linked", "sso:linked"),
-            ("sso:invalid", "sso:invalid"),
-            ("member-limit:restricted", "member-limit:restricted"),
-            ("idp:provisioned", "idp:provisioned"),
-            ("idp:role-restricted", "idp:role-restricted"),
-        ),
-        default=0,
-    )
+
+    flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
+
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     token_expires_at = models.DateTimeField(default=None, null=True)
@@ -200,12 +224,11 @@ class OrganizationMember(Model):
     teams = models.ManyToManyField(
         "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
     )
-    inviter = FlexibleForeignKey(
+    inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        related_name="sentry_inviter_set",
-        on_delete=models.SET_NULL,
+        on_delete="SET_NULL",
     )
     invite_status = models.PositiveSmallIntegerField(
         choices=InviteStatus.as_choices(),
@@ -216,50 +239,58 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    # These attributes are replicated via USER_UPDATE category outboxes for the user object associated with the user_id
+    # when it exists.
+    user_is_active = models.BooleanField(
+        null=False,
+        default=True,
+    )
+    # Note, this is the email of the user that may or may not be associated with the member, not the email used to
+    # invite the user.
+    user_email = models.CharField(max_length=75, null=True, blank=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
-        unique_together = (("organization", "user"), ("organization", "email"))
+        unique_together = (("organization", "user_id"), ("organization", "email"))
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
-    def delete(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
-            self.outbox_for_update().save()
-            super().delete(*args, **kwds)
+    # Used to reduce redundant queries
+    __org_roles_from_teams = None
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
-        if self.token and not self.token_expires_at:
-            self.refresh_expires_at()
-        super().save(*args, **kwargs)
 
-    def set_user(self, user):
-        self.user = user
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
+            if self.token and not self.token_expires_at:
+                self.refresh_expires_at()
+            super().save(*args, **kwargs)
+            self.__org_roles_from_teams = None
+
+    def refresh_from_db(self, *args, **kwargs):
+        super().refresh_from_db(*args, **kwargs)
+        self.__org_roles_from_teams = None
+
+    def set_user(self, user_id: int):
+        self.user_id = user_id
         self.email = None
         self.token = None
         self.token_expires_at = None
 
     def remove_user(self):
         self.email = self.get_email()
-        self.user = None
+        self.user_id = None
         self.token = self.generate_token()
 
     def regenerate_token(self):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def outbox_for_update(self) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=self.organization_id,
-            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
-            object_identifier=self.id,
-            payload=dict(user_id=self.user_id),
-        )
+    def payload_for_update(self) -> Mapping[str, Any] | None:
+        return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):
         now = timezone.now()
@@ -302,16 +333,19 @@ class OrganizationMember(Model):
 
     @property
     def legacy_token(self):
+        email = self.get_email()
+        if not email:
+            return ""
         checksum = md5()
         checksum.update(str(self.organization_id).encode("utf-8"))
-        checksum.update(self.get_email().encode("utf-8"))
+        checksum.update(email.encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
     def generate_token(self):
-        return uuid4().hex + uuid4().hex
+        return secrets.token_hex(nbytes=32)
 
-    def get_invite_link(self):
+    def get_invite_link(self, referrer: str | None = None):
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
@@ -321,15 +355,18 @@ class OrganizationMember(Model):
                 "token": self.token or self.legacy_token,
             },
         )
-        return self.organization.absolute_url(path)
+        invite_link = self.organization.absolute_url(path)
+        if referrer:
+            invite_link += "?referrer=" + referrer
+        return invite_link
 
-    def send_invite_email(self):
+    def send_invite_email(self, referrer: str | None = None):
         from sentry.utils.email import MessageBuilder
 
         context = {
             "email": self.email,
             "organization": self.organization,
-            "url": self.get_invite_link(),
+            "url": self.get_invite_link(referrer),
         }
 
         msg = MessageBuilder(
@@ -346,14 +383,13 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
-    def send_sso_link_email(self, actor, provider):
+    def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
 
         link_args = {"organization_slug": self.organization.slug}
-
         context = {
             "organization": self.organization,
-            "actor": actor,
+            "actor_email": sending_user_email,
             "provider": provider,
             "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
@@ -367,7 +403,7 @@ class OrganizationMember(Model):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, actor, provider):
+    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
@@ -381,17 +417,23 @@ class OrganizationMember(Model):
         if not self.user_id:
             return
 
+        user = user_service.get_user(user_id=self.user_id)
+        if not user:
+            return
+
+        has_password = user.has_usable_password()
+
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
-            "has_password": self.user.password,
+            "has_password": has_password,
             "organization": self.organization,
-            "actor": actor,
+            "actor_email": disabling_user.email,
             "provider": provider,
         }
 
-        if not self.user.password:
-            password_hash = lost_password_hash_service.get_or_create(user_id=self.user.id)
+        if not has_password:
+            password_hash = lost_password_hash_service.get_or_create(user_id=self.user_id)
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
@@ -405,26 +447,42 @@ class OrganizationMember(Model):
 
     def get_display_name(self):
         if self.user_id:
-            return self.user.get_display_name()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_display_name()
         return self.email
 
     def get_label(self):
         if self.user_id:
-            return self.user.get_label()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_label()
         return self.email or self.id
 
     def get_email(self):
-        if self.user_id and self.user.email:
-            return self.user.email
-        return self.email
+        if self.user_id:
+            if self.user_email:
+                return self.user_email
+
+            # This is a fallback case when the org member outbox message from
+            #  the control-silo has not been drained/denormalized, but we need
+            #  to retrieve it, so we skip our rpc-in-transaction validations here.
+            with in_test_hide_transaction_boundary():
+                user = user_service.get_user(user_id=self.user_id)
+            if user and user.email:
+                return user.email
+        return self.email or ""
 
     def get_avatar_type(self):
         if self.user_id:
-            return self.user.get_avatar_type()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_avatar_type()
         return "letter_avatar"
 
     def get_audit_log_data(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         teams = list(
             Team.objects.filter(
@@ -445,10 +503,11 @@ class OrganizationMember(Model):
         }
 
     def get_teams(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         return Team.objects.filter(
-            status=TeamStatus.VISIBLE,
+            status=TeamStatus.ACTIVE,
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self, is_active=True
             ).values("team"),
@@ -465,15 +524,20 @@ class OrganizationMember(Model):
         return frozenset(scopes)
 
     def get_org_roles_from_teams(self) -> Set[str]:
-        # results in an extra query when calling get_scopes()
-        return set(self.teams.all().exclude(org_role=None).values_list("org_role", flat=True))
+        if self.__org_roles_from_teams is None:
+            # Store team_roles so that we don't repeat this query when possible.
+            team_roles = set(
+                self.teams.all().exclude(org_role=None).values_list("org_role", flat=True)
+            )
+            self.__org_roles_from_teams = team_roles
+        return self.__org_roles_from_teams
 
     def get_all_org_roles(self) -> List[str]:
         all_org_roles = self.get_org_roles_from_teams()
         all_org_roles.add(self.role)
         return list(all_org_roles)
 
-    def get_org_roles_from_teams_by_source(self) -> List[tuple(str, OrganizationRole)]:
+    def get_org_roles_from_teams_by_source(self) -> List[tuple[str, OrganizationRole]]:
         org_roles = list(self.teams.all().exclude(org_role=None).values_list("slug", "org_role"))
 
         sorted_org_roles = sorted(
@@ -519,8 +583,9 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        self.approve_invite()
-        self.save()
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
+            self.approve_invite()
+            self.save()
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
@@ -550,10 +615,13 @@ class OrganizationMember(Model):
         ip_address=None,
     ):
         """
-        Reject a member invite/jin request and send an audit log entry
+        Reject a member invite/join request and send an audit log entry
         """
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
+
+        if self.invite_status == InviteStatus.APPROVED.value:
+            return
 
         self.delete()
 
@@ -572,16 +640,8 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
-        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
-
-        if not features.has("organizations:team-roles", self.organization):
-            return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
-
-        return [
-            r
-            for r in organization_roles.get_all()
-            if r.priority <= highest_role_priority and not r.is_retired
-        ]
+        member_scopes = self.get_scopes()
+        return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
@@ -594,3 +654,25 @@ class OrganizationMember(Model):
             .exists()
         )
         return is_only_owner
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        if payload and payload.get("user_id") is not None:
+            identity_service.delete_identities(
+                user_id=payload["user_id"], organization_id=shard_identifier
+            )
+        organizationmember_mapping_service.delete(
+            organizationmember_id=identifier,
+            organization_id=shard_identifier,
+        )
+
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(self)
+
+        organizationmember_mapping_service.upsert_mapping(
+            organizationmember_id=self.id,
+            organization_id=shard_identifier,
+            mapping=rpc_org_member_update,
+        )

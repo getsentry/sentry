@@ -4,10 +4,13 @@ from django.urls import reverse
 
 from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -45,7 +48,6 @@ class SentryAppDetailsTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-details", args=[self.published_app.slug])
 
 
-# cannot be stable until we have org member mappings
 @control_silo_test(stable=True)
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superuser_sees_all_apps(self):
@@ -401,8 +403,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
 
     def test_members_cant_update(self):
-        with exempt_from_silo_limits():
-            member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        with assume_test_silo_mode(SiloMode.REGION):
+            # create extra owner because we are demoting one
+            self.create_member(organization=self.org, user=self.create_user(), role="owner")
+
+            member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "member"
             member_om.save()
         self.login_as(user=self.user)
@@ -411,8 +416,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 403
 
     def test_create_integration_exceeding_scopes(self):
-        with exempt_from_silo_limits():
-            member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        with assume_test_silo_mode(SiloMode.REGION):
+            # create extra owner because we are demoting one
+            self.create_member(organization=self.org, user=self.create_user(), role="owner")
+
+            member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "manager"
             member_om.save()
         self.login_as(user=self.user)

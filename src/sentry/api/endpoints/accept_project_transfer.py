@@ -1,18 +1,21 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
 from django.utils.encoding import force_str
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
-from sentry.api.base import Endpoint, SessionAuthentication, region_silo_endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -23,6 +26,10 @@ class InvalidPayload(Exception):
 
 @region_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

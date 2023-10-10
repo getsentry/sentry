@@ -22,7 +22,7 @@
         "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "hello", "quoted": false},
+      {"type": "freeText", "value": "hello", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -30,7 +30,7 @@
     "query": "hello user.email:foo@example.com release:1.2.1",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "hello ", "quoted": false},
+      {"type": "freeText", "value": "hello ", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""},
       {
         "type": "filter",

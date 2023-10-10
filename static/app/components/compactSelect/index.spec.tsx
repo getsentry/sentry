@@ -1,10 +1,12 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
   it('renders', function () {
-    const {container} = render(
+    render(
       <CompactSelect
         options={[
           {value: 'opt_one', label: 'Option One'},
@@ -12,7 +14,6 @@ describe('CompactSelect', function () {
         ]}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders disabled', function () {
@@ -43,6 +44,49 @@ describe('CompactSelect', function () {
     await userEvent.click(screen.getByRole('button'));
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
+  });
+
+  it('can be dismissed', async function () {
+    render(
+      <Fragment>
+        <CompactSelect
+          value="opt_one"
+          menuTitle="Menu A"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+        <CompactSelect
+          value="opt_three"
+          menuTitle="Menu B"
+          options={[
+            {value: 'opt_three', label: 'Option Three'},
+            {value: 'opt_four', label: 'Option Four'},
+          ]}
+        />
+      </Fragment>
+    );
+
+    // Can be dismissed by clicking outside
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // Can be dismissed by pressing Escape
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // When menu A is open, clicking once on menu B's trigger button closes menu A and
+    // then opens menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Option Three'}));
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
   describe('ListBox', function () {
@@ -93,6 +137,32 @@ describe('CompactSelect', function () {
         {value: 'opt_two', label: 'Option Two'},
       ]);
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
+    });
+
+    it('can select options with values containing quotes', async function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          multiple
+          options={[
+            {value: '"opt_one"', label: 'Option One'},
+            {value: '"opt_two"', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // select Option One & Option Two
+      await userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
+
+      expect(mock).toHaveBeenCalledWith([
+        {value: '"opt_one"', label: 'Option One'},
+        {value: '"opt_two"', label: 'Option Two'},
+      ]);
     });
 
     it('displays trigger button with prefix', function () {
@@ -227,8 +297,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'select'
@@ -250,8 +320,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'unselect'
@@ -275,8 +345,8 @@ describe('CompactSelect', function () {
           label: 'Section 2',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_three', label: 'Option Three'},
-            {value: 'opt_four', label: 'Option Four'},
+            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
+            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
           ],
         },
         'select'
@@ -355,6 +425,33 @@ describe('CompactSelect', function () {
         {value: 'opt_two', label: 'Option Two'},
       ]);
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
+    });
+
+    it('can select options with values containing quotes', async function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          grid
+          multiple
+          options={[
+            {value: '"opt_one"', label: 'Option One'},
+            {value: '"opt_two"', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // select Option One & Option Two
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+
+      expect(mock).toHaveBeenCalledWith([
+        {value: '"opt_one"', label: 'Option One'},
+        {value: '"opt_two"', label: 'Option Two'},
+      ]);
     });
 
     it('displays trigger button with prefix', function () {
@@ -491,8 +588,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'select'
@@ -514,8 +611,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'unselect'
@@ -539,8 +636,8 @@ describe('CompactSelect', function () {
           label: 'Section 2',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_three', label: 'Option Three'},
-            {value: 'opt_four', label: 'Option Four'},
+            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
+            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
           ],
         },
         'select'

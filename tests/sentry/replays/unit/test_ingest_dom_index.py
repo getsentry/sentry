@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import uuid
+from typing import Any
 from unittest import mock
 
-from sentry.utils import json
-from src.sentry.replays.usecases.ingest.dom_index import (
+from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
+    _parse_classes,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
 )
+from sentry.utils import json
 
 
 def test_get_user_actions():
@@ -45,7 +49,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -57,6 +61,8 @@ def test_get_user_actions():
     assert user_actions[0]["testid"] == "2"
     assert user_actions[0]["aria_label"] == "test"
     assert user_actions[0]["title"] == "3"
+    assert user_actions[0]["is_dead"] == 0
+    assert user_actions[0]["is_rage"] == 0
     assert user_actions[0]["timestamp"] == 1674298825
     assert len(user_actions[0]["event_hash"]) == 36
 
@@ -79,7 +85,7 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 0
 
 
@@ -118,6 +124,7 @@ def test_parse_replay_actions():
     ]
     replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
@@ -141,6 +148,220 @@ def test_parse_replay_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
+    assert action["is_dead"] == 0
+    assert action["is_rage"] == 0
+    assert action["timestamp"] == 1
+    assert len(action["event_hash"]) == 36
+
+
+def test_parse_replay_dead_click_actions():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickcount": 5,
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        # New style slowClickDetected payload.
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickCount": 5,
+                        "endReason": "timeout",
+                        "timeAfterClickMs": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+    replay_actions = parse_replay_actions(1, "1", 30, events)
+
+    assert replay_actions is not None
+    assert replay_actions["type"] == "replay_event"
+    assert isinstance(replay_actions["start_time"], float)
+    assert replay_actions["replay_id"] == "1"
+    assert replay_actions["project_id"] == 1
+    assert replay_actions["retention_days"] == 30
+    assert isinstance(replay_actions["payload"], list)
+
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["type"] == "replay_actions"
+    assert payload["replay_id"] == "1"
+    assert len(payload["clicks"]) == 3
+
+    action = payload["clicks"][0]
+    assert action["node_id"] == 59
+    assert action["tag"] == "a"
+    assert action["id"] == "id"
+    assert action["class"] == ["class1", "class2"]
+    assert action["text"] == "text"
+    assert action["aria_label"] == "test"
+    assert action["role"] == "button"
+    assert action["alt"] == "1"
+    assert action["testid"] == "2"
+    assert action["title"] == "3"
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 0
+    assert action["timestamp"] == 1
+    assert len(action["event_hash"]) == 36
+
+    # Second slow click had more than 2 clicks which makes it a rage+dead combo.
+    action = payload["clicks"][1]
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
+
+    # Third slow click had more than 2 clicks which makes it a rage+dead combo.
+    action = payload["clicks"][2]
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
+
+
+def test_parse_replay_rage_click_actions():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "clickcount": 5,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        }
+    ]
+    replay_actions = parse_replay_actions(1, "1", 30, events)
+
+    assert replay_actions is not None
+    assert replay_actions["type"] == "replay_event"
+    assert isinstance(replay_actions["start_time"], float)
+    assert replay_actions["replay_id"] == "1"
+    assert replay_actions["project_id"] == 1
+    assert replay_actions["retention_days"] == 30
+    assert isinstance(replay_actions["payload"], list)
+
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["type"] == "replay_actions"
+    assert payload["replay_id"] == "1"
+    assert len(payload["clicks"]) == 1
+
+    action = payload["clicks"][0]
+    assert action["node_id"] == 59
+    assert action["tag"] == "a"
+    assert action["id"] == "id"
+    assert action["class"] == ["class1", "class2"]
+    assert action["text"] == "text"
+    assert action["aria_label"] == "test"
+    assert action["role"] == "button"
+    assert action["alt"] == "1"
+    assert action["testid"] == "2"
+    assert action["title"] == "3"
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 36
 
@@ -307,6 +528,70 @@ def test_parse_request_response_old_format_request_and_response():
         ]
 
 
+def test_log_sdk_options():
+    events: list[dict[str, Any]] = [
+        {
+            "data": {
+                "payload": {
+                    "blockAllMedia": True,
+                    "errorSampleRate": 0,
+                    "maskAllInputs": True,
+                    "maskAllText": True,
+                    "networkCaptureBodies": True,
+                    "networkDetailHasUrls": False,
+                    "networkRequestHasHeaders": True,
+                    "networkResponseHasHeaders": True,
+                    "sessionSampleRate": 1,
+                    "useCompression": False,
+                    "useCompressionOption": True,
+                },
+                "tag": "options",
+            },
+            "timestamp": 1680009712.507,
+            "type": 5,
+        }
+    ]
+    log = events[0]["data"]["payload"].copy()
+    log["project_id"] = 1
+    log["replay_id"] = "1"
+
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
+        "random.randint"
+    ) as randint:
+        randint.return_value = 0
+        parse_replay_actions(1, "1", 30, events)
+        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
+
+
+def test_log_large_dom_mutations():
+    events: list[dict[str, Any]] = [
+        {
+            "type": 5,
+            "timestamp": 1684218178.308,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1684218178.308,
+                    "type": "default",
+                    "category": "replay.mutations",
+                    "data": {"count": 1738},
+                },
+            },
+        }
+    ]
+
+    log = events[0]["data"]["payload"].copy()
+    log["project_id"] = 1
+    log["replay_id"] = "1"
+
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
+        "random.randint"
+    ) as randint:
+        randint.return_value = 0
+        parse_replay_actions(1, "1", 30, events)
+        assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
+
+
 def test_get_testid():
     # Assert each test-id permutation is extracted.
     assert _get_testid({"testId": "123"}) == "123"
@@ -329,3 +614,11 @@ def test_get_testid():
 
     # Defaults to empty string.
     assert _get_testid({}) == ""
+
+
+def test_parse_classes():
+    assert _parse_classes("") == []
+    assert _parse_classes("   ") == []
+    assert _parse_classes("  a b ") == ["a", "b"]
+    assert _parse_classes("a  ") == ["a"]
+    assert _parse_classes("  a") == ["a"]

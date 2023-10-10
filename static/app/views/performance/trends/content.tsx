@@ -13,6 +13,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -35,6 +36,7 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
+  modifyTransactionNameTrendsQuery,
   modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
@@ -148,6 +150,20 @@ class TrendsContent extends Component<Props, State> {
     });
   };
 
+  getFreeTextFromQuery(query: string) {
+    const conditions = new MutableSearch(query);
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      return transactionValues[0];
+    }
+    if (conditions.freeText.length > 0) {
+      // raw text query will be wrapped in wildcards in generatePerformanceEventView
+      // so no need to wrap it here
+      return conditions.freeText.join(' ');
+    }
+    return '';
+  }
+
   getPerformanceLink() {
     const {location} = this.props;
 
@@ -174,6 +190,10 @@ class TrendsContent extends Component<Props, State> {
 
     const trendView = eventView.clone() as TrendView;
     modifyTrendsViewDefaultPeriod(trendView, location);
+
+    if (organization.features.includes('performance-new-trends')) {
+      modifyTransactionNameTrendsQuery(trendView);
+    }
 
     const fields = generateAggregateFields(
       organization,
@@ -238,15 +258,24 @@ class TrendsContent extends Component<Props, State> {
                   <EnvironmentPageFilter />
                   <DatePageFilter alignDropdown="left" />
                 </PageFilterBar>
-                <StyledSearchBar
-                  searchSource="trends"
-                  organization={organization}
-                  projectIds={trendView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {organization.features.includes('performance-new-trends') ? (
+                  <StyledTransactionNameSearchBar
+                    organization={organization}
+                    eventView={trendView}
+                    onSearch={this.handleSearch}
+                    query={this.getFreeTextFromQuery(query)}
+                  />
+                ) : (
+                  <StyledSearchBar
+                    searchSource="trends"
+                    organization={organization}
+                    projectIds={trendView.project}
+                    query={query}
+                    fields={fields}
+                    onSearch={this.handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
                 <CompactSelect
                   triggerProps={{prefix: t('Percentile')}}
                   value={currentTrendFunction.field}
@@ -273,6 +302,9 @@ class TrendsContent extends Component<Props, State> {
                   trendView={trendView}
                   location={location}
                   setError={this.setError}
+                  withBreakpoint={organization.features.includes(
+                    'performance-new-trends'
+                  )}
                 />
                 <ChangedTransactions
                   trendChangeType={TrendChangeType.REGRESSION}
@@ -280,9 +312,12 @@ class TrendsContent extends Component<Props, State> {
                   trendView={trendView}
                   location={location}
                   setError={this.setError}
+                  withBreakpoint={organization.features.includes(
+                    'performance-new-trends'
+                  )}
                 />
               </ListContainer>
-              <Feature features={['organizations:performance-new-trends']}>
+              <Feature features={['organizations:performance-trendsv2-dev-only']}>
                 <ListContainer>
                   <ChangedTransactions
                     trendChangeType={TrendChangeType.IMPROVED}
@@ -290,7 +325,6 @@ class TrendsContent extends Component<Props, State> {
                     trendView={trendView}
                     location={location}
                     setError={this.setError}
-                    withBreakpoint
                   />
                   <ChangedTransactions
                     trendChangeType={TrendChangeType.REGRESSION}
@@ -298,7 +332,6 @@ class TrendsContent extends Component<Props, State> {
                     trendView={trendView}
                     location={location}
                     setError={this.setError}
-                    withBreakpoint
                   />
                 </ListContainer>
               </Feature>
@@ -369,6 +402,18 @@ const FilterActions = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
+  }
+`;
+
+const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/5;

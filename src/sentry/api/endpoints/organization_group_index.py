@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
@@ -27,15 +29,11 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    QUERY_STATUS_LOOKUP,
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupInbox,
-    GroupStatus,
-    Project,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -139,6 +137,12 @@ def inbox_search(
 
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -248,8 +252,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -264,6 +271,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             project_ids=project_ids,
+            organization_id=organization.id,
         )
 
         # we ignore date range for both short id and event ids
@@ -428,8 +436,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -459,18 +471,25 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue.
+                        parameter shall be repeated for each issue, e.g.
+                        `?id=1&id=2&id=3`. If this parameter is not provided,
+                        it will attempt to remove the first 1000 issues.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

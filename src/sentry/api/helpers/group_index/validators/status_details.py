@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
-from sentry.models import Release
+from sentry.models.release import Release
 
 from . import InCommitValidator
 
 
-class StatusDetailsValidator(serializers.Serializer):  # type: ignore
+class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
     inCommit = InCommitValidator(required=False)

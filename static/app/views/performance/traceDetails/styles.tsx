@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {space} from 'sentry/styles/space';

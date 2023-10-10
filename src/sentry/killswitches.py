@@ -28,7 +28,7 @@ def _update_project_configs(
     """Callback for the relay.drop-transaction-metrics kill switch.
     On every change, force a recomputation of the corresponding project configs
     """
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
 
     old_project_ids = {ctx["project_id"] for ctx in old_option_value}
@@ -206,6 +206,16 @@ ALL_KILLSWITCH_OPTIONS = {
         projects. This works by adding collapse argument to the serializer.
         """,
         fields={"organization_id": "An organization ID to disable last deploys for."},
+    ),
+    "crons.organization.disable-check-in": KillswitchInfo(
+        description="""
+        Do not consumer monitor check-ins for a specific organization.
+
+        This is valuable in scenarios where a organization is slamming in
+        progress check-ins without actually marking the check-in as complete
+        for whatever reason. This can cuase extranious strain on the system.
+        """,
+        fields={"organization_id": "An organization ID to disable check-ins for."},
     ),
 }
 

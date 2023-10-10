@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import ApiApplication
+from sentry.models.apiapplication import ApiApplication
 
 
 @register(ApiApplication)
@@ -19,5 +19,5 @@ class ApiApplicationSerializer(Serializer):
             "privacyUrl": obj.privacy_url,
             "termsUrl": obj.terms_url,
             "allowedOrigins": obj.get_allowed_origins(),
-            "redirectUris": [o for o in obj.redirect_uris.splitlines() if o],
+            "redirectUris": obj.get_redirect_uris(),
         }

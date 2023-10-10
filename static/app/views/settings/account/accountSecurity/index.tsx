@@ -9,14 +9,18 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Authenticator, OrganizationSummary} from 'sentry/types';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
@@ -31,18 +35,18 @@ type Props = {
   hasVerifiedEmail: boolean;
   onDisable: (auth: Authenticator) => void;
   orgsRequire2fa: OrganizationSummary[];
-} & AsyncView['props'] &
+} & DeprecatedAsyncView['props'] &
   RouteComponentProps<{}, {}>;
 
 /**
  * Lists 2fa devices + password change form
  */
-class AccountSecurity extends AsyncView<Props> {
+class AccountSecurity extends DeprecatedAsyncView<Props> {
   getTitle() {
     return t('Security');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [];
   }
 
@@ -63,9 +67,7 @@ class AccountSecurity extends AsyncView<Props> {
     const {orgsRequire2fa} = this.props;
     const slugs = orgsRequire2fa.map(({slug}) => slug);
 
-    return [slugs.slice(0, -1).join(', '), slugs.slice(-1)[0]].join(
-      slugs.length > 1 ? ' and ' : ''
-    );
+    return oxfordizeArray(slugs);
   };
 
   handleAdd2FAClicked = () => {

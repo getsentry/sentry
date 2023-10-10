@@ -1,8 +1,11 @@
-import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
-import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
+import {
+  FOR_REVIEW_QUERIES,
+  getSortLabel,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 type Props = {
   onSelect: (sort: string) => void;
@@ -22,30 +25,16 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of events.');
     case IssueSortOptions.USER:
       return t('Number of users affected.');
-    case IssueSortOptions.TREND:
-      return t('% change in event count.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
   }
 }
 
-function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
-  const combinedSortKeys = [
-    ...sortKeys,
-    ...(hasTrendSort ? [IssueSortOptions.TREND] : []),
-  ];
-  return combinedSortKeys.map(key => ({
-    value: key,
-    label: getSortLabel(key),
-    details: getSortTooltip(key),
-  }));
-}
-
 function IssueListSortOptions({onSelect, sort, query}: Props) {
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
-    ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
+    ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.PRIORITY,
@@ -54,20 +43,20 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   ];
 
   return (
-    <Feature features={['issue-list-trend-sort']}>
-      {({hasFeature: hasTrendSort}) => (
-        <CompactSelect
-          size="sm"
-          onChange={opt => onSelect(opt.value)}
-          options={getSortOptions(sortKeys, hasTrendSort)}
-          value={sortKey}
-          triggerProps={{
-            size: 'xs',
-            icon: <IconSort size="xs" />,
-          }}
-        />
-      )}
-    </Feature>
+    <CompactSelect
+      size="sm"
+      onChange={opt => onSelect(opt.value)}
+      options={sortKeys.map(key => ({
+        value: key,
+        label: getSortLabel(key),
+        details: getSortTooltip(key),
+      }))}
+      value={sortKey}
+      triggerProps={{
+        size: 'xs',
+        icon: <IconSort size="xs" />,
+      }}
+    />
   );
 }
 

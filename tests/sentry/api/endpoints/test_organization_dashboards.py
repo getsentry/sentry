@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -242,7 +244,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 404
 
     def test_post_with_widgets(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -331,7 +333,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_post_widgets_with_null_layout_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -394,7 +396,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400, response.data
 
     def test_extra_keys_in_widget_layout_are_ignored(self):
-        expected_widget = {
+        expected_widget: dict[str, Any] = {
             "displayType": "line",
             "interval": "5m",
             "title": "Transaction count()",
@@ -409,7 +411,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             ],
             "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
         }
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -649,7 +651,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
     def test_add_widget_with_field_aliases_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with fieldAliases in the query",
             "widgets": [
                 {
@@ -686,7 +688,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with null agg and cols",
             "widgets": [
                 {

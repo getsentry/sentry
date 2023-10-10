@@ -3,8 +3,8 @@ from unittest.mock import patch
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models import SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -84,9 +84,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             status=SentryAppInstallationStatus.PENDING,
         )
 
-        self.component1 = self.sentry_app1.components.first()
-        self.component2 = self.sentry_app2.components.first()
-        self.component3 = self.sentry_app3.components.first()
+        self.component1 = self.sentry_app1.components.order_by("pk").first()
+        self.component2 = self.sentry_app2.components.order_by("pk").first()
+        self.component3 = self.sentry_app3.components.order_by("pk").first()
 
         self.login_as(user=self.user)
 
@@ -168,7 +168,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         # self.component1 data contains an error, because it raised an exception
         # during preparation.
-        assert response.data == [
+        expected = [
             {
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
@@ -194,3 +194,5 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 },
             },
         ]
+
+        assert response.data == expected

@@ -1,4 +1,5 @@
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
@@ -60,6 +61,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
       | 'preventOverflowOptions'
+      | 'flipOptions'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -78,7 +80,7 @@ interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactChild;
   /**
    * Whether the menu should always be wider than the trigger. If true (default), then
    * the menu will have a min width equal to the trigger's width.
@@ -103,9 +105,8 @@ interface DropdownMenuProps
    * features won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-      onClick?: (e: MouseEvent) => void;
-    }
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
   ) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
@@ -118,6 +119,13 @@ interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
+  /**
+   * Whether to render the menu inside a React portal (false by default). This should
+   * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
+   * scrollable container that messes with the menu's position. Some features, namely
+   * submenus, will not work correctly inside portals.
+   */
+  usePortal?: boolean;
 }
 
 /**
@@ -139,6 +147,7 @@ function DropdownMenu({
   className,
 
   // Overlay props
+  usePortal = false,
   offset = 8,
   position = 'bottom-start',
   isDismissable = true,
@@ -146,6 +155,7 @@ function DropdownMenu({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   preventOverflowOptions,
+  flipOptions,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -167,6 +177,7 @@ function DropdownMenu({
     shouldCloseOnInteractOutside,
     onInteractOutside,
     preventOverflowOptions,
+    flipOptions,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -210,13 +221,7 @@ function DropdownMenu({
 
   function renderTrigger() {
     if (trigger) {
-      return trigger({
-        size,
-        isOpen,
-        ...triggerProps,
-        ...overlayTriggerProps,
-        ...buttonProps,
-      });
+      return trigger({...overlayTriggerProps, ...buttonProps}, isOpen);
     }
     return (
       <DropdownButton
@@ -239,7 +244,7 @@ function DropdownMenu({
       return null;
     }
 
-    return (
+    const menu = (
       <DropdownMenuList
         {...props}
         {...menuProps}
@@ -270,6 +275,8 @@ function DropdownMenu({
         }}
       </DropdownMenuList>
     );
+
+    return usePortal ? createPortal(menu, document.body) : menu;
   }
 
   return (

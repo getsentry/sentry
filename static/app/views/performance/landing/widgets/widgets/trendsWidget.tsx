@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,6 +36,7 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {QUERY_LIMIT_PARAM, TOTAL_EXPANDABLE_ROWS_HEIGHT} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -47,6 +49,8 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
+  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+
   const {
     eventView: _eventView,
     ContainerActions,
@@ -54,11 +58,18 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     withStaticFilters,
     InteractiveTitle,
   } = props;
+
+  const withBreakpoint =
+    organization.features.includes('performance-new-trends') &&
+    !isCardinalityCheckLoading &&
+    !outcome?.forceTransactionsOnly;
+
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
       : TrendChangeType.REGRESSION;
-  const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
+  const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
+  const trendFunctionField = TrendFunctionField.P50; // Setting p50 to match trends page
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 
@@ -66,15 +77,19 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   eventView.fields = fields;
   eventView.sorts = [
     {
-      kind: trendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
+      kind: derivedTrendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
       field: 'trend_percentage()',
     },
   ];
   const rest = {...props, eventView};
-  eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
-  eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
-  eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
-  eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  if (!withBreakpoint) {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
+    eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
+    eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
+    eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  } else {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
+  }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -84,17 +99,18 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           {...provided}
           eventView={provided.eventView}
           location={location}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
-          limit={3}
+          limit={QUERY_LIMIT_PARAM}
           cursor="0:0:1"
           noPagination
+          withBreakpoint={withBreakpoint}
         />
       ),
       transform: transformTrendsDiscover,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.chartSetting, trendChangeType]
+    [props.chartSetting, derivedTrendChangeType]
   );
 
   const assembleAccordionItems = provided =>
@@ -106,7 +122,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         <TrendsChart
           {...provided}
           {...rest}
-          isLoading={provided.widgetData.chart.isLoading}
+          isLoading={provided.widgetData.chart.isLoading || isCardinalityCheckLoading}
           statsData={provided.widgetData.chart.statsData}
           query={eventView.query}
           project={eventView.project}
@@ -115,7 +131,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
           transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
           disableXAxis
           disableLegend
@@ -197,7 +213,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             />
           ),
           // accordion items height + chart height
-          height: 120 + props.chartHeight,
+          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
           noPadding: true,
         },
       ]
@@ -216,7 +232,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-              trendChangeType={trendChangeType}
+              trendChangeType={derivedTrendChangeType}
               trendFunctionField={trendFunctionField}
               disableXAxis
               disableLegend
@@ -277,4 +293,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const TrendsChart = withProjects(Chart);
+export const TrendsChart = withProjects(Chart);

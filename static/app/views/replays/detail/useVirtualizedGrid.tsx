@@ -15,11 +15,11 @@ type Opts = {
   cellMeasurer: CellMeasurerCacheParams;
   /**
    * How many columns are being rendered
-   * */
+   */
   columnCount: number;
   /**
    * List of other values that should trigger re-computing column sizes
-   * */
+   */
   deps: DependencyList;
   /**
    * There must be one column with a dynamic width, so the table can fill all available width inside the container

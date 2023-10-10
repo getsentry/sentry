@@ -4,10 +4,10 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
+import {ProjectPageFilter as NewProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -77,7 +77,7 @@ type Props = {
   specificProjectSlugs?: string[];
 };
 
-function ProjectPageFilter({
+function OldProjectPageFilter({
   specificProjectSlugs,
   maxTitleLength = 25,
   resetParamsOnChange = [],
@@ -131,7 +131,6 @@ function ProjectPageFilter({
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
   const customProjectDropdown: ProjectSelectorProps['customDropdownButton'] = ({
-    actions,
     selectedProjects,
     isOpen,
   }) => {
@@ -161,24 +160,18 @@ function ProjectPageFilter({
     );
 
     return (
-      <GuideAnchor
-        target="new_page_filter_button"
-        position="bottom"
-        onStepComplete={actions.open}
+      <PageFilterDropdownButton
+        isOpen={isOpen}
+        highlighted={desyncedFilters.has('projects')}
+        data-test-id="page-filter-project-selector"
+        disabled={disabled}
+        icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
       >
-        <PageFilterDropdownButton
-          isOpen={isOpen}
-          highlighted={desyncedFilters.has('projects')}
-          data-test-id="page-filter-project-selector"
-          disabled={disabled}
-          icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
-        >
-          <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > projectsToShow.length && (
-            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-          )}
-        </PageFilterDropdownButton>
-      </GuideAnchor>
+        <TitleContainer>{title}</TitleContainer>
+        {selectedProjects.length > projectsToShow.length && (
+          <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+        )}
+      </PageFilterDropdownButton>
     );
   };
 
@@ -218,5 +211,15 @@ const TitleContainer = styled('span')`
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
 `;
+
+function ProjectPageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewProjectPageFilter {...props} />;
+  }
+
+  return <OldProjectPageFilter {...props} />;
+}
 
 export default ProjectPageFilter;

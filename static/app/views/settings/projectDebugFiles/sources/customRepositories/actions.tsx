@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ActionButton from 'sentry/components/actions/button';

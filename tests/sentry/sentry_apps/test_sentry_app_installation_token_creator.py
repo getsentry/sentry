@@ -1,9 +1,13 @@
 from datetime import date
 from unittest.mock import patch
 
-from sentry.models import SentryAppInstallation, SentryAppInstallationToken
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
-from sentry.testutils import TestCase
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -61,7 +65,7 @@ class TestCreatorExternal(TestCreatorBase):
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(
-            name="external_app", organization=self.org, scopes=("org:write", "team:admin")
+            name="external_app", organization=self.org, scopes=("org:read", "team:read")
         )
 
         self.sentry_app_installation = SentryAppInstallationCreator(
@@ -76,4 +80,4 @@ class TestCreatorExternal(TestCreatorBase):
 
         # verify token was created properly
         assert api_token.expires_at == today
-        assert api_token.scope_list == ["org:write", "team:admin"]
+        assert api_token.scope_list == ["org:read", "team:read"]

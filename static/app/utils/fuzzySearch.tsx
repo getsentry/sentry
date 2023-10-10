@@ -12,7 +12,7 @@ const DEFAULT_FUSE_OPTIONS: Fuse.IFuseOptions<any> = {
 
 export async function createFuzzySearch<
   T = string,
-  Options extends Fuse.IFuseOptions<T> = Fuse.IFuseOptions<T>
+  Options extends Fuse.IFuseOptions<T> = Fuse.IFuseOptions<T>,
 >(objects: T[], options: Options): Promise<Fuse<T>> {
   if (!options.keys) {
     throw new Error('You need to define `options.keys`');

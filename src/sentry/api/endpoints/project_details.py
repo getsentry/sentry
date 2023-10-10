@@ -4,15 +4,21 @@ from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
-from sentry import options as sentry_options
-from sentry.api.base import region_silo_endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -20,8 +26,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
@@ -34,19 +43,21 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
-from sentry.models import (
-    Group,
-    GroupStatus,
-    NotificationSetting,
-    Project,
-    ProjectBookmark,
-    ProjectRedirect,
-    ProjectStatus,
-    ScheduledDeletion,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.tasks.recap_servers import (
+    RECAP_SERVER_TOKEN_OPTION,
+    RECAP_SERVER_URL_OPTION,
+    poll_project_recap_server,
+)
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -54,6 +65,24 @@ from sentry.utils import json
 #: Relay compiles this list into a regex which cannot exceed a certain size.
 #: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
 MAX_SENSITIVE_FIELD_CHARS = 4000
+
+_options_description = """
+Configure various project filters:
+- `Hydration Errors` - Filter out react hydration errors that are often unactionable
+- `IP Addresses` - Filter events from these IP addresses separated with newlines.
+- `Releases` - Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message` - Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+```json
+{
+    options: {
+        filters:react-hydration-errors: true,
+        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
+        filters:releases: "[!3]\\n4"
+        filters:error_messages: "TypeError*\\n*ConnectionError*"
+    }
+}
+```
+"""
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -84,9 +113,13 @@ class ProjectMemberSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
 
 
-class ProjectAdminSerializer(ProjectMemberSerializer):
+class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=200)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
@@ -129,6 +162,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    recapServerUrl = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+    recapServerToken = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         max_delay = (
@@ -157,7 +192,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         return value
 
-    def validate_slug(self, slug):
+    def validate_slug(self, slug: str) -> str:
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
@@ -170,6 +205,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 "Another project (%s) is already using that slug" % other.name
             )
+        slug = super().validate_slug(slug)
         return slug
 
     def validate_relayPiiConfig(self, value):
@@ -322,6 +358,32 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
+    def validate_recapServerUrl(self, value):
+        from sentry import features
+
+        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
+        has_recap_server_enabled = features.has(
+            "organizations:recap-server", self.context["project"].organization
+        )
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server url")
+
+        return value
+
+    def validate_recapServerToken(self, value):
+        from sentry import features
+
+        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
+        has_recap_server_enabled = features.has(
+            "organizations:recap-server", self.context["project"].organization
+        )
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server token")
+
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -333,8 +395,14 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -348,17 +416,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="Retrieve a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            200: DetailedProjectSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProjectExamples.DETAILED_PROJECT,
+    )
+    def get(self, request: Request, project: Project) -> Response:
         """
-        Retrieve a Project
-        ``````````````````
-
         Return details on an individual project.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to retrieve.
-        :auth: required
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
@@ -372,9 +443,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if features.has(
-            "organizations:dynamic-sampling", project.organization
-        ) and sentry_options.get("dynamic-sampling:enabled-biases"):
+        if features.has("organizations:dynamic-sampling", project.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -393,34 +462,68 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
 
+        # filter for enabled plugins o/w the response body is gigantic and difficult to read
+        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
+
         return Response(data)
 
+    @extend_schema(
+        operation_id="Update a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+        ],
+        request=inline_serializer(
+            "UpdateProject",
+            fields={
+                "slug": serializers.RegexField(
+                    DEFAULT_SLUG_PATTERN,
+                    help_text="Uniquely identifies a project and is used for the interface.",
+                    required=False,
+                    max_length=50,
+                    error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+                ),
+                "name": serializers.CharField(
+                    help_text="The name for the project.",
+                    required=False,
+                    max_length=200,
+                ),
+                "platform": serializers.CharField(
+                    help_text="The platform for the project.",
+                    required=False,
+                    allow_null=True,
+                    allow_blank=True,
+                ),
+                "isBookmarked": serializers.BooleanField(
+                    help_text="Enables starring the project within the projects tab.",
+                    required=False,
+                ),
+                "options": serializers.DictField(help_text=_options_description, required=False),
+            },
+        ),
+        responses={
+            200: DetailedProjectSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProjectExamples.DETAILED_PROJECT,
+    )
     def put(self, request: Request, project) -> Response:
         """
-        Update a Project
-        ````````````````
+        Update various attributes and configurable settings for the given project.
 
-        Update various attributes and configurable settings for the given
-        project.  Only supplied values are updated.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to update.
-        :param string name: the new name for the project.
-        :param string slug: the new slug for the project.
-        :param string platform: the new platform for the project.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param int digestsMinDelay:
-        :param int digestsMaxDelay:
-        :auth: required
+        Note that solely having the **`project:read`** scope restricts updatable settings to
+        `isBookmarked` only.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_project_write = request.access and request.access.has_scope("project:write")
+        has_elevated_scopes = request.access and (
+            request.access.has_scope("project:write")
+            or request.access.has_scope("project:admin")
+            or request.access.has_any_project_scope(project, ["project:write", "project:admin"])
+        )
 
-        if has_project_write:
+        if has_elevated_scopes:
             serializer_cls = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
@@ -434,21 +537,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("dynamicSamplingBiases") and not (
             features.has("organizations:dynamic-sampling", project.organization)
-            and sentry_options.get("dynamic-sampling:enabled-biases")
         ):
             return Response(
-                {"detail": ["dynamicSamplingBiases is not a valid field"]},
+                {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
             )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        if not has_project_write:
+        if not has_elevated_scopes:
             # options isn't part of the serializer, but should not be editable by members
             for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
-                        {"detail": ["You do not have permission to perform this action."]},
+                        {"detail": "You do not have permission to perform this action."},
                         status=403,
                     )
 
@@ -479,13 +581,25 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("isBookmarked"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
+        if result.get("recapServerUrl") is not None:
+            if result["recapServerUrl"] == "":
+                project.delete_option(RECAP_SERVER_URL_OPTION)
+            elif project.get_option(RECAP_SERVER_URL_OPTION) != result["recapServerUrl"]:
+                project.update_option(RECAP_SERVER_URL_OPTION, result["recapServerUrl"])
+                poll_project_recap_server.delay(project.id)
+        if result.get("recapServerToken") is not None:
+            if result["recapServerToken"] == "":
+                project.delete_option(RECAP_SERVER_TOKEN_OPTION)
+            elif project.get_option(RECAP_SERVER_TOKEN_OPTION) != result["recapServerToken"]:
+                project.update_option(RECAP_SERVER_TOKEN_OPTION, result["recapServerToken"])
+                poll_project_recap_server.delay(project.id)
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):
@@ -598,12 +712,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
         if "isSubscribed" in result:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                get_option_value_from_boolean(result.get("isSubscribed")),
-                user=request.user,
-                project=project,
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.EMAIL,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=get_option_value_from_boolean(result.get("isSubscribed")),
+                actor=RpcActor(id=request.user.id, actor_type=ActorType.USER),
+                project_id=project.id,
             )
 
         if "dynamicSamplingBiases" in result:
@@ -612,31 +726,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
-        if "performanceIssueCreationRate" in result:
-            if project.update_option(
-                "sentry:performance_issue_creation_rate", result["performanceIssueCreationRate"]
-            ):
-                changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
-                    "performanceIssueCreationRate"
-                ]
-        if "performanceIssueSendToPlatform" in result:
-            if project.update_option(
-                "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueSendToPlatform"],
-            ):
-                changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueSendToPlatform"
-                ]
-        if "performanceIssueCreationThroughPlatform" in result:
-            if project.update_option(
-                "sentry:performance_issue_create_issue_through_platform",
-                result["performanceIssueCreationThroughPlatform"],
-            ):
-                changed_proj_settings[
-                    "sentry:performance_issue_create_issue_through_platform"
-                ] = result["performanceIssueCreationThroughPlatform"]
         # TODO(dcramer): rewrite options to use standard API config
-        if has_project_write:
+        if has_elevated_scopes:
             options = request.data.get("options", {})
             if "sentry:origins" in options:
                 project.update_option(
@@ -715,7 +806,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
-                    bool(options["filters:react-hydration-errors"]),
+                    "1" if bool(options["filters:react-hydration-errors"]) else "0",
+                )
+            if "filters:chunk-load-error" in options:
+                project.update_option(
+                    "filters:chunk-load-error",
+                    "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
@@ -729,9 +825,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
@@ -742,12 +836,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         ),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
-                    return Response({"detail": ["Copy project settings failed."]}, status=409)
+                    return Response({"detail": "Copy project settings failed."}, status=409)
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(
@@ -769,32 +861,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not (
-            features.has("organizations:dynamic-sampling", project.organization)
-            and sentry_options.get("dynamic-sampling:enabled-biases")
-        ):
+        if not (features.has("organizations:dynamic-sampling", project.organization)):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually
 
         return Response(data)
 
+    @extend_schema(
+        operation_id="Delete a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @sudo_required
     def delete(self, request: Request, project) -> Response:
         """
-        Delete a Project
-        ````````````````
-
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefore is not immediate.
-        However once deletion has begun the state of a project changes and
-        will be hidden from most public views.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
-        :auth: required
+        Deletion happens asynchronously and therefore is not immediate. However once deletion has
+        begun the state of a project changes and will be hidden from most public views.
         """
         if project.is_internal_project():
             return Response(
@@ -802,23 +892,35 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        updated = Project.objects.filter(id=project.id, status=ProjectStatus.VISIBLE).update(
-            status=ProjectStatus.PENDING_DELETION
+        updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
+            status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_REMOVE"),
-                transaction_id=scheduled.id,
-                data={
-                    **project.get_audit_log_data(),
-                    "origin": request.data.get("origin") or "unknown",
-                },
-            )
+            common_audit_data = {
+                "request": request,
+                "organization": project.organization,
+                "target_object": project.id,
+                "transaction_id": scheduled.id,
+            }
+
+            if request.data.get("origin"):
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
+                    data={
+                        **project.get_audit_log_data(),
+                        "origin": request.data.get("origin"),
+                    },
+                )
+            else:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE"),
+                    data={**project.get_audit_log_data()},
+                )
+
             project.rename_on_pending_deletion()
 
         return Response(status=204)

@@ -10,7 +10,10 @@ from rest_framework.response import Response
 from sentry import eventstream
 from sentry.api.base import audit_logger
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group, GroupHash, GroupInbox, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
@@ -39,7 +42,7 @@ def delete_group_list(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-    eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
+    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
 
     # We do not want to delete split hashes as they are necessary for keeping groups... split.

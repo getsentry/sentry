@@ -1,13 +1,12 @@
 import abc
 
-from django.db import transaction
-from django.http import Http404, HttpResponseRedirect
+from django.db import router, transaction
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.web.decorators import signed_auth_required
 from sentry.web.frontend.base import BaseView
 
@@ -17,26 +16,26 @@ signed_auth_required_m = method_decorator(signed_auth_required)
 class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     auth_required = False
 
-    @never_cache
+    @method_decorator(never_cache)
     @signed_auth_required_m
-    @transaction.atomic
-    def handle(self, request: Request, **kwargs) -> Response:
-        if not getattr(request, "user_from_signed_request", False):
-            raise Http404
+    def handle(self, request: Request, **kwargs) -> HttpResponse:
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
+            if not getattr(request, "user_from_signed_request", False):
+                raise Http404
 
-        instance = self.fetch_instance(**kwargs)
+            instance = self.fetch_instance(**kwargs)
 
-        if not OrganizationMember.objects.filter(
-            user_id=request.user.id, organization=instance.organization
-        ).exists():
-            raise Http404
+            if not OrganizationMember.objects.filter(
+                user_id=request.user.id, organization=instance.organization
+            ).exists():
+                raise Http404
 
-        instance_link = self.build_link(instance)
+            instance_link = self.build_link(instance)
 
-        if request.method == "POST":
-            if request.POST.get("op") == "unsubscribe":
-                self.unsubscribe(instance, request.user)
-            return HttpResponseRedirect(instance_link)
+            if request.method == "POST":
+                if request.POST.get("op") == "unsubscribe":
+                    self.unsubscribe(instance, request.user)
+                return HttpResponseRedirect(instance_link)
 
         return self.respond(
             "sentry/unsubscribe-notifications.html",

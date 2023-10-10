@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, List
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
 
@@ -21,7 +24,7 @@ class CommitAuthorManager(BaseManager):
 
 @region_silo_only_model
 class CommitAuthor(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128, null=True)
@@ -37,11 +40,20 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    def find_users(self) -> List["RpcUser"]:
-        from sentry.models import OrganizationMember
-        from sentry.services.hybrid_cloud.user import user_service
+    users: List[RpcUser] | None = None
 
-        users = user_service.get_many_by_email(emails=[self.email])
+    def preload_users(self) -> List[RpcUser]:
+        self.users = None
+        self.users = self.find_users()
+        return self.users
+
+    def find_users(self) -> List[RpcUser]:
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        if self.users is not None:
+            return self.users
+        users = user_service.get_many_by_email(emails=[self.email], is_verified=True)
         org_member_user_ids = set(
             OrganizationMember.objects.filter(
                 organization_id=self.organization_id, user_id__in={u.id for u in users}

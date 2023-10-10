@@ -4,9 +4,11 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -50,7 +52,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export type Fidelity = 'high' | 'medium' | 'low';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -61,6 +63,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
       return '4h';
     }
     if (fidelity === 'medium') {
+      return '1d';
+    }
+    if (fidelity === 'metrics') {
       return '1d';
     }
     return '2d';
@@ -74,6 +79,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '4h';
     }
+    if (fidelity === 'metrics') {
+      return '12h';
+    }
     return '1d';
   }
 
@@ -84,27 +92,52 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '1h';
     }
+    if (fidelity === 'metrics') {
+      return '4h';
+    }
     return '12h';
   }
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
-    // Greater than 24 hours
+    // Between 24 hours and 14 days
     if (fidelity === 'high') {
       return '30m';
     }
     if (fidelity === 'medium') {
       return '1h';
     }
+    if (fidelity === 'metrics') {
+      return '30m';
+    }
     return '6h';
   }
 
+  if (diffInMinutes > SIX_HOURS) {
+    // Between six hours and 24 hours
+    if (fidelity === 'high') {
+      return '5m';
+    }
+
+    if (fidelity === 'medium') {
+      return '15m';
+    }
+
+    if (fidelity === 'metrics') {
+      return '5m';
+    }
+    return '1h';
+  }
+
   if (diffInMinutes > ONE_HOUR) {
-    // Between 1 hour and 24 hours
+    // Between 1 hour and 6 hours
     if (fidelity === 'high') {
       return '5m';
     }
     if (fidelity === 'medium') {
       return '15m';
+    }
+    if (fidelity === 'metrics') {
+      return '1m';
     }
     return '1h';
   }
@@ -115,6 +148,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   }
   if (fidelity === 'medium') {
     return '5m';
+  }
+  if (fidelity === 'metrics') {
+    return '1m';
   }
   return '10m';
 }
@@ -286,10 +322,9 @@ export const getPreviousSeriesName = (seriesName: string) => {
 };
 
 function formatList(items: Array<string | number | undefined>) {
-  const filteredItems = items.filter(item => !!item);
-  return [[...filteredItems].slice(0, -1).join(', '), [...filteredItems].slice(-1)]
-    .filter(type => !!type)
-    .join(' and ');
+  const filteredItems = items.filter((item): item is string | number => !!item);
+
+  return oxfordizeArray(filteredItems.map(item => item.toString()));
 }
 
 export function useEchartsAriaLabels(
@@ -364,9 +399,8 @@ export function useEchartsAriaLabels(
           ? +highestValue[1].toFixed(3)
           : lowestValue[1];
 
-      return `The ${s.name} series contains ${
-        s.data?.length
-      } data points. Its lowest value is ${lowestY} ${
+      return `The ${s.name} series contains ${s.data
+        ?.length} data points. Its lowest value is ${lowestY} ${
         isGroupedByDate ? 'on' : 'at'
       } ${lowestX} and highest value is ${highestY} ${
         isGroupedByDate ? 'on' : 'at'
@@ -378,4 +412,8 @@ export function useEchartsAriaLabels(
     enabled: true,
     label: {description: [title, ...seriesDescriptions].join('. ')},
   };
+}
+
+export function isEmptySeries(series: Series) {
+  return series.data.every(dataPoint => dataPoint.value === 0);
 }

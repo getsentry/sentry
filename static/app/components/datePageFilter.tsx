@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Datetime from 'sentry/components/dateTime';
+import {DatePageFilter as NewDatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
@@ -28,7 +29,12 @@ type Props = Omit<
   resetParamsOnChange?: string[];
 };
 
-function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+function OldDatePageFilter({
+  resetParamsOnChange,
+  disabled,
+  storageNamespace,
+  ...props
+}: Props) {
   const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
@@ -41,7 +47,11 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
       ...startEndUtc,
     };
 
-    updateDateTime(newTimePeriod, router, {save: true, resetParams: resetParamsOnChange});
+    updateDateTime(newTimePeriod, router, {
+      save: true,
+      resetParams: resetParamsOnChange,
+      storageNamespace,
+    });
   };
 
   const customDropdownButton = ({getActorProps, isOpen}) => {
@@ -106,5 +116,15 @@ const TitleContainer = styled('div')`
   text-align: left;
   ${p => p.theme.overflowEllipsis}
 `;
+
+function DatePageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewDatePageFilter {...props} />;
+  }
+
+  return <OldDatePageFilter {...props} />;
+}
 
 export default DatePageFilter;

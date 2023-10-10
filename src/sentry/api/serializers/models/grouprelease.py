@@ -1,11 +1,15 @@
 from collections import namedtuple
 from datetime import timedelta
+from typing import Dict, List
 
 from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import GroupRelease, Project, Release
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.tsdb.base import TSDBModel
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
@@ -53,7 +57,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items = {}
+        items: Dict[str, List[str]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
@@ -63,8 +67,8 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             since = self.since or until - (segments * interval)
 
             try:
-                stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_releases_by_group,
+                stats = tsdb.backend.get_frequency_series(
+                    model=TSDBModel.frequent_releases_by_group,
                     items=items,
                     start=since,
                     end=until,

@@ -1,13 +1,13 @@
 from typing import Dict, List, Tuple, TypedDict
 
-from django.db import transaction
+from django.db import router, transaction
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
-from sentry.models.integrations.pagerduty_service import PagerDutyService
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
@@ -24,6 +24,7 @@ INTEGRATION_SERVICES = {
     ActionService.PAGERDUTY.value,
     ActionService.SLACK.value,
     ActionService.MSTEAMS.value,
+    ActionService.OPSGENIE.value,
 }
 
 
@@ -38,21 +39,57 @@ class NotificationActionInputData(TypedDict):
     target_display: str
 
 
+@extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
-    integration_id = serializers.IntegerField(required=False)
-    sentry_app_id = serializers.IntegerField(required=False)
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    integration_id = serializers.IntegerField(
+        help_text="""ID of the integration used as the notification service. For example, this would
+            be the Slack Integration ID if the action has Slack notify organization members.
+            This field is required if **service_type** is `slack`, `pagerduty` or `opsgenie`.""",
+        required=False,
+    )
 
-    service_type = serializers.CharField()
-    target_type = serializers.CharField()
-    trigger_type = serializers.CharField()
+    # Optional and not needed for spike protection so not documenting
+    # TODO: Include in documentation when any notification action works with sentry_app_id
+    sentry_app_id = serializers.IntegerField(
+        required=False,
+    )
+    projects = serializers.ListField(
+        help_text="""List of projects slugs that Notificaton Action is created for""",
+        child=ProjectField(scope="project:read"),
+        required=False,
+    )
 
-    target_identifier = serializers.CharField(required=False)
-    target_display = serializers.CharField(required=False)
+    service_type = serializers.CharField(
+        help_text="Service that is used for sending the notification\n"
+        + """- `email`\n"""
+        + """- `slack`\n"""
+        + """- `sentry_notification`\n"""
+        + """- `pagerduty`\n"""
+        + """- `opsgenie`\n"""
+    )
+
+    # TODO: Include in documentation when any notification action works with anything other than "specific"
+    target_type = serializers.CharField(
+        required=False,
+        default="specific",
+    )
+
+    trigger_type = serializers.CharField(
+        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`"""
+    )
+
+    target_identifier = serializers.CharField(
+        help_text="""ID of the notification target. For example, Slack channel ID. This is required when **service_type** is `slack` or `pagerduty`. """,
+        required=False,
+    )
+    target_display = serializers.CharField(
+        help_text="""Name of the notification target. For example, Slack channel name. This is required when **service_type** is `slack` or `pagerduty`""",
+        required=False,
+    )
 
     def validate_integration_id(self, integration_id: int) -> int:
         organization_integration = integration_service.get_organization_integration(
@@ -205,6 +242,44 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         data["target_identifier"] = channel_id
         return data
 
+    def validate_discord_channel(
+        self, data: NotificationActionInputData
+    ) -> NotificationActionInputData:
+        """
+        Validates that SPECIFIC targets for DISCORD service have the following target data:
+            target_display: Discord channel id
+            target_identifier: Discord channel id
+        NOTE: Reaches out to via discord integration to verify channel
+        """
+        from sentry.integrations.discord.utils.channel import validate_channel_id
+
+        if (
+            data["service_type"] != ActionService.DISCORD.value
+            or data["target_type"] != ActionTarget.SPECIFIC.value
+        ):
+            return data
+
+        channel_name = data.get("target_display")
+        channel_id = data.get("target_identifier")
+
+        if not channel_id and channel_name:
+            raise serializers.ValidationError(
+                {"target_identifier": "Did not receive a discord channel id."}
+            )
+
+        try:
+            validate_channel_id(
+                channel_id=channel_id,
+                guild_id=self.integration.external_id,
+                integration_id=self.integration.id,
+                guild_name=self.integration.name,
+            )
+        except Exception as e:
+            raise serializers.ValidationError({"target_identifier": str(e)})
+
+        data["target_identifier"] = channel_id
+        return data
+
     def validate_pagerduty_service(
         self, data: NotificationActionInputData
     ) -> NotificationActionInputData:
@@ -220,14 +295,16 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             return data
 
         service_id = data.get("target_identifier")
+        ois = integration_service.get_organization_integrations(
+            organization_id=self.context["organization"].id,
+            integration_id=self.integration.id,
+        )
 
         if not service_id:
             pd_service_options = [
                 f"{pds['id']} ({pds['service_name']})"
-                for pds in PagerDutyService.objects.filter(
-                    organization_id=self.context["organization"].id,
-                    integration_id=self.integration.id,
-                ).values("id", "service_name")
+                for oi in ois
+                for pds in oi.config.get("pagerduty_services", [])
             ]
 
             raise serializers.ValidationError(
@@ -236,18 +313,21 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 }
             )
 
-        pds = PagerDutyService.objects.filter(
-            organization_id=self.context["organization"].id,
-            integration_id=self.integration.id,
-        ).first()
-        if not pds or str(pds.id) != service_id:
+        try:
+            pds = next(
+                pds
+                for oi in ois
+                for pds in oi.config.get("pagerduty_services", [])
+                if service_id == str(pds["id"])
+            )
+        except StopIteration:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."
                 }
             )
-        data["target_display"] = pds.service_name
-        data["target_identifier"] = pds.id
+        data["target_display"] = pds["service_name"]
+        data["target_identifier"] = pds["id"]
         return data
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:
@@ -257,6 +337,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
 
         data = self.validate_slack_channel(data)
         data = self.validate_pagerduty_service(data)
+        data = self.validate_discord_channel(data)
 
         return data
 
@@ -272,7 +353,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             organization_id=self.context["organization"].id,
             **validated_data,
         )
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationAction)):
             action.save()
             action.projects.set(projects)
         return action
@@ -285,7 +366,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         for key, value in validated_data.items():
             setattr(instance, key, value)
         instance.type = service_type
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationAction)):
             instance.save()
             instance.projects.set(projects)
         return instance

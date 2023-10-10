@@ -4,10 +4,11 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from math import floor
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -44,13 +45,59 @@ from sentry.issues.search import (
     get_search_strategies,
     group_categories_from,
 )
-from sentry.models import Environment, Group, Organization, Project
-from sentry.search.events.fields import DateArg
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.utils import validate_cdc_search_filters
+from sentry.search.utils import SupportedConditions, validate_cdc_search_filters
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+
+class PrioritySortWeights(TypedDict):
+    log_level: int
+    has_stacktrace: int
+    relative_volume: int
+    event_halflife_hours: int
+    issue_halflife_hours: int
+    v2: bool
+    norm: bool
+
+
+DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "has_stacktrace": 0,
+    "relative_volume": 1,
+    "event_halflife_hours": 4,
+    "issue_halflife_hours": 12,
+    "v2": True,
+    "norm": False,
+}
+
+
+@dataclass
+class PriorityParams:
+    # (event or issue age_hours) / (event or issue halflife hours)
+    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
+    max_pow: int
+    min_score: float  # apply a min on the individual scores to avoid multiplying by zeroes
+
+    # event-aggregate scoring
+    event_age_weight: int  # [1, 5]
+    log_level_weight: int  # [0, 10]
+    stacktrace_weight: int  # [0, 3]
+    event_halflife_hours: int  # halves score every x hours
+
+    # issue-aggregate scoring
+    issue_age_weight: int  # [1, 5]
+    issue_halflife_hours: int  # halves score every x hours
+    relative_volume_weight: int  # [0, 10]
+
+    v2: bool
+    normalize: bool
 
 
 def get_search_filter(
@@ -111,8 +158,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dataset(self) -> snuba.Dataset:
-        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+    def dataset(self) -> Dataset:
+        """This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
         raise NotImplementedError
 
     @property
@@ -143,6 +190,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -192,6 +240,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        replace_priority_aggregation: Optional[bool] = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -202,10 +252,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
+            if replace_priority_aggregation and alias == "priority":
+                aggregation = self.aggregation_defs["priority_issue_platform"]
             if callable(aggregation):
-                # TODO: If we want to expand this pattern we should probably figure out
-                # more generic things to pass here.
-                aggregation = aggregation(start, end)
+                if aggregate_kwargs:
+                    aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
+                else:
+                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -226,6 +279,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -251,7 +305,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        aggregations = self._prepare_aggregations(sort_field, start, end, having)
+        if sort_field == "priority" and group_category is not GroupCategory.ERROR.value:
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs, True
+            )
+        else:
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs
+            )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -276,7 +337,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies(organization, actor)[group_category]
+        strategy = get_search_strategies()[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -309,6 +370,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         search_filters: Optional[Sequence[SearchFilter]] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -358,7 +420,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies(organization, actor).keys()
+                for gc in get_search_strategies().keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
@@ -366,36 +428,55 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = []
+        query_params_for_categories = {}
 
         for gc in group_categories:
             try:
-                query_params_for_categories.append(
-                    self._prepare_params_for_category(
-                        gc,
-                        query_partial,
-                        organization,
-                        project_ids,
-                        environments,
-                        group_ids,
-                        filters,
-                        snuba_search_filters,
-                        sort_field,
-                        start,
-                        end,
-                        cursor,
-                        get_sample,
-                        actor,
-                    )
+                query_params_for_categories[gc] = self._prepare_params_for_category(
+                    gc,
+                    query_partial,
+                    organization,
+                    project_ids,
+                    environments,
+                    group_ids,
+                    filters,
+                    snuba_search_filters,
+                    sort_field,
+                    start,
+                    end,
+                    cursor,
+                    get_sample,
+                    actor,
+                    aggregate_kwargs,
                 )
             except UnsupportedSearchQuery:
                 pass
+        query_params_for_categories = {
+            gc: query_params
+            for gc, query_params in query_params_for_categories.items()
+            if query_params is not None
+        }
 
-        query_params_for_categories = [
-            query_params for query_params in query_params_for_categories if query_params is not None
-        ]
-
-        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
+        try:
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
+            )
+        except Exception as e:
+            metrics.incr(
+                "snuba.search.group_category_bulk",
+                tags={
+                    GroupCategory(gc_val).name.lower(): True
+                    for gc_val, _ in query_params_for_categories.items()
+                },
+            )
+            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+            # we'll fallback to querying for errors only
+            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                bulk_query_results = bulk_raw_query(
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                )
+            else:
+                raise e
 
         rows: list[MergeableRow] = []
         total = 0
@@ -422,16 +503,185 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
-    middle = datetime.strftime(middle_date, DateArg.date_format)
+def priority_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: PrioritySortWeights,
+) -> Sequence[str]:
+    return priority_aggregation_impl(
+        PriorityParams(
+            max_pow=16,
+            min_score=0.01,
+            event_age_weight=1,
+            log_level_weight=aggregate_kwargs["log_level"],
+            stacktrace_weight=aggregate_kwargs["has_stacktrace"],
+            event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
+            issue_age_weight=1,
+            issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
+            relative_volume_weight=aggregate_kwargs["relative_volume"],
+            v2=aggregate_kwargs["v2"],
+            normalize=aggregate_kwargs["norm"],
+        ),
+        "timestamp",
+        True,
+        start,
+        end,
+    )
 
-    agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
-    agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
-    return [
-        f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
-        "",
-    ]
+
+def priority_issue_platform_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: PrioritySortWeights,
+) -> Sequence[str]:
+    return priority_aggregation_impl(
+        PriorityParams(
+            max_pow=16,
+            min_score=0.01,
+            event_age_weight=1,
+            log_level_weight=aggregate_kwargs["log_level"],
+            stacktrace_weight=0,  # issue-platform occurrences won't have stacktrace
+            event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
+            issue_age_weight=1,
+            issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
+            relative_volume_weight=aggregate_kwargs["relative_volume"],
+            v2=aggregate_kwargs["v2"],
+            normalize=aggregate_kwargs["norm"],
+        ),
+        "client_timestamp",
+        False,
+        start,
+        end,
+    )
+
+
+def priority_aggregation_impl(
+    params: PriorityParams,
+    timestamp_column: str,
+    use_stacktrace: bool,
+    start: datetime,
+    end: datetime,
+) -> Sequence[str]:
+    min_score = params.min_score
+    max_pow = params.max_pow
+    event_age_weight = params.event_age_weight
+    event_halflife_hours = params.event_halflife_hours
+    log_level_weight = params.log_level_weight
+    stacktrace_weight = params.stacktrace_weight
+    relative_volume_weight = params.relative_volume_weight
+    issue_age_weight = params.issue_age_weight
+    issue_halflife_hours = params.issue_halflife_hours
+
+    event_age_hours = f"divide(now() - {timestamp_column}, 3600)"
+    issue_age_hours = f"divide(now() - min({timestamp_column}), 3600)"
+    log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
+    stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
+    # event_agg_rank:
+    #   ls = log_level_score    {1.0, 0.66, 0.33, 0}
+    #   lw = log_level_weight   [0, 10]
+    #   ss = stacktrace_score   {1.0, 0.0}
+    #   sw = stacktrace_weight  [0, 3]
+    #   as = event_age_score    [1, 0]
+    #   aw = event_age_weight   [1, 5]
+    #
+    #        (ls * lw) + (ss * sw) + (as * aw)     min(f(x)  = 0, when individual scores are all 0
+    # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
+    #                  lw + sw + aw
+    #
+    if use_stacktrace:
+        event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    else:
+        event_agg_numerator = (
+            f"plus(multiply({log_level_score}, {log_level_weight}), {event_age_weight})"
+        )
+
+    event_agg_denominator = (
+        f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
+    )
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"  # values from [0, 1]
+
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+
+    if not params.v2:
+        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+        return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
+    else:
+        #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
+        #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
+        #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
+        #    that are more recently active as a function of the overall amount of events grouped to that issue
+        #  * add a configurable weight to 'relative volume score'
+        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0
+
+        # aggregate_event_score:
+        #
+        # ------------------------------------------------------------------------------
+        # part 1 (summation over all events in group)
+        #   x = event_age_hours
+        #   k = event_halflife_hours (fixed to a constant)
+        #      1
+        # Σ ------- = Σ ([1, 0), [1, 0), [1, 0), ...) ~= [0, +inf] = g(x)
+        #   2^(x/k)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2a (offset by 1 to remove possibility of ln(0))
+        # g(x) + 1 = [1, +inf] = h(x)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2b (apply ln to clamp exponential growth and apply a 'fixed' maximum)
+        #                            x = 1, e,    10,  1000, 1000000, 1000000000, ...
+        # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
+        aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
+
+        date_period = end - start
+
+        if date_period.days >= 7:
+            overall_event_count_seconds = 3600 * 24 * 7
+            recent_event_count_seconds = 3600
+        else:
+            overall_event_count_seconds = int(date_period.total_seconds())
+            recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
+
+        recent_event_count = (
+            f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {recent_event_count_seconds}))"
+        )
+        overall_event_count = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {overall_event_count_seconds}))"
+
+        max_relative_volume_weight = 10
+        if relative_volume_weight > max_relative_volume_weight:
+            relative_volume_weight = max_relative_volume_weight
+        relative_volume_score = f"divide({recent_event_count}, plus({overall_event_count}, 1))"
+        scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
+
+        if not params.normalize:
+            return [
+                f"multiply(multiply({aggregate_issue_score}, greatest({min_score}, {aggregate_event_score})), greatest({min_score}, {scaled_relative_volume_score}))",
+                "",
+            ]
+        else:
+            # aggregate_issue_score:
+            #   x = issue_age_hours
+            #   k = issue_halflife_hours (fixed to a constant)
+            #                          k = 4
+            # lim           1          x = 0,     1,     10,  100000000
+            # x -> inf   -------    f(x) = 1, ~0.84,  ~0.16,  ~0
+            #            2^(x/k)
+            normalized_aggregate_issue_score = aggregate_issue_score  # already ranges from 1 to 0
+            normalized_relative_volume_score = (
+                scaled_relative_volume_score  # already normalized since it's a percentage
+            )
+
+            # aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue
+            # increases. we apply an upper bound of 21 to the log of the summation of the event scores
+            # and then divide by 21 so the normalized score sweeps from [0, 1]
+            # In practice, itll take a degenerate issue with an absurd amount of events for the
+            # aggregate_event_score to reach to upper limit of ~21 (and normalized score of 1)
+            normalized_aggregate_event_score = f"divide(least({aggregate_event_score}, 21), 21)"
+
+            return [
+                f"plus(plus({normalized_aggregate_issue_score}, {normalized_aggregate_event_score}), {normalized_relative_volume_score})",
+                "",
+            ]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -447,7 +697,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "priority": "priority",
         "user": "user_count",
-        "trend": "trend",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
@@ -457,17 +706,16 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "times_seen": ["count()", ""],
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
+        "priority": priority_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "trend": trend_aggregation,
+        "priority_issue_platform": priority_issue_platform_aggregation,
     }
 
     @property
-    def dataset(self) -> snuba.Dataset:
-        return snuba.Dataset.Events
+    def dataset(self) -> Dataset:
+        return Dataset.Events
 
     def query(
         self,
@@ -486,6 +734,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -541,6 +790,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
         if (
+            # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
+            # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
             and cursor is None
             and sort_by == "date"
@@ -574,14 +825,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
-            metrics.incr("snuba.search.postgres_only")
-            # When it's a simple django-only search, we count_hits like normal
 
-            # TODO: Add types to paginators and remove this
-            return cast(
-                CursorResult[Group],
-                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+            # When it's a simple django-only search, we count_hits like normal
+            results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+            metrics.timing(
+                "snuba.search.query",
+                (timezone.now() - now).total_seconds(),
+                tags={"postgres_only": True},
             )
+            return results
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
@@ -678,6 +930,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 search_filters=search_filters,
                 referrer=referrer,
                 actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
@@ -753,6 +1006,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
+        metrics.timing(
+            "snuba.search.query",
+            (timezone.now() - now).total_seconds(),
+            tags={"postgres_only": False},
+        )
         return paginator_results
 
     def calculate_hits(
@@ -968,6 +1226,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):
@@ -1075,5 +1334,207 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         groups = group_queryset.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
+        # TODO: Add types to paginators and remove this
+        return cast(CursorResult[Group], paginator_results)
+
+
+class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    entities = {
+        "event": Entity("events", alias="e"),
+        "attrs": Entity("group_attributes", alias="g"),
+    }
+
+    supported_conditions = [
+        SupportedConditions("status", frozenset(["IN"])),
+    ]
+    supported_conditions_lookup = {
+        condition.field_name: condition for condition in supported_conditions
+    }
+
+    last_seen_aggregation = Function(
+        "ifNull",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
+        ],
+    )
+
+    def calculate_start_end(
+        self,
+        retention_window_start: Optional[datetime],
+        search_filters: Optional[Sequence[SearchFilter]],
+        date_from: Optional[datetime],
+        date_to: Optional[datetime],
+    ) -> Tuple[datetime, datetime, datetime]:
+        now = timezone.now()
+        end = None
+        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            end = min(end_params)
+
+        if not end:
+            end = now + ALLOWED_FUTURE_DELTA
+
+        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
+        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
+        start = max(_f for _f in start_params if _f)
+        end = max([retention_date, end])
+        return start, end, retention_date
+
+    def validate_search_filters(self, search_filters: Optional[Sequence[SearchFilter]]) -> bool:
+        """
+        Validates whether a set of search filters can be handled by this search backend.
+        """
+        for search_filter in search_filters or ():
+            supported_condition = self.supported_conditions_lookup.get(search_filter.key.name)
+            if not supported_condition:
+                return False
+            if (
+                supported_condition.operators
+                and search_filter.operator not in supported_condition.operators
+            ):
+                return False
+        return True
+
+    def query(
+        self,
+        projects: Sequence[Project],
+        retention_window_start: Optional[datetime],
+        group_queryset: BaseQuerySet,
+        environments: Optional[Sequence[Environment]],
+        sort_by: str,
+        limit: int,
+        cursor: Optional[Cursor],
+        count_hits: bool,
+        paginator_options: Optional[Mapping[str, Any]],
+        search_filters: Optional[Sequence[SearchFilter]],
+        date_from: Optional[datetime],
+        date_to: Optional[datetime],
+        max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    ) -> CursorResult[Group]:
+        if not self.validate_search_filters(search_filters):
+            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
+
+        start, end, retention_date = self.calculate_start_end(
+            retention_window_start, search_filters, date_from, date_to
+        )
+
+        if start == retention_date and end == retention_date:
+            # Both `start` and `end` must have been trimmed to `retention_date`,
+            # so this entire search was against a time range that is outside of
+            # retention. We'll return empty results to maintain backwards compatibility
+            # with Django search (for now).
+            return self.empty_result
+
+        if start >= end:
+            # TODO: This maintains backwards compatibility with Django search, but
+            # in the future we should find a way to notify the user that their search
+            # is invalid.
+            return self.empty_result
+
+        event_entity = self.entities["event"]
+        attr_entity = self.entities["attrs"]
+
+        where_conditions = [
+            Condition(Column("project_id", event_entity), Op.IN, [p.id for p in projects]),
+            Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
+            Condition(Column("timestamp", event_entity), Op.GTE, start),
+            Condition(Column("timestamp", event_entity), Op.LT, end),
+        ]
+        # TODO: This is still basically only handling status, handle this better once we introduce
+        # more conditions.
+        for search_filter in search_filters or ():
+            where_conditions.append(
+                Condition(
+                    Column(f"group_{search_filter.key.name}", attr_entity),
+                    Op.IN,
+                    search_filter.value.raw_value,
+                )
+            )
+
+        if environments:
+            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
+            where_conditions.append(
+                Condition(
+                    Column("environment", event_entity), Op.IN, [e.name for e in environments]
+                )
+            )
+
+        sort_func = self.last_seen_aggregation
+
+        having = []
+        if cursor is not None:
+            op = Op.GTE if cursor.is_prev else Op.LTE
+            having.append(Condition(sort_func, op, cursor.value))
+
+        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+
+        query = Query(
+            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
+            select=[
+                Column("group_id", attr_entity),
+                replace(sort_func, alias="score"),
+            ],
+            where=where_conditions,
+            groupby=[Column("group_id", attr_entity)],
+            having=having,
+            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
+            limit=Limit(limit + 1),
+        )
+        request = Request(
+            dataset="events",
+            app_id="group_attributes",
+            query=query,
+            tenant_ids=tenant_ids,
+        )
+        data = snuba.raw_snql_query(request, referrer="search.snuba.group_attributes_search.query")[
+            "data"
+        ]
+
+        hits_query = Query(
+            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
+            select=[
+                Function("uniq", [Column("group_id", attr_entity)], alias="count"),
+            ],
+            where=where_conditions,
+        )
+        hits = None
+        if count_hits:
+            request = Request(
+                dataset="events", app_id="group_attributes", query=hits_query, tenant_ids=tenant_ids
+            )
+            hits = snuba.raw_snql_query(
+                request, referrer="search.snuba.group_attributes_search.hits"
+            )["data"][0]["count"]
+
+        paginator_options = paginator_options or {}
+        paginator_results = SequencePaginator(
+            [(row["score"], row["g.group_id"]) for row in data],
+            reverse=True,
+            **paginator_options,
+        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+
+        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
+        # Since replay between Postgres and Clickhouse can happen, we might get back results that
+        # have changed state in Postgres. By rechecking them we guarantee than any returned results
+        # have the correct state.
+        # TODO: This can result in us returning less than a full page of results, but shouldn't
+        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
+        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # probably not be noticeable to the user, so holding off for now to reduce complexity.
+
+        groups = group_queryset.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)

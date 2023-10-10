@@ -4,14 +4,20 @@ from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
 import sentry_sdk
-from arroyo.codecs.json import JsonCodec
 from arroyo.types import Message
 from django.conf import settings
 
-from sentry import options
-from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import (
+    IndexerStorage,
+    MetricsIngestConfiguration,
+    UseCaseKey,
+)
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.tags_validator import (
+    GenericMetricsTagsValidator,
+    ReleaseHealthTagsValidator,
+)
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
@@ -25,8 +31,8 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-_INGEST_SCHEMA: JsonCodec[Any] = JsonCodec(
-    schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"]
+_INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+    "ingest-metrics"
 )
 
 
@@ -48,6 +54,15 @@ class MessageProcessor:
         # mypy: "cannot access init directly"
         # yes I can, watch me.
         self.__init__(config)  # type: ignore
+
+    def __get_tags_validator(self) -> Callable[[Mapping[str, str]], bool]:
+        """
+        Get the tags validator function for the current use case.
+        """
+        if self._config.use_case_id == UseCaseKey.RELEASE_HEALTH:
+            return ReleaseHealthTagsValidator().is_allowed
+        else:
+            return GenericMetricsTagsValidator().is_allowed
 
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
         with sentry_sdk.start_transaction(
@@ -78,18 +93,15 @@ class MessageProcessor:
         The value of the message is what we need to parse and then translate
         using the indexer.
         """
-        should_index_tag_values = (
-            options.get(self._config.index_tag_values_option_name)
-            if self._config.index_tag_values_option_name
-            else True
-        )
+        should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
 
         batch = IndexerBatch(
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
-            arroyo_input_codec=_INGEST_SCHEMA,
+            input_codec=_INGEST_CODEC,
+            tags_validator=self.__get_tags_validator(),
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))
@@ -108,14 +120,11 @@ class MessageProcessor:
         batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
         extracted_strings = batch.extract_strings()
-        org_strings = next(iter(extracted_strings.values())) if extracted_strings else {}
 
-        sdk.set_measurement("org_strings.len", len(org_strings))
+        sdk.set_measurement("org_strings.len", len(extracted_strings))
 
         with metrics.timer("metrics_consumer.bulk_record"), sentry_sdk.start_span(op="bulk_record"):
-            record_result = self._indexer.bulk_record(
-                use_case_id=self._config.use_case_id, org_strings=org_strings
-            )
+            record_result = self._indexer.bulk_record(extracted_strings)
 
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()

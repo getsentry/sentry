@@ -10,7 +10,9 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.models import Project, ProjectRedirect, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models.project import Project
+from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 from .organization import OrganizationPermission
@@ -50,9 +52,9 @@ class StrictProjectPermission(ProjectPermission):
 
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
-        "PUT": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
+        "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
     }
 
@@ -77,7 +79,7 @@ class ProjectSettingPermission(ProjectPermission):
 
 class ProjectAlertRulePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "alerts:read"],
+        "GET": ["project:read", "project:write", "project:admin", "alerts:read", "alerts:write"],
         "POST": ["project:write", "project:admin", "alerts:write"],
         "PUT": ["project:write", "project:admin", "alerts:write"],
         "DELETE": ["project:write", "project:admin", "alerts:write"],
@@ -137,7 +139,7 @@ class ProjectEndpoint(Endpoint):
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)

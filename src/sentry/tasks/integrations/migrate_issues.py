@@ -1,14 +1,12 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
-from sentry.models import (
-    ExternalIssue,
-    GroupLink,
-    GroupMeta,
-    Integration,
-    OrganizationIntegration,
-    Project,
-)
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
 from sentry.plugins.base import plugins
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 
@@ -23,7 +21,12 @@ from sentry.tasks.integrations import logger
 def migrate_issues(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.jira.plugin import JiraPlugin
 
-    integration = Integration.objects.get(id=integration_id)
+    integration, organization_integration = integration_service.get_organization_context(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if not integration:
+        raise Integration.DoesNotExist
+
     for project in Project.objects.filter(organization_id=organization_id):
         plugin = None
         for p in plugins.for_project(project):
@@ -49,7 +52,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                 key=plugin_issue.value,
             )
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(GroupLink)):
                     GroupLink.objects.create(
                         group_id=plugin_issue.group_id,
                         project_id=project.id,
@@ -74,9 +77,6 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
 
             plugin_ignored_fields = plugin.get_option("ignored_fields", project)
             if plugin_ignored_fields:
-                organization_integration = OrganizationIntegration.objects.get(
-                    integration_id=integration_id
-                )
                 config = organization_integration.config
                 integration_ignored_fields = organization_integration.config.get(
                     "issues_ignored_fields"
@@ -92,7 +92,9 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                 else:
                     update_data = list(formatted_plugin_ignored_fields)
                 config.update({"issues_ignored_fields": update_data})
-                organization_integration.update(config=config)
+                integration_service.update_organization_integration(
+                    org_integration_id=organization_integration.id, config=config
+                )
                 logger.info(
                     "plugin_ignored_fields.migrated",
                     extra={

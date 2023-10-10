@@ -41,7 +41,7 @@ const ZoomPropKeys = [
   'onFinished',
 ] as const;
 
-export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
+export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -49,7 +49,7 @@ export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
   start?: Date;
   toolBox?: ToolboxComponentOption;
   utc?: boolean;
-};
+}
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
@@ -63,6 +63,7 @@ type Props = {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
@@ -126,7 +127,7 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory = false) => {
-    const {router, onZoom, usePageDate} = this.props;
+    const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -172,7 +173,8 @@ class ChartZoom extends Component<Props> {
               : startFormatted,
             end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
           },
-          router
+          router,
+          {save: saveOnZoom}
         );
       }
 

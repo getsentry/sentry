@@ -12,9 +12,9 @@ import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -57,6 +57,7 @@ import {addRoutePerformanceContext} from '../performance/utils';
 import {DEFAULT_EVENT_VIEW} from './data';
 import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
+import {SampleDataAlert} from './sampleDataAlert';
 import Table from './table';
 import Tags from './tags';
 import {generateTitle} from './utils';
@@ -537,7 +538,7 @@ export class Results extends Component<Props, State> {
             'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#beforenavigate" />
               ),
             }
           )}
@@ -620,6 +621,7 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
+                {!query.includes('event.type:error') && <SampleDataAlert />}
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -706,17 +708,17 @@ const TipContainer = styled('span')`
   }
 `;
 
-type SavedQueryState = AsyncComponent['state'] & {
+type SavedQueryState = DeprecatedAsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
 };
 
-class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
     if (location.query.id) {
       endpoints.push([
         'savedQuery',
@@ -758,6 +760,10 @@ function ResultsContainer(props: Props) {
 
   return (
     <PageFiltersContainer
+      disablePersistence={
+        props.organization.features.includes('discover-query') &&
+        !!(props.savedQuery || props.location.query.id)
+      }
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }

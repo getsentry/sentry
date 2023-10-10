@@ -4,7 +4,7 @@ from sentry.runner.decorators import configuration
 
 
 def _get_field(field_name):
-    from sentry.models import User
+    from sentry.models.user import User
 
     return User._meta.get_field(field_name)
 
@@ -40,7 +40,7 @@ def _set_superadmin(user):
     superadmin role approximates superuser (model attribute) but leveraging
     Sentry's role system.
     """
-    from sentry.models import UserRole, UserRoleUser
+    from sentry.models.userrole import UserRole, UserRoleUser
 
     role = UserRole.objects.get(name="Super Admin")
     UserRoleUser.objects.create(user=user, role=role)
@@ -113,7 +113,7 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
         raise click.ClickException("No password set and --no-password not passed.")
 
     from sentry import roles
-    from sentry.models import User
+    from sentry.models.user import User
 
     # Loop through the email list provided.
     for email in emails:
@@ -145,12 +145,10 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
 
             # TODO(dcramer): kill this when we improve flows
             if settings.SENTRY_SINGLE_ORGANIZATION:
-                from sentry.models import (
-                    Organization,
-                    OrganizationMember,
-                    OrganizationMemberTeam,
-                    Team,
-                )
+                from sentry.models.organization import Organization
+                from sentry.models.organizationmember import OrganizationMember
+                from sentry.models.organizationmemberteam import OrganizationMemberTeam
+                from sentry.models.team import Team
 
                 # Get the org if specified, otherwise use the default.
                 if org_id:
@@ -162,7 +160,9 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
                     role = roles.get_top_dog().id
                 else:
                     role = org.default_role
-                member = OrganizationMember.objects.create(organization=org, user=user, role=role)
+                member = OrganizationMember.objects.create(
+                    organization=org, user_id=user.id, role=role
+                )
 
                 # if we've only got a single team let's go ahead and give
                 # access to that team as its likely the desired outcome

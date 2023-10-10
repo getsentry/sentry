@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, Mapping, Sequence
+from datetime import timezone
+from typing import Any, Collection, Dict, Mapping, Sequence
 
+from django.http import HttpResponse
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.api.utils import generate_organization_url
@@ -23,19 +24,23 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models import Integration, Organization, OrganizationIntegration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils import jwt
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
-from .utils import get_jwt
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -109,7 +114,16 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
-        return GitHubAppsClient(integration=self.model)
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
+
+        return False
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -166,17 +180,30 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         return self.get_client().search_issues(query)
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
+
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
-        existing_repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="github"
+        existing_repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["github"]
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
@@ -203,7 +230,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
         return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
@@ -237,10 +264,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
                 ),
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
-                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
             )
             if not commit:
@@ -252,16 +278,20 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
+                timezone.utc
+            )
+
             return {
                 "commitId": commitInfo.get("oid"),
-                "committedDate": commitInfo.get("committedDate"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("author", {}).get("name"),
                 "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
             }
 
 
-class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
+class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
@@ -278,43 +308,46 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_client(self) -> GitHubClientMixin:
+        # XXX: This is very awkward behaviour as we're not passing the client an Integration
+        # object it expects. Instead we're passing the Installation object and hoping the client
+        # doesn't try to invoke any bad fields/attributes on it.
         return GitHubAppsClient(integration=self.integration_cls)
 
     def post_install(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["github", "integrations:github"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["github", "integrations:github"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }
             )
+
+        link_all_repos.apply_async(
+            kwargs={
+                "integration_key": self.key,
+                "integration_id": integration.id,
+                "organization_id": organization.id,
+            }
+        )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(get_jwt()))
-
-        resp: Mapping[str, Any] = client.get(
-            f"/app/installations/{installation_id}", headers=headers
-        )
+        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
@@ -360,7 +393,7 @@ class GitHubInstallationRedirect(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 

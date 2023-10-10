@@ -50,7 +50,7 @@ function TeamStatsControls({
   showEnvironment,
 }: Props) {
   const {projects} = useProjects({
-    slugs: currentTeam?.projects.map(project => project.slug) ?? [],
+    slugs: currentTeam?.projects?.map(project => project.slug) ?? [],
   });
   const organization = useOrganization();
   const isSuperuser = isActiveSuperuser();

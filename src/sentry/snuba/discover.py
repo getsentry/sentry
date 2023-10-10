@@ -4,7 +4,7 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -13,7 +13,8 @@ from snuba_sdk.function import Function
 from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.models import Group
+from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
@@ -22,17 +23,16 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import (
     FIELD_ALIASES,
-    InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
 )
-from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
     SnubaTSResult,
     bulk_snql_query,
     get_array_column_alias,
@@ -61,7 +61,7 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
-PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
+PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -93,6 +93,35 @@ def is_real_column(col):
         return False
 
     return True
+
+
+def format_time(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in range(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv.extend(data_by_time[key])
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
 
 
 def zerofill(data, start, end, rollup, orderby):
@@ -156,6 +185,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -199,17 +229,19 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -224,15 +256,16 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[Sequence[str]] = None,
+    functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -266,8 +299,10 @@ def timeseries_query(
             query=query,
             selected_columns=columns,
             equations=equations,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+            ),
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -425,8 +460,10 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
@@ -520,7 +557,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -532,11 +570,13 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
+    fetch_projects = len(params.get("project_id", [])) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(
@@ -545,7 +585,11 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            # Remove one from the cursor because if we fetch_projects then
+            # a result is popped off and replaced with projects, offsetting
+            # the pagination on subsequent pages
+            offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -563,14 +607,13 @@ def get_facets(
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
-    fetch_projects = False
-    if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
-            top_tags.pop()
-        fetch_projects = True
+    if fetch_projects and len(top_tags) == per_page and cursor == 0:
+        top_tags.pop()
 
-    results = []
-    if fetch_projects:
+    top_tag_results = []
+    project_results = []
+    # Inject project data on the first page if multiple projects are selected
+    if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
@@ -583,7 +626,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             project_values = project_value_builder.run_query(referrer=referrer)
-            results.extend(
+            project_results.extend(
                 [
                     FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
                     for r in project_values["data"]
@@ -599,7 +642,7 @@ def get_facets(
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
+        elif i >= len(top_tags) - per_page:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
@@ -622,7 +665,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             tag_values = tag_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
                     for r in tag_values["data"]
@@ -639,12 +682,14 @@ def get_facets(
                 selected_columns=["count()", "tags_key", "tags_value"],
                 orderby=["tags_key", "-count()"],
                 limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
+                # Increase the limit to ensure we get results for each tag
+                limit=len(aggregate_tags) * TOP_VALUES_DEFAULT_LIMIT,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
                 sample_rate=sample_rate,
             )
             aggregate_values = aggregate_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                     for r in aggregate_values["data"]
@@ -653,7 +698,13 @@ def get_facets(
 
     # Need to cast tuple values to str since the value might be None
     # Reverse sort the count so the highest values show up first
-    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
+    top_tag_results = sorted(
+        top_tag_results, key=lambda result: (str(result.key), -result.count, str(result.value))
+    )
+
+    # Ensure projects are at the beginning of the results so they are not
+    # truncated by the paginator
+    return [*project_results, *top_tag_results]
 
 
 def spans_histogram_query(
@@ -672,6 +723,7 @@ def spans_histogram_query(
     extra_condition=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -759,6 +811,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1333,3 +1386,39 @@ def check_multihistogram_fields(fields):
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
+
+
+def corr_snuba_timeseries(
+    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+):
+    """
+    Returns the Pearson's coefficient of two snuba timeseries.
+    """
+    if len(x) != len(y):
+        return
+
+    n = len(x)
+    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
+    for i in range(n):
+        x_datum = x[i]
+        y_datum = y[i]
+
+        x_ = x_datum[1][0]["count"]
+        y_ = y_datum[1][0]["count"]
+
+        sum_x += x_
+        sum_y += y_
+        sum_xy += x_ * y_
+        sum_x_squared += x_ * x_
+        sum_y_squared += y_ * y_
+
+    denominator = math.sqrt(
+        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
+    )
+    if denominator == 0:
+        return
+
+    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+
+    return pearsons_corr_coeff

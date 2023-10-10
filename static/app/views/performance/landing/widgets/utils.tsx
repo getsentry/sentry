@@ -7,9 +7,13 @@ import {
   MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
+
+export const QUERY_LIMIT_PARAM = 4;
+
+export const TOTAL_EXPANDABLE_ROWS_HEIGHT = 37 * QUERY_LIMIT_PARAM;
 
 export const eventsRequestQueryProps = [
   'children',
@@ -81,7 +85,7 @@ export function getMEPParamsIfApplicable(
 const getContainerLocalStorageObjectKey = 'landing-chart-container';
 const getContainerKey = (
   index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   height: number
 ) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
@@ -95,7 +99,7 @@ function getWidgetStorageObject() {
 export const getChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
@@ -118,7 +122,7 @@ export const getChartSetting = (
 export const _setChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   setting: PerformanceWidgetSetting
 ) => {
   const key = getContainerKey(index, performanceType, height);
@@ -143,7 +147,7 @@ export function filterAllowedChartsMetrics(
   if (
     !canUseMetricsData(organization) ||
     organization.features.includes('performance-mep-reintroduce-histograms') ||
-    mepSetting.metricSettingState === MEPState.transactionsOnly
+    mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
   ) {
     return allowedCharts;
   }

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def async_send_notification(
-    NotificationClass: BaseNotification, *args: Iterable[Any], **kwargs: Iterable[Any]
+    NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:
     """
     This function takes a notification class and arguments to instantiate
@@ -62,7 +62,7 @@ def async_send_notification(
 @instrumented_task(
     name="src.sentry.notifications.utils.async_send_notification",
     queue="email",
-)  # type: ignore
+)
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
     NotificationClass = get(notification_class_name)
     output_args = []

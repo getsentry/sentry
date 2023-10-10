@@ -11,11 +11,12 @@ from sentry.digests.utils import (
     sort_records,
 )
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectOwnership
-from sentry.models.actor import Actor
+from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -61,6 +62,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         digest = build_digest(
             project, sort_records([event_to_record(event, (rule,)) for event in events])
         )[0]
+        assert digest is not None
 
         events.pop(0)  # remove event with same group
         assert {e.event_id for e in get_event_from_groups_in_digest(digest)} == {
@@ -80,13 +82,12 @@ def assert_get_personalized_digests(
         digest, project, target_type, target_identifier
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
-    for actor_id, user_digest in personalized_digests.items():
-        actor = Actor.objects.get(id=actor_id)
-        assert actor.user_id in expected_result
+    for actor, user_digest in personalized_digests.items():
+        assert actor.actor_type == ActorType.USER and actor.id in expected_result
         assert {e.event_id for e in get_event_from_groups_in_digest(user_digest)} == {
-            e.event_id for e in expected_result[actor.user_id]
+            e.event_id for e in expected_result[actor.id]
         }
-        result_user_ids.append(actor.user_id)
+        result_user_ids.append(actor.id)
 
     assert sorted(expected_result.keys()) == sorted(result_user_ids)
 
@@ -185,6 +186,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
         digest = build_digest(self.project, sort_records(records))[0]
+        assert digest is not None
 
         expected_result = {
             self.user1.id: set(self.team1_events),
@@ -202,6 +204,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
+        assert digest is not None
 
         expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
@@ -224,6 +227,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             )
         ]
         digest = build_digest(project, sort_records(records))[0]
+        assert digest is not None
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
         participants_by_provider_by_event = get_participants_by_event(digest, project)
@@ -238,6 +242,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events]
         digest = build_digest(self.project, sort_records(records))[0]
+        assert digest is not None
         expected_result = {
             self.user1.id: set(events),
             self.user2.id: set(events),
@@ -254,6 +259,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
+        assert digest is not None
         expected_result = {
             self.user1.id: set(events + self.team1_events),
             self.user2.id: set(events),

@@ -220,13 +220,13 @@ class VitalCard extends Component<Props, State> {
               .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
                 showTransactions:
                   dataFilter === 'all'
-                    ? EventsDisplayFilterName.p100
-                    : EventsDisplayFilterName.p75,
+                    ? EventsDisplayFilterName.P100
+                    : EventsDisplayFilterName.P75,
                 webVital: column as WebVital,
               })}
             onClick={this.trackOpenAllEventsClicked}
           >
-            {t('View All Events')}
+            {t('View Sampled Events')}
           </Button>
         </div>
       </CardSummary>
@@ -294,7 +294,7 @@ class VitalCard extends Component<Props, State> {
       max,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: formatAbbreviatedNumber,
+        formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };
 

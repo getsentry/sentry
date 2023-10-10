@@ -4,8 +4,8 @@ from typing import Any, Mapping
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.models import Team, User
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.services.hybrid_cloud.actor import RpcActor
 
 from .base import SlackNotificationsMessageBuilder
 
@@ -15,7 +15,7 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self,
         notification: ProjectNotification,
         context: Mapping[str, Any],
-        recipient: Team | User,
+        recipient: RpcActor,
     ) -> None:
         super().__init__(notification, context, recipient)
         self.notification: ProjectNotification = notification

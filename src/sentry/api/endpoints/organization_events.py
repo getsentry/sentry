@@ -2,22 +2,23 @@ import logging
 from typing import Mapping
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
-from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -41,17 +42,34 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
     Referrer.API_PROFILING_LANDING_TABLE.value,
+    Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_TOTALS.value,
     Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE.value,
+    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS.value,
+    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_LATEST.value,
+    Referrer.API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST.value,
+    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_LIST.value,
+    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_TOTALS.value,
+    Referrer.API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS.value,
     Referrer.API_REPLAY_DETAILS_PAGE.value,
     Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
     Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
     Referrer.API_TRACE_VIEW_HOVER_CARD.value,
     Referrer.API_ISSUES_ISSUE_EVENTS.value,
-}
-
-ALLOWED_EVENTS_GEO_REFERRERS = {
-    Referrer.API_ORGANIZATION_EVENTS_GEO.value,
-    Referrer.API_DASHBOARDS_WORLDMAPWIDGET.value,
+    Referrer.API_STARFISH_ENDPOINT_LIST.value,
+    Referrer.API_STARFISH_GET_SPAN_ACTIONS.value,
+    Referrer.API_STARFISH_GET_SPAN_DOMAINS.value,
+    Referrer.API_STARFISH_GET_SPAN_OPERATIONS.value,
+    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS.value,
+    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN.value,
+    Referrer.API_STARFISH_SPAN_LIST.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_P95.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PANEL.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_TRANSACTIONS.value,
+    Referrer.API_STARFISH_SPAN_TRANSACTION_METRICS.value,
+    Referrer.API_STARFISH_TOTAL_TIME.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -105,7 +123,9 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     enforce_rate_limit = True
 
@@ -120,6 +140,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:profiling",
             "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -144,59 +167,25 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
-            GLOBAL_PARAMS.END,
-            GLOBAL_PARAMS.ENVIRONMENT,
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT,
-            GLOBAL_PARAMS.START,
-            GLOBAL_PARAMS.STATS_PERIOD,
-            VISIBILITY_PARAMS.FIELD,
-            VISIBILITY_PARAMS.PER_PAGE,
-            VISIBILITY_PARAMS.QUERY,
-            VISIBILITY_PARAMS.SORT,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.FIELD,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsResponseDict", discover.EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOTFOUND,
+            404: api_constants.RESPONSE_NOT_FOUND,
         },
-        examples=[
-            OpenApiExample(
-                "Success",
-                value={
-                    "data": [
-                        {
-                            "count_if(transaction.duration,greater,300)": 5,
-                            "count()": 10,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 50,
-                            "transaction": "foo",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 3,
-                            "count()": 20,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 15,
-                            "transaction": "bar",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 8,
-                            "count()": 40,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 20,
-                            "transaction": "baz",
-                        },
-                    ],
-                    "meta": {
-                        "fields": {
-                            "count_if(transaction.duration,greater,300)": "integer",
-                            "count()": "integer",
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
-                            "transaction": "string",
-                        },
-                    },
-                },
-            )
-        ],
+        examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
     def get(self, request: Request, organization) -> Response:
         """
@@ -249,14 +238,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        use_profiles = batch_features.get("organizations:profiling", False)
+        on_demand_metrics_enabled = batch_features.get(
+            "organizations:on-demand-metrics-extraction", False
+        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
 
-        use_occurrences = options.get("performance.issues.create_issues_through_platform", False)
-
-        use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
-
-        use_custom_dataset = use_metrics or use_profiles or use_occurrences
-        dataset = self.get_dataset(request) if use_custom_dataset else discover
+        dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -285,7 +271,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
-                use_metrics_layer=use_metrics_layer,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
 
         with self.handle_query_errors():
@@ -298,6 +285,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
+                        dataset=dataset,
                     )
                 )
             else:
@@ -310,63 +298,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         params["project_id"],
                         results,
                         standard_meta=True,
+                        dataset=dataset,
                     ),
                 )
-
-
-@region_silo_endpoint
-class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request: Request, organization):
-        return features.has("organizations:dashboards-basic", organization, actor=request.user)
-
-    def get(self, request: Request, organization) -> Response:
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response([])
-
-        maybe_aggregate = request.GET.get("field")
-
-        if not maybe_aggregate:
-            raise ParseError(detail="No column selected")
-
-        if not is_function(maybe_aggregate):
-            raise ParseError(detail="Functions may only be given")
-
-        referrer = request.GET.get("referrer")
-        referrer = (
-            referrer
-            if referrer in ALLOWED_EVENTS_GEO_REFERRERS
-            else Referrer.API_ORGANIZATION_EVENTS_GEO.value
-        )
-
-        def data_fn(offset, limit):
-            return discover.query(
-                selected_columns=["geo.country_code", maybe_aggregate],
-                query=f"{request.GET.get('query', '')} has:geo.country_code",
-                params=params,
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                use_aggregate_conditions=True,
-                orderby=self.get_orderby(request) or maybe_aggregate,
-            )
-
-        with self.handle_query_errors():
-            # We don't need pagination, so we don't include the cursor headers
-            return Response(
-                self.handle_results_with_meta(
-                    request,
-                    organization,
-                    params["project_id"],
-                    # Expect Discover query output to be at most 251 rows, which corresponds
-                    # to the number of possible two-letter country codes as defined in ISO 3166-1 alpha-2.
-                    #
-                    # There are 250 country codes from sentry/static/app/data/countryCodesMap.tsx
-                    # plus events with no assigned country code.
-                    data_fn(0, self.get_per_page(request, default_per_page=251, max_per_page=251)),
-                )
-            )

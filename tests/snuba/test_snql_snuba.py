@@ -13,7 +13,7 @@ from snuba_sdk.expressions import Limit
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 

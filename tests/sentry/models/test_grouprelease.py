@@ -2,8 +2,10 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Environment, GroupRelease, Release
-from sentry.testutils import TestCase
+from sentry.models.environment import Environment
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

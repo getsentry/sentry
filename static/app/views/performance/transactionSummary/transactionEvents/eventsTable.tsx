@@ -72,6 +72,7 @@ type Props = {
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
+  isEventLoading?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -205,15 +206,27 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'profile.id') {
       const target = generateProfileLink()(organization, dataRow, undefined);
+      const transactionMeetsProfilingRequirements =
+        typeof dataRow['transaction.duration'] === 'number' &&
+        dataRow['transaction.duration'] > 20;
+
       return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
+        <Tooltip
+          title={
+            !transactionMeetsProfilingRequirements && !dataRow['profile.id']
+              ? t('Profiles require a transaction duration of at least 20ms')
+              : null
+          }
         >
-          {target ? <Link to={target}>{rendered}</Link> : rendered}
-        </CellAction>
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(column)}
+            allowActions={allowActions}
+          >
+            {target ? <Link to={target}>{rendered}</Link> : rendered}
+          </CellAction>
+        </Tooltip>
       );
     }
 
@@ -340,7 +353,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer} = this.props;
+    const {eventView, organization, location, setError, referrer, isEventLoading} =
+      this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
@@ -484,7 +498,8 @@ class EventsTable extends Component<Props, State> {
                           isLoading={
                             isTotalEventsLoading ||
                             isDiscoverQueryLoading ||
-                            shouldFetchAttachments
+                            shouldFetchAttachments ||
+                            isEventLoading
                           }
                           data={tableData?.data ?? []}
                           columnOrder={columnOrder}

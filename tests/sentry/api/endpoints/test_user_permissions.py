@@ -1,5 +1,5 @@
-from sentry.models import UserPermission
-from sentry.testutils import APITestCase
+from sentry.models.userpermission import UserPermission
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -13,7 +13,7 @@ class UserPermissionsTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionsGetTest(UserPermissionsTest):
     def test_lookup_self(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")

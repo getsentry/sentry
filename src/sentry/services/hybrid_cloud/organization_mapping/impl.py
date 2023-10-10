@@ -1,78 +1,58 @@
-from typing import Optional, cast
+from typing import Any, Dict, List, Optional
 
-from django.db import transaction
+from django.db import router
 
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
-    def create(
-        self,
-        *,
-        organization_id: int,
-        slug: str,
-        name: str,
-        region_name: str,
-        idempotency_key: Optional[str] = "",
-        # There's only a customer_id when updating an org slug
-        customer_id: Optional[str] = None,
-        user: Optional[int] = None,
-    ) -> RpcOrganizationMapping:
-
-        if idempotency_key:
-            org_mapping, _created = OrganizationMapping.objects.update_or_create(
-                slug=slug,
-                idempotency_key=idempotency_key,
-                region_name=region_name,
-                defaults={
-                    "customer_id": customer_id,
-                    "organization_id": organization_id,
-                    "name": name,
-                },
-            )
-        else:
-            org_mapping = OrganizationMapping.objects.create(
-                organization_id=organization_id,
-                slug=slug,
-                name=name,
-                idempotency_key=idempotency_key,
-                region_name=region_name,
-                customer_id=customer_id,
-            )
-
-        return self.serialize_organization_mapping(org_mapping)
-
-    def serialize_organization_mapping(
-        self, org_mapping: OrganizationMapping
-    ) -> RpcOrganizationMapping:
-        return cast(
-            RpcOrganizationMapping, RpcOrganizationMapping.serialize_by_field_name(org_mapping)
-        )
-
-    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        with transaction.atomic():
-            (
-                OrganizationMapping.objects.filter(organization_id=organization_id)
-                .select_for_update()
-                .update(**update)
-            )
-
-    def verify_mappings(self, organization_id: int, slug: str) -> None:
+    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
         try:
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id, slug=slug)
+            org_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         except OrganizationMapping.DoesNotExist:
-            return
+            return None
+        return serialize_organization_mapping(org_mapping)
 
-        mapping.update(verified=True, idempotency_key="")
+    def get_many(self, *, organization_ids: List[int]) -> List[RpcOrganizationMapping]:
+        org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+        return [serialize_organization_mapping(om) for om in org_mappings]
 
-        OrganizationMapping.objects.filter(
-            organization_id=organization_id, date_created__lte=mapping.date_created
-        ).exclude(slug=slug).delete()
+    def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+        update_dict: Dict[str, Any] = dict(
+            name=update.name,
+            status=update.status,
+            slug=update.slug,
+            region_name=update.region_name,
+            require_2fa=update.requires_2fa,
+        )
+        if update.customer_id is not None:
+            update_dict["customer_id"] = update.customer_id[0]
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            OrganizationMapping.objects.update_or_create(
+                organization_id=organization_id, defaults=update_dict
+            )
+
+            org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+                organization_id=organization_id
+            )
+            if not org_slug_reservation_qs.exists():
+                OrganizationSlugReservation(
+                    region_name=update.region_name,
+                    slug=update.slug,
+                    organization_id=organization_id,
+                    user_id=-1,
+                ).save(unsafe_write=True)
+            elif org_slug_reservation_qs.first().slug != update.slug:
+                org_slug_reservation_qs.first().update(slug=update.slug, unsafe_write=True)
 
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()

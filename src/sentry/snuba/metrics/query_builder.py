@@ -4,15 +4,17 @@ __all__ = (
     "SnubaResultConverter",
     "get_date_range",
     "parse_field",
-    "parse_query",
+    "parse_conditions",
     "resolve_tags",
     "translate_meta_results",
+    "QUERY_PROJECT_LIMIT",
 )
 
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -32,10 +34,10 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.types import WhereType
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.search.events.types import QueryBuilderConfig, WhereType
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -57,6 +59,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     get_operation_with_public_name,
     parse_expression,
 )
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHEMA_REGEX
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
@@ -66,7 +69,7 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
-from sentry.snuba.metrics.query import MetricsQuery, Tag
+from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
@@ -83,15 +86,60 @@ from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
 
+QUERY_PROJECT_LIMIT = 10
 
-def parse_field(field: str) -> MetricField:
-    matches = PUBLIC_EXPRESSION_REGEX.match(field)
+
+def _strip_project_id(condition: Condition) -> Optional[Condition]:
+    if isinstance(condition, BooleanCondition):
+        new_boolean_condition = BooleanCondition()
+        for nested_condition in condition.conditions:
+            stripped_condition = _strip_project_id(nested_condition)
+            # Only if we have a condition object we append, since if its None it means that we directly had a
+            # project.id.
+            if stripped_condition is not None:
+                new_boolean_condition.conditions.append(stripped_condition)
+
+        return new_boolean_condition if new_boolean_condition.conditions else None
+    elif isinstance(condition, Condition):
+        if isinstance(condition.lhs, Column):
+            if condition.lhs.name == "project_id":
+                return None
+
+            return condition
+
+    return None
+
+
+def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
+    if allow_mri:
+        mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
+        if mri_matches:
+            return parse_mri_field(field, allow_private)
+
+    return parse_public_field(field)
+
+
+def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
+    matches = MRI_EXPRESSION_REGEX.match(field)
+
     try:
-        if matches is None:
-            raise TypeError
+        operation = matches[1]
+        mri = matches[2]
+    except (IndexError, TypeError):
+        operation = None
+        mri = field
+
+    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
+
+
+def parse_public_field(field: str) -> MetricField:
+
+    matches = PUBLIC_EXPRESSION_REGEX.match(field)
+
+    try:
         operation = matches[1]
         metric_name = matches[2]
-    except (IndexError, TypeError):
+    except (TypeError, IndexError):
         operation = None
         metric_name = field
     return MetricField(operation, get_mri(metric_name))
@@ -122,13 +170,14 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
     org_id: int,
     input_: Any,
+    projects: Sequence[Project],
     is_tag_value: bool = False,
     allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
@@ -144,6 +193,7 @@ def resolve_tags(
                 use_case_id,
                 org_id,
                 item,
+                projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
             )
@@ -162,6 +212,7 @@ def resolve_tags(
                 use_case_id,
                 org_id,
                 input_.parameters[0],
+                projects,
                 allowed_tag_keys=allowed_tag_keys,
             )
         elif input_.function == "isNull":
@@ -172,12 +223,14 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
+                        projects,
                         allowed_tag_keys=allowed_tag_keys,
                     ),
                     resolve_tags(
                         use_case_id,
                         org_id,
                         "",
+                        projects,
                         is_tag_value=True,
                         allowed_tag_keys=allowed_tag_keys,
                     ),
@@ -199,6 +252,7 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
+                        projects,
                         allowed_tag_keys=new_allowed_tag_keys,
                     ),
                     input_.parameters[1],  # We directly pass the regex.
@@ -209,7 +263,9 @@ def resolve_tags(
                 function=input_.function,
                 parameters=input_.parameters
                 and [
-                    resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                    resolve_tags(
+                        use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys
+                    )
                     for item in input_.parameters
                 ],
             )
@@ -224,20 +280,21 @@ def resolve_tags(
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
         return resolve_tags(
-            use_case_id, org_id, input_.conditions[1], allowed_tag_keys=allowed_tag_keys
+            use_case_id, org_id, input_.conditions[1], projects, allowed_tag_keys=allowed_tag_keys
         )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=Op.EQ,
                 rhs=resolve_tags(
                     use_case_id,
                     org_id,
                     "",
+                    projects,
                     is_tag_value=True,
                     allowed_tag_keys=allowed_tag_keys,
                 ),
@@ -264,21 +321,25 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            rhs_ids = get_project_ids(org_id, projects, rhs_slugs)
+
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=op,
                 rhs=rhs_ids,
             )
         return Condition(
-            lhs=resolve_tags(use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys),
+            lhs=resolve_tags(
+                use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
+            ),
             op=input_.op,
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
                 input_.rhs,
+                projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
             ),
@@ -287,7 +348,7 @@ def resolve_tags(
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
             conditions=[
-                resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
             ]
         )
@@ -331,6 +392,32 @@ def resolve_tags(
     raise InvalidParams("Unable to resolve conditions")
 
 
+def get_project_ids(
+    org_id: int, projects: Sequence[Project], rhs_slugs: Sequence[str]
+) -> Sequence[str]:
+    projects_in_where_clause = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
+
+    if len(projects_in_where_clause) >= QUERY_PROJECT_LIMIT:
+        sentry_sdk.capture_message("Too many projects in query where clause", level="warning")
+
+    passed_project_slugs = [p.slug for p in projects]
+    invalid_project_slugs = []
+
+    for project in projects_in_where_clause:
+        if project.slug not in passed_project_slugs:
+            invalid_project_slugs.append(project.slug)
+
+    if len(invalid_project_slugs) > 0:
+        raise InvalidParams(
+            f"Invalid project slugs: '{', '.join(invalid_project_slugs)}' in query. Project "
+            f"slugs must be one of '{', '.join(passed_project_slugs)}' defined in the top-level filters"
+        )
+
+    rhs_ids = [p.id for p in projects_in_where_clause]
+
+    return rhs_ids
+
+
 def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]]) -> bool:
     # If we have a None allow list it means we don't have any restriction on tag keys at all.
     if allowed_tag_keys is None:
@@ -339,23 +426,28 @@ def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]])
     return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
-def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
-    """Parse given filter query into a list of snuba conditions"""
+def parse_conditions(
+    query_string: str, projects: Sequence[Project], environments: Sequence[str]
+) -> Sequence[Condition]:
+    """Parse given filter query and query params into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
     try:
         query_builder = ReleaseHealthQueryBuilder(
             Dataset.Sessions,
             params={
+                "environment": environments,
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
+            config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
-        where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+        where, _ = query_builder.resolve_conditions(query_string)
+        param_conditions = list(filter(_strip_project_id, query_builder.resolve_params()))
     except InvalidSearchQuery as e:
-        raise InvalidParams(f"Failed to parse query: {e}")
+        raise InvalidParams(f"Failed to parse conditions: {e}")
 
-    return where
+    return where + param_conditions
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
@@ -373,10 +465,9 @@ class ReleaseHealthQueryBuilder(UnresolvedQuery):
     def resolve_conditions(
         self,
         query: Optional[str],
-        use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if not self._contains_wildcard_in_query(query):
-            return super().resolve_conditions(query, use_aggregate_conditions)
+            return super().resolve_conditions(query)
 
         raise InvalidSearchQuery("Release Health Queries don't support wildcards")
 
@@ -391,20 +482,35 @@ class QueryDefinition:
 
     """
 
-    def __init__(self, projects, query_params, paginator_kwargs: Optional[Dict] = None):
+    def __init__(
+        self,
+        projects,
+        query_params,
+        allow_mri: bool = False,
+        paginator_kwargs: Optional[Dict] = None,
+    ):
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query, projects) if self.query else None
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
-        self.fields = [parse_field(key) for key in query_params.getlist("field", [])]
-        self.orderby = self._parse_orderby(query_params)
+        self.fields = [
+            parse_field(
+                key,
+                allow_mri=allow_mri,
+                allow_private=query_params.get("allowPrivate") == "true",
+            )
+            for key in query_params.getlist("field", [])
+        ]
+        self.orderby = self._parse_orderby(query_params, allow_mri)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
+        self.where = parse_conditions(
+            self.query, projects, environments=query_params.getlist("environment")
+        )
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -422,7 +528,7 @@ class QueryDefinition:
             select=self.fields,
             start=self.start,
             end=self.end,
-            where=self.parsed_query,
+            where=self.where,
             having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
@@ -432,7 +538,7 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params):
+    def _parse_orderby(query_params, allow_mri: bool = False):
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -444,7 +550,7 @@ class QueryDefinition:
                 orderby = orderby[1:]
                 direction = Direction.DESC
 
-            field = parse_field(orderby)
+            field = parse_field(orderby, allow_mri=allow_mri)
             orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
@@ -452,13 +558,13 @@ class QueryDefinition:
     @staticmethod
     def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
-            return
+            return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
     def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
-            return
+            return None
         return Offset(paginator_kwargs["offset"])
 
 
@@ -489,7 +595,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
+def parse_tag(use_case_id: UseCaseID, org_id: int, tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
     return reverse_resolve(use_case_id, org_id, tag_key)
 
@@ -652,7 +758,7 @@ class SnubaQueryBuilder:
         self,
         projects: Sequence[Project],
         metrics_query: MetricsQuery,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -664,7 +770,7 @@ class SnubaQueryBuilder:
     @staticmethod
     def generate_snql_for_action_by_fields(
         metric_action_by_field: MetricActionByField,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
@@ -681,8 +787,7 @@ class SnubaQueryBuilder:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
-            # This transformation is currently supported only for group by because OrderBy doesn't support the Function
-            # type.
+            # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
                     use_case_id, org_id, metric_action_by_field.alias
@@ -698,7 +803,7 @@ class SnubaQueryBuilder:
                 # The support for tags in the order by is disabled for now because there is no need to have it. If the
                 # need arise, we will implement it.
                 if is_group_by:
-                    assert isinstance(metric_action_by_field.field, Tag)
+                    assert isinstance(metric_action_by_field.field, str)
                     column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
                 else:
                     raise NotImplementedError(
@@ -804,7 +909,7 @@ class SnubaQueryBuilder:
         if metric_condition_filters:
             where.extend(metric_condition_filters)
 
-        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions)
+        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
 
@@ -845,6 +950,37 @@ class SnubaQueryBuilder:
 
         return orderby_fields
 
+    def _build_having(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        This function makes a lot of assumptions about what the HAVING clause allows, mostly
+        because HAVING is not a fully supported function of metrics.
+
+        It is assumed that the having clause is a list of simple conditions, where the LHS is an aggregated
+        metric e.g. p50(duration) and the RHS is a literal value being compared too.
+        """
+        resolved_having = []
+        if not self._metrics_query.having:
+            return []
+
+        for condition in self._metrics_query.having:
+            lhs_expression = condition.lhs
+            if isinstance(lhs_expression, Function):
+                metric = lhs_expression.parameters[0]
+                assert isinstance(metric, Column)
+                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
+
+                resolved_lhs = metrics_field_obj.generate_select_statements(
+                    projects=self._projects,
+                    use_case_id=self._use_case_id,
+                    alias=lhs_expression.alias,
+                    params=None,
+                )
+                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+            else:
+                resolved_having.append(condition)
+
+        return resolved_having
+
     def __build_totals_and_series_queries(
         self,
         entity,
@@ -877,7 +1013,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
 
-            if self._use_case_id == UseCaseKey.PERFORMANCE:
+            if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
@@ -1000,6 +1136,10 @@ class SnubaQueryBuilder:
                     params = self._alias_to_metric_field[field[2]].params
                 except KeyError:
                     params = None
+
+                # In order to support on demand metrics which require an interval (e.g. epm),
+                # we want to pass the interval down via params so we can pass it to the associated snql_factory
+                params = {"interval": self._metrics_query.interval, **(params or {})}
                 select += metric_field_obj.generate_select_statements(
                     projects=self._projects,
                     use_case_id=self._use_case_id,
@@ -1018,13 +1158,14 @@ class SnubaQueryBuilder:
                 ),
             ]
             orderby = self._build_orderby()
+            having = self._build_having()
 
             # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                having=self._metrics_query.having,
+                having=having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,
@@ -1051,7 +1192,7 @@ class SnubaResultConverter:
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._organization_id = organization_id
         self._intervals = intervals

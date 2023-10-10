@@ -22,7 +22,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
 
-  // @ts-ignore, this is a partial definition
+  // @ts-expect-error, this is a partial definition
   const fixtures: TestStubFixtures = {};
 
   for (const file of files) {
@@ -47,7 +47,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   }
 
   if (opts.flatten) {
-    // @ts-ignore, this is a partial definition
+    // @ts-expect-error, this is a partial definition
     const flattenedFixtures: TestStubFixtures = {};
 
     for (const moduleKey in fixtures) {
@@ -76,46 +76,8 @@ const extensions = ['.js', '.ts', '.tsx', '.json'];
 // Some fixture files also contain more than one fixture so additional mappings are needed.
 // If you have added new fixtures and you are seeing an error being throw, please add the fixture
 const SPECIAL_MAPPING = {
-  AllAuthenticators: 'authenticators.js',
-  OrgRoleList: 'roleList.js',
-  MetricsField: 'metrics.js',
-  EventsStats: 'events.js',
-  DetailedEvents: 'events.js',
-  Events: 'events.js',
-  OutcomesWithReason: 'outcomes.js',
-  SentryAppComponentAsync: 'sentryAppComponent.js',
-  EventStacktraceMessage: 'eventStacktraceException.js',
-  MetricsTotalCountByReleaseIn24h: 'metrics.js',
-  MetricsSessionUserCountByStatusByRelease: 'metrics.js',
-  MOCK_RESP_VERBOSE: 'ruleConditions.js',
-  SessionStatusCountByProjectInPeriod: 'sessions.js',
-  SessionUserCountByStatusByRelease: 'sessions.js',
-  SessionUserCountByStatus: 'sessions.js',
-  SessionStatusCountByReleaseInPeriod: 'sessions.js',
-  SessionsField: 'sessions.js',
-  ProviderList: 'integrationListDirectory.js',
-  BitbucketIntegrationConfig: 'integrationListDirectory.js',
-  GitHubIntegration: 'githubIntegration.js',
-  GitHubRepositoryProvider: 'githubRepositoryProvider.js',
-  GitHubIntegrationProvider: 'githubIntegrationProvider.js',
-  GitHubIntegrationConfig: 'integrationListDirectory.js',
-  OrgOwnedApps: 'integrationListDirectory.js',
-  PublishedApps: 'integrationListDirectory.js',
-  SentryAppInstalls: 'integrationListDirectory.js',
-  PluginListConfig: 'integrationListDirectory.js',
-  DiscoverSavedQuery: 'discover.js',
-  VercelProvider: 'vercelIntegration.js',
-  TagValues: 'tagvalues.js',
-  ReplayRRWebDivHelloWorld: 'replaySegments.ts',
-  ReplayRRWebNode: 'replaySegments.ts',
-  ReplaySegmentBreadcrumb: 'replaySegments.ts',
-  ReplaySegmentConsole: 'replaySegments.ts',
-  ReplaySegmentFullsnapshot: 'replaySegments.ts',
-  ReplaySegmentInit: 'replaySegments.ts',
-  ReplaySegmentNavigation: 'replaySegments.ts',
-  ReplaySegmentSpan: 'replaySegments.ts',
-  ReplaySpanPayload: 'replaySegments.ts',
-  ReplaySpanPayloadNavigate: 'replaySegments.ts',
+  GitHubIntegration: 'githubIntegration',
+  SentryAppComponentAsync: 'sentryAppComponent',
 };
 
 function tryRequire(dir: string, name: string): any {

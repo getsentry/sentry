@@ -3,18 +3,19 @@ from typing import Sequence
 
 from django.db.models import Count, Max
 from rest_framework import serializers
+from rest_framework.serializers import ListField
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Team
+from sentry.models.team import Team
 from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 
 class DiscoverQuerySerializer(serializers.Serializer):

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,10 +17,11 @@ import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -31,16 +32,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
+import {DebugIdBundleList} from 'sentry/views/settings/projectSourceMaps/debugIdBundleList';
+import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-enum SORT_BY {
-  ASC = 'date_added',
-  DESC = '-date_added',
+enum SortBy {
+  ASC_ADDED = 'date_added',
+  DESC_ADDED = '-date_added',
+  ASC_MODIFIED = 'date_modified',
+  DESC_MODIFIED = '-date_modified',
 }
 
 enum SourceMapsBundleType {
-  Release,
-  DebugId,
+  RELEASE,
+  DEBUG_ID,
 }
 
 function SourceMapsTableRow({
@@ -49,6 +53,7 @@ function SourceMapsTableRow({
   name,
   fileCount,
   link,
+  dateModified,
   date,
   idColumnDetails,
 }: {
@@ -58,10 +63,13 @@ function SourceMapsTableRow({
   link: string;
   name: string;
   onDelete: (name: string) => void;
+  dateModified?: string;
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
-    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+    bundleType === SourceMapsBundleType.RELEASE && fileCount === -1;
+  const showDateModified =
+    bundleType === SourceMapsBundleType.DEBUG_ID && dateModified !== undefined;
 
   return (
     <Fragment>
@@ -71,15 +79,23 @@ function SourceMapsTableRow({
       </IDColumn>
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
-          <Tooltip title={t('No bundle connected to this release')}>
-            <IconWrapper>
-              <IconWarning color="warning" size="sm" />
-            </IconWrapper>
-          </Tooltip>
+          <NoArtifactsUploadedWrapper>
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('A Release was created, but no artifacts were uploaded')}
+            />
+            {'0'}
+          </NoArtifactsUploadedWrapper>
         ) : (
           <Count value={fileCount} />
         )}
       </ArtifactsTotalColumn>
+      {showDateModified && (
+        <Column>
+          <DateTime date={dateModified} timeZone />
+        </Column>
+      )}
       <Column>
         {isEmptyReleaseBundle ? t('(no value)') : <DateTime date={date} timeZone />}
       </Column>
@@ -131,11 +147,6 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
 
-  // query params
-  const query = decodeScalar(location.query.query);
-  const sortBy = location.query.sort ?? SORT_BY.DESC;
-  const cursor = location.query.cursor ?? '';
-
   // endpoints
   const sourceMapsEndpoint = `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
   const debugIdBundlesEndpoint = `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`;
@@ -148,7 +159,28 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
+  const sourceMapsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/`
+  );
+
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+
+  // query params
+  const query = decodeScalar(location.query.query);
+
+  const [sortBy, setSortBy] = useState(
+    location.query.sort ?? tabDebugIdBundlesActive
+      ? SortBy.DESC_MODIFIED
+      : SortBy.DESC_ADDED
+  );
+  // The default sorting order changes based on the tab.
+  const cursor = location.query.cursor ?? '';
+
+  useEffect(() => {
+    if (location.pathname === sourceMapsUrl) {
+      router.replace(debugIdsUrl);
+    }
+  }, [location.pathname, sourceMapsUrl, debugIdsUrl, router]);
 
   const {
     data: archivesData,
@@ -178,7 +210,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       debugIdBundlesEndpoint,
       {
-        query: {query, cursor, sortBy},
+        query: {query, cursor, sortBy: SortBy.DESC_MODIFIED},
       },
     ],
     {
@@ -187,6 +219,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       enabled: tabDebugIdBundlesActive,
     }
   );
+
+  const {mutate: deleteDebugIdBundle} = useDeleteDebugIdBundle({
+    onSuccess: () => debugIdBundlesRefetch(),
+  });
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -198,43 +234,130 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [router, location]
   );
 
-  const handleSortChange = useCallback(() => {
+  const handleSortChangeForModified = useCallback(() => {
+    const newSortBy =
+      sortBy !== SortBy.DESC_MODIFIED ? SortBy.DESC_MODIFIED : SortBy.ASC_MODIFIED;
+    setSortBy(newSortBy);
     router.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         cursor: undefined,
-        sort: sortBy === SORT_BY.ASC ? SORT_BY.DESC : SORT_BY.ASC,
+        sort: newSortBy,
       },
     });
   }, [location, router, sortBy]);
 
-  const handleDelete = useCallback(
+  const handleSortChangeForAdded = useCallback(() => {
+    const newSortBy = sortBy !== SortBy.DESC_ADDED ? SortBy.DESC_ADDED : SortBy.ASC_ADDED;
+    setSortBy(newSortBy);
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        sort: newSortBy,
+      },
+    });
+  }, [location, router, sortBy]);
+
+  const handleDeleteReleaseArtifacts = useCallback(
     async (name: string) => {
       addLoadingMessage(t('Removing artifacts\u2026'));
       try {
-        await api.requestPromise(
-          tabDebugIdBundlesActive ? debugIdBundlesEndpoint : sourceMapsEndpoint,
-          {
-            method: 'DELETE',
-            query: tabDebugIdBundlesActive ? {bundleId: name} : {name},
-          }
-        );
-        tabDebugIdBundlesActive ? debugIdBundlesRefetch() : archivesRefetch();
+        await api.requestPromise(sourceMapsEndpoint, {
+          method: 'DELETE',
+          query: {name},
+        });
+        archivesRefetch();
         addSuccessMessage(t('Artifacts removed.'));
       } catch {
         addErrorMessage(t('Unable to remove artifacts. Please try again.'));
       }
     },
-    [
-      api,
-      sourceMapsEndpoint,
-      tabDebugIdBundlesActive,
-      debugIdBundlesRefetch,
-      archivesRefetch,
-      debugIdBundlesEndpoint,
-    ]
+    [api, sourceMapsEndpoint, archivesRefetch]
   );
+
+  const currentBundleType = tabDebugIdBundlesActive
+    ? SourceMapsBundleType.DEBUG_ID
+    : SourceMapsBundleType.RELEASE;
+  const tableHeaders = [
+    {
+      component: tabDebugIdBundlesActive ? t('Bundle ID') : t('Name'),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <ArtifactsTotalColumn key="artifacts-total">
+          {t('Artifacts')}
+        </ArtifactsTotalColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <DateUploadedColumn
+          key="date-modified"
+          data-test-id="date-modified-header"
+          onClick={handleSortChangeForModified}
+        >
+          {t('Date Modified')}
+          {(sortBy === SortBy.ASC_MODIFIED || sortBy === SortBy.DESC_MODIFIED) && (
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                sortBy === SortBy.DESC_MODIFIED
+                  ? t('Switch to ascending order')
+                  : t('Switch to descending order')
+              }
+            >
+              <IconArrow
+                direction={sortBy === SortBy.DESC_MODIFIED ? 'down' : 'up'}
+                data-test-id="icon-arrow-modified"
+              />
+            </Tooltip>
+          )}
+        </DateUploadedColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <DateUploadedColumn
+          key="date-uploaded"
+          data-test-id="date-uploaded-header"
+          onClick={handleSortChangeForAdded}
+        >
+          {t('Date Uploaded')}
+          {(sortBy === SortBy.ASC_ADDED || sortBy === SortBy.DESC_ADDED) && (
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                sortBy === SortBy.DESC_ADDED
+                  ? t('Switch to ascending order')
+                  : t('Switch to descending order')
+              }
+            >
+              <IconArrow
+                direction={sortBy === SortBy.DESC_ADDED ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
+            </Tooltip>
+          )}
+        </DateUploadedColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: '',
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+  ];
+
+  const Table =
+    currentBundleType === SourceMapsBundleType.DEBUG_ID
+      ? ArtifactBundlesPanelTable
+      : ReleaseBundlesPanelTable;
 
   return (
     <Fragment>
@@ -250,94 +373,77 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: debugIdsUrl,
+            query: location.query,
+          }}
+          index
+          isActive={() => tabDebugIdBundlesActive}
+        >
           {t('Artifact Bundles')}
+        </ListLink>
+        <ListLink
+          to={{
+            pathname: releaseBundlesUrl,
+            query: location.query,
+          }}
+          isActive={() => !tabDebugIdBundlesActive}
+        >
+          {t('Release Bundles')}
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
         placeholder={
-          tabDebugIdBundlesActive ? t('Filter by Bundle ID') : t('Filter by Name')
+          tabDebugIdBundlesActive
+            ? t('Filter by Bundle ID, Debug ID or Release')
+            : t('Filter by Name')
         }
         onSearch={handleSearch}
         query={query}
       />
-      <StyledPanelTable
-        headers={[
-          tabDebugIdBundlesActive ? t('Bundle ID') : t('Name'),
-          <ArtifactsTotalColumn key="artifacts-total">
-            {t('Artifacts')}
-          </ArtifactsTotalColumn>,
-          <DateUploadedColumn key="date-uploaded" onClick={handleSortChange}>
-            {t('Date Uploaded')}
-            <Tooltip
-              containerDisplayMode="inline-flex"
-              title={
-                sortBy === SORT_BY.DESC
-                  ? t('Switch to ascending order')
-                  : t('Switch to descending order')
-              }
-            >
-              <IconArrow
-                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
-                data-test-id="icon-arrow"
-              />
-            </Tooltip>
-          </DateUploadedColumn>,
-          '',
-        ]}
-        emptyMessage={
-          query
-            ? tct('No [tabName] match your search query.', {
-                tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
-                  : t('release bundles'),
-              })
-            : tct('No [tabName] found for this project.', {
-                tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
-                  : t('release bundles'),
-              })
-        }
-        isEmpty={
-          (tabDebugIdBundlesActive ? debugIdBundlesData ?? [] : archivesData ?? [])
-            .length === 0
-        }
-        isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading}
-      >
-        {tabDebugIdBundlesActive
-          ? debugIdBundlesData?.map(data => (
-              <SourceMapsTableRow
-                key={data.bundleId}
-                bundleType={SourceMapsBundleType.DebugId}
-                date={data.date}
-                fileCount={data.fileCount}
-                name={data.bundleId}
-                onDelete={handleDelete}
-                link={`/settings/${organization.slug}/projects/${
-                  project.slug
-                }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
-                idColumnDetails={
-                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
-                }
-              />
-            ))
-          : archivesData?.map(data => (
-              <SourceMapsTableRow
-                key={data.name}
-                bundleType={SourceMapsBundleType.Release}
-                date={data.date}
-                fileCount={data.fileCount}
-                name={data.name}
-                onDelete={handleDelete}
-                link={`/settings/${organization.slug}/projects/${
-                  project.slug
-                }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
-              />
-            ))}
-      </StyledPanelTable>
+      {tabDebugIdBundlesActive ? (
+        <DebugIdBundleList
+          isLoading={debugIdBundlesLoading}
+          debugIdBundles={debugIdBundlesData}
+          project={project}
+          onDelete={bundleId =>
+            deleteDebugIdBundle({bundleId, projectSlug: project.slug})
+          }
+          emptyMessage={
+            query
+              ? t('No artifact bundles match your search query.')
+              : t('No artifact bundles found for this project.')
+          }
+        />
+      ) : (
+        <Table
+          headers={tableHeaders
+            .filter(header => header.enabledFor.includes(currentBundleType))
+            .map(header => header.component)}
+          emptyMessage={
+            query
+              ? t('No release bundles match your search query.')
+              : t('No release bundles found for this project.')
+          }
+          isEmpty={(archivesData ?? []).length === 0}
+          isLoading={archivesLoading}
+        >
+          {archivesData?.map(data => (
+            <SourceMapsTableRow
+              key={data.name}
+              bundleType={SourceMapsBundleType.RELEASE}
+              date={data.date}
+              fileCount={data.fileCount}
+              name={data.name}
+              onDelete={handleDeleteReleaseArtifacts}
+              link={`/settings/${organization.slug}/projects/${
+                project.slug
+              }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
+            />
+          ))}
+        </Table>
+      )}
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
@@ -349,14 +455,29 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const ReleaseBundlesPanelTable = styled(PanelTable)`
   grid-template-columns:
     minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content)
     minmax(74px, max-content);
-
   > * {
     :nth-child(-n + 4) {
       :nth-child(4n-1) {
+        cursor: pointer;
+      }
+    }
+  }
+`;
+
+const ArtifactBundlesPanelTable = styled(PanelTable)`
+  grid-template-columns:
+    minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content) minmax(
+      242px,
+      max-content
+    )
+    minmax(74px, max-content);
+  > * {
+    :nth-child(-n + 5) {
+      :nth-child(5n-1) {
         cursor: pointer;
       }
     }
@@ -399,6 +520,8 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
-const IconWrapper = styled('div')`
+const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -32,7 +33,7 @@ def event_attachment_screenshot_filter(queryset):
 
 @region_silo_only_model
 class EventAttachment(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
@@ -52,7 +53,7 @@ class EventAttachment(Model):
 
     @cached_property
     def mimetype(self):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         file = File.objects.get(id=self.file_id)
         rv = file.headers.get("Content-Type")
@@ -61,7 +62,7 @@ class EventAttachment(Model):
         return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
     def delete(self, *args, **kwargs):
-        from sentry.models import File
+        from sentry.models.files.file import File
 
         rv = super().delete(*args, **kwargs)
 

@@ -1,8 +1,9 @@
 from datetime import timedelta
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -17,7 +18,7 @@ from sentry.utils.hashlib import md5_text
 
 @region_silo_only_model
 class GroupRelease(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField()
@@ -51,7 +52,7 @@ class GroupRelease(Model):
         instance = cache.get(cache_key)
         if instance is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(cls)):
                     instance, created = (
                         cls.objects.create(
                             release_id=release.id,

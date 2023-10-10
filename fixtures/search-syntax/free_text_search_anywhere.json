@@ -3,7 +3,7 @@
     "query": "hello what user.email:foo@example.com where release:1.2.1 when",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "hello what ", "quoted": false},
+      {"type": "freeText", "value": "hello what ", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
@@ -14,7 +14,7 @@
         "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "where ", "quoted": false},
+      {"type": "freeText", "value": "where ", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
@@ -25,7 +25,7 @@
         "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "when", "quoted": false},
+      {"type": "freeText", "value": "when", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -33,7 +33,7 @@
     "query": "hello",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "hello", "quoted": false},
+      {"type": "freeText", "value": "hello", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -41,7 +41,7 @@
     "query": "  hello  ",
     "result": [
       {"type": "spaces", "value": "  "},
-      {"type": "freeText", "value": "hello  ", "quoted": false},
+      {"type": "freeText", "value": "hello  ", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -49,7 +49,7 @@
     "query": "  hello   there",
     "result": [
       {"type": "spaces", "value": "  "},
-      {"type": "freeText", "value": "hello   there", "quoted": false},
+      {"type": "freeText", "value": "hello   there", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -57,7 +57,7 @@
     "query": "  hello   there:bye",
     "result": [
       {"type": "spaces", "value": "  "},
-      {"type": "freeText", "value": "hello   ", "quoted": false},
+      {"type": "freeText", "value": "hello   ", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""},
       {
         "type": "filter",

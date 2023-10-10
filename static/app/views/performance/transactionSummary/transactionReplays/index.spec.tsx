@@ -1,3 +1,5 @@
+import {ReplayList} from 'sentry-fixture/replayList';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -90,6 +92,11 @@ describe('TransactionReplays', () => {
   let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sdk-updates/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
@@ -150,7 +157,7 @@ describe('TransactionReplays', () => {
   });
 
   it('should snapshot empty state', async () => {
-    MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockReplaysUrl,
       body: {
         data: [],
@@ -158,10 +165,10 @@ describe('TransactionReplays', () => {
       statusCode: 200,
     });
 
-    const {container} = renderComponent();
+    renderComponent();
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(mockApi).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -198,7 +205,7 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 1,
             duration: 52346,
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -210,7 +217,7 @@ describe('TransactionReplays', () => {
             ],
           },
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 4,
             duration: 400,
             finished_at: new Date('2022-09-21T21:40:38+00:00'),
@@ -247,13 +254,13 @@ describe('TransactionReplays', () => {
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
+      `/organizations/org-slug/replays/346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
     );
 
     // Expect the second row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
+      `/organizations/org-slug/replays/b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
     );
 
     // Expect the first row to have the correct duration

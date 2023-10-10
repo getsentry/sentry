@@ -20,22 +20,24 @@ from typing import (
 from django.db import DataError, connections, router
 from django.utils import timezone
 
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
-from sentry.models import (
-    KEYWORD_MAP,
-    Environment,
-    EventUser,
-    Project,
-    Release,
-    Team,
-    User,
-    follows_semver_versioning_scheme,
-)
+from sentry.models.environment import Environment
+from sentry.models.eventuser import KEYWORD_MAP, EventUser
 from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.base import ANY
-from sentry.utils.auth import find_users
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 
 
 class InvalidQuery(Exception):
@@ -53,15 +55,23 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
         return f"{key}:{value}"
     except DataError:
         raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
-    return euser.tag_value  # type: ignore
+    return euser.tag_value
 
 
-def parse_status_value(value: Union[str, int]) -> int:
-    if value in STATUS_QUERY_CHOICES:
-        return int(STATUS_QUERY_CHOICES[value])
-    if value in STATUS_QUERY_CHOICES.values():
-        return int(value)
+def parse_status_value(status: Union[str, int]) -> int:
+    if status in STATUS_QUERY_CHOICES:
+        return int(STATUS_QUERY_CHOICES[status])
+    if status in STATUS_QUERY_CHOICES.values():
+        return int(status)
     raise ValueError("Invalid status value")
+
+
+def parse_substatus_value(substatus: Union[str, int]) -> int:
+    if substatus in SUBSTATUS_UPDATE_CHOICES:
+        return int(SUBSTATUS_UPDATE_CHOICES[substatus])
+    if substatus in SUBSTATUS_UPDATE_CHOICES.values():
+        return int(substatus)
+    raise ValueError("Invalid substatus value")
 
 
 def parse_duration(value: str, interval: str) -> float:
@@ -301,36 +311,53 @@ def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, Uni
     return result
 
 
-def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: User) -> Team:
+def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
     return Team.objects.filter(
         slug__iexact=value[1:], projectteam__project__in=projects
     ).first() or Team(id=0)
 
 
-def parse_actor_value(projects: Sequence[Project], value: str, user: User) -> Union[User, Team]:
+def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> list[Team]:
+    user_ids = [u.id for u in users if u is not None]
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user_id__in=user_ids, organization_id=projects[0].organization_id
+            ),
+            is_active=True,
+        ).values("team")
+    )
+    return list(teams)
+
+
+def parse_actor_value(
+    projects: Sequence[Project], value: str, user: RpcUser | User
+) -> Union[RpcUser, Team]:
     if value.startswith("#"):
-        return parse_team_value(projects, value, user)
+        return parse_team_value(projects, value)
     return parse_user_value(value, user)
 
 
 def parse_actor_or_none_value(
     projects: Sequence[Project], value: str, user: User
-) -> Optional[Union[User, Team]]:
+) -> Optional[Union[RpcUser, Team]]:
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)
 
 
-def parse_user_value(value: str, user: User) -> User:
+def parse_user_value(value: str, user: User | RpcUser) -> RpcUser:
     if value == "me":
+        if isinstance(user, User):
+            return serialize_rpc_user(user)
         return user
 
     try:
-        return find_users(value)[0]
+        return user_service.get_by_username(username=value)[0]
     except IndexError:
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
-        return User(id=0)
+        return serialize_rpc_user(User(id=0))
 
 
 class LatestReleaseOrders(Enum):

@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -12,7 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models import Release
+from sentry.models.release import Release
 
 
 def get_processing_issue_checksum(scope, object):
@@ -49,13 +50,14 @@ class ProcessingIssueManager(BaseManager):
         Resolves all processing issues.
         """
         self.resolve_all_processing_issue(project)
-        from sentry.models import RawEvent, ReprocessingReport
+        from sentry.models.rawevent import RawEvent
+        from sentry.models.reprocessingreport import ReprocessingReport
 
         RawEvent.objects.filter(project_id=project.id).delete()
         ReprocessingReport.objects.filter(project_id=project.id).delete()
 
     def find_resolved_queryset(self, project_ids):
-        from sentry.models import RawEvent
+        from sentry.models.rawevent import RawEvent
 
         return RawEvent.objects.filter(
             project_id__in=project_ids, eventprocessingissue__isnull=True
@@ -77,7 +79,7 @@ class ProcessingIssueManager(BaseManager):
             has_more = False
 
         rv = list(rv)
-        eventstore.bind_nodes(rv, "data")
+        eventstore.backend.bind_nodes(rv, "data")
         return rv, has_more
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
@@ -124,7 +126,7 @@ class ProcessingIssueManager(BaseManager):
 
 @region_silo_only_model
 class ProcessingIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
     checksum = models.CharField(max_length=40, db_index=True)
@@ -152,7 +154,7 @@ class ProcessingIssue(Model):
 
 @region_silo_only_model
 class EventProcessingIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     raw_event = FlexibleForeignKey("sentry.RawEvent")
     processing_issue = FlexibleForeignKey("sentry.ProcessingIssue")

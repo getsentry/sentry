@@ -1,42 +1,39 @@
-import {CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
+import {
+  ButtonWrapper,
+  Cell,
+  Text,
+} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {
+  getFrameMethod,
+  getFrameStatus,
+  getReqRespContentTypes,
+  getResponseBodySize,
+} from 'sentry/utils/replays/resourceFrame';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
-const EMPTY_CELL = '\u00A0';
+const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleMouseEnter: (span: NetworkSpan) => void;
-  handleMouseLeave: (span: NetworkSpan) => void;
+  frame: SpanFrame;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
-  onClickTimestamp: (crumb: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
-  span: NetworkSpan;
   startTimestampMs: number;
   style: CSSProperties;
-};
-
-type CellProps = {
-  hasOccurred: boolean | undefined;
-  isDetailsOpen: boolean;
-  isStatusError: boolean;
-  className?: string;
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
-};
+}
 
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -44,13 +41,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleMouseEnter,
-      handleMouseLeave,
+      frame,
+      onMouseEnter,
+      onMouseLeave,
       onClickCell,
       onClickTimestamp,
       rowIndex,
       sortConfig,
-      span,
       startTimestampMs,
       style,
     }: Props,
@@ -60,18 +57,22 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     const dataIndex = rowIndex - 1;
 
     const {getParamValue} = useUrlParams('n_detail_row', '');
-    const isDetailsOpen = getParamValue() === String(dataIndex);
+    const isSelected = getParamValue() === String(dataIndex);
 
-    const startMs = span.startTimestamp * 1000;
-    const endMs = span.endTimestamp * 1000;
-    const statusCode = span.data.statusCode;
+    const method = getFrameMethod(frame);
+    const statusCode = getFrameStatus(frame);
+    const isStatus400or500 = typeof statusCode === 'number' && statusCode >= 400;
+    const contentTypeHeaders = getReqRespContentTypes(frame);
+    const isContentTypeSane =
+      contentTypeHeaders.req === undefined ||
+      contentTypeHeaders.resp === undefined ||
+      contentTypeHeaders.req === contentTypeHeaders.resp;
 
-    const spanTime = useMemo(
-      () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
-      [span.startTimestamp, startTimestampMs]
-    );
-    const hasOccurred = currentTime >= spanTime;
-    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= spanTime;
+    const size = getResponseBodySize(frame);
+
+    const hasOccurred = currentTime >= frame.offsetMs;
+    const isBeforeHover =
+      currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
     const isByTimestamp = sortConfig.by === 'startTimestamp';
     const isAsc = isByTimestamp ? sortConfig.asc : undefined;
@@ -101,40 +102,43 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      isDetailsOpen,
-      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      isSelected,
+      isStatusError: isStatus400or500,
+      isStatusWarning: !isContentTypeSane,
       onClick: () => onClickCell({dataIndex, rowIndex}),
-      onMouseEnter: () => handleMouseEnter(span),
-      onMouseLeave: () => handleMouseLeave(span),
+      onMouseEnter: () => onMouseEnter(frame),
+      onMouseLeave: () => onMouseLeave(frame),
       ref,
       style,
-    } as CellProps;
-
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
+    } as ComponentProps<typeof Cell>;
 
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{method ? method : 'GET'}</Text>
+        </Cell>
+      ),
+      () => (
+        <Cell {...columnProps}>
+          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={span.description}
+            title={frame.description}
             isHoverable
             showOnlyOnOverflow
             overlayStyle={{maxWidth: '500px !important'}}
           >
-            <Text>{span.description || EMPTY_CELL}</Text>
+            <Text>{frame.description || EMPTY_CELL}</Text>
           </Tooltip>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
-          <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
-            <Text>{operationName(span.op)}</Text>
+          <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
+            <Text>{operationName(frame.op)}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -147,20 +151,22 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <Text>{`${(endMs - startMs).toFixed(2)}ms`}</Text>
+          <Text>{`${(frame.endTimestampMs - frame.timestampMs).toFixed(2)}ms`}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <TimestampButton
-            format="mm:ss.SSS"
-            onClick={(event: MouseEvent) => {
-              event.stopPropagation();
-              onClickTimestamp(span);
-            }}
-            startTimestampMs={startTimestampMs}
-            timestampMs={startMs}
-          />
+          <ButtonWrapper>
+            <TimestampButton
+              format="mm:ss.SSS"
+              onClick={event => {
+                event.stopPropagation();
+                onClickTimestamp(frame);
+              }}
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ButtonWrapper>
         </Cell>
       ),
     ];
@@ -168,55 +174,5 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     return renderFns[columnIndex]();
   }
 );
-
-const cellBackground = p => {
-  if (p.isDetailsOpen) {
-    return `background-color: ${p.theme.textColor};`;
-  }
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    const color = p.isHovered ? p.theme.hover : 'inherit';
-    return `background-color: ${color};`;
-  }
-  const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
-  return `background-color: ${color};`;
-};
-
-const cellColor = p => {
-  if (p.isDetailsOpen) {
-    const colors = p.isStatusError
-      ? [p.theme.alert.error.background]
-      : [p.theme.background];
-    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
-  }
-  const colors = p.isStatusError
-    ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
-    : ['inherit', p.theme.gray300];
-
-  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
-};
-
-const Cell = styled('div')<CellProps>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
-
-  ${cellBackground}
-  ${cellColor}
-
-  ${p =>
-    p.numeric &&
-    `
-    font-variant-numeric: tabular-nums;
-    justify-content: flex-end;
-  `};
-`;
-
-const Text = styled('div')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
-`;
 
 export default NetworkTableCell;

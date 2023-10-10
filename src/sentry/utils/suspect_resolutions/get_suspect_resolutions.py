@@ -4,8 +4,10 @@ from typing import Sequence
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Activity, Group, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.signals import issue_resolved
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.utils.suspect_resolutions import ALGO_VERSION, analytics
@@ -33,7 +35,11 @@ def record_suspect_resolutions(
             get_suspect_resolutions.delay(group.id)
 
 
-@instrumented_task(name="sentry.tasks.get_suspect_resolutions", queue="get_suspect_resolutions")
+@instrumented_task(
+    name="sentry.tasks.get_suspect_resolutions",
+    queue="get_suspect_resolutions",
+    silo_mode=SiloMode.REGION,
+)
 def get_suspect_resolutions(resolved_issue_id: int, **kwargs) -> Sequence[int]:
     resolved_issue = Group.objects.get(id=resolved_issue_id)
     latest_resolved_activity = (

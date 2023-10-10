@@ -8,11 +8,16 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -108,7 +113,7 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_notification_recipients(self, project, user_option: str) -> Set:
-        from sentry.models import UserOption
+        from sentry.models.options.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)
@@ -141,9 +146,23 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(project)[
-                ExternalProviders.EMAIL
-            ]
+            if should_use_notifications_v2(self.project.organization):
+                user_ids = list(project.member_set.values_list("user_id", flat=True))
+                users = user_service.get_many(filter={"user_ids": user_ids})
+                notification_controller = NotificationController(
+                    recipients=users,
+                    project_ids=[project.id],
+                    organization_id=project.organization_id,
+                    provider=ExternalProviderEnum.EMAIL,
+                )
+                return notification_controller.get_notification_recipients(
+                    type=NotificationSettingEnum.ISSUE_ALERTS,
+                    actor_type=ActorType.USER,
+                )[ExternalProviders.EMAIL]
+            else:
+                return NotificationSetting.objects.get_notification_recipients(project)[
+                    ExternalProviders.EMAIL
+                ]
 
         return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 

@@ -11,7 +11,9 @@ import type {
   Event,
   Group,
   IssueOwnership,
+  MissingMember,
   Organization,
+  OrgRole,
   Project,
   SentryApp,
   Team,
@@ -46,13 +48,13 @@ type OpenSudoModalOptions = {
   sudo?: boolean;
 };
 
-type emailVerificationModalOptions = {
+type EmailVerificationModalOptions = {
   actionMessage?: string;
   emailVerified?: boolean;
   onClose?: () => void;
 };
 
-type inviteMembersModalOptions = {
+type InviteMembersModalOptions = {
   initialData?: Partial<InviteRow>[];
   onClose?: () => void;
   source?: string;
@@ -68,7 +70,7 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
 export async function openEmailVerification({
   onClose,
   ...args
-}: emailVerificationModalOptions = {}) {
+}: EmailVerificationModalOptions = {}) {
   const mod = await import('sentry/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
@@ -239,8 +241,25 @@ export async function openDebugFileSourceModal({
 export async function openInviteMembersModal({
   onClose,
   ...args
-}: inviteMembersModalOptions = {}) {
+}: InviteMembersModalOptions = {}) {
   const mod = await import('sentry/components/modals/inviteMembersModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
+}
+
+type InviteMissingMembersModalOptions = {
+  allowedRoles: OrgRole[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  onClose: () => void;
+  organization: Organization;
+};
+
+export async function openInviteMissingMembersModal({
+  onClose,
+  ...args
+}: InviteMissingMembersModalOptions) {
+  const mod = await import('sentry/components/modals/inviteMissingMembersModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
@@ -260,6 +279,16 @@ export async function openWidgetBuilderOverwriteModal(
 
 export async function openAddToDashboardModal(options) {
   const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
+}
+
+export async function openImportDashboardFromFileModal(options) {
+  const mod = await import('sentry/components/modals/importDashboardFromFileModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {

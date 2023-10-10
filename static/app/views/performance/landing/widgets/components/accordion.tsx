@@ -1,7 +1,9 @@
 import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Button} from 'sentry/components/button';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
@@ -13,9 +15,15 @@ interface Props {
   expandedIndex: number;
   items: AccordionItemContent[];
   setExpandedIndex: (index: number) => void;
+  buttonOnLeft?: boolean;
 }
 
-export default function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
+export default function Accordion({
+  expandedIndex,
+  setExpandedIndex,
+  items,
+  buttonOnLeft,
+}: Props) {
   return (
     <AccordionContainer>
       {items.map((item, index) => (
@@ -25,6 +33,7 @@ export default function Accordion({expandedIndex, setExpandedIndex, items}: Prop
           key={index}
           content={item.content()}
           setExpandedIndex={setExpandedIndex}
+          buttonOnLeft={buttonOnLeft}
         >
           {item.header()}
         </AccordionItem>
@@ -39,22 +48,41 @@ function AccordionItem({
   children,
   setExpandedIndex,
   content,
+  buttonOnLeft,
 }: {
   children: ReactNode;
   content: ReactNode;
   currentIndex: number;
   isExpanded: boolean;
   setExpandedIndex: (index: number) => void;
+  buttonOnLeft?: boolean;
 }) {
-  return (
+  return buttonOnLeft ? (
     <StyledLineItem>
-      <ListItemContainer>
-        {children}
-        <StyledDropdownButton
+      <ButtonLeftListItemContainer>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
           size="zero"
           borderless
           onClick={() => setExpandedIndex(index)}
-          isOpen={isExpanded}
+        />
+        {children}
+      </ButtonLeftListItemContainer>
+      <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
+    </StyledLineItem>
+  ) : (
+    <StyledLineItem>
+      <ListItemContainer>
+        {children}
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={() => setExpandedIndex(index)}
         />
       </ListItemContainer>
       <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
@@ -72,10 +100,12 @@ const AccordionContainer = styled('ul')`
   list-style-type: none;
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
-  svg {
-    margin: 0;
-  }
+const ButtonLeftListItemContainer = styled('div')`
+  display: flex;
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  column-gap: ${space(1.5)};
 `;
 
 const ListItemContainer = styled('div')`
@@ -87,4 +117,8 @@ const ListItemContainer = styled('div')`
 
 const StyledContentContainer = styled('div')`
   padding: ${space(0)} ${space(2)};
+`;
+
+const LeftContentContainer = styled('div')`
+  padding: ${space(0)} ${space(0.25)};
 `;

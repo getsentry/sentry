@@ -3,8 +3,9 @@ from time import time
 from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.http.request import HttpRequest
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
@@ -35,6 +36,10 @@ def create_credential_object(registeredKey):
     )
 
 
+def _get_url_prefix() -> str:
+    return options.get("system.url-prefix")
+
+
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
@@ -50,7 +55,7 @@ class U2fInterface(AuthenticatorInterface):
     allow_multi_enrollment = True
     # rp is a relying party for webauthn, this would be sentry.io for SAAS
     # and the prefix for self-hosted / dev environments
-    rp_id = urlparse(options.get("system.url-prefix")).hostname
+    rp_id = urlparse(_get_url_prefix()).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
 
@@ -70,17 +75,17 @@ class U2fInterface(AuthenticatorInterface):
     def u2f_facets(cls):
         facets = options.get("u2f.facets")
         if not facets:
-            return [options.get("system.url-prefix")]
+            return [_get_url_prefix()]
         return [x.rstrip("/") for x in facets]
 
     @classproperty
     def is_available(cls):
-        url_prefix = options.get("system.url-prefix")
+        url_prefix = _get_url_prefix()
         return url_prefix and url_prefix.startswith("https://")
 
     def _get_kept_devices(self, key):
         def _key_does_not_match(device):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 return decode_credential_id(device) != key
             else:
                 return device["binding"]["keyHandle"] != key
@@ -111,7 +116,7 @@ class U2fInterface(AuthenticatorInterface):
             # XXX: The previous version of python-u2flib-server didn't store
             # the `version` in the device binding. Defaulting to `U2F_V2` here
             # so that we don't break existing u2f registrations.
-            if type(data["binding"]) == AuthenticatorData:
+            if isinstance(data["binding"], AuthenticatorData):
                 rv.append(data["binding"])
             else:
                 data["binding"].setdefault("version", "U2F_V2")
@@ -124,7 +129,7 @@ class U2fInterface(AuthenticatorInterface):
         # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
         # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
         for device in self.get_u2f_devices():
-            if type(device) == AuthenticatorData:
+            if isinstance(device, AuthenticatorData):
                 credentials.append(device.credential_data)
             else:
                 credentials.append(create_credential_object(device))
@@ -143,7 +148,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_device_name(self, key):
         for device in self.config.get("devices", ()):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
                     return device["name"]
             elif device["binding"]["keyHandle"] == key:
@@ -152,7 +157,7 @@ class U2fInterface(AuthenticatorInterface):
     def get_registered_devices(self):
         rv = []
         for device in self.config.get("devices", ()):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 rv.append(
                     {
                         "timestamp": to_datetime(device["ts"]),
@@ -183,7 +188,7 @@ class U2fInterface(AuthenticatorInterface):
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
-    def activate(self, request: Request):
+    def activate(self, request: HttpRequest) -> ActivationChallengeResult:
         credentials = self.credentials()
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials

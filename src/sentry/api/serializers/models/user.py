@@ -27,19 +27,19 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    AuthIdentity,
-    OrganizationMember,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserEmail,
-    UserOption,
-    UserPermission,
-    UserRoleUser,
-)
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
@@ -84,6 +84,7 @@ class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
     stacktraceOrder: int  # TODO enum/literal
+    defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
 
@@ -91,6 +92,8 @@ class _UserOptions(TypedDict):
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
     avatar: SerializedAvatarFields
+    authenticators: List[Any]  # TODO: find out what type this is
+    canReset2fa: bool
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -118,7 +121,7 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 
 @register(User)
-class UserSerializer(Serializer):  # type: ignore
+class UserSerializer(Serializer):
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
         if isinstance(requester, User):
             return bool(requester == obj)
@@ -200,6 +203,7 @@ class UserSerializer(Serializer):  # type: ignore
                 "theme": options.get("theme") or "light",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
+                "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
             }
@@ -209,7 +213,7 @@ class UserSerializer(Serializer):  # type: ignore
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
@@ -218,11 +222,8 @@ class UserSerializer(Serializer):  # type: ignore
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
             organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
-            auth_identity_organizations = organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=list(organization_ids),
+            auth_identity_organizations = organization_mapping_service.get_many(
+                organization_ids=list(organization_ids)
             )
             orgs_by_id: Mapping[int, RpcOrganizationSummary] = {
                 o.id: o for o in auth_identity_organizations
@@ -269,17 +270,23 @@ class DetailedUserSerializer(UserSerializer):
             lambda x: not x.interface.is_backup_interface,
         )
 
-        memberships = manytoone_to_dict(
-            OrganizationMember.objects.filter(
-                user__in=item_list, organization__status=OrganizationStatus.VISIBLE
-            ),
-            "user_id",
-        )
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_organizations = OrganizationMapping.objects.filter(
+            organization_id__in={m.organization_id for m in memberships},
+            status=OrganizationStatus.ACTIVE,
+        ).values_list("organization_id", flat=True)
+
+        active_memberships = defaultdict(int)
+        for membership in memberships:
+            if membership.organization_id in active_organizations:
+                active_memberships[membership.user_id] += 1
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
             # org can reset 2FA if the user is only in one org
-            attrs[item]["canReset2fa"] = len(memberships[item.id]) == 1
+            attrs[item]["canReset2fa"] = active_memberships[item.id] == 1
 
         return attrs
 

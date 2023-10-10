@@ -1,14 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Organization} from 'sentry/types';
+import {IssueCategory, Organization} from 'sentry/types';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
   groupIds?: string | string[];
-  projectIds?: number[] | undefined;
+  issueCategory?: IssueCategory;
   replayIds?: string | string[];
   transactionNames?: string | string[];
 };
@@ -16,9 +16,9 @@ type Options = {
 type CountState = Record<string, undefined | number>;
 
 function useReplaysCount({
+  issueCategory,
   groupIds,
   organization,
-  projectIds,
   replayIds,
   transactionNames,
 }: Options) {
@@ -96,18 +96,23 @@ function useReplaysCount({
   }, [filterUnseen, groupIds, replayIds, transactionNames]);
 
   const fetchReplayCount = useCallback(async () => {
+    let dataSource = 'discover';
+    if (issueCategory && issueCategory === IssueCategory.PERFORMANCE) {
+      dataSource = 'search_issues';
+    }
+
     try {
       if (!query) {
         return;
       }
-
       const response = await api.requestPromise(
         `/organizations/${organization.slug}/replay-count/`,
         {
           query: {
             query: query.conditions,
+            data_source: dataSource,
             statsPeriod: '14d',
-            project: projectIds,
+            project: -1,
           },
         }
       );
@@ -115,7 +120,7 @@ function useReplaysCount({
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, projectIds]);
+  }, [api, organization.slug, query, zeroCounts, issueCategory]);
 
   useEffect(() => {
     const hasSessionReplay = organization.features.includes('session-replay');

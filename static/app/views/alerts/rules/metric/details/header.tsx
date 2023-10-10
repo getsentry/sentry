@@ -1,6 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
+import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -10,17 +12,29 @@ import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {isIssueAlert} from '../../../utils';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
+  onSnooze: (nextState: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => void;
   organization: Organization;
   project?: Project;
   rule?: MetricRule;
 };
 
-function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}: Props) {
+function DetailsHeader({
+  hasMetricRuleDetailsError,
+  rule,
+  organization,
+  project,
+  onSnooze,
+}: Props) {
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
@@ -38,6 +52,8 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}:
       referrer: 'metric_rule_details',
     },
   };
+
+  const isSnoozed = rule?.snooze ?? false;
 
   return (
     <Layout.Header>
@@ -62,6 +78,21 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}:
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
+          {rule && project && (
+            <Access access={['alerts:write']}>
+              {({hasAccess}) => (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={project.slug}
+                  ruleActionCategory={getAlertRuleActionCategory(rule)}
+                  hasAccess={hasAccess}
+                  type="metric"
+                />
+              )}
+            </Access>
+          )}
           <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
             {t('Duplicate')}
           </Button>

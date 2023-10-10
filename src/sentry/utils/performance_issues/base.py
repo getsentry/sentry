@@ -6,16 +6,16 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -24,7 +24,8 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
 )
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from .types import PerformanceProblemsMap, Span
 
@@ -42,6 +43,7 @@ class DetectorType(Enum):
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
+    HTTP_OVERHEAD = "http_overhead"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -57,6 +59,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
     DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
     DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
+    DetectorType.HTTP_OVERHEAD: PerformanceHTTPOverheadGroupType,
 }
 
 
@@ -74,6 +77,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
+    DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
 }
 
 
@@ -82,9 +86,10 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    type: DetectorType
+    type: ClassVar[DetectorType]
+    stored_problems: PerformanceProblemsMap
 
-    def __init__(self, settings: Dict[DetectorType, Any], event: Event):
+    def __init__(self, settings: Dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
@@ -112,7 +117,7 @@ class PerformanceDetector(ABC):
                 return op, span_id, op_prefix, span_duration, setting
         return None
 
-    def event(self) -> Event:
+    def event(self) -> dict[str, Any]:
         return self._event
 
     @property
@@ -126,11 +131,6 @@ class PerformanceDetector(ABC):
 
     def on_complete(self) -> None:
         pass
-
-    @property
-    @abstractmethod
-    def stored_problems(self) -> PerformanceProblemsMap:
-        raise NotImplementedError
 
     def is_creation_allowed_for_system(self) -> bool:
         system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
@@ -158,8 +158,14 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         return True
+
+
+def does_overlap_previous_span(previous_span: Span, current_span: Span):
+    previous_span_ends = timedelta(seconds=previous_span.get("timestamp", 0))
+    current_span_begins = timedelta(seconds=current_span.get("start_timestamp", 0))
+    return previous_span_ends > current_span_begins
 
 
 def get_span_duration(span: Span) -> timedelta:
@@ -368,3 +374,35 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
 
     hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
     return hashed_url_paths
+
+
+def get_span_evidence_value(
+    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+) -> str:
+    """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
+    value = "no value"
+    if not span:
+        return value
+    if not span.get("op") and span.get("description"):
+        value = cast(str, span["description"])
+    if span.get("op") and not span.get("description"):
+        value = cast(str, span["op"])
+    if span.get("op") and span.get("description"):
+        op = cast(str, span["op"])
+        desc = cast(str, span["description"])
+        value = f"{op} - {desc}"
+        if not include_op:
+            value = desc
+    return value
+
+
+def get_notification_attachment_body(op, desc) -> str:
+    """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
+    value = "no value"
+    if not op and desc:
+        value = desc
+    if op and not desc:
+        value = op
+    if op and desc:
+        value = f"{op} - {desc}"
+    return value

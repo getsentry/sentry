@@ -5,10 +5,13 @@ from unittest import mock
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
@@ -35,14 +38,18 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert form.cleaned_data["channel"] == expected_channel
 
     @responses.activate
-    def test_applies_correctly(self):
+    @mock.patch("sentry.analytics.record")
+    def test_applies_correctly(self, mock_record):
         event = self.get_event()
 
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
+        results = list(
+            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
+        )
         assert len(results) == 1
 
         responses.add(
@@ -65,6 +72,25 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = r"\[%s\](.*)" % event.title
         assert re.match(title_pattern, title_card["text"])
+        mock_record.assert_called_with(
+            "alert.sent",
+            provider="msteams",
+            alert_id="",
+            alert_type="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            external_id="nb",
+            notification_uuid=notification_uuid,
+        )
+        mock_record.assert_any_call(
+            "integrations.msteams.notification_sent",
+            category="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            notification_uuid=notification_uuid,
+            alert_id=None,
+        )
 
     @responses.activate
     @mock.patch(
@@ -76,12 +102,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
 
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=group_event, state=self.get_state()))
         assert len(results) == 1
 
         responses.add(
@@ -108,7 +134,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert description["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
 
     @responses.activate
-    def test_applies_correctly_performance_issue(self):
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    def test_applies_correctly_performance_issue(self, occurrence):
         event = self.create_performance_issue()
 
         rule = self.get_rule(

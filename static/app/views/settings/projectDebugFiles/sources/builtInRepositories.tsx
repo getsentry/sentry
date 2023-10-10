@@ -5,7 +5,9 @@ import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
@@ -19,7 +21,7 @@ type Props = {
   builtinSymbolSources: string[];
   isLoading: boolean;
   organization: Organization;
-  projSlug: Project['slug'];
+  project: Project;
 };
 
 function BuiltInRepositories({
@@ -27,7 +29,7 @@ function BuiltInRepositories({
   organization,
   builtinSymbolSourceOptions,
   builtinSymbolSources,
-  projSlug,
+  project,
   isLoading,
 }: Props) {
   // If the project details object has an unknown built-in source, this will be filtered here.
@@ -61,7 +63,7 @@ function BuiltInRepositories({
 
     try {
       const updatedProjectDetails: Project = await api.requestPromise(
-        `/projects/${organization.slug}/${projSlug}/`,
+        `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {
@@ -84,7 +86,7 @@ function BuiltInRepositories({
         {isLoading ? (
           <LoadingIndicator />
         ) : (
-          <Access access={['project:write']}>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <StyledSelectField
                 disabledReason={

@@ -9,18 +9,21 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
-import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {
-  orgSlug: string;
   projectSlug: string;
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
 };
 
-function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Props) {
+function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+  const organization = useOrganization();
+  const orgSlug = organization.slug;
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
-  const {releaseFileCount, bundleId} = releaseMeta;
+  const {releaseFileCount, isArtifactBundle} = releaseMeta;
 
   return (
     <SidebarSection.Wrap>
@@ -34,6 +37,10 @@ function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Pro
           <KeyValueTableRow
             keyName={t('Version')}
             value={<Version version={version} anchor={false} />}
+          />
+          <KeyValueTableRow
+            keyName={t('Semver')}
+            value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
           />
           <KeyValueTableRow
             keyName={t('Package')}
@@ -56,10 +63,10 @@ function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Pro
             value={
               <Link
                 to={
-                  bundleId
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/${encodeURIComponent(
-                        bundleId
-                      )}/`
+                  isArtifactBundle
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/?query=${encodeURIComponent(
+                        version
+                      )}`
                     : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
                         version
                       )}/`

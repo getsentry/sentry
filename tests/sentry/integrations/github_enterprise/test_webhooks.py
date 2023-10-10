@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from django.utils import timezone
 
 from fixtures.github_enterprise import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
@@ -11,11 +10,17 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.integrations.integration import Integration
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class WebhookTest(APITestCase):
     def test_get(self):
         url = "/extensions/github-enterprise/webhook/"
@@ -100,7 +105,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PushEventWebhookTest(APITestCase):
     @pytest.mark.skip(reason="Host has been taken down")
     @patch("sentry.integrations.github_enterprise.client.get_jwt")
@@ -191,16 +196,17 @@ class PushEventWebhookTest(APITestCase):
             "verify_ssl": True,
         }
 
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:12345",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_enterprise",
+                external_id="35.232.149.196:12345",
+                name="octocat",
+                metadata={
+                    "domain_name": "35.232.149.196/baxterthehacker",
+                    "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+                },
+            )
+            integration.add_organization(project.organization, self.user)
 
         Repository.objects.create(
             organization_id=project.organization.id,
@@ -340,7 +346,7 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PullRequestEventWebhook(APITestCase):
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_opened(self, mock_get_installation_metadata):
@@ -356,16 +362,17 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:234",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_enterprise",
+                external_id="35.232.149.196:234",
+                name="octocat",
+                metadata={
+                    "domain_name": "35.232.149.196/baxterthehacker",
+                    "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+                },
+            )
+            integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -413,16 +420,17 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:234",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_enterprise",
+                external_id="35.232.149.196:234",
+                name="octocat",
+                metadata={
+                    "domain_name": "35.232.149.196/baxterthehacker",
+                    "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+                },
+            )
+            integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -468,16 +476,17 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:234",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_enterprise",
+                external_id="35.232.149.196:234",
+                name="octocat",
+                metadata={
+                    "domain_name": "35.232.149.196/baxterthehacker",
+                    "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+                },
+            )
+            integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,

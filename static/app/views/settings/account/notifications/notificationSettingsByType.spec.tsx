@@ -1,6 +1,10 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {Organization} from 'sentry-fixture/organization';
+import {OrganizationIntegrations} from 'sentry-fixture/organizationIntegrations';
+import {UserIdentity} from 'sentry-fixture/userIdentity';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationIntegration} from 'sentry/types/integrations';
 import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
@@ -30,7 +34,7 @@ function renderMockRequests(
   });
 
   MockApiClient.addMockResponse({
-    url: '/projects/',
+    url: `/projects/`,
     method: 'GET',
     body: [],
   });
@@ -41,16 +45,18 @@ function renderComponent(
   identities: Identity[] = [],
   organizationIntegrations: OrganizationIntegration[] = []
 ) {
-  const {routerContext} = initializeOrg();
-  const org = TestStubs.Organization();
+  const org = Organization();
   renderMockRequests(notificationSettings, identities, organizationIntegrations);
 
-  render(<NotificationSettingsByType notificationType="alerts" organizations={[org]} />, {
-    context: routerContext,
-  });
+  render(<NotificationSettingsByType notificationType="alerts" organizations={[org]} />);
 }
 
 describe('NotificationSettingsByType', function () {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('should render when everything is disabled', function () {
     renderComponent({
       alerts: {user: {me: {email: 'never', slack: 'never'}}},
@@ -75,14 +81,14 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should render warning modal when identity not linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
       [],
-      [TestStubs.OrganizationIntegrations()]
+      [OrganizationIntegrations()]
     );
 
     expect(
@@ -95,14 +101,14 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should not render warning modal when identity is linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
-      [TestStubs.UserIdentity()],
-      [TestStubs.OrganizationIntegrations({organizationId: org.id})]
+      [UserIdentity()],
+      [OrganizationIntegrations({organizationId: org.id})]
     );
 
     expect(
@@ -110,5 +116,38 @@ describe('NotificationSettingsByType', function () {
         /You've selected Slack as your delivery method, but do not have a linked account for the following organizations/
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('should default to the subdomain org', async function () {
+    const organization = Organization();
+    const otherOrganization = Organization({
+      id: '2',
+      slug: 'other-org',
+      name: 'other org',
+    });
+    ConfigStore.set('customerDomain', {
+      ...ConfigStore.get('customerDomain')!,
+      subdomain: otherOrganization.slug,
+    });
+    renderMockRequests({
+      alerts: {user: {me: {email: 'always', slack: 'always'}}},
+    });
+    const projectsMock = MockApiClient.addMockResponse({
+      url: '/projects/',
+      query: {
+        organizationId: otherOrganization.id,
+      },
+      method: 'GET',
+      body: [],
+    });
+
+    render(
+      <NotificationSettingsByType
+        notificationType="alerts"
+        organizations={[organization, otherOrganization]}
+      />
+    );
+    expect(await screen.findByText(otherOrganization.name)).toBeInTheDocument();
+    expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 });

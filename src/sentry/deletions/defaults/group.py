@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import os
 from collections import defaultdict
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.rulefirehistory import RuleFireHistory
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -30,7 +33,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupEmailThread,
     models.GroupSubscription,
     models.GroupHistory,
-    models.RuleFireHistory,
+    RuleFireHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
@@ -73,7 +76,7 @@ class EventDataDeletionTask(BaseDeletionTask):
             group_ids.append(group.id)
         project_ids = list(project_groups.keys())
 
-        events = eventstore.get_unfetched_events(
+        events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=project_ids, group_ids=group_ids
             ),
@@ -87,15 +90,15 @@ class EventDataDeletionTask(BaseDeletionTask):
         if not events:
             # Remove all group events now that their node data has been removed.
             for project_id, group_ids in project_groups.items():
-                eventstream_state = eventstream.start_delete_groups(project_id, group_ids)
-                eventstream.end_delete_groups(eventstream_state)
+                eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+                eventstream.backend.end_delete_groups(eventstream_state)
             return False
 
         self.last_event = events[-1]
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        nodestore.delete_multi(node_ids)
+        nodestore.backend.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
@@ -126,7 +129,7 @@ class GroupDeletionTask(ModelDeletionTask):
         group_ids = [group.id for group in instance_list]
 
         # Remove child relations for all groups first.
-        child_relations = []
+        child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
@@ -150,7 +153,7 @@ class GroupDeletionTask(ModelDeletionTask):
         return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import Group, GroupStatus
+        from sentry.models.group import Group, GroupStatus
 
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS

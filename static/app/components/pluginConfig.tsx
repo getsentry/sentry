@@ -10,8 +10,12 @@ import {
 import {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
@@ -121,20 +125,20 @@ class PluginConfig extends Component<Props, State> {
           </PluginName>
 
           {data.canDisable && enabled && (
-            <Actions>
+            <ButtonBar gap={1}>
               {data.isTestable && (
-                <TestPluginButton onClick={this.handleTestPlugin} size="sm">
+                <Button onClick={this.handleTestPlugin} size="xs">
                   {t('Test Plugin')}
-                </TestPluginButton>
+                </Button>
               )}
               <Button
-                size="sm"
+                size="xs"
                 onClick={this.handleDisablePlugin}
                 disabled={!hasWriteAccess}
               >
                 {t('Disable')}
               </Button>
-            </Actions>
+            </ButtonBar>
           )}
         </PanelHeader>
 
@@ -177,13 +181,6 @@ const PluginName = styled('div')`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-`;
-const TestPluginButton = styled(Button)`
   margin-right: ${space(1)};
 `;
 

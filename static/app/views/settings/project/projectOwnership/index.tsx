@@ -13,14 +13,15 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
-import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownshipRulesTable';
+import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
@@ -31,9 +32,9 @@ type Props = {
 type State = {
   codeowners?: CodeOwner[];
   ownership?: null | IssueOwnership;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectOwnership extends AsyncView<Props, State> {
+class ProjectOwnership extends DeprecatedAsyncView<Props, State> {
   // TODO: Remove with `streamline-targeting-context`
   getOwnershipTitle() {
     const {organization} = this.props;
@@ -47,9 +48,9 @@ class ProjectOwnership extends AsyncView<Props, State> {
     return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, project} = this.props;
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
     if (organization.features.includes('integrations-codeowners')) {
@@ -138,17 +139,16 @@ tags.sku_class:enterprise #enterprise`;
             <ButtonBar gap={1}>
               {hasCodeowners && (
                 <Access access={['org:integrations']} project={project}>
-                  {({hasAccess}) =>
-                    hasAccess ? (
-                      <Button
-                        onClick={this.handleAddCodeOwner}
-                        size="sm"
-                        data-test-id="add-codeowner-button"
-                      >
-                        {t('Import CODEOWNERS')}
-                      </Button>
-                    ) : null
-                  }
+                  {({hasAccess}) => (
+                    <Button
+                      onClick={this.handleAddCodeOwner}
+                      size="sm"
+                      data-test-id="add-codeowner-button"
+                      disabled={!hasAccess}
+                    >
+                      {t('Import CODEOWNERS')}
+                    </Button>
+                  )}
                 </Access>
               )}
               {hasStreamlineTargetingContext && (
@@ -173,8 +173,7 @@ tags.sku_class:enterprise #enterprise`;
             </ButtonBar>
           }
         />
-
-        <p>
+        <TextBlock>
           {tct(
             `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
             {
@@ -183,12 +182,13 @@ tags.sku_class:enterprise #enterprise`;
               ),
             }
           )}
-        </p>
+        </TextBlock>
 
         <PermissionAlert
           access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
           project={project}
         />
+
         <CodeOwnerErrors
           orgSlug={organization.slug}
           projectSlug={project.slug}

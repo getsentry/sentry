@@ -2,7 +2,7 @@ from functools import cached_property
 
 import responses
 
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.segment.plugin import SegmentPlugin
 

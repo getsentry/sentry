@@ -1,15 +1,15 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity
+from sentry.models.identity import Identity
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import logger, send_slack_response
@@ -31,14 +31,15 @@ def build_unlinking_url(
     )
 
 
+@control_silo_view
 class SlackUnlinkIdentityView(BaseView):
     """
     Django view for unlinking user from slack account. Deletes from Identity table.
     """
 
     @transaction_start("SlackUnlinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    @method_decorator(never_cache)
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

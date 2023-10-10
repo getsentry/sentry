@@ -1,5 +1,5 @@
 from sentry.api.bases.project import ProjectPermission
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 

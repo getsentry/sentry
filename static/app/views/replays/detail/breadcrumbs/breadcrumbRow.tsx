@@ -1,14 +1,16 @@
-import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
+import {CSSProperties, MouseEvent} from 'react';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
-  breadcrumb: Crumb;
+  frame: ReplayFrame;
   index: number;
-  isCurrent: boolean;
-  isHovered: boolean;
+  onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
   onDimensionChange: (
     index: number,
     path: string,
@@ -22,46 +24,50 @@ interface Props {
 }
 
 function BreadcrumbRow({
-  breadcrumb,
   expandPaths,
+  frame,
   index,
-  isCurrent,
+  onClick,
   onDimensionChange,
-  isHovered,
   startTimestampMs,
   style,
 }: Props) {
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const {currentTime, currentHoverTime} = useReplayContext();
 
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
-  );
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
-  );
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
+
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
-    <BreadcrumbItem
-      index={index}
-      crumb={breadcrumb}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
-      onClick={onClickTimestamp}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      startTimestampMs={startTimestampMs}
+    <StyledTimeBorder
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
+        afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
+      })}
       style={style}
-      expandPaths={expandPaths}
-      onDimensionChange={onDimensionChange}
-    />
+    >
+      <BreadcrumbItem
+        index={index}
+        frame={frame}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        startTimestampMs={startTimestampMs}
+        expandPaths={expandPaths}
+        onDimensionChange={onDimensionChange}
+      />
+    </StyledTimeBorder>
   );
 }
 
-export default memo(BreadcrumbRow);
+const StyledTimeBorder = styled('div')`
+  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+`;
+
+export default BreadcrumbRow;

@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 const frames = [
   {
@@ -58,6 +58,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   expandFirstFrame: true,
   newestFirst: true,
   chainedException: false,
+  stackType: StackType.ORIGINAL,
   event: {
     ...TestStubs.Event(),
     entries: [],
@@ -92,9 +93,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
 
 describe('ExceptionStacktraceContent', function () {
   it('default behaviour', function () {
-    const {container} = render(<ExceptionStacktraceContent {...props} />);
-
-    expect(container).toSnapshot();
+    render(<ExceptionStacktraceContent {...props} />);
   });
 
   it('should return an emptyRender', function () {
@@ -109,7 +108,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         chainedException={false}
         stacktrace={{...stacktrace, frames: []}}
       />
@@ -134,11 +133,7 @@ describe('ExceptionStacktraceContent', function () {
 
   it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', function () {
     render(
-      <ExceptionStacktraceContent
-        {...props}
-        stackView={STACK_VIEW.APP}
-        chainedException
-      />
+      <ExceptionStacktraceContent {...props} stackView={StackView.APP} chainedException />
     );
 
     for (const frame of frames) {

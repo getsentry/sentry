@@ -1,9 +1,12 @@
-import logging
+from __future__ import annotations
 
-from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+import logging
+from typing import Any
+
+from django.db import router, transaction
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
@@ -13,13 +16,18 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
+)
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -62,7 +70,10 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyProxyClient(
+            org_integration_id=self.org_integration.id,
+            integration_key=integration_key,
+        )
 
     def get_organization_config(self):
         fields = [
@@ -90,48 +101,52 @@ class PagerDutyIntegration(IntegrationInstallation):
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
-            with transaction.atomic():
-                existing_service_items = PagerDutyService.objects.filter(
-                    organization_integration_id=self.org_integration.id
-                )
+            existing_service_items = OrganizationIntegration.services_in(
+                self.org_integration.config
+            )
+            updated_items: list[PagerDutyServiceDict] = []
 
-                for service_item in existing_service_items:
-                    # find the matching row from the input
-                    matched_rows = list(filter(lambda x: x["id"] == service_item.id, service_rows))
-                    if matched_rows:
-                        matched_row = matched_rows[0]
-                        service_item.integration_key = matched_row["integration_key"]
-                        service_item.service_name = matched_row["service"]
-                        service_item.save()
-                    else:
-                        service_item.delete()
+            for service_item in existing_service_items:
+                # find the matching row from the input
+                matched_rows = list(filter(lambda x: x["id"] == service_item["id"], service_rows))
+                if matched_rows:
+                    matched_row = matched_rows[0]
+                    updated_items.append(
+                        {
+                            "id": matched_row["id"],
+                            "integration_key": matched_row["integration_key"],
+                            "service_name": matched_row["service"],
+                            "integration_id": service_item["integration_id"],
+                        }
+                    )
+
+            oi = OrganizationIntegration.objects.get(id=self.org_integration.id)
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+                oi.set_services(updated_items)
+                oi.save()
 
                 # new rows don't have an id
                 new_rows = list(filter(lambda x: not x["id"], service_rows))
                 for row in new_rows:
                     service_name = row["service"]
                     key = row["integration_key"]
-                    PagerDutyService.objects.create(
-                        organization_integration_id=self.org_integration.id,
-                        service_name=service_name,
-                        integration_key=key,
-                    )
+                    oi.add_pagerduty_service(integration_key=key, service_name=service_name)
 
     def get_config_data(self):
         service_list = []
         for s in self.services:
             service_list.append(
-                {"service": s.service_name, "integration_key": s.integration_key, "id": s.id}
+                {
+                    "service": s["service_name"],
+                    "integration_key": s["integration_key"],
+                    "id": s["id"],
+                }
             )
         return {"service_table": service_list}
 
     @property
-    def services(self):
-        services = PagerDutyService.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
-
-        return services
+    def services(self) -> list[PagerDutyServiceDict]:
+        return OrganizationIntegration.services_in(self.org_integration.config)
 
 
 class PagerDutyIntegrationProvider(IntegrationProvider):
@@ -146,7 +161,12 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
@@ -156,10 +176,9 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
             logger.exception("The PagerDuty post_install step failed.")
             return
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationIntegration)):
             for service in services:
-                PagerDutyService.objects.create_or_update(
-                    organization_integration_id=org_integration.id,
+                org_integration.add_pagerduty_service(
                     integration_key=service["integration_key"],
                     service_name=service["name"],
                 )
@@ -188,7 +207,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

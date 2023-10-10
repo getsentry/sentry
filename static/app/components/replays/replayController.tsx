@@ -1,6 +1,7 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import screenfull from 'screenfull';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -8,7 +9,7 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
+import {formatTime} from 'sentry/components/replays/utils';
 import {
   IconContract,
   IconExpand,
@@ -23,27 +24,18 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
 const SECOND = 1000;
 
 const COMPACT_WIDTH_BREAKPOINT = 500;
 
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.INIT,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
-
 interface Props {
+  toggleFullscreen: () => void;
   speedOptions?: number[];
-  toggleFullscreen?: () => void;
 }
 
 function ReplayPlayPauseBar() {
@@ -88,18 +80,16 @@ function ReplayPlayPauseBar() {
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestampMs = replay?.getReplay().started_at?.getTime();
-          if (!startTimestampMs) {
+          if (!replay) {
             return;
           }
-          const transformedCrumbs = replay?.getRawCrumbs() || [];
-          const next = getNextReplayEvent({
-            items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            targetTimestampMs: startTimestampMs + currentTime,
+          const next = getNextReplayFrame({
+            frames: replay.getChapterFrames(),
+            targetOffsetMs: currentTime,
           });
 
-          if (startTimestampMs !== undefined && next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
+          if (next) {
+            setCurrentTime(next.offsetMs);
           }
         }}
         aria-label={t('Fast-forward to next breadcrumb')}
@@ -159,21 +149,22 @@ function ReplayControls({
   const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
-  const {isFullscreen} = useFullscreen();
-
+  const isFullscreen = useIsFullscreen();
   const {currentTime, replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 
-  const handleFullscreenToggle = () => {
-    if (toggleFullscreen) {
-      trackAnalytics('replay.toggle-fullscreen', {
-        organization,
-        user_email: config.user.email,
-        fullscreen: !isFullscreen,
-      });
-      toggleFullscreen();
-    }
-  };
+  // If the browser supports going fullscreen or not. iPhone Safari won't do
+  // it. https://caniuse.com/fullscreen
+  const showFullscreenButton = screenfull.isEnabled;
+
+  const handleFullscreenToggle = useCallback(() => {
+    trackAnalytics('replay.toggle-fullscreen', {
+      organization,
+      user_email: config.user.email,
+      fullscreen: !isFullscreen,
+    });
+    toggleFullscreen();
+  }, [config.user.email, isFullscreen, organization, toggleFullscreen]);
 
   const updateIsCompact = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {
@@ -203,13 +194,15 @@ function ReplayControls({
       </TimeAndScrubber>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
-        <Button
-          size="sm"
-          title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-          aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-          icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
-          onClick={handleFullscreenToggle}
-        />
+        {showFullscreenButton ? (
+          <Button
+            size="sm"
+            title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+            aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+            icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
+            onClick={handleFullscreenToggle}
+          />
+        ) : null}
       </ButtonBar>
     </ButtonGrid>
   );

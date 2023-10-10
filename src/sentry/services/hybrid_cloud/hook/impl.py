@@ -2,32 +2,32 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import deletions
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import expand_events
 from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
+from sentry.services.hybrid_cloud.hook.serial import serialize_service_hook
 
 
-class DatabaseBackedAppService(
-    HookService,
-):
+class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
-        application_id: Optional[int] = None,
-        webhook_url: Optional[str] = None,
+        organization_id: int,
+        application_id: Optional[int],
+        webhook_url: Optional[str],
         events: List[str],
     ) -> List[RpcServiceHook]:
-        hooks = ServiceHook.objects.filter(application_id=application_id)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
                 for hook in hooks:
                     hook.url = webhook_url
                     hook.events = expand_events(events)
                     hook.save()
-                return [self.serialize_service_hook(h) for h in hooks]
+                return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
                 return []
@@ -44,7 +44,7 @@ class DatabaseBackedAppService(
         url: str = "",
     ) -> RpcServiceHook:
         # nullable for sentry apps
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             project_id: Optional[int] = project_ids[0] if project_ids else None
 
             hook = ServiceHook.objects.create(
@@ -60,7 +60,4 @@ class DatabaseBackedAppService(
                 for project_id in project_ids:
                     hook.add_project(project_id)
 
-            return self.serialize_service_hook(hook)
-
-    def close(self) -> None:
-        pass
+            return serialize_service_hook(hook)

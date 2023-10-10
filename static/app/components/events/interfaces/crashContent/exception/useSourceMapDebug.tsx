@@ -24,10 +24,6 @@ interface UnknownErrorDebugError extends BaseSourceMapDebugError {
 interface MissingReleaseDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_RELEASE;
 }
-interface MissingUserAgentDebugError extends BaseSourceMapDebugError {
-  data: {version: string};
-  type: SourceMapProcessingIssueType.MISSING_USER_AGENT;
-}
 interface MissingSourcemapsDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
 }
@@ -49,17 +45,20 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   data: {absPath: string};
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
+interface DebugIdNotSetUpError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS;
+}
 
 export type SourceMapDebugError =
   | UnknownErrorDebugError
   | MissingReleaseDebugError
-  | MissingUserAgentDebugError
   | MissingSourcemapsDebugError
   | UrlNotValidDebugError
   | PartialMatchDebugError
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
-  | NoURLMatchDebugError;
+  | NoURLMatchDebugError
+  | DebugIdNotSetUpError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -68,13 +67,13 @@ export interface SourceMapDebugResponse {
 export enum SourceMapProcessingIssueType {
   UNKNOWN_ERROR = 'unknown_error',
   MISSING_RELEASE = 'no_release_on_event',
-  MISSING_USER_AGENT = 'no_user_agent_on_release',
   MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
   URL_NOT_VALID = 'url_not_valid',
   NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
 }
 
 const sourceMapDebugQuery = ({
@@ -125,7 +124,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseApiQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),
@@ -134,7 +133,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
           api.requestPromise(key[0], {
             method: 'GET',
             query: key[1]?.query,
-          }),
+          }) as Promise<SourceMapDebugResponse>,
         ...options,
       };
     }),

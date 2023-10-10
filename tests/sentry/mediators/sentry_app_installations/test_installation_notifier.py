@@ -4,9 +4,9 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.sentry_app_installations import InstallationNotifier
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import DictContaining, faux
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -21,6 +21,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
+@control_silo_test(stable=True)
 class TestInstallationNotifier(TestCase):
     def setUp(self):
         super().setUp()
@@ -43,9 +44,9 @@ class TestInstallationNotifier(TestCase):
     def test_task_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="created")
 
-        data = faux(safe_urlopen).kwargs["data"]
+        ((args, kwargs),) = safe_urlopen.call_args_list
 
-        assert json.loads(data) == {
+        assert json.loads(kwargs["data"]) == {
             "action": "created",
             "installation": {"uuid": self.install.uuid},
             "data": {
@@ -60,24 +61,21 @@ class TestInstallationNotifier(TestCase):
             "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
         }
 
-        assert faux(safe_urlopen).kwarg_equals(
-            "headers",
-            DictContaining(
-                "Content-Type",
-                "Request-ID",
-                "Sentry-Hook-Resource",
-                "Sentry-Hook-Timestamp",
-                "Sentry-Hook-Signature",
-            ),
-        )
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_uninstallation_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
 
-        data = faux(safe_urlopen).kwargs["data"]
+        ((args, kwargs),) = safe_urlopen.call_args_list
 
-        assert json.loads(data) == {
+        assert json.loads(kwargs["data"]) == {
             "action": "deleted",
             "installation": {"uuid": self.install.uuid},
             "data": {
@@ -92,16 +90,13 @@ class TestInstallationNotifier(TestCase):
             "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
         }
 
-        assert faux(safe_urlopen).kwarg_equals(
-            "headers",
-            DictContaining(
-                "Content-Type",
-                "Request-ID",
-                "Sentry-Hook-Resource",
-                "Sentry-Hook-Timestamp",
-                "Sentry-Hook-Signature",
-            ),
-        )
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):

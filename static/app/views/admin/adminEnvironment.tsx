@@ -7,7 +7,7 @@ import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   config: [key: string, value: string][];
@@ -18,10 +18,10 @@ type Data = {
   pythonVersion: string;
 };
 
-type State = AsyncView['state'] & {data: Data};
+type State = DeprecatedAsyncView['state'] & {data: Data};
 
-export default class AdminEnvironment extends AsyncView<{}, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class AdminEnvironment extends DeprecatedAsyncView<{}, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/environment/']];
   }
 

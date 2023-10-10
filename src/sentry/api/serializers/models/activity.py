@@ -2,8 +2,12 @@ import functools
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
-from sentry.models import Activity, Commit, Group, PullRequest
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.pullrequest import PullRequest
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.activity import ActivityType
 from sentry.utils.functional import apply_values
 
@@ -16,7 +20,9 @@ class ActivitySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
-        user_list = user_service.serialize_many(filter={"user_ids": user_ids}, as_user=user)
+        user_list = user_service.serialize_many(
+            filter={"user_ids": user_ids}, as_user=serialize_generic_user(user)
+        )
         users = {u["id"]: u for u in user_list}
 
         commit_ids = {

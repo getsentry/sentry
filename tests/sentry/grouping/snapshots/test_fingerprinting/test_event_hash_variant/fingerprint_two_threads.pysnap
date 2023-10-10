@@ -19,7 +19,6 @@ variants:
   app:
     component:
       contributes: false
-      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
@@ -30,6 +29,5 @@ variants:
   system:
     component:
       contributes: false
-      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component

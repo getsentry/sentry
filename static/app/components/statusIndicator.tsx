@@ -1,9 +1,10 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 
 type Props = {
-  status: string;
+  status: 'muted' | 'info' | 'warning' | 'success' | 'resolved' | 'error';
   tooltipTitle: React.ReactNode;
 };
 
@@ -13,7 +14,7 @@ type Props = {
  *
  */
 function StatusIndicator({status, tooltipTitle}: Props) {
-  let color: string = 'error';
+  let color: keyof Theme['alert'] = 'error';
 
   if (status === 'muted') {
     color = 'muted';
@@ -34,7 +35,7 @@ function StatusIndicator({status, tooltipTitle}: Props) {
 
 export default StatusIndicator;
 
-const StatusLevel = styled('div')<{color: string}>`
+const StatusLevel = styled('div')<{color: keyof Theme['alert']}>`
   position: absolute;
   left: -1px;
   width: 9px;

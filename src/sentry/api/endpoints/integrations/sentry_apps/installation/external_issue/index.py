@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
@@ -9,7 +10,8 @@ from sentry.api.bases import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import URLField
 from sentry.mediators.external_issues import Creator
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -20,6 +22,10 @@ class PlatformExternalIssueSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, installation) -> Response:
         data = request.data
 

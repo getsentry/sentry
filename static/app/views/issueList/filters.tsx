@@ -5,7 +5,6 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
-import IssueCategoryFilter from 'sentry/views/issueList/issueCategoryFilter';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface Props {
@@ -20,7 +19,6 @@ function IssueListFilters({query, onSearch}: Props) {
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
-        <IssueCategoryFilter query={query} onSearch={onSearch} />
       </StyledPageFilterBar>
 
       <IssueSearchWithSavedSearches {...{query, onSearch}} />

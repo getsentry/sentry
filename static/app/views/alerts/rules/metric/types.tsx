@@ -73,7 +73,7 @@ export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
 };
 
-type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;
@@ -103,6 +103,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   dateModified: string;
   id: string;
   name: string;
+  snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
   errors?: {detail: string}[];
@@ -111,6 +112,8 @@ export interface SavedMetricRule extends UnsavedMetricRule {
    */
   latestIncident?: Incident | null;
   originalAlertRuleId?: number | null;
+  snoozeCreatedBy?: string;
+  snoozeForEveryone?: boolean;
 }
 
 export type MetricRule = Partial<SavedMetricRule> & UnsavedMetricRule;
@@ -142,6 +145,8 @@ export enum ActionType {
   SLACK = 'slack',
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
+  OPSGENIE = 'opsgenie',
+  DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
 }
 
@@ -152,6 +157,8 @@ export const ActionLabel = {
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
+  [ActionType.OPSGENIE]: t('Opsgenie'),
+  [ActionType.DISCORD]: t('Discord'),
   [ActionType.SENTRY_APP]: t('Notification'),
 };
 

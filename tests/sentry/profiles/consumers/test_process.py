@@ -1,5 +1,7 @@
-from copy import copy
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 
 import msgpack
@@ -29,13 +31,14 @@ class TestProcessProfileConsumerStrategy(TestCase):
             "received": int(datetime.utcnow().timestamp()),
             "payload": json.dumps({"platform": "android", "profile": ""}),
         }
+        payload = msgpack.packb(message_dict)
 
         processing_strategy.submit(
             Message(
                 BrokerValue(
                     KafkaPayload(
                         b"key",
-                        msgpack.packb(message_dict),
+                        payload,
                         [],
                     ),
                     Partition(Topic("profiles"), 1),
@@ -48,16 +51,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.join(1)
         processing_strategy.terminate()
 
-        profile = json.loads(message_dict["payload"], use_rapid_json=True)
-        profile.update(
-            {
-                "organization_id": message_dict["organization_id"],
-                "project_id": message_dict["project_id"],
-                "received": message_dict["received"],
-            }
-        )
-
-        process_profile_task.assert_called_with(profile=profile)
+        process_profile_task.assert_called_with(payload=payload)
 
 
 def test_adjust_instruction_addr_sample_format():
@@ -66,16 +60,17 @@ def test_adjust_instruction_addr_sample_format():
         {"instruction_addr": "0xbeefdead"},
         {"instruction_addr": "0xfeedface"},
     ]
-    profile = {
+    profile: dict[str, Any] = {
         "version": "1",
+        "platform": "cocoa",
         "profile": {
-            "frames": copy(original_frames),
+            "frames": original_frames.copy(),
             "stacks": [[1, 0], [0, 1, 2]],
         },
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile)
     assert profile["profile"]["stacks"] == [[3, 0], [4, 1, 2]]
     frames = stacktraces[0]["frames"]
 
@@ -88,6 +83,7 @@ def test_adjust_instruction_addr_sample_format():
 
 def test_adjust_instruction_addr_original_format():
     profile = {
+        "platform": "cocoa",
         "sampled_profile": {
             "samples": [
                 {
@@ -101,7 +97,7 @@ def test_adjust_instruction_addr_original_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile)
     frames = stacktraces[0]["frames"]
 
     assert not frames[0]["adjust_instruction_addr"]

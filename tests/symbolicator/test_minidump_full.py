@@ -8,10 +8,13 @@ from django.urls import reverse
 
 from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
-from sentry.models import EventAttachment, File
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
@@ -23,6 +26,9 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 # If you are using a local instance of Symbolicator, you need to
 # either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 
 @pytest.mark.snuba
@@ -63,7 +69,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
     _FEATURES = {
         "organizations:event-attachments": True,
@@ -82,7 +88,10 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                         "upload_file_minidump": f,
                         "some_file": ("hello.txt", BytesIO(b"Hello World!")),
                     },
-                    {"sentry[logger]": "test-logger"},
+                    {
+                        "sentry[logger]": "test-logger",
+                        "sentry[level]": "error",
+                    },
                 )
 
         candidates = event.data["debug_meta"]["images"][0]["candidates"]
@@ -91,6 +100,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         insta_snapshot_native_stacktrace_data(self, event.data)
         assert event.data.get("logger") == "test-logger"
+        assert event.data.get("level") == "error"
         # assert event.data.get("extra") == {"foo": "bar"}
 
         attachments = sorted(
@@ -176,7 +186,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             burst(max_jobs=100)
 
-            new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
+            new_event = eventstore.backend.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
             assert new_event.event_id == event.event_id
 

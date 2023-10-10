@@ -28,7 +28,7 @@ def test_should_not_log_rules_if_unchanged():
         },
     ]
 
-    assert not should_log_rules_change(1, new_rules)
+    assert not should_log_rules_change(1, new_rules)  # type:ignore
 
 
 @patch(
@@ -57,7 +57,7 @@ def test_should_not_log_rules_if_unchanged_and_different_order():
         },
     ]
 
-    assert not should_log_rules_change(1, new_rules)
+    assert not should_log_rules_change(1, new_rules)  # type:ignore
 
 
 @patch(
@@ -75,7 +75,6 @@ def test_should_not_log_rules_if_unchanged_and_different_order():
                                 "op": "glob",
                                 "name": "trace.environment",
                                 "value": ["*dev*", "*test*"],
-                                "options": {"ignoreCase": True},
                             }
                         ],
                     },
@@ -97,7 +96,6 @@ def test_should_log_rules_if_new_rule_added():
                         "op": "glob",
                         "name": "trace.environment",
                         "value": ["*dev*", "*test*"],
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
@@ -120,7 +118,7 @@ def test_should_log_rules_if_new_rule_added():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)
+    assert should_log_rules_change(1, new_rules)  # type:ignore
 
 
 @patch(
@@ -138,7 +136,6 @@ def test_should_log_rules_if_new_rule_added():
                                 "op": "glob",
                                 "name": "trace.environment",
                                 "value": ["*dev*", "*test*"],
-                                "options": {"ignoreCase": True},
                             }
                         ],
                     },
@@ -160,7 +157,6 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                         "op": "glob",
                         "name": "trace.environment",
                         "value": ["*dev*", "*test*"],
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
@@ -169,7 +165,7 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)
+    assert should_log_rules_change(1, new_rules)  # type:ignore
 
 
 @patch(
@@ -187,7 +183,6 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                                 "op": "glob",
                                 "name": "trace.environment",
                                 "value": ["*dev*", "*test*"],
-                                "options": {"ignoreCase": True},
                             }
                         ],
                     },
@@ -201,8 +196,12 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                     "condition": {
                         "op": "and",
                         "inner": [
-                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                            {"op": "eq", "name": "trace.environment", "value": "dev"},
+                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},  # type:ignore
+                            {
+                                "op": "eq",  # type:ignore
+                                "name": "trace.environment",
+                                "value": ["dev"],
+                            },
                         ],
                     },
                     "id": 1501,
@@ -227,7 +226,6 @@ def test_should_log_rules_if_rule_is_deleted():
                         "op": "glob",
                         "name": "trace.environment",
                         "value": ["*dev*", "*test*"],
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
@@ -236,4 +234,4 @@ def test_should_log_rules_if_rule_is_deleted():
         },
     ]
 
-    assert should_log_rules_change(1, new_rules)
+    assert should_log_rules_change(1, new_rules)  # type:ignore

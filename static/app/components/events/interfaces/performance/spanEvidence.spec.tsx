@@ -6,6 +6,9 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {EntryType, IssueTitle, IssueType} from 'sentry/types';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+
 import {SpanEvidenceSection} from './spanEvidence';
 
 const {organization, project} = initializeData();
@@ -82,5 +85,69 @@ describe('spanEvidence', () => {
     const affectedSpan = screen.getByTestId('row-title-content-affected');
     expect(affectedSpan).toBeInTheDocument();
     expect(affectedSpan).toHaveTextContent('db — connect');
+  });
+
+  it('renders settings button for issue with configurable thresholds', () => {
+    const event = TestStubs.Event({
+      occurrence: {
+        type: 1001,
+        issueTitle: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+      },
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    });
+    organization.features = ['project-performance-settings-admin'];
+
+    render(
+      <SpanEvidenceSection
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Span Evidence')).toBeInTheDocument();
+
+    const settingsBtn = screen.getByTestId('span-evidence-settings-btn');
+    expect(settingsBtn).toBeInTheDocument();
+    expect(settingsBtn).toHaveAttribute(
+      'href',
+      `/settings/projects/project-slug/performance/?issueType=${
+        IssueType.PERFORMANCE_SLOW_DB_QUERY
+      }#${sanitizeQuerySelector(IssueTitle.PERFORMANCE_SLOW_DB_QUERY)}`
+    );
+  });
+
+  it('does not render settings button for issue without configurable thresholds', () => {
+    const event = TestStubs.Event({
+      occurrence: {
+        type: 2003, // profile_json_decode_main_thread
+      },
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    });
+
+    render(
+      <SpanEvidenceSection
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Span Evidence')).toBeInTheDocument();
+
+    const settingsBtn = screen.queryByTestId('span-evidence-settings-btn');
+    expect(settingsBtn).not.toBeInTheDocument();
   });
 });

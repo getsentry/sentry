@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -142,25 +142,45 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {...actions[index]};
-    if (newAction.type !== 'slack') {
-      return null;
+    if (newAction.type === 'slack') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Having rate limiting problems? Enter a channel or user ID.')}
+        </MarginlessAlert>
+      );
     }
-    return (
-      <MarginlessAlert
-        type="info"
-        showIcon
-        trailingItems={
-          <Button
-            href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-            size="xs"
-          >
-            {t('Learn More')}
-          </Button>
-        }
-      >
-        {t('Having rate limiting problems? Enter a channel or user ID.')}
-      </MarginlessAlert>
-    );
+    if (newAction.type === 'discord') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Note that you must enter a Discord channel ID, not a channel name.')}
+        </MarginlessAlert>
+      );
+    }
+    return null;
   }
 
   handleAddAction = () => {

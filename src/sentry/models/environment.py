@@ -1,9 +1,10 @@
 import re
 from urllib.parse import unquote
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -21,11 +22,11 @@ OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 @region_silo_only_model
 class EnvironmentProject(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
-    is_hidden = models.NullBooleanField()
+    is_hidden = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -35,7 +36,7 @@ class EnvironmentProject(Model):
 
 @region_silo_only_model
 class Environment(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
@@ -53,7 +54,7 @@ class Environment(Model):
     def is_valid_name(cls, value):
         """Limit length and reject problematic bytes
 
-        If you change the rules here also update the event ingestion schema in Relay.
+        If you change the rules here also update the event + monitor check-in ingestion schema in Relay.
         """
         if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
             return False
@@ -106,7 +107,7 @@ class Environment(Model):
 
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(EnvironmentProject)):
                     EnvironmentProject.objects.create(
                         project=project, environment=self, is_hidden=is_hidden
                     )

@@ -8,8 +8,8 @@ from sentry.audit_log import (
     AuditLogEventNotRegistered,
     DuplicateAuditLogEvent,
 )
-from sentry.models import AuditLogEntry
-from sentry.testutils import TestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -3,11 +3,16 @@ from __future__ import annotations
 from typing import Any, List, Mapping
 
 from sentry import features
-from sentry.api.serializers.models.user import UserSerializer
-from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -53,6 +58,8 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
+        if features.has("organizations:escalating-issues", project.organization):
+            send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
 @comment_created.connect(weak=False)
@@ -109,10 +116,7 @@ def send_workflow_webhooks(
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
-            data["user"] = user_service.serialize_many(
-                filter={"user_ids": [user.id]},
-                serializer=UserSerializer(),
-            )[0]
+            data["user"] = user_service.serialize_many(filter={"user_ids": [user.id]})[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 

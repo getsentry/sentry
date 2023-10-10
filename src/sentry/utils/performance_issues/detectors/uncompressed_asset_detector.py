@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+import re
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
-from sentry.models import Organization, Project
+from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_resource_span,
+    get_notification_attachment_body,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_DENYLIST = ("woff", "woff2")
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+FILE_EXTENSION_ALLOWLIST = ("CSS", "JSON", "JS")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -19,7 +31,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "any_compression")
 
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
-    type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
+    type = DetectorType.UNCOMPRESSED_ASSETS
 
     def init(self):
         self.stored_problems = {}
@@ -36,8 +48,10 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
+        # TODO(nar): The sentence-style keys can be removed once SDK adoption has increased and
+        # we are receiving snake_case keys consistently, likely beyond October 2023
         transfer_size = data and (
-            data.get("http.transfer_size", None) or data.get("Transfer Size", None)
+            data.get("http.response_transfer_size", None) or data.get("Transfer Size", None)
         )
         encoded_body_size = data and (
             data.get("http.response_content_length", None) or data.get("Encoded Body Size", None)
@@ -66,7 +80,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if description.endswith(FILE_EXTENSION_DENYLIST):
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
 
         # Ignore assets under a certain duration threshold
@@ -91,8 +107,22 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                     "parent_span_ids": [],
                     "cause_span_ids": [],
                     "offender_span_ids": [span.get("span_id", None)],
+                    "transaction_name": self._event.get("description", ""),
+                    "repeating_spans": get_span_evidence_value(span),
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                    "num_repeating_spans": str(len(span.get("span_id", None))),
                 },
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value=get_notification_attachment_body(
+                            op,
+                            description,
+                        ),
+                        # Has to be marked important to be displayed in the notifications
+                        important=True,
+                    )
+                ],
             )
 
     def _fingerprint(self, span) -> str:

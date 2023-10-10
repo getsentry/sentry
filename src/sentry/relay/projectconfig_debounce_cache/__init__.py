@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from django.conf import settings
 
 from sentry.utils.services import LazyServiceWrapper
@@ -27,6 +25,3 @@ invalidation = LazyServiceWrapper(
         **settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS,
     },
 )
-
-if TYPE_CHECKING:
-    mark_task_done = backend.mark_task_done

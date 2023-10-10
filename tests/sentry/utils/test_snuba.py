@@ -1,15 +1,16 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
-from sentry.models import GroupRelease, Project, Release
-from sentry.testutils import TestCase
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (
-    Dataset,
     SnubaQueryParams,
     UnqualifiedQueryError,
     _prepare_query_params,
@@ -24,7 +25,7 @@ from sentry.utils.snuba import (
 class SnubaUtilsTest(TestCase):
     def setUp(self):
         self.now = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
@@ -298,7 +299,7 @@ class PrepareQueryParamsTest(TestCase):
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
-        self.now = timezone.now().replace(microsecond=0)
+        self.now = django_timezone.now().replace(microsecond=0)
 
     def test_cache_suffix_time(self):
         starting_key = quantize_time(self.now, 0)

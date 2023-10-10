@@ -1,6 +1,7 @@
 import logging
 
 from sentry.auth import access
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import send_messages
 
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_user_from_email(group, email):
-    from sentry.models import User
+    from sentry.models.user import User
 
     # TODO(dcramer): we should encode the userid in emails so we can avoid this
     for user in User.objects.filter(email__iexact=email):
@@ -26,10 +27,11 @@ def _get_user_from_email(group, email):
     queue="email",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 def process_inbound_email(mailfrom, group_id, payload):
     """ """
-    from sentry.models import Group
+    from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
     try:

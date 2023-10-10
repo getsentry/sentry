@@ -5,6 +5,7 @@ from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
@@ -13,12 +14,12 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.silo import SiloMode, unguarded_write
 
 
 @region_silo_only_model
 class Counter(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     value = BoundedBigIntegerField()
@@ -99,7 +100,10 @@ def create_counter_function(app_config, using, **kwargs):
     if not get_model_if_available(app_config, "Counter"):
         return
 
-    with in_test_psql_role_override("postgres", using), connections[using].cursor() as cursor:
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        return
+
+    with unguarded_write(using), connections[using].cursor() as cursor:
         cursor.execute(
             """
             create or replace function sentry_increment_project_counter(

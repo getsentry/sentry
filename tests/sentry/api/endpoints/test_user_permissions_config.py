@@ -1,4 +1,4 @@
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -12,7 +12,7 @@ class UserPermissionsConfigTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionsConfigGetTest(UserPermissionsConfigTest):
     def test_lookup_self(self):
         resp = self.get_response("me")

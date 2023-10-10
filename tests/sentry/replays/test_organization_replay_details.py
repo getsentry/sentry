@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
@@ -48,7 +48,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            self.login_as(member2.user)
+            self.login_as(member2)
             response = self.client.get(self.url)
             assert response.status_code == 404
 

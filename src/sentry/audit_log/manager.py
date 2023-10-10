@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from sentry.models.auditlogentry import AuditLogEntry
 
@@ -78,11 +80,11 @@ class AuditLogEvent:
 
 class AuditLogEventManager:
     def __init__(self) -> None:
-        self._event_registry = {}
-        self._event_id_lookup = {}
-        self._api_name_lookup = {}
+        self._event_registry: dict[str, AuditLogEvent] = {}
+        self._event_id_lookup: dict[int, AuditLogEvent] = {}
+        self._api_name_lookup: dict[str, AuditLogEvent] = {}
 
-    def add(self, audit_log_event: AuditLogEvent):
+    def add(self, audit_log_event: AuditLogEvent) -> None:
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
@@ -106,10 +108,10 @@ class AuditLogEventManager:
             raise AuditLogEventNotRegistered(f"Event {name} does not exist")
         return self._event_registry[name].event_id
 
-    def get_event_id_from_api_name(self, api_name: str) -> int:
+    def get_event_id_from_api_name(self, api_name: str) -> int | None:
         if api_name not in self._api_name_lookup:
             return None
         return self._api_name_lookup[api_name].event_id
 
-    def get_api_names(self) -> List[str]:
-        return self._api_name_lookup.keys()
+    def get_api_names(self) -> list[str]:
+        return list(self._api_name_lookup)

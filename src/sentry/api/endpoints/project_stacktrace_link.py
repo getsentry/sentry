@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Dict, List, Mapping, Optional
 
@@ -6,13 +8,16 @@ from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
-from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -29,9 +34,7 @@ def get_link(
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
@@ -139,37 +142,27 @@ def set_tags(scope: Scope, result: JSONData) -> None:
     scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
-@region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
     """
-    Returns valid links for source code providers so that
-    users can go from the file in the stack trace to the
-    provider of their choice.
+    Returns the code mapping config list for a project sorted based on precedence.
+    User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+    roots.
 
-    `file`: The file path from the stack trace
-    `commitId` (optional): The commit_id for the last commit of the
-                           release associated to the stack trace's event
-    `sdkName` (optional): The sdk.name associated with the event
-    `absPath` (optional): The abs_path field value of the relevant stack frame
-    `module`   (optional): The module field value of the relevant stack frame
-    `package`  (optional): The package field value of the relevant stack frame
-
+    `project`: The project to get the list of sorted code mapping configs for
     """
 
-    def sort_code_mapping_configs(
-        self,
-        configs: List[RepositoryProjectPathConfig],
-    ) -> List[RepositoryProjectPathConfig]:
-        """
-        Sorts the code mapping config list based on precedence.
-        User generated code mappings are evaluated before Sentry generated code mappings.
-        Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots.
+    # xxx(meredith): if there are ever any changes to this query, make
+    # sure that we are still ordering by `id` because we want to make sure
+    # the ordering is deterministic
+    # codepath mappings must have an associated integration for stacktrace linking.
+    configs = RepositoryProjectPathConfig.objects.filter(
+        project=project, organization_integration_id__isnull=False
+    )
 
-        `configs`: The list of code mapping configs
+    sorted_configs: list[RepositoryProjectPathConfig] = []
 
-        """
-        sorted_configs = []  # type: List[RepositoryProjectPathConfig]
+    try:
         for config in configs:
             inserted = False
             for index, sorted_config in enumerate(sorted_configs):
@@ -189,7 +182,32 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(len(sorted_configs), config)
                 else:
                     sorted_configs.insert(0, config)
-        return sorted_configs
+    except Exception:
+        logger.exception("There was a failure sorting the code mappings")
+
+    return sorted_configs
+
+
+@region_silo_endpoint
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    """
+    Returns valid links for source code providers so that
+    users can go from the file in the stack trace to the
+    provider of their choice.
+
+    `file`: The file path from the stack trace
+    `commitId` (optional): The commit_id for the last commit of the
+                           release associated to the stack trace's event
+    `sdkName` (optional): The sdk.name associated with the event
+    `absPath` (optional): The abs_path field value of the relevant stack frame
+    `module`   (optional): The module field value of the relevant stack frame
+    `package`  (optional): The package field value of the relevant stack frame
+    """
+
+    owner = ApiOwner.ISSUES
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -199,28 +217,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(
-            organizationintegration__organization_id=project.organization_id
-        )
+        integrations = integration_service.get_integrations(organization_id=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
+        serializer = IntegrationSerializer()
         result["integrations"] = [
-            serialize(i, request.user)
+            serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        # xxx(meredith): if there are ever any changes to this query, make
-        # sure that we are still ordering by `id` because we want to make sure
-        # the ordering is deterministic
-        # codepath mappings must have an associated integration for stacktrace linking.
-        configs = RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration_id__isnull=False
-        )
-        try:
-            configs = self.sort_code_mapping_configs(configs)
-        except Exception:
-            logger.exception("There was a failure sorting the code mappings")
+        configs = get_code_mapping_configs(project)
 
         current_config = None
         with configure_scope() as scope:

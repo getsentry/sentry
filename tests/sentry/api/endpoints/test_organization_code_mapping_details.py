@@ -1,9 +1,12 @@
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
-from sentry.models import Integration, Repository, RepositoryProjectPathConfig
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.repository import Repository
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -28,17 +31,20 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             teams=[self.team2],
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.integration = Integration.objects.create(
-            provider="github", name="Example", external_id="abcd"
-        )
-        self.org_integration = self.integration.add_organization(self.org, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="github", name="Example", external_id="abcd"
+            )
+            self.org_integration = self.integration.add_organization(self.org, self.user)
         self.repo = Repository.objects.create(
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=str(self.repo.id),
-            project_id=str(self.project.id),
-            organization_integration_id=str(self.org_integration.id),
+            repository_id=self.repo.id,
+            project_id=self.project.id,
+            organization_integration_id=self.org_integration.id,
+            integration_id=self.org_integration.integration_id,
+            organization_id=self.org_integration.organization_id,
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",

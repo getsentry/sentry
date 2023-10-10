@@ -1,13 +1,14 @@
-from base64 import b64encode
-
 from django.urls import reverse
 
-from sentry.models import ApiKey
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.models.apikey import ApiKey
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
@@ -18,7 +19,7 @@ class OrganizationProjectsTestBase(APITestCase):
         ]
 
     def test_api_key(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["org:read"]
             )
@@ -28,7 +29,7 @@ class OrganizationProjectsTestBase(APITestCase):
         path = reverse(self.endpoint, args=[self.organization.slug])
         response = self.client.get(
             path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
         )
         self.check_valid_response(response, [project])
 

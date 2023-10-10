@@ -5,15 +5,15 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularit
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
     OPERATIONS,
     DerivedMetricException,
-    TransactionMRI,
 )
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
@@ -286,7 +286,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
             for select_field in select:
                 if select_field.op != TEAM_KEY_TRANSACTION_OP:
                     expr = metric_object_factory(select_field.op, select_field.metric_mri)
-                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                    entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
                     if isinstance(entity, str):
                         entities.add(entity)
         else:
@@ -302,7 +302,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                         expr = metric_object_factory(
                             orderby_field.field.op, orderby_field.field.metric_mri
                         )
-                        entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                        entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
                         if isinstance(entity, str):
                             entities.add(entity)
 
@@ -406,6 +406,8 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
 
 
 def _transform_team_key_transaction_fake_mri(mq_dict):
+    if "project_ids" not in mq_dict:
+        raise MQBQueryTransformationException("Missing project_id in query")
     mri_to_apply = _derive_mri_to_apply(
         mq_dict["project_ids"], mq_dict["select"], mq_dict["orderby"]
     )

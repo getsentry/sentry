@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import logging
-import random
+import time
+from datetime import datetime, timedelta
 from importlib import import_module
+from typing import TYPE_CHECKING, Any, Dict, Type
 from urllib.parse import parse_qs as urlparse_parse_qs
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.request import urlopen
@@ -9,14 +13,56 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 
-try:
-    random = random.SystemRandom()
-    using_sysrandom = True
-except NotImplementedError:
-    using_sysrandom = False
-
-
 LEAVE_CHARS = getattr(settings, "SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS", 4)
+
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+    from social_auth.backends import SocialAuthBackend
+
+    from .models import UserSocialAuth
+
+
+def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> Type[SocialAuthBackend] | None:
+    # Make import here to avoid recursive imports :-/
+    from social_auth.backends import get_backends
+
+    return get_backends().get(instance.provider)
+
+
+def tokens(instance: UserSocialAuth | RpcUserSocialAuth) -> Dict[str, Any]:
+    """Return access_token stored in extra_data or None"""
+    backend = instance.get_backend()
+    if backend:
+        return backend.AUTH_BACKEND.tokens(instance)
+    else:
+        return {}
+
+
+def expiration_datetime(instance: UserSocialAuth | RpcUserSocialAuth) -> timedelta | None:
+    """Return provider session live seconds. Returns a timedelta ready to
+    use with session.set_expiry().
+
+    If provider returns a timestamp instead of session seconds to live, the
+    timedelta is inferred from current time (using UTC timezone). None is
+    returned if there's no value stored or it's invalid.
+    """
+    if instance.extra_data and "expires" in instance.extra_data:
+        try:
+            expires = int(instance.extra_data["expires"])
+        except (ValueError, TypeError):
+            return None
+
+        now = datetime.utcnow()
+
+        # Detect if expires is a timestamp
+        if expires > time.mktime(now.timetuple()):
+            # expires is a datetime
+            return datetime.fromtimestamp(expires) - now
+        else:
+            # expires is a timedelta
+            return timedelta(seconds=expires)
+    return None
 
 
 def sanitize_log_data(secret, data=None, leave_characters=LEAVE_CHARS):
@@ -59,10 +105,8 @@ def backend_setting(backend, name, default=None):
         return default
 
 
-logger = None
-if not logger:
-    logger = logging.getLogger("SocialAuth")
-    logger.setLevel(logging.DEBUG)
+logger = logging.getLogger("SocialAuth")
+logger.setLevel(logging.DEBUG)
 
 
 def log(level, *args, **kwargs):
@@ -88,6 +132,7 @@ def ctype_to_model(val):
     if isinstance(val, dict) and "pk" in val and "ctype" in val:
         ctype = ContentType.objects.get_for_id(val["ctype"])
         ModelClass = ctype.model_class()
+        assert ModelClass is not None
         val = ModelClass.objects.get(pk=val["pk"])
     return val
 

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -8,9 +10,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -21,7 +23,7 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
@@ -36,6 +38,7 @@ describe('Dashboards > WidgetCard', function () {
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
+    description: 'Valid widget description',
     interval: '5m',
     displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
@@ -69,16 +72,12 @@ describe('Dashboards > WidgetCard', function () {
     },
   };
 
-  const api = new Client();
+  const api = new MockApiClient();
   let eventsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {meta: {isMetricsData: false}},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
       body: {meta: {isMetricsData: false}},
     });
     eventsMock = MockApiClient.addMockResponse({
@@ -147,23 +146,12 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('Opens in Discover with World Map', async function () {
+  it('renders widget description in dashboard', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [
-            {
-              ...multipleQueryWidget.queries[0],
-              fields: ['count()'],
-              aggregates: ['count()'],
-              columns: [],
-            },
-          ],
-        }}
+        widget={multipleQueryWidget}
         selection={selection}
         isEditing={false}
         onDelete={() => undefined}
@@ -175,12 +163,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
-    );
+    expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
   it('Opens in Discover with prepended fields pulled from equations', async function () {
@@ -303,7 +286,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -331,7 +314,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -359,7 +342,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -387,7 +370,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -650,7 +633,7 @@ describe('Dashboards > WidgetCard', function () {
           },
           units: {
             time: null,
-            p95_measurements_custom: 'minute',
+            p95_measurements_custom: 'millisecond',
           },
           isMetricsData: true,
           tips: {},
@@ -694,10 +677,105 @@ describe('Dashboards > WidgetCard', function () {
     const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(tooltip).toBeDefined();
     expect(yAxis).toBeDefined();
-    // @ts-ignore
+    // @ts-expect-error
     expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
-    // @ts-ignore
+    // @ts-expect-error
     expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
+  });
+
+  it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
+    const spy = jest.spyOn(LineChart, 'LineChart');
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [
+            1658262600,
+            [
+              {
+                count: 40 * SECOND,
+              },
+            ],
+          ],
+          [
+            1658262601,
+            [
+              {
+                count: 50 * SECOND,
+              },
+            ],
+          ],
+          [
+            1658262602,
+            [
+              {
+                count: MINUTE,
+              },
+            ],
+          ],
+          [
+            1658262603,
+            [
+              {
+                count: 1.3 * MINUTE,
+              },
+            ],
+          ],
+        ],
+        meta: {
+          fields: {
+            time: 'date',
+            p50_transaction_duration: 'duration',
+          },
+          units: {
+            time: null,
+            p50_transaction_duration: 'millisecond',
+          },
+          isMetricsData: false,
+          tips: {},
+        },
+      },
+    });
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          title: '',
+          interval: '5m',
+          widgetType: WidgetType.DISCOVER,
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              conditions: '',
+              name: '',
+              fields: [],
+              columns: [],
+              aggregates: ['p50(transaction.duration)'],
+              orderby: '',
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+    await waitFor(function () {
+      expect(eventsStatsMock).toHaveBeenCalled();
+    });
+    const {yAxis} = spy.mock.calls.pop()?.[0] ?? {};
+    expect(yAxis).toBeDefined();
+
+    // @ts-expect-error
+    expect(yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')).toEqual('60s');
+    expect((yAxis as any).minInterval).toEqual(SECOND);
   });
 
   it('displays indexed badge in preview mode', async function () {

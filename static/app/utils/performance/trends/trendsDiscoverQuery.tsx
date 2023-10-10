@@ -16,6 +16,7 @@ import {
   generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
+  getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
 
 export type TrendsRequest = {
@@ -63,11 +64,20 @@ export function getTrendsRequestPayload(props: RequestProps) {
   apiPayload.trendType = eventView?.trendType || props.trendChangeType;
   apiPayload.interval = eventView?.interval;
   apiPayload.middle = eventView?.middle;
+
+  // This enables configuring the top event count for trend analysis
+  // It's not necessary to set top event count unless
+  // it's done for experimentation
+  const topEventsCountAsString = getTopTrendingEvents(props.location);
+  if (topEventsCountAsString) {
+    apiPayload.topEvents = parseInt(topEventsCountAsString, 10);
+  }
+
   return apiPayload;
 }
 
 function TrendsDiscoverQuery(props: Props) {
-  const route = props.withBreakpoint ? 'new-events-trends-stats' : 'events-trends-stats';
+  const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -59,6 +59,6 @@ class InternalBeaconTest(APITestCase):
         assert response.status_code == 400
 
         # Test a single metric with a large dict
-        metric = {i: i for i in range(25)}
-        response = self.client.post(url, data={"batch_data": [metric]})
+        metric_invalid = {i: i for i in range(25)}
+        response = self.client.post(url, data={"batch_data": [metric_invalid]})
         assert response.status_code == 400

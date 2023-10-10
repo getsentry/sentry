@@ -1,7 +1,7 @@
 import os.path
 from distutils import log
 
-from .base import BaseBuildCommand
+from .base import ROOT, BaseBuildCommand
 
 
 class BuildIntegrationDocsCommand(BaseBuildCommand):
@@ -10,7 +10,7 @@ class BuildIntegrationDocsCommand(BaseBuildCommand):
     def get_dist_paths(self):
         return [
             # Also see sentry.utils.integrationdocs.DOC_FOLDER
-            os.path.join(self.get_root_path(), "src", "sentry", "integration-docs")
+            os.path.join(ROOT, "src", "sentry", "integration-docs")
         ]
 
     def _build(self):

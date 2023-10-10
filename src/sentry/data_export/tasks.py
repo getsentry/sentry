@@ -7,6 +7,8 @@ from hashlib import sha1
 import celery
 import sentry_sdk
 
+from sentry.silo import SiloMode
+
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 if celery.version_info >= (5, 2):
     from celery import current_task
@@ -18,14 +20,10 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry.models import (
-    DEFAULT_BLOB_SIZE,
-    MAX_FILE_SIZE,
-    AssembleChecksumMismatch,
-    File,
-    FileBlob,
-    FileBlobIndex,
-)
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -53,6 +51,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     max_retries=3,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_download(
     data_export_id,
@@ -211,7 +210,7 @@ def get_processor(data_export, environment_id):
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
-            processor = IssuesByTagProcessor(
+            return IssuesByTagProcessor(
                 project_id=payload["project"][0],
                 group_id=payload["group"],
                 key=payload["key"],
@@ -219,13 +218,12 @@ def get_processor(data_export, environment_id):
                 tenant_ids={"organization_id": data_export.organization_id},
             )
         elif data_export.query_type == ExportQueryType.DISCOVER:
-            processor = DiscoverProcessor(
+            return DiscoverProcessor(
                 discover_query=data_export.query_info,
                 organization_id=data_export.organization_id,
             )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
-        return processor
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
@@ -298,7 +296,12 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
+@instrumented_task(
+    name="sentry.data_export.tasks.merge_blobs",
+    queue="data_export",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):
         try:

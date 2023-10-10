@@ -76,7 +76,7 @@ class IntegrationDocsFetchPlugin {
   ) => {
     let httpClient = https;
     if (url.parse(PLATFORMS_URL).protocol === 'http:') {
-      // @ts-ignore
+      // @ts-expect-error
       httpClient = http;
     }
     return httpClient

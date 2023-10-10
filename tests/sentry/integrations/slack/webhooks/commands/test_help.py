@@ -1,7 +1,13 @@
 from typing import Optional
 
+import responses
+
+from fixtures.slack import HELP_COMMAND, INVALID_COMMAND, MISSING_COMMAND
 from sentry.integrations.slack.message_builder import SlackBody
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
+from sentry.testutils.silo import control_silo_test
+from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -18,15 +24,42 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] 
     assert "Here are the commands you can use" in text
 
 
+@control_silo_test(
+    stable=True,
+    regions=[
+        Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+    ],
+)
 class SlackCommandsHelpTest(SlackCommandsTest):
+    @responses.activate
     def test_missing_command(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            responses.add(
+                method=responses.POST,
+                url="http://us.testserver/extensions/slack/commands/",
+                json=MISSING_COMMAND,
+            )
         data = self.send_slack_message("")
         assert_is_help_text(data)
 
+    @responses.activate
     def test_invalid_command(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            responses.add(
+                method=responses.POST,
+                url="http://us.testserver/extensions/slack/commands/",
+                json=INVALID_COMMAND,
+            )
         data = self.send_slack_message("invalid command")
         assert_unknown_command_text(data, "invalid command")
 
+    @responses.activate
     def test_help_command(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            responses.add(
+                method=responses.POST,
+                url="http://us.testserver/extensions/slack/commands/",
+                json=HELP_COMMAND,
+            )
         data = self.send_slack_message("help")
         assert_is_help_text(data)

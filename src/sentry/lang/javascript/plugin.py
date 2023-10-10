@@ -4,7 +4,6 @@ from sentry.utils.safe import get_path
 
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
-from .processor import JavaScriptStacktraceProcessor
 
 
 # TODO: We still need `preprocess_event` tasks and the remaining, non-symbolication specific
@@ -42,10 +41,3 @@ class JavascriptPlugin(Plugin2):
         if data.get("platform") in ("javascript", "node"):
             return [preprocess_event]
         return []
-
-    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if data.pop("processed_by_symbolicator", False):
-            return []
-
-        if "javascript" in platforms or "node" in platforms:
-            return [JavaScriptStacktraceProcessor]

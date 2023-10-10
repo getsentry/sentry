@@ -2,17 +2,12 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {FieldValueType} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 
-type Sort<F> = {
-  key: F;
-  order: 'asc' | 'desc';
-};
+import type {EventsResults, Sort} from './types';
 
 export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   fields: readonly F[];
@@ -27,21 +22,6 @@ export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> 
   refetchOnMount?: boolean;
 }
 
-type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
-
-export type EventsResultsDataRow<F extends string = ProfilingFieldType> = {
-  [K in F]: string | number | null;
-};
-
-type EventsResultsMeta<F extends string> = {
-  fields: Partial<{[K in F]: FieldValueType}>;
-  units: Partial<{[K in F]: Unit}>;
-};
-
-export type EventsResults<F extends string> = {
-  data: EventsResultsDataRow<F>[];
-  meta: EventsResultsMeta<F>;
-};
 export function useProfileEvents<F extends string>({
   fields,
   limit,
@@ -104,20 +84,4 @@ export function formatError(error: any): string | null {
   }
 
   return t('An unknown error occurred.');
-}
-
-export function formatSort<F extends string>(
-  value: string | undefined,
-  allowedKeys: readonly F[],
-  fallback: Sort<F>
-): Sort<F> {
-  value = value || '';
-  const order: Sort<F>['order'] = value[0] === '-' ? 'desc' : 'asc';
-  const key = order === 'asc' ? value : value.substring(1);
-
-  if (!allowedKeys.includes(key as F)) {
-    return fallback;
-  }
-
-  return {key: key as F, order};
 }

@@ -8,7 +8,8 @@ import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Duplicate', function () {
-  beforeAll(function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -61,7 +62,7 @@ describe('Incident Rules Duplicate', function () {
     });
     rule.resolveThreshold = 50;
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project, routerProps} = initializeOrg({
       organization: {
         access: ['alerts:write'],
       },
@@ -69,7 +70,7 @@ describe('Incident Rules Duplicate', function () {
         params: {},
         location: {
           query: {
-            createFromDuplicate: true,
+            createFromDuplicate: 'true',
             duplicateRuleId: `${rule.id}`,
           },
         },
@@ -87,15 +88,10 @@ describe('Incident Rules Duplicate', function () {
       <Fragment>
         <GlobalModal />
         <MetricRulesDuplicate
-          params={{}}
-          route={{}}
-          routeParams={router.params}
-          router={router}
-          routes={router.routes}
-          location={router.location}
           organization={organization}
           project={project}
           userTeamIds={[]}
+          {...routerProps}
         />
       </Fragment>
     );
@@ -126,7 +122,7 @@ describe('Incident Rules Duplicate', function () {
       desc: 'Send a Slack notification to #feed-ecosystem',
     });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project, routerProps} = initializeOrg({
       organization: {
         access: ['alerts:write'],
       },
@@ -134,7 +130,7 @@ describe('Incident Rules Duplicate', function () {
         params: {},
         location: {
           query: {
-            createFromDuplicate: true,
+            createFromDuplicate: 'true',
             duplicateRuleId: `${rule.id}`,
           },
         },
@@ -150,15 +146,10 @@ describe('Incident Rules Duplicate', function () {
 
     render(
       <MetricRulesDuplicate
-        params={{}}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
-        location={router.location}
         organization={organization}
         project={project}
         userTeamIds={[]}
+        {...routerProps}
       />
     );
 

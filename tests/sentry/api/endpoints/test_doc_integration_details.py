@@ -1,14 +1,17 @@
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.testutils import APITestCase
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class DocIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-details"
 
@@ -74,7 +77,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 @control_silo_test(stable=True)
 class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "PUT"
-    payload = {
+    payload: dict[str, Any] = {
         "name": "Enemy",
         "author": "Imagine Dragons",
         "description": "An opening theme song 👀",

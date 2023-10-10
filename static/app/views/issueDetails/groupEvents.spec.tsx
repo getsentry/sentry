@@ -10,14 +10,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Group, Organization} from 'sentry/types';
-import {GroupEvents} from 'sentry/views/issueDetails/groupEvents';
+import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;
 
 describe('groupEvents', () => {
   const requests: {[requestName: string]: jest.Mock} = {};
   const baseProps = Object.freeze({
-    api: new MockApiClient(),
     params: {orgId: 'orgId', groupId: '1'},
     route: {},
     routeParams: {},
@@ -109,6 +108,12 @@ describe('groupEvents', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+
+    requests.latestEvent = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/issues/1/events/latest/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -116,28 +121,29 @@ describe('groupEvents', () => {
     jest.clearAllMocks();
   });
 
-  it('renders', () => {
-    const wrapper = render(
-      <GroupEvents
-        {...baseProps}
-        organization={organization}
-        location={{...location, query: {}}}
-      />,
-      {context: routerContext, organization}
-    );
+  it('fetches and renders a table of events', async () => {
+    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
+      context: routerContext,
+      organization,
+    });
 
-    expect(wrapper.container).toSnapshot();
+    expect(await screen.findByText('id123')).toBeInTheDocument();
+
+    // Transaction
+    expect(screen.getByText('/api')).toBeInTheDocument();
+    // Environment
+    expect(screen.getByText('prod')).toBeInTheDocument();
+    // Release
+    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+    // User email
+    expect(screen.getByText('sentry@sentry.sentry')).toBeInTheDocument();
   });
 
   it('handles search', async () => {
-    render(
-      <GroupEvents
-        {...baseProps}
-        organization={organization}
-        location={{...location, query: {}}}
-      />,
-      {context: routerContext, organization}
-    );
+    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
+      context: routerContext,
+      organization,
+    });
 
     const list = [
       {searchTerm: '', expectedQuery: ''},
@@ -165,7 +171,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -186,7 +191,6 @@ describe('groupEvents', () => {
       <GroupEvents
         {...baseProps}
         group={group}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -211,7 +215,6 @@ describe('groupEvents', () => {
       <GroupEvents
         {...baseProps}
         group={group}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -226,15 +229,12 @@ describe('groupEvents', () => {
   });
 
   it('does not make attachments request, async when feature not enabled', async () => {
-    const org = initializeOrg();
-
     render(
       <GroupEvents
         {...baseProps}
-        organization={org.organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {context: routerContext, organization: {...organization, features: []}}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -247,7 +247,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -263,7 +262,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -297,7 +295,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -330,7 +327,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -347,7 +343,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -370,7 +365,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging'], sort: 'user'}}}
       />,
       {context: routerContext, organization}
@@ -388,7 +382,6 @@ describe('groupEvents', () => {
       <GroupEvents
         {...baseProps}
         group={group}
-        organization={organization}
         location={{
           ...location,
           query: {
@@ -421,7 +414,6 @@ describe('groupEvents', () => {
     render(
       <GroupEvents
         {...baseProps}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
@@ -439,7 +431,6 @@ describe('groupEvents', () => {
       <GroupEvents
         {...baseProps}
         group={group}
-        organization={organization}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}

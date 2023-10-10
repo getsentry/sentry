@@ -5,9 +5,11 @@ from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 
@@ -215,6 +217,7 @@ class GitlabSearchTest(GitLabTestCase):
         )
         assert resp.status_code == 400
 
+    @responses.activate
     def test_projects_request_fails(self):
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})

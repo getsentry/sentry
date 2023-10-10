@@ -6,9 +6,9 @@ from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import File
+from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -169,7 +169,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested issue does not exist"
 
-    @patch("sentry.tagstore.get_tag_key")
+    @patch("sentry.tagstore.backend.get_tag_key")
     @patch("sentry.utils.snuba.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):

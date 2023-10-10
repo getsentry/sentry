@@ -1,17 +1,22 @@
-from django.db import transaction
+from django.db import router, transaction
 from django.http import Http404
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, deletions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.models import ApiToken, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 
 
 @control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
@@ -36,7 +41,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(SentryAppInstallationToken)):
             try:
                 install_token = SentryAppInstallationToken.objects.get(api_token=api_token)
                 sentry_app_installation = install_token.sentry_app_installation

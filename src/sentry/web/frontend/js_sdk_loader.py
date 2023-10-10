@@ -2,14 +2,15 @@ import time
 from typing import Optional, Tuple, TypedDict
 
 from django.conf import settings
+from django.http import HttpResponse
 from packaging.version import Version
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
@@ -160,7 +161,9 @@ class JavaScriptSdkLoader(BaseView):
             sdk_url,
         )
 
-    def get(self, request: Request, public_key: Optional[str], minified: Optional[str]) -> Response:
+    def get(
+        self, request: Request, public_key: Optional[str], minified: Optional[str] = None
+    ) -> HttpResponse:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()
         key = None

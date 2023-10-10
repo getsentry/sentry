@@ -1,19 +1,36 @@
-from unittest.mock import MagicMock, patch
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from typing import Any
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
+import pytest
 import responses
 from django.urls import reverse
+from isodate import parse_datetime
 
 import sentry
 from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
+from sentry.integrations.github import (
+    API_ERRORS,
+    MINIMUM_REQUESTS,
+    GitHubIntegrationProvider,
+    client,
+)
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models import Integration, OrganizationIntegration, Project, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import IntegrationTestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -61,6 +78,7 @@ class GitHubPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
+@control_silo_test(stable=True)
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
@@ -82,11 +100,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
-        sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
-        sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
         pp = 1
 
         responses.add(
@@ -95,7 +116,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
-        repositories = {
+        repositories: dict[str, Any] = {
             "xyz": {
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
@@ -211,33 +232,34 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_plugin_migration(self):
-        accessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="github",
-            external_id=123,
-            config={"name": "Test-Organization/foo"},
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+            )
 
-        inaccessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Not-My-Org/other",
-            provider="github",
-            external_id=321,
-            config={"name": "Not-My-Org/other"},
-        )
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Not-My-Org/other",
+                provider="github",
+                external_id=321,
+                config={"name": "Not-My-Org/other"},
+            )
 
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        # Updates the existing Repository to belong to the new Integration
-        assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-
-        # Doesn't touch Repositories not accessible by the new Integration
-        assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Updates the existing Repository to belong to the new Integration
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            # Doesn't touch Repositories not accessible by the new Integration
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
     def test_basic_flow(self):
@@ -249,10 +271,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.external_id == self.installation_id
         assert integration.name == "Test Organization"
         assert integration.metadata == {
-            "access_token": None,
+            "access_token": self.access_token,
             # The metadata doesn't get saved with the timezone "Z" character
-            # for some reason, so just compare everything but that.
-            "expires_at": None,
+            "expires_at": self.expires_at[:-1],
             "icon": "http://example.com/avatar.png",
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
@@ -364,27 +385,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
         assert integration.external_id == self.installation_id
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
         self._stub_github()
 
-        project = Project.objects.create(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            project = Project.objects.create(organization_id=self.organization.id)
 
-        plugin = plugins.get("github")
-        plugin.enable(project)
+            plugin = plugins.get("github")
+            plugin.enable(project)
 
-        # Accessible to new Integration - mocked in _stub_github
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="github",
-            external_id="123",
-            config={"name": "Test-Organization/foo"},
-        )
+            # Accessible to new Integration - mocked in _stub_github
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id="123",
+                config={"name": "Test-Organization/foo"},
+            )
 
         # Enabled before
         assert "github" in [p.slug for p in plugins.for_project(project)]
@@ -456,15 +478,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link_file_exists(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="integrations:github",
-            external_id=123,
-            config={"name": "Test-Organization/foo"},
-            integration_id=integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
 
         path = "README.md"
         version = "1234567"
@@ -483,15 +506,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="integrations:github",
-            external_id=123,
-            config={"name": "Test-Organization/foo"},
-            integration_id=integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
         path = "README.md"
         version = "master"
         default = "master"
@@ -506,19 +530,51 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not result
 
     @responses.activate
+    def test_get_stacktrace_link_no_org_integration(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="integrations:github",
-            external_id=123,
-            config={"name": "Test-Organization/foo"},
-            integration_id=integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
         path = "README.md"
         version = "12345678"
         default = "master"
@@ -829,3 +885,165 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("baz", "master", []),
                 ]
             )
+
+    @responses.activate
+    def test_get_commit_context(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "sentry/tasks.py"
+        event_frame = {
+            "function": "handle_set_commits",
+            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+            "module": "sentry.tasks",
+            "in_app": True,
+            "lineno": 30,
+            "filename": "sentry/tasks.py",
+        }
+        ref = "master"
+        query = f"""query {{
+            repository(name: "foo", owner: "Test-Organization") {{
+                ref(qualifiedName: "{ref}") {{
+                    target {{
+                        ... on Commit {{
+                            blame(path: "{filepath}") {{
+                                ranges {{
+                                        commit {{
+                                            oid
+                                            author {{
+                                                name
+                                                email
+                                            }}
+                                            message
+                                            committedDate
+                                        }}
+                                    startingLine
+                                    endingLine
+                                    age
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        }}"""
+        commit_date = (datetime.now(tz=timezone.utc) - timedelta(days=4)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {
+                    "repository": {
+                        "ref": {
+                            "target": {
+                                "blame": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                                                "author": {
+                                                    "date": commit_date,
+                                                    "email": "nisanthan.nanthakumar@sentry.io",
+                                                    "name": "Nisanthan Nanthakumar",
+                                                },
+                                                "message": "Add installation instructions",
+                                                "committedDate": commit_date,
+                                            },
+                                            "startingLine": 30,
+                                            "endingLine": 30,
+                                            "age": 3,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            content_type="application/json",
+        )
+        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
+
+        commit_context_expected = {
+            "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+            "committedDate": parse_datetime(commit_date),
+            "commitMessage": "Add installation instructions",
+            "commitAuthorName": "Nisanthan Nanthakumar",
+            "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
+        }
+
+        assert commit_context == commit_context_expected
+
+    @responses.activate
+    def test_source_url_matches(self):
+        installation = self.get_installation_helper()
+
+        test_cases = [
+            (
+                "https://github.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                True,
+            ),
+            (
+                "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/github/integration.py"
+        )

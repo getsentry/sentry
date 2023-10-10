@@ -1,34 +1,28 @@
-from datetime import timedelta
-from unittest.mock import patch
+from datetime import timedelta, timezone
+from unittest import mock
 
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.issues.grouptype import (
-    PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileFileIOGroupType,
-)
-from sentry.models import (
-    Group,
-    GroupEnvironment,
-    GroupLink,
-    GroupResolution,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    NotificationSetting,
-    UserOption,
-)
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -53,7 +47,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["permalink"] is None
 
     def test_is_ignored_with_expired_snooze(self):
-        now = timezone.now()
+        now = django_timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -64,7 +58,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"] == {}
 
     def test_is_ignored_with_valid_snooze(self):
-        now = timezone.now()
+        now = django_timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -80,7 +74,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"]["actor"] is None
 
     def test_is_ignored_with_valid_snooze_and_actor(self):
-        now = timezone.now()
+        now = django_timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -143,9 +137,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age, mock_record):
+    @mock.patch("sentry.models.Group.is_over_resolve_age")
+    def test_auto_resolved(self, mock_is_over_resolve_age):
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -154,16 +147,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
-        mock_record.assert_called_with(
-            "issue.resolved",
-            default_user_id=self.project.organization.get_default_owner().id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            group_id=group.id,
-            resolution_type="automatic",
-            issue_type="error",
-            issue_category="error",
-        )
 
     def test_subscribed(self):
         user = self.create_user()
@@ -276,20 +259,20 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         for default_value, project_value, is_subscribed, has_details in combinations:
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 UserOption.objects.clear_local_cache()
 
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -297,13 +280,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -325,13 +308,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
                 NotificationSetting.objects.update_settings(
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -347,12 +330,12 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 NotificationSetting.objects.update_settings(
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -438,8 +421,17 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
-            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
-            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+            last_seen = None if days is None else before_now(days=days).replace(tzinfo=timezone.utc)
+            start = GroupSerializerSnuba._get_start_from_seen_stats(
+                {
+                    mock.sentinel.group: {
+                        "last_seen": last_seen,
+                        "first_seen": None,
+                        "times_seen": 0,
+                        "user_count": 0,
+                    }
+                }
+            )
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
@@ -450,22 +442,22 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
                 ),
             ]
         )
@@ -479,40 +471,44 @@ class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
     PerfIssueTransactionTestMixin,
+    PerformanceIssueTestCase,
 ):
     def test_perf_seen_stats(self):
         proj = self.create_project()
-        environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
-        timestamp = timezone.now() - timedelta(days=5)
+        first_group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
+        timestamp = django_timezone.now() - timedelta(days=5)
         times = 5
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            for _ in range(0, times):
-                self.store_transaction(
-                    proj.id,
-                    "user1",
-                    [first_group_fingerprint],
-                    environment.name,
-                    timestamp=timestamp + timedelta(minutes=1),
-                )
+        for _ in range(0, times):
+            event_data = load_data(
+                "transaction-n-plus-one",
+                timestamp=timestamp + timedelta(minutes=1),
+                start_timestamp=timestamp + timedelta(minutes=1),
+            )
+            event_data["user"] = {"email": "test1@example.com"}
 
-            event = self.store_transaction(
-                proj.id,
-                "user2",
-                [first_group_fingerprint],
-                environment.name,
-                timestamp=timestamp + timedelta(minutes=2),
+            self.create_performance_issue(
+                event_data=event_data, fingerprint=first_group_fingerprint, project_id=proj.id
             )
 
-        first_group = event.groups[0]
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=timestamp + timedelta(minutes=2),
+            start_timestamp=timestamp + timedelta(minutes=2),
+        )
+        event_data["user"] = {"email": "test2@example.com"}
+
+        event = self.create_performance_issue(
+            event_data=event_data, fingerprint=first_group_fingerprint, project_id=proj.id
+        )
+
+        first_group = event.group
 
         result = serialize(
             first_group,
             serializer=GroupSerializerSnuba(
-                environment_ids=[environment.id],
-                start=timestamp - timedelta(hours=1),
-                end=timestamp + timedelta(hours=1),
+                start=django_timezone.now() - timedelta(days=60),
+                end=django_timezone.now() + timedelta(days=10),
             ),
         )
 
@@ -520,21 +516,6 @@ class PerformanceGroupSerializerSnubaTest(
         assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
         assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)
-
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            result = serialize(
-                first_group,
-                serializer=GroupSerializerSnuba(
-                    environment_ids=[environment.id],
-                    start=timestamp - timedelta(hours=1),
-                    end=timestamp + timedelta(hours=1),
-                ),
-            )
-
-            assert result["userCount"] == 2
-            assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
-            assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
-            assert result["count"] == str(times + 1)
 
 
 @region_silo_test
@@ -548,7 +529,7 @@ class ProfilingGroupSerializerSnubaTest(
         environment = self.create_environment(project=proj)
 
         first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
-        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
+        timestamp = (django_timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group
@@ -568,6 +549,7 @@ class ProfilingGroupSerializerSnubaTest(
             environment.name,
             timestamp + timedelta(minutes=5),
         )
+        assert group_info is not None
 
         first_group = group_info.group
 

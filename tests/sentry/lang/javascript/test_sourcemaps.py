@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from symbolic import SourceMapTokenMatch, SourceMapView
+from symbolic.sourcemap import SourceMapTokenMatch, SourceMapView
 
 from sentry.utils import json
 
@@ -107,11 +107,14 @@ class GetSourceContentsTest(TestCase):
 
     def test_indexed_inline(self):
         smap_view = SourceMapView.from_json_bytes(indexed_sourcemap_example)
-
-        assert smap_view.get_sourceview(0).get_source() == (
+        sview_0 = smap_view.get_sourceview(0)
+        assert sview_0 is not None
+        assert sview_0.get_source() == (
             " ONE.foo = function (bar) {\n" + "   return baz(bar);\n" + " };"
         )
-        assert smap_view.get_sourceview(1).get_source() == (
+        sview_1 = smap_view.get_sourceview(1)
+        assert sview_1 is not None
+        assert sview_1.get_source() == (
             " TWO.inc = function (n) {\n" + "   return n + 1;\n" + " };"
         )
 

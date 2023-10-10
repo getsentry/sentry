@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
@@ -175,7 +174,7 @@ function TeamMisery({
   );
 }
 
-type Props = AsyncComponent['props'] & {
+type Props = {
   location: Location;
   organization: Organization;
   projects: Project[];

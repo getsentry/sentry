@@ -4,9 +4,12 @@ from typing import Dict, List, TypedDict
 
 from sentry_sdk.crons.decorator import monitor
 
+from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupStatus, ObjectStatus, Project
-from sentry.tasks.base import instrumented_task
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.silo import SiloMode
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -28,7 +31,8 @@ ITERATOR_CHUNK = 10_000
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     queue="weekly_escalating_forecast",
     max_retries=0,  # TODO: Increase this when the task is changed to run weekly
-)  # type: ignore
+    silo_mode=SiloMode.REGION,
+)
 @monitor(monitor_slug="escalating-issue-forecast-job-monitor")
 def run_escalating_forecast() -> None:
     """
@@ -38,7 +42,7 @@ def run_escalating_forecast() -> None:
 
     for project_ids in chunked(
         RangeQuerySetWrapper(
-            Project.objects.filter(status=ObjectStatus.VISIBLE).values_list("id", flat=True),
+            Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True),
             result_value_getter=lambda item: item,
             step=ITERATOR_CHUNK,
         ),
@@ -52,7 +56,9 @@ def run_escalating_forecast() -> None:
     queue="weekly_escalating_forecast",
     max_retries=3,
     default_retry_delay=60,
-)  # type: ignore
+    silo_mode=SiloMode.REGION,
+)
+@retry
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(

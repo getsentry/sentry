@@ -6,7 +6,9 @@ from django.urls import reverse
 
 from sentry import eventstore
 from sentry.api.serializers import Serializer
-from sentry.models import Organization, Project, SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 
@@ -60,7 +62,7 @@ class RequestSerializer(Serializer):
             # Make sure the project actually belongs to the org that owns the Sentry App
             if project.organization_id == self.sentry_app.owner_id:
                 # Make sure the event actually exists
-                event = eventstore.get_event_by_id(project.id, obj.data["error_id"])
+                event = eventstore.backend.get_event_by_id(project.id, obj.data["error_id"])
                 if event is not None and event.group_id is not None:
                     data["errorUrl"] = reverse(
                         "sentry-organization-event-detail",

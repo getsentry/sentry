@@ -26,7 +26,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[]}
           project={project}
-          sort="p99"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -42,7 +42,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -52,17 +52,15 @@ describe('FunctionsTable', function () {
 
   it('renders one function', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: 'foo',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
-      sum: 25000000,
+      'count()': 10,
+      'examples()': [
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      ],
+      function: 'foo',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: 'bar',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -73,7 +71,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-pr5"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -96,17 +94,15 @@ describe('FunctionsTable', function () {
 
   it('renders empty name', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: '',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
-      sum: 25000000,
+      'count()': 10,
+      'examples()': [
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      ],
+      function: '',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: 'bar',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -117,7 +113,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p75()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -131,17 +127,15 @@ describe('FunctionsTable', function () {
 
   it('renders empty package', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: 'foo',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
-      sum: 25000000,
+      'count()': 10,
+      'examples()': [
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      ],
+      function: 'foo',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: '',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -152,7 +146,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p75()', order: 'desc'}}
         />
       </TestContext>
     );

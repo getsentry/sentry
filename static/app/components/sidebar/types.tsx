@@ -1,12 +1,12 @@
 export type SidebarOrientation = 'top' | 'left';
 
 export enum SidebarPanelKey {
-  Broadcasts = 'broadcasts',
-  OnboardingWizard = 'todos',
-  ServiceIncidents = 'statusupdate',
-  PerformanceOnboarding = 'performance_onboarding',
-  ReplaysOnboarding = 'replays_onboarding',
-  ProfilingOnboarding = 'profiling_onboarding',
+  BROADCASTS = 'broadcasts',
+  ONBOARDING_WIZARD = 'todos',
+  SERVICE_INCIDENTS = 'statusupdate',
+  PERFORMANCE_ONBOARDING = 'performance_onboarding',
+  REPLAYS_ONBOARDING = 'replays_onboarding',
+  PROFILING_ONBOARDING = 'profiling_onboarding',
 }
 
 export type CommonSidebarProps = {

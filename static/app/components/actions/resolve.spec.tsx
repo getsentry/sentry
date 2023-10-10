@@ -71,7 +71,11 @@ describe('ResolveActions', function () {
       expect(button).toHaveTextContent('');
 
       await userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'unresolved',
+        statusDetails: {},
+        substatus: 'ongoing',
+      });
     });
   });
 
@@ -98,7 +102,11 @@ describe('ResolveActions', function () {
       render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'resolved',
+        statusDetails: {},
+        substatus: null,
+      });
     });
   });
 
@@ -151,6 +159,48 @@ describe('ResolveActions', function () {
       statusDetails: {
         inRelease: 'sentry-android-shop@1.2.0',
       },
+      substatus: null,
     });
+  });
+
+  it('displays if the current release version uses semver', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@1.2.3'}}
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current release')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
+  });
+
+  it('displays prompt to setup releases when there are no releases', async function () {
+    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
+  });
+
+  it('does not prompt to setup releases when multiple projects are selected', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        multipleProjectsSelected
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'The current release'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Resolving is better with Releases')
+    ).not.toBeInTheDocument();
   });
 });

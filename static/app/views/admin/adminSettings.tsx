@@ -1,8 +1,9 @@
 import Feature from 'sentry/components/acl/feature';
-import {Form} from 'sentry/components/forms';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Form from 'sentry/components/forms/form';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getOption, getOptionField} from './options';
 
@@ -47,6 +48,10 @@ const optionsAvailable = [
   'performance.issues.m_n_plus_one_db.la-rollout',
   'performance.issues.m_n_plus_one_db.ea-rollout',
   'performance.issues.m_n_plus_one_db.ga-rollout',
+  'performance.issues.consecutive_http.max_duration_between_spans',
+  'performance.issues.consecutive_http.consecutive_count_threshold',
+  'performance.issues.consecutive_http.span_duration_threshold',
+  'performance.issues.large_http_payload.size_threshold',
   'profile.issues.blocked_main_thread-ingest.la-rollout',
   'profile.issues.blocked_main_thread-ingest.ea-rollout',
   'profile.issues.blocked_main_thread-ingest.ga-rollout',
@@ -62,16 +67,16 @@ type FieldDef = {
   value: string | undefined;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Record<string, FieldDef>;
 };
 
-export default class AdminSettings extends AsyncView<{}, State> {
+export default class AdminSettings extends DeprecatedAsyncView<{}, State> {
   get endpoint() {
     return '/internal/options/';
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', this.endpoint]];
   }
 
@@ -184,6 +189,18 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.m_n_plus_one_db.la-rollout']}
               {fields['performance.issues.m_n_plus_one_db.ea-rollout']}
               {fields['performance.issues.m_n_plus_one_db.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Performance Issues - Consecutive HTTP Span Detector
+              </PanelHeader>
+              {fields['performance.issues.consecutive_http.max_duration_between_spans']}
+              {fields['performance.issues.consecutive_http.consecutive_count_threshold']}
+              {fields['performance.issues.consecutive_http.span_duration_threshold']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Large HTTP Payload Detector</PanelHeader>
+              {fields['performance.issues.large_http_payload.size_threshold']}
             </Panel>
             <Panel>
               <PanelHeader>

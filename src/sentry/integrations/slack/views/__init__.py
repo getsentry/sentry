@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http import HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache as django_never_cache
@@ -5,7 +7,6 @@ from rest_framework.request import Request
 
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
-from sentry.utils.types import Any
 from sentry.web.decorators import EndpointFunc
 from sentry.web.helpers import render_to_response
 

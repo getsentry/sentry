@@ -1,5 +1,3 @@
-import {InjectedRouter} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -61,9 +59,8 @@ function TestComponent({
   );
 }
 
-function getProps(props?: {router: InjectedRouter}) {
+function getProps(props?: Parameters<typeof initializeOrg>[0]) {
   const {organization, router, project, routerContext} = initializeOrg({
-    ...initializeOrg(),
     router: props?.router,
   });
 
@@ -72,7 +69,6 @@ function getProps(props?: {router: InjectedRouter}) {
     organization,
     project,
     router,
-    projSlug: project.slug,
     isLoading: false,
     location: router.location,
     routerContext,
@@ -450,9 +446,7 @@ describe('Custom Repositories', function () {
   describe('Update saved store', function () {
     const props = getProps({
       router: {
-        ...TestStubs.router(),
         location: {
-          ...TestStubs.location(),
           pathname: `/settings/org-slug/projects/project-2/debug-symbols/`,
           query: {
             customRepository: appStoreConnectRepository.id,

@@ -1,15 +1,13 @@
 import datetime
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -557,6 +555,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("trace", expected=[])
         self.run_test("event_id", expected=[])
         self.run_test("profile_id", expected=[])
+        self.run_test("replay_id", expected=[])
 
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])
@@ -572,7 +571,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id = uuid.uuid4().hex
-        date_now = datetime.datetime.now(tz=pytz.utc).replace(
+        date_now = datetime.datetime.now(tz=timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         self.r1_seq1_timestamp = date_now - datetime.timedelta(seconds=22)

@@ -4,13 +4,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
-from sentry.models import RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from .organization_code_mappings import (
@@ -21,6 +22,10 @@ from .organization_code_mappings import (
 
 @region_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):

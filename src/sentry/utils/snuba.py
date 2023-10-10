@@ -9,12 +9,22 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 from urllib.parse import urlparse
 
-import pytz
 import sentry_sdk
 import urllib3
 from dateutil.parser import parse as parse_datetime
@@ -24,16 +34,13 @@ from sentry_sdk import Hub
 from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseProject,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.release import Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -90,6 +97,35 @@ ISSUE_PLATFORM_MAP = {
     if col.value.issue_platform_name is not None
 }
 
+SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
+    "action": "action",
+    "description": "description",
+    "domain": "domain",
+    "group": "group",
+    "module": "module",
+    "id": "span_id",
+    "parent_span": "parent_span_id",
+    "platform": "platform",
+    "project": "project_id",
+    "span.action": "action",
+    "span.description": "description",
+    "span.domain": "domain",
+    "span.duration": "duration",
+    "span.group": "group",
+    "span.group_raw": "group_raw",
+    "span.module": "module",
+    "span.op": "op",
+    "span.self_time": "exclusive_time",
+    "span.status": "span_status",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "transaction_id",
+    "transaction.op": "transaction_op",
+    "user": "user",
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -130,13 +166,14 @@ METRICS_COLUMN_MAP = {
 }
 
 
-DATASETS = {
+DATASETS: Dict[Dataset, Dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -150,6 +187,7 @@ DATASET_FIELDS = {
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
+    Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -793,7 +831,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
@@ -912,7 +950,7 @@ def _bulk_snuba_query(
             if response.status != 200:
                 logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
             if body.get("error"):
@@ -940,7 +978,11 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
+def _snql_query(
+    params: tuple[
+        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
+    ]
+) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
     query_data, thread_hub, headers, parent_api = params
@@ -1195,6 +1237,21 @@ def _aliased_query_impl(**kwargs):
     return raw_query(**aliased_query_params(**kwargs))
 
 
+def resolve_conditions(
+    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
+) -> Optional[Sequence[Any]]:
+    if conditions is None:
+        return conditions
+
+    replacement_conditions = []
+    for condition in conditions:
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
+        if replacement:
+            replacement_conditions.append(replacement)
+
+    return replacement_conditions
+
+
 def aliased_query_params(
     start=None,
     end=None,
@@ -1233,10 +1290,9 @@ def aliased_query_params(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        resolved_conditions = resolve_conditions(conditions, column_resolver)
+    else:
+        resolved_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1252,7 +1308,7 @@ def aliased_query_params(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=resolved_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,
@@ -1406,9 +1462,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 else row
             )(col, rev_map)
 
-        if fwd:
+        if fwd is not None:
             forward = compose(forward, fwd)
-        if rev:
+        if rev is not None:
             reverse = compose(reverse, rev)
 
     # Extra reverse translator for time column.
@@ -1471,7 +1527,7 @@ def shrink_time_window(issues, start):
 
 
 def naiveify_datetime(dt):
-    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)
+    return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def quantize_time(time, key_hash, duration=300):

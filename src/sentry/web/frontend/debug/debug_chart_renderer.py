@@ -1,8 +1,7 @@
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.charts import generate_chart
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.web.helpers import render_to_response
 
@@ -521,35 +520,39 @@ crash_free_metric_alert = {
 
 
 class DebugChartRendererView(View):
-    def get(self, request: Request) -> Response:
-        charts = []
+    def get(self, request: HttpRequest) -> HttpResponse:
+        ret = []
 
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_multi_y_axis))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily))
-        charts.append(
-            generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily_multi)
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period)
         )
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_geo))
-        charts.append(generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_empty))
-        charts.append(
-            generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_multi_y_axis)
         )
-        charts.append(
-            generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_empty))
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily)
+        )
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_total_daily_multi)
+        )
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_DAILY, discover_empty))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_top5))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_top5))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
+        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
+        )
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
         )
 
-        charts.append(generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert))
-        charts.append(
-            generate_chart(ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert)
+        ret.append(charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert))
+        ret.append(
+            charts.generate_chart(ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert)
         )
 
-        return render_to_response("sentry/debug/chart-renderer.html", context={"charts": charts})
+        return render_to_response("sentry/debug/chart-renderer.html", context={"charts": ret})

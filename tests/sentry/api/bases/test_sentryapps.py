@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.http import Http404
@@ -11,11 +11,11 @@ from sentry.api.bases.sentryapps import (
     SentryAppPermission,
     add_integration_platform_metric_tag,
 )
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()
@@ -36,7 +36,7 @@ class SentryAppPermissionTest(TestCase):
             self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_has_permission(self):
-        from sentry.models import ApiToken
+        from sentry.models.apitoken import ApiToken
 
         token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.request = self.make_request(user=None, auth=token, method="GET")

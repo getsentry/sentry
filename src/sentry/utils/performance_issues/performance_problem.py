@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, Type
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -10,7 +10,7 @@ class PerformanceProblem:
     fingerprint: str
     op: str
     desc: str
-    type: GroupType
+    type: Type[GroupType]
     parent_span_ids: Optional[Sequence[str]]
     # For related spans that caused the bad spans
     cause_span_ids: Optional[Sequence[str]]
@@ -23,7 +23,7 @@ class PerformanceProblem:
     # So until we disable transaction based perf issues we'll need to keep this optional.
     evidence_data: Optional[Mapping[str, Any]]
     # User-friendly evidence to be displayed directly
-    evidence_display: Optional[Sequence[IssueEvidence]]
+    evidence_display: Sequence[IssueEvidence]
 
     def to_dict(
         self,

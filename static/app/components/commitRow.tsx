@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';

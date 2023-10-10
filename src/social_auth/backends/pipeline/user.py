@@ -4,9 +4,7 @@ from social_auth.django_compat import get_all_field_names
 from social_auth.models import UserSocialAuth
 from social_auth.utils import module_member, setting
 
-slugify = module_member(
-    setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.template.defaultfilters.slugify")
-)
+slugify = module_member(setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.utils.text.slugify"))
 
 
 def get_username(

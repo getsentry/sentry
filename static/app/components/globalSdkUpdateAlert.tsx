@@ -43,7 +43,7 @@ function InnerGlobalSdkUpdateAlert(
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.BROADCASTS);
     trackAnalytics('sdk_updates.clicked', {organization});
   }, [organization]);
 
@@ -78,8 +78,8 @@ function InnerGlobalSdkUpdateAlert(
   const projectSpecificUpdates =
     selection?.projects?.length === 0 || selection?.projects[0] === ALL_ACCESS_PROJECTS
       ? props.sdkUpdates
-      : props.sdkUpdates.filter(update =>
-          selection?.projects?.includes(parseInt(update.projectId, 10))
+      : props.sdkUpdates.filter(
+          update => selection?.projects?.includes(parseInt(update.projectId, 10))
         );
 
   // Check if we have at least one suggestion out of the list of updates

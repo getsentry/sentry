@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -34,13 +35,13 @@ describe('EditSavedSearchModal', function () {
     Footer: ModalFooter,
     CloseButton: makeCloseButton(jest.fn()),
     closeModal: jest.fn(),
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     savedSearch: {
       id: 'saved-search-id',
       name: 'Saved search name',
       query: 'is:unresolved browser:firefox',
       sort: IssueSortOptions.DATE,
-      visibility: SavedSearchVisibility.Owner,
+      visibility: SavedSearchVisibility.OWNER,
       dateCreated: '',
       isPinned: false,
       isGlobal: false,
@@ -57,7 +58,7 @@ describe('EditSavedSearchModal', function () {
         name: 'test',
         query: 'is:unresolved browser:firefox',
         sort: IssueSortOptions.PRIORITY,
-        visibility: SavedSearchVisibility.Owner,
+        visibility: SavedSearchVisibility.OWNER,
       },
     });
 
@@ -82,7 +83,7 @@ describe('EditSavedSearchModal', function () {
           data: expect.objectContaining({
             name: 'new search name',
             query: 'test',
-            visibility: SavedSearchVisibility.Organization,
+            visibility: SavedSearchVisibility.ORGANIZATION,
           }),
         })
       );
@@ -98,14 +99,14 @@ describe('EditSavedSearchModal', function () {
         name: 'test',
         query: 'is:unresolved browser:firefox',
         sort: IssueSortOptions.PRIORITY,
-        visibility: SavedSearchVisibility.Owner,
+        visibility: SavedSearchVisibility.OWNER,
       },
     });
 
     render(
       <EditSavedSearchModal
         {...defaultProps}
-        organization={TestStubs.Organization({
+        organization={Organization({
           access: [],
         })}
       />
@@ -132,7 +133,7 @@ describe('EditSavedSearchModal', function () {
           data: expect.objectContaining({
             name: 'new search name',
             query: 'test',
-            visibility: SavedSearchVisibility.Owner,
+            visibility: SavedSearchVisibility.OWNER,
           }),
         })
       );

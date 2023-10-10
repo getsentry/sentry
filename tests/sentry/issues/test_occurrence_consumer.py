@@ -2,10 +2,10 @@ import datetime
 import logging
 import uuid
 from copy import deepcopy
+from datetime import timezone
 from typing import Any, Dict, Optional, Sequence, Type
 
 import pytest
-import pytz
 from jsonschema import ValidationError
 
 from sentry import eventstore
@@ -18,9 +18,11 @@ from sentry.issues.occurrence_consumer import (
     _get_kwargs,
     _process_message,
 )
-from sentry.models import Group
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models.group import Group
+from sentry.receivers import create_default_projects
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -69,14 +71,14 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
 
 
 class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
-    @pytest.mark.django_db
+    @django_db_all
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -96,17 +98,18 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
-    @pytest.mark.django_db
+    @django_db_all
     def test_process_profiling_occurrence(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling")
-        event_data["detection_time"] = datetime.datetime.now(tz=pytz.UTC)
+        event_data["detection_time"] = datetime.datetime.now(tz=timezone.utc)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(event_data)
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
-        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
         assert event.occurrence_id == occurrence.id
 
@@ -148,7 +151,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
 
-    @pytest.mark.django_db
+    @django_db_all
     def test_transaction_lookup(self) -> None:
         from sentry.event_manager import EventManager
 

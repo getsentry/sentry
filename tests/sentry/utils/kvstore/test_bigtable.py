@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import os
 from typing import Optional
@@ -39,7 +41,7 @@ def store_factory(request):
 )
 def test_compression_raw_values(
     compression: Optional[str],
-    flag: BigtableKVStorage.Flags,
+    flag: BigtableKVStorage.Flags | None,
     expected_prefix: bytes,
     request,
     store_factory,

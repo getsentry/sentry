@@ -6,6 +6,11 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
+import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
+import {
+  FREQUENCY_BOX_WIDTH,
+  SpanFrequencyBox,
+} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -38,23 +43,32 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
+  lightenBarColor,
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEventTransaction,
+  EventOrGroupType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import toPercent from 'sentry/utils/number/toPercent';
 import {
   QuickTraceContext,
   QuickTraceContextChildrenProps,
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
-import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  QuickTraceEvent,
+  TraceError,
+  TraceFull,
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -68,7 +82,9 @@ import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
 import {
+  AggregateSpanType,
   FetchEmbeddedChildrenState,
+  GapSpanType,
   GroupType,
   ParsedTraceType,
   ProcessedSpanType,
@@ -82,10 +98,12 @@ import {
   getMeasurements,
   getSpanID,
   getSpanOperation,
+  getSpanSubTimings,
   isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
+  shouldLimitAffectedToTiming,
   SpanBoundsType,
   SpanGeneratedBoundsType,
   spanTargetHash,
@@ -115,7 +133,7 @@ export type SpanBarProps = {
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
@@ -131,7 +149,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: ProcessedSpanType;
+  span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
@@ -298,11 +316,30 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
+    const isAggregateSpan =
+      event.type === EventOrGroupType.AGGREGATE_TRANSACTION && span.type === 'aggregate';
+
+    if (isAggregateSpan) {
+      return (
+        <AggregateSpanDetail
+          span={span}
+          organization={organization}
+          event={event}
+          isRoot={!!isRoot}
+          trace={trace}
+          childTransactions={transactions}
+          relatedErrors={errors}
+          scrollToHash={this.scrollIntoView}
+          resetCellMeasureCache={this.props.resetCellMeasureCache}
+        />
+      );
+    }
+
     return (
       <SpanDetail
-        span={span}
+        span={span as ProcessedSpanType}
         organization={organization}
-        event={event}
+        event={event as EventTransaction}
         isRoot={!!isRoot}
         trace={trace}
         childTransactions={transactions}
@@ -313,10 +350,10 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  getBounds(): SpanViewBoundsType {
+  getBounds(bounds?: SpanGeneratedBoundsType): SpanViewBoundsType {
     const {event, span, generateBounds} = this.props;
 
-    const bounds = generateBounds({
+    bounds ??= generateBounds({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
@@ -539,6 +576,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       addContentSpanBarRef,
       removeContentSpanBarRef,
       groupType,
+      event,
     } = this.props;
 
     let titleFragments: React.ReactNode[] = [];
@@ -550,9 +588,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       titleFragments.push(
         <Regroup
           key={`regroup-${span.timestamp}`}
-          onClick={event => {
-            event.stopPropagation();
-            event.preventDefault();
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
               toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
@@ -562,8 +600,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         >
           <a
             href="#regroup"
-            onClick={event => {
-              event.preventDefault();
+            onClick={e => {
+              e.preventDefault();
             }}
           >
             {t('Regroup')}
@@ -579,38 +617,49 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+    const isAggregateEvent = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
+
+    const left =
+      treeDepth * (TOGGLE_BORDER_BOX / 2) +
+      MARGIN_LEFT +
+      (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
+
     const errored = Boolean(errors && errors.length > 0);
 
     return (
-      <RowTitleContainer
-        data-debug-id="SpanBarTitleContainer"
-        ref={ref => {
-          if (!ref) {
-            removeContentSpanBarRef(this.spanContentRef);
-            return;
-          }
+      <Fragment>
+        {isAggregateEvent && (
+          <SpanFrequencyBox span={span as AggregateSpanType | GapSpanType} />
+        )}
+        <RowTitleContainer
+          data-debug-id="SpanBarTitleContainer"
+          ref={ref => {
+            if (!ref) {
+              removeContentSpanBarRef(this.spanContentRef);
+              return;
+            }
 
-          addContentSpanBarRef(ref);
-          this.spanContentRef = ref;
-        }}
-      >
-        {this.renderSpanTreeToggler({left, errored})}
-        <RowTitle
-          style={{
-            left: `${left}px`,
-            width: '100%',
+            addContentSpanBarRef(ref);
+            this.spanContentRef = ref;
           }}
         >
-          <RowTitleContent
-            errored={errored}
-            data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
+          {this.renderSpanTreeToggler({left, errored})}
+          <RowTitle
+            style={{
+              left: `${left}px`,
+              width: '100%',
+            }}
           >
-            <strong>{titleFragments}</strong>
-            {formatSpanTreeLabel(span)}
-          </RowTitleContent>
-        </RowTitle>
-      </RowTitleContainer>
+            <RowTitleContent
+              errored={errored}
+              data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
+            >
+              <strong>{titleFragments}</strong>
+              {formatSpanTreeLabel(span)}
+            </RowTitleContent>
+          </RowTitle>
+        </RowTitleContainer>
+      </Fragment>
     );
   }
 
@@ -621,35 +670,31 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     this.disconnectObservers();
 
-    /**
-
-    We track intersections events between the span bar's DOM element
-    and the viewport's (root) intersection area. the intersection area is sized to
-    exclude the minimap. See below.
-
-    By default, the intersection observer's root intersection is the viewport.
-    We adjust the margins of this root intersection area to exclude the minimap's
-    height. The minimap's height is always fixed.
-
-      VIEWPORT (ancestor element used for the intersection events)
-    +--+-------------------------+--+
-    |  |                         |  |
-    |  |       MINIMAP           |  |
-    |  |                         |  |
-    |  +-------------------------+  |  ^
-    |  |                         |  |  |
-    |  |       SPANS             |  |  | ROOT
-    |  |                         |  |  | INTERSECTION
-    |  |                         |  |  | OBSERVER
-    |  |                         |  |  | HEIGHT
-    |  |                         |  |  |
-    |  |                         |  |  |
-    |  |                         |  |  |
-    |  +-------------------------+  |  |
-    |                               |  |
-    +-------------------------------+  v
-
-     */
+    // We track intersections events between the span bar's DOM element
+    // and the viewport's (root) intersection area. the intersection area is sized to
+    // exclude the minimap. See below.
+    //
+    // By default, the intersection observer's root intersection is the viewport.
+    // We adjust the margins of this root intersection area to exclude the minimap's
+    // height. The minimap's height is always fixed.
+    //
+    // VIEWPORT (ancestor element used for the intersection events)
+    // +--+-------------------------+--+
+    // |  |                         |  |
+    // |  |       MINIMAP           |  |
+    // |  |                         |  |
+    // |  +-------------------------+  |  ^
+    // |  |                         |  |  |
+    // |  |       SPANS             |  |  | ROOT
+    // |  |                         |  |  | INTERSECTION
+    // |  |                         |  |  | OBSERVER
+    // |  |                         |  |  | HEIGHT
+    // |  |                         |  |  |
+    // |  |                         |  |  |
+    // |  |                         |  |  |
+    // |  +-------------------------+  |  |
+    // |                               |  |
+    // +-------------------------------+  v
 
     this.intersectionObserver = new IntersectionObserver(
       entries =>
@@ -843,7 +888,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const {span} = this.props;
     const {currentEvent} = quickTrace;
 
-    if (isGapSpan(span) || !currentEvent || !isTraceFull(currentEvent)) {
+    if (
+      isGapSpan(span) ||
+      !currentEvent ||
+      !isTraceTransaction<TraceFull>(currentEvent)
+    ) {
       return null;
     }
 
@@ -971,15 +1020,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColor, spanBarType, spanNumber} = this.props;
-    const startTimestamp: number = span.start_timestamp;
-    const endTimestamp: number = span.timestamp;
-    const duration = Math.abs(endTimestamp - startTimestamp);
-    const durationString = getHumanDuration(duration);
-    const bounds = this.getBounds();
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-    const durationDisplay = getDurationDisplay(bounds);
 
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
@@ -1006,7 +1047,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
-          showStriping={spanNumber % 2 !== 0}
+          showStriping={this.props.spanNumber % 2 !== 0}
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
           }}
@@ -1014,25 +1055,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {displaySpanBar && (
-            <RowRectangle
-              spanBarType={spanBarType}
-              style={{
-                backgroundColor: spanBarColor,
-                left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                width: toPercent(bounds.width || 0),
-              }}
-            >
-              <DurationPill
-                durationDisplay={durationDisplay}
-                showDetail={this.state.showDetail}
-                spanBarType={spanBarType}
-              >
-                {durationString}
-                {this.renderWarningText()}
-              </DurationPill>
-            </RowRectangle>
-          )}
+          {this.renderSpanBarRectangles()}
           {this.renderMeasurements()}
           <SpanBarCursorGuide />
         </RowCell>
@@ -1059,6 +1082,70 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DividerLineGhostContainer>
         )}
       </RowCellContainer>
+    );
+  }
+
+  renderSpanBarRectangles() {
+    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const startTimestamp: number = span.start_timestamp;
+    const endTimestamp: number = span.timestamp;
+    const duration = Math.abs(endTimestamp - startTimestamp);
+    const durationString = getHumanDuration(duration);
+    const bounds = this.getBounds();
+    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
+    if (!displaySpanBar) {
+      return null;
+    }
+
+    const subTimings = getSpanSubTimings(span);
+    const hasSubTimings = !!subTimings;
+
+    const subSpans = hasSubTimings
+      ? subTimings.map(timing => {
+          const timingGeneratedBounds = generateBounds(timing);
+          const timingBounds = this.getBounds(timingGeneratedBounds);
+          const isAffectedSubTiming = shouldLimitAffectedToTiming(timing);
+          return (
+            <RowRectangle
+              key={timing.name}
+              spanBarType={isAffectedSubTiming ? spanBarType : undefined}
+              style={{
+                backgroundColor: lightenBarColor(
+                  getSpanOperation(span),
+                  timing.colorLighten
+                ),
+                left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
+                width: toPercent(timingBounds.width || 0),
+              }}
+            />
+          );
+        })
+      : null;
+
+    const durationDisplay = getDurationDisplay(bounds);
+
+    return (
+      <Fragment>
+        <RowRectangle
+          spanBarType={spanBarType}
+          style={{
+            backgroundColor: hasSubTimings ? 'rgba(0,0,0,0.0)' : spanBarColor,
+            left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+            width: toPercent(bounds.width || 0),
+          }}
+          isHidden={hasSubTimings}
+        >
+          <DurationPill
+            durationDisplay={durationDisplay}
+            showDetail={this.state.showDetail}
+            spanBarType={spanBarType}
+          >
+            {durationString}
+            {this.renderWarningText()}
+          </DurationPill>
+        </RowRectangle>
+        {subSpans}
+      </Fragment>
     );
   }
 

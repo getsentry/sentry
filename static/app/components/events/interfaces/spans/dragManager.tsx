@@ -1,6 +1,7 @@
 import {Component} from 'react';
 
-import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import clamp from 'sentry/utils/number/clamp';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
@@ -8,8 +9,8 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size
 
 enum ViewHandleType {
-  Left,
-  Right,
+  LEFT,
+  RIGHT,
 }
 
 export type DragManagerChildrenProps = {
@@ -136,11 +137,11 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
     };
 
   onLeftHandleDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    this.onDragStart(ViewHandleType.Left)(event);
+    this.onDragStart(ViewHandleType.LEFT)(event);
   };
 
   onRightHandleDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    this.onDragStart(ViewHandleType.Right)(event);
+    this.onDragStart(ViewHandleType.RIGHT)(event);
   };
 
   onDragMove = (event: MouseEvent) => {
@@ -158,7 +159,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
     const rawMouseX = (event.pageX - rect.x) / rect.width;
 
     switch (this.state.currentDraggingHandle) {
-      case ViewHandleType.Left: {
+      case ViewHandleType.LEFT: {
         const min = 0;
         const max = this.state.rightHandlePosition - MINIMUM_WINDOW_SIZE;
 
@@ -168,7 +169,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         });
         break;
       }
-      case ViewHandleType.Right: {
+      case ViewHandleType.RIGHT: {
         const min = this.state.leftHandlePosition + MINIMUM_WINDOW_SIZE;
         const max = 1;
 
@@ -209,7 +210,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
     // indicate drag has ended
 
     switch (this.state.currentDraggingHandle) {
-      case ViewHandleType.Left: {
+      case ViewHandleType.LEFT: {
         this.setState(state => ({
           isDragging: false,
           currentDraggingHandle: void 0,
@@ -219,7 +220,7 @@ class DragManager extends Component<DragManagerProps, DragManagerState> {
         }));
         return;
       }
-      case ViewHandleType.Right: {
+      case ViewHandleType.RIGHT: {
         this.setState(state => ({
           isDragging: false,
           currentDraggingHandle: void 0,

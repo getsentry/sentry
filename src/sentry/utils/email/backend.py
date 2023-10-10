@@ -28,7 +28,7 @@ def get_mail_backend() -> Backend:
         return backend
 
 
-class PreviewBackend(BaseEmailBackend):  # type: ignore
+class PreviewBackend(BaseEmailBackend):
     """
     Email backend that can be used in local development to open messages in the
     local mail client as they are sent.

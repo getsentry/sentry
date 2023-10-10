@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -97,8 +96,7 @@ class Create extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, location, routes, members} =
-      this.props;
+    const {hasMetricAlerts, organization, project, location, members} = this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
       location?.query ?? {};
@@ -128,10 +126,6 @@ class Create extends Component<Props, State> {
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}
               projectSlug={project.slug}
-              alertType={alertType}
-              routes={routes}
-              location={location}
-              canChangeProject
             />
             <Layout.Title>
               {wizardAlertType
@@ -140,7 +134,7 @@ class Create extends Component<Props, State> {
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-        <Body>
+        <Layout.Body>
           <Teams provideUserTeams>
             {({teams, initiallyLoaded}) =>
               initiallyLoaded ? (
@@ -181,22 +175,10 @@ class Create extends Component<Props, State> {
               )
             }
           </Teams>
-        </Body>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const Body = styled(Layout.Body)`
-  && {
-    padding: 0;
-    gap: 0;
-  }
-  grid-template-rows: 1fr;
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(100px, auto) 400px;
-  }
-`;
 
 export default withRouteAnalytics(Create);

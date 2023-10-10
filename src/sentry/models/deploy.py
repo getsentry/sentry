@@ -1,3 +1,4 @@
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import region_silo_only_model
 
 """
@@ -22,7 +23,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 @region_silo_only_model
 class Deploy(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")
@@ -31,7 +32,7 @@ class Deploy(Model):
     date_started = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=64, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
-    notified = models.NullBooleanField(null=True, db_index=True, default=False)
+    notified = models.BooleanField(null=True, db_index=True, default=False)
 
     class Meta:
         app_label = "sentry"
@@ -47,7 +48,10 @@ class Deploy(Model):
         create activity and send deploy notifications
         if they haven't been sent
         """
-        from sentry.models import Activity, Environment, ReleaseCommit, ReleaseHeadCommit
+        from sentry.models.activity import Activity
+        from sentry.models.environment import Environment
+        from sentry.models.releasecommit import ReleaseCommit
+        from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
         lock_key = cls.get_lock_key(deploy_id)
         lock = locks.get(lock_key, duration=30, name="deploy_notify")

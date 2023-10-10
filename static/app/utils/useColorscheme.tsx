@@ -28,7 +28,7 @@ function setFaviconTheme(theme: 'dark' | 'light'): void {
 
 export function useColorscheme() {
   const {user} = useLegacyStore(ConfigStore);
-  const configuredTheme = user?.options.theme ?? 'system';
+  const configuredTheme = user?.options?.theme ?? 'system';
 
   const preferDark = useMedia('(prefers-color-scheme: dark)');
   const preferredTheme = preferDark ? 'dark' : 'light';

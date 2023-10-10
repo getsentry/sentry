@@ -9,25 +9,27 @@ from rest_framework.response import Response
 
 from sentry import deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import (
-    ApiToken,
-    Organization,
-    OrganizationMember,
-    SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationToken,
-)
-from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.testutils import APITestCase
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 POPULARITY = 27
 EXPECTED = {
     "events": ["issue"],
     "name": "MyApp",
-    "scopes": ["project:read", "event:read"],
+    "scopes": [
+        "event:read",
+        "project:read",
+    ],
     "webhookUrl": "https://example.com",
 }
 
@@ -36,6 +38,7 @@ class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
     def setUp(self):
+        super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
     def set_up_apps(self):
@@ -67,6 +70,7 @@ class SentryAppsTest(APITestCase):
         has_features: bool = False,
         mask_secret: bool = False,
     ) -> None:
+        assert sentry_app.application is not None
         data = {
             "allowedOrigins": [],
             "author": sentry_app.author,
@@ -140,7 +144,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -276,7 +280,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -299,6 +303,7 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
 
 
+@control_silo_test(stable=True)
 class PostWithTokenSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -346,6 +351,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
         )
 
 
+@control_silo_test(stable=True)
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -356,11 +362,12 @@ class PostSentryAppsTest(SentryAppsTest):
     def assert_sentry_app_status_code(self, sentry_app: SentryApp, status_code: int):
         token = ApiToken.objects.get(application=sentry_app.application)
 
-        url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
-        response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
-        )
-        assert response.status_code == status_code
+        with assume_test_silo_mode(SiloMode.REGION):
+            url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+            response = self.client.get(
+                url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+            )
+            assert response.status_code == status_code
 
     def test_creates_sentry_app(self):
         response = self.get_success_response(**self.get_data())
@@ -505,6 +512,13 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_allows_empty_schema(self):
         self.get_success_response(**self.get_data(shema={}))
 
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
+
     def test_missing_name(self):
         response = self.get_error_response(**self.get_data(name=None), status_code=400)
         assert "name" in response.data
@@ -585,16 +599,26 @@ class PostSentryAppsTest(SentryAppsTest):
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
     def test_members_cant_create(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member_om.role = "member"
-        member_om.save()
+        # create extra owner because we are demoting one
+        self.create_member(organization=self.organization, user=self.create_user(), role="owner")
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "member"
+            member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member_om.role = "manager"
-        member_om.save()
+        # create extra owner because we are demoting one
+        self.create_member(organization=self.organization, user=self.create_user(), role="owner")
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "manager"
+            member_om.save()
 
         data = self.get_data(events=(), scopes=("org:read", "org:write", "org:admin"))
         response = self.get_error_response(**data, status_code=400)

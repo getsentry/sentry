@@ -1,56 +1,98 @@
 import logging
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
-from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
+from sentry.debug_files.artifact_bundles import (
+    MAX_BUNDLES_QUERY,
+    query_artifact_bundles_containing_file,
+)
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
-from sentry.models.artifactbundle import ArtifactBundleArchive, ReleaseArtifactBundle
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.distribution import Distribution
 from sentry.models.project import Project
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
 
-
-# The number of ArtifactBundles we open up and parse to look for files inside.
-MAX_SCANNED_BUNDLES = 2
-
-
+# The marker for "release" bundles
+RELEASE_BUNDLE_TYPE = "release.bundle"
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
 
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
-    def download_file(self, file_id, project: Project):
+    def download_file(self, download_id, project: Project):
+        split = download_id.split("/")
+        if len(split) < 2:
+            raise Http404
+        ty, ty_id, *_rest = split
+
         rate_limited = ratelimits.is_limited(
             project=project,
-            key=f"rl:ArtifactLookupEndpoint:download:{file_id}:{project.id}",
+            key=f"rl:ArtifactLookupEndpoint:download:{download_id}:{project.id}",
             limit=10,
         )
         if rate_limited:
             logger.info(
                 "notification.rate_limited",
-                extra={"project_id": project.id, "file_id": file_id},
+                extra={"project_id": project.id, "file_id": download_id},
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file = File.objects.filter(id=file_id).first()
+        file = None
+        if ty == "artifact_bundle":
+            file = (
+                ArtifactBundle.objects.filter(
+                    id=ty_id,
+                    projectartifactbundle__project_id=project.id,
+                )
+                .select_related("file")
+                .first()
+            )
+            metrics.incr("sourcemaps.download.artifact_bundle")
+        elif ty == "release_file":
+            # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
+            # be always empty, so using the `organization_id` instead.
+            file = (
+                ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
+                .select_related("file")
+                .first()
+            )
+            metrics.incr("sourcemaps.download.release_file")
+        elif ty == "bundle_index":
+            file = ArtifactBundleFlatFileIndex.objects.filter(
+                id=ty_id, project_id=project.id
+            ).first()
+            metrics.incr("sourcemaps.download.flat_file_index")
+
+            if file is not None and (data := file.load_flat_file_index()):
+                return HttpResponse(data, content_type="application/json")
+            else:
+                raise Http404
 
         if file is None:
             raise Http404
+        file = file.file
 
         try:
             fp = file.getfile()
@@ -72,156 +114,101 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization to query.
         :pparam string project_slug: the slug of the project to query.
-        :qparam string debug_id: if set, will query and return all the artifact
-                                  bundles that match one of the given `debug_id`s.
+        :qparam string debug_id: if set, will query and return the artifact
+                                 bundle that matches the given `debug_id`.
         :qparam string url: if set, will query and return all the individual
-                             artifacts, or artifact bundles that contain files
-                             that match the `url`. This is using a substring-match.
+                            artifacts, or artifact bundles that contain files
+                            that match the `url`. This is using a substring-match.
         :qparam string release: used in conjunction with `url`.
         :qparam string dist: used in conjunction with `url`.
 
         :auth: required
         """
-
-        if request.GET.get("download") is not None:
+        if (download_id := request.GET.get("download")) is not None:
             if has_download_permission(request, project):
-                return self.download_file(request.GET.get("download"), project)
+                return self.download_file(download_id, project)
             else:
                 return Response(status=403)
 
-        debug_ids = []
-        for debug_id in request.GET.getlist("debug_id"):
-            try:
-                debug_ids.append(normalize_debug_id(debug_id))
-            except SymbolicError:
-                pass
+        debug_id = request.GET.get("debug_id")
+        try:
+            debug_id = normalize_debug_id(debug_id)
+        except SymbolicError:
+            pass
+        url = request.GET.get("url") or NULL_STRING
+        release_name = request.GET.get("release") or NULL_STRING
+        dist_name = request.GET.get("dist") or NULL_STRING
 
-        urls = request.GET.getlist("url")
-        release_name = request.GET.get("release")
-        dist_name = request.GET.get("dist")
-
-        # We want to have:
-        # - The (minimal?) `Set` of artifact bundles that include the files we are
-        # looking for
-        # - Any individual file that might be left over afterwards
-
-        # TODO: Possibly use the algorithm sketched up here:
-        # https://github.com/getsentry/sentry/pull/45697#issuecomment-1466389132
-        # That would narrow down our set of bundles to the minimum set that covers
-        # the file names we are querying for, and also leave us with the remaining
-        # set of file names that are not covered by any bundle, to look up below
-
-        bundle_file_ids, remaining_urls = collect_artifact_bundles_containing_debug_ids(
-            debug_ids, project, urls
+        # First query all the files:
+        # We first do that using the `ArtifactBundle` infrastructure.
+        artifact_bundles = query_artifact_bundles_containing_file(
+            project, release_name, dist_name, url, debug_id
         )
-        individual_files = try_resolve_urls(
-            remaining_urls, project, release_name, dist_name, bundle_file_ids
-        )
+        all_bundles: Dict[str, str] = {
+            f"artifact_bundle/{bundle_id}": resolved for bundle_id, resolved in artifact_bundles
+        }
+
+        # If no `ArtifactBundle`s were found matching the file, we fall back to
+        # looking up the file using the legacy `ReleaseFile` infrastructure.
+        individual_files = []
+        if not artifact_bundles:
+            release, dist = try_resolve_release_dist(project, release_name, dist_name)
+            if release:
+                metrics.incr("sourcemaps.lookup.release_file")
+                for releasefile_id in get_legacy_release_bundles(release, dist):
+                    all_bundles[f"release_file/{releasefile_id}"] = "release-old"
+                individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
         found_artifacts = []
-        for file_id in bundle_file_ids:
+        for (download_id, resolved_with) in all_bundles.items():
             found_artifacts.append(
                 {
-                    "id": str(file_id),
+                    "id": download_id,
                     "type": "bundle",
-                    "url": url_constructor.url_for_file_id(file_id),
+                    "url": url_constructor.url_for_file_id(download_id),
+                    "resolved_with": resolved_with,
                 }
             )
 
         for release_file in individual_files:
+            download_id = f"release_file/{release_file.id}"
             found_artifacts.append(
                 {
-                    "id": str(release_file.file.id),
+                    "id": download_id,
                     "type": "file",
-                    "url": url_constructor.url_for_file_id(release_file.file.id),
+                    "url": url_constructor.url_for_file_id(download_id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
                     "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
                     "headers": release_file.file.headers,
+                    "resolved_with": "release-old",
                 }
             )
 
-        # NOTE: We do not paginate this response, as we have very tight limits
-        # on all the individual queries.
+        # make sure we have a stable sort order for tests
+        def natural_sort(key: str) -> Tuple[str, int]:
+            split = key.split("/")
+            if len(split) > 1:
+                ty, ty_id = split
+                return (ty, int(ty_id))
+            else:
+                return int(split[0])
+
+        found_artifacts.sort(key=lambda x: natural_sort(x["id"]))
+
+        # NOTE: We do not paginate this response, as we have very tight limits on all the individual queries.
         return Response(serialize(found_artifacts, request.user))
 
 
-def collect_artifact_bundles_containing_debug_ids(
-    debug_ids: List[str], project: Project, urls: List[str]
-) -> Tuple[Set[int], List[str]]:
-    # We want to have the newest `File` for each `debug_id`.
-    # Hopefully that will end up being only a single `File` in the end containing all the `debug_id`s.
-    debug_artifact_bundles = (
-        DebugIdArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            debug_id__in=debug_ids,
-        )
-        .select_related("artifact_bundle__file")
-        .distinct("debug_id")
-        .order_by("debug_id", "-date_added")
-    )
-
-    # The query could potentially return more than one `File`, but we could still have a single `File` that satisfies all the `debug_id`s.
-    # We also want to already filter out any `url` that is covered by this `File`.
-    remaining_debug_ids = debug_ids
-    remaining_urls = urls
-    bundle_file_ids = set()
-
-    for debug_artifact_bundle in debug_artifact_bundles:
-        file = debug_artifact_bundle.artifact_bundle.file
-
-        archive = ArtifactBundleArchive(file.getfile())
-        manifest = archive.manifest
-        entries_by_debug_id = archive._entries_by_debug_id
-        archive.close()
-
-        remaining_debug_ids = [
-            debug_id for debug_id in remaining_debug_ids if debug_id not in entries_by_debug_id
-        ]
-        remaining_urls = [
-            url for url in remaining_urls if not url_exists_in_manifest(manifest, url)
-        ]
-
-        bundle_file_ids.add(file.id)
-
-        if not remaining_debug_ids:
-            return bundle_file_ids, remaining_urls
-
-    return bundle_file_ids, remaining_urls
-
-
-def try_resolve_urls(
-    urls: List[str],
-    project: Project,
-    release_name: Optional[str],
-    dist_name: Optional[str],
-    bundle_file_ids: Set[int],
-) -> Sequence[File]:
-    if not urls:
-        return list()
-
-    if release_name is None:
-        logger.error("trying to look up artifacts by `url` without a `release`")
-        return list()
-
-    # If we have `urls`, we want to:
-    # First, get the newest X artifact bundles, and *look inside them*
-    # to figure out if the file is included in any of them
-    remaining_urls = collect_release_artifact_bundles_containing_urls(
-        urls, project, release_name, dist_name, bundle_file_ids
-    )
-    if not remaining_urls:
-        return list()
-
-    # Next, we want to look up legacy artifact indices / bundles
-    # for that, we have to resolve the `release_name`/`dist_name` to models
+def try_resolve_release_dist(
+    project: Project, release_name: str, dist_name: str
+) -> Tuple[Optional[Release], Optional[Distribution]]:
     release = None
     dist = None
-    # TODO: Is there a way to safely query this and return `None` if not existing?
     try:
         release = Release.objects.get(
             organization_id=project.organization_id,
@@ -232,143 +219,48 @@ def try_resolve_urls(
         # We cannot query for dist without a release anyway
         if dist_name:
             dist = Distribution.objects.get(release=release, name=dist_name)
+    except (Release.DoesNotExist, Distribution.DoesNotExist):
+        pass
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
-    # TODO: should we rather return an error from the API in case the release is not found?
-    if release is None:
-        return list()
-
-    remaining_urls = collect_legacy_artifact_bundles_containing_urls(
-        remaining_urls, release, dist, bundle_file_ids
-    )
-    if not remaining_urls:
-        return list()
-
-    # And last but not least, we want to look up legacy individual release files
-    return get_releasefiles_matching_urls(remaining_urls, release)
+    return release, dist
 
 
-def collect_release_artifact_bundles_containing_urls(
-    urls: List[str],
-    project: Project,
-    release_name: str,
-    dist_name: Optional[str],
-    bundle_file_ids: Set[int],
-) -> List[str]:
-    releases_with_bundles = (
-        ReleaseArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            release_name=release_name,
-            # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
-            # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
-            dist_name=dist_name or "",
-        )
-        .select_related("artifact_bundle__file")
-        .order_by("-date_added")[:MAX_SCANNED_BUNDLES]
+def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> Set[int]:
+    return set(
+        ReleaseFile.objects.filter(
+            release_id=release.id,
+            dist_id=dist.id if dist else None,
+            # a `ReleaseFile` with `0` artifacts represents a release archive,
+            # see the comment above the definition of `artifact_count`.
+            artifact_count=0,
+            # similarly the special `type` is also used for release archives.
+            file__type=RELEASE_BUNDLE_TYPE,
+        ).values_list("id", flat=True)
+        # TODO: this `order_by` might be incredibly slow
+        # we want to have a hard limit on the returned bundles here. and we would
+        # want to pick the most recently uploaded ones. that should mostly be
+        # relevant for customers that upload multiple bundles, or are uploading
+        # newer files for existing releases. In that case the symbolication is
+        # already degraded, so meh...
+        # .order_by("-file__timestamp")
+        [:MAX_BUNDLES_QUERY]
     )
 
-    remaining_urls = urls
 
-    for release in releases_with_bundles:
-        file_id = release.artifact_bundle.file.id
-        file = release.artifact_bundle.file.getfile()
-
-        archive = ArtifactBundleArchive(file)
-        manifest = archive.manifest
-        archive.close()
-
-        def url_in_manifest(url: str):
-            if url_exists_in_manifest(manifest, url):
-                bundle_file_ids.add(file_id)
-                return True
-            return False
-
-        remaining_urls = [url for url in remaining_urls if not url_in_manifest(url)]
-
-        if not remaining_urls:
-            return remaining_urls
-
-    return remaining_urls
-
-
-def collect_legacy_artifact_bundles_containing_urls(
-    urls: List[str], release: Release, dist: Optional[Distribution], bundle_file_ids: Set[int]
-) -> List[str]:
-    artifact_index = None
-    try:
-        artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
-    except Exception as exc:
-        logger.error("Failed to read artifact index", exc_info=exc)
-    if not artifact_index:
-        return urls
-
-    artifact_archives = dict()
-
-    def url_in_any_artifact_index(url: str):
-        file = find_file_in_archive_index(artifact_index, url)
-        if file is not None:
-            ident = file["archive_ident"]
-            archive = artifact_archives.get(ident)
-
-            if archive is not None:
-                bundle_file_ids.add(archive)
-            else:
-                artifact_file_id = ReleaseFile.objects.filter(
-                    release_id=release.id, ident=ident
-                ).values("file_id")[0]["file_id"]
-                artifact_archives[ident] = artifact_file_id
-                bundle_file_ids.add(artifact_file_id)
-            return True
-        return False
-
-    return [url for url in urls if not url_in_any_artifact_index(url)]
-
-
-def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
+def get_legacy_releasefile_by_file_url(
+    release: Release, dist: Optional[Distribution], url: List[str]
+) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
-    file_list = (
-        ReleaseFile.public_objects.filter(release_id=release.id)
+    return (
+        ReleaseFile.public_objects.filter(
+            release_id=release.id,
+            dist_id=dist.id if dist else None,
+        )
         .exclude(artifact_count=0)
         .select_related("file")
-    )
-
-    condition = Q(name__icontains=urls[0])
-    for url in urls[1:]:
-        condition |= Q(name__icontains=url)
-    file_list = file_list.filter(condition)
-    return file_list[:MAX_RELEASEFILES_QUERY]
-
-
-def url_exists_in_manifest(manifest: dict, url: str) -> bool:
-    """
-    Looks through all the files in the `ArtifactBundle` manifest and see if the
-    `url` matches any of the files.
-    """
-    try:
-        # TODO: Should this be a partial match?
-        files = manifest.get("files", dict())
-        for file in files.values():
-            if url in file.get("url", ""):
-                return True
-        return False
-    except Exception:
-        return False
-
-
-def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
-    """
-    Looks through all the files in the `ArtifactIndex` and see if the
-    `url` matches any of the files.
-    """
-    try:
-        files = archive_index.get("files", dict())
-        for key in files.keys():
-            if url in key:
-                return files[key]
-        return None
-    except Exception:
-        return None
+    ).filter(name__icontains=url)[:MAX_RELEASEFILES_QUERY]
 
 
 class UrlConstructor:
@@ -378,11 +270,11 @@ class UrlConstructor:
         else:
             self.base_url = request.build_absolute_uri(request.path)
 
-    def url_for_file_id(self, file_id: int) -> str:
+    def url_for_file_id(self, download_id: str) -> str:
         # NOTE: Returning a self-route that requires authentication (via Bearer token)
         # is not really forward compatible with a pre-signed URL that does not
         # require any authentication or headers whatsoever.
         # This also requires a workaround in Symbolicator, as its generic http
         # downloader blocks "internal" IPs, whereas the internal Sentry downloader
         # is explicitly exempt.
-        return f"{self.base_url}?download={file_id}"
+        return f"{self.base_url}?download={download_id}"

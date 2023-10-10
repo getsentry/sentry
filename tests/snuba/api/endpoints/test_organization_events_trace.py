@@ -1,21 +1,26 @@
 from datetime import timedelta
+from unittest import mock
 from uuid import uuid4
 
 import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
+    url_name: str
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
+        "organizations:trace-view-load-more",
     ]
 
     def get_start_end(self, duration):
@@ -59,7 +64,19 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             span["op"] = "file.write"
             span["data"].update({"duration": 1, "blocked_main_thread": True})
         with self.feature(self.FEATURES):
-            return self.store_event(data, project_id=project_id, **kwargs)
+            with mock.patch.object(
+                PerformanceFileIOMainThreadGroupType,
+                "noise_config",
+                new=NoiseConfig(0, timedelta(minutes=1)),
+            ), override_options(
+                {
+                    "performance.issues.all.problem-detection": 1.0,
+                    "performance-file-io-main-thread-creation": 1.0,
+                }
+            ), self.feature(
+                ["projects:performance-suspect-spans-ingestion"]
+            ):
+                return self.store_event(data, project_id=project_id, **kwargs)
 
     def setUp(self):
         """
@@ -634,6 +651,103 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assertions(response)
 
+    def assert_orphan_error_response(self, response, error, span_id):
+        assert response.status_code == 200, response.content
+        assert response.data["transactions"] == []
+        assert len(response.data["orphan_errors"]) == 1
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } == response.data["orphan_errors"][0]
+
+    def test_with_one_orphan_error(self):
+        self.load_trace()
+        span_id = uuid4().hex[:16]
+        start, _ = self.get_start_end(1000)
+
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": error.event_id, "project": -1},
+                format="json",
+            )
+
+        self.assert_orphan_error_response(response, error, span_id)
+
+    def test_with_multiple_orphan_errors(self):
+        self.load_trace()
+        span_id = uuid4().hex[:16]
+        start, end = self.get_start_end(1000)
+
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        error_data1 = load_data(
+            "javascript",
+            timestamp=end,
+        )
+        error_data1["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data1["level"] = "warning"
+        self.store_event(error_data1, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": error.event_id, "project": -1},
+                format="json",
+            )
+
+        self.assert_orphan_error_response(response, error, span_id)
+
+    def test_with_unknown_event(self):
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": "766758c00ff54d8ab865369ecab53ae6", "project": "-1"},
+                format="json",
+            )
+
+        assert response.status_code == 404
+
 
 @region_silo_test
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -716,6 +830,21 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "tags" not in response.data[0]
         assert "measurements" not in response.data[0]
 
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "limit": 200},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data[0])
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in response.data[0]
+        assert "tags" not in response.data[0]
+        assert "measurements" not in response.data[0]
+
     def test_detailed_trace(self):
         self.load_trace()
         with self.feature(self.FEATURES):
@@ -737,7 +866,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
         assert "issue_short_id" in response.data[0]["performance_issues"][0]
-        assert response.data[0]["performance_issues"][0]["culprit"] == "/country_by_code/"
+        assert response.data[0]["performance_issues"][0]["culprit"] == "root"
         assert (
             response.data[0]["performance_issues"][0]["type"]
             == PerformanceFileIOMainThreadGroupType.type_id
@@ -1094,6 +1223,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
@@ -1103,7 +1235,182 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "generation": 0,
+            "event_type": "error",
         } in gen1_event["errors"]
+
+    def test_with_only_orphan_errors_with_same_span_ids(self):
+        span_id = uuid4().hex[:16]
+        start, end = self.get_start_end(10000)
+
+        # Error 1
+        error_data = load_data(
+            "javascript",
+            timestamp=end,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        # Error 2 before after Error 1
+        error_data1 = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data1["level"] = "warning"
+        error_data1["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error1 = self.store_event(error_data1, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        # Sorting by timestamp puts Error1 after Error2 in the response
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } == response.data["orphan_errors"][1]
+        assert {
+            "event_id": error1.event_id,
+            "issue_id": error1.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "warning",
+            "title": error1.title,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } == response.data["orphan_errors"][0]
+
+    def test_with_only_orphan_errors_with_different_span_ids(self):
+        start, _ = self.get_start_end(1000)
+        span_id = uuid4().hex[:16]
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+        error_data["level"] = "warning"
+        span_id1 = uuid4().hex[:16]
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id1,
+        }
+        error1 = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["orphan_errors"]) == 2
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } in response.data["orphan_errors"]
+        assert {
+            "event_id": error1.event_id,
+            "issue_id": error1.group_id,
+            "span": span_id1,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "warning",
+            "title": error1.title,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } in response.data["orphan_errors"]
+
+    def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
+        self.load_trace()
+        start, _ = self.get_start_end(1000)
+        span_id = uuid4().hex[:16]
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+        error_data["level"] = "warning"
+        span_id1 = uuid4().hex[:16]
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id1,
+        }
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["transactions"]) == 1
+        assert len(response.data["orphan_errors"]) == 1
+        self.assert_trace_data(response.data["transactions"][0])
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } in response.data["orphan_errors"]
 
     def test_with_default(self):
         self.load_trace()
@@ -1128,6 +1435,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
+            "timestamp": to_timestamp_from_iso_format(default_event.timestamp),
+            "generation": 0,
+            "event_type": "error",
         } in root_event["errors"]
 
     def test_pruning_root(self):

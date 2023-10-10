@@ -195,7 +195,7 @@ class BitHandler:
     __setitem__ = __setattr__
 
     def __iter__(self):
-        return self.iteritems()  # NOQA
+        return self.iteritems()
 
     def __sentry__(self):
         return repr(self)
@@ -227,7 +227,7 @@ class BitHandler:
         return iter(self._keys)
 
     def items(self):
-        return list(self.iteritems())  # NOQA
+        return list(self.iteritems())
 
     def iteritems(self):
         for k in self._keys:
@@ -241,14 +241,9 @@ class BitHandler:
         return self._labels[flag]
 
 
-from django.core.exceptions import ImproperlyConfigured
-
 # We need to register adapters in Django 1.8 in order to prevent
 # "ProgrammingError: can't adapt type"
-try:
-    from django.db.backends.postgresql.base import Database
+import psycopg2.extensions
 
-    Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
-    Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
-except ImproperlyConfigured:
-    pass
+psycopg2.extensions.register_adapter(Bit, lambda x: psycopg2.extensions.AsIs(int(x)))
+psycopg2.extensions.register_adapter(BitHandler, lambda x: psycopg2.extensions.AsIs(int(x)))

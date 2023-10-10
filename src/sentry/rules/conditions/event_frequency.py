@@ -50,7 +50,7 @@ comparison_types = {
 }
 
 
-class EventFrequencyForm(forms.Form):  # type: ignore
+class EventFrequencyForm(forms.Form):
     intervals = standard_intervals
     interval = forms.ChoiceField(
         choices=[
@@ -91,7 +91,6 @@ class EventFrequencyForm(forms.Form):  # type: ignore
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
-    label: str
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
@@ -228,7 +227,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(event.group.issue_category, event.group.project),
+            model=get_issue_tsdb_group_model(event.group.issue_category),
             keys=[event.group_id],
             start=start,
             end=end,
@@ -252,7 +251,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(event.group.issue_category, event.group.project),
+            model=get_issue_tsdb_user_group_model(event.group.issue_category),
             keys=[event.group_id],
             start=start,
             end=end,
@@ -361,7 +360,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
 
             issue_count = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(event.group.issue_category, event.group.project),
+                model=get_issue_tsdb_group_model(event.group.issue_category),
                 keys=[event.group_id],
                 start=start,
                 end=end,

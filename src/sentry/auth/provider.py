@@ -1,12 +1,13 @@
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Mapping, Sequence
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.views import View
 
-from sentry.models import AuthIdentity, User
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.user import User
 from sentry.pipeline import PipelineProvider
 
 from .view import AuthView, ConfigureView
@@ -17,12 +18,19 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
     MigratingIdentityId may be used in the ``id`` field of an identity
     dictionary to facilitate migrating user identities from one identifying id
     to another.
+
+    Context - when google oauth was initially created, the auth_identity key was simply
+    the provider email. This can cause issues if the customer changes their domain name,
+    and now their email is different and they're locked out of their account.
+    This logic updates their id to the provider id instead.
+
+    NOTE: this should _only_ really be relevant for google oauth implementation
     """
 
     __slots__ = ()
 
     def __str__(self) -> str:
-        return cast(str, force_text(self.id))
+        return force_str(self.id)
 
 
 class Provider(PipelineProvider, abc.ABC):
@@ -30,6 +38,8 @@ class Provider(PipelineProvider, abc.ABC):
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
     """
+
+    is_partner = False
 
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"

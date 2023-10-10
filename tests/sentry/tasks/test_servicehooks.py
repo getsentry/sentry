@@ -3,10 +3,12 @@ from unittest.mock import patch
 import responses
 
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.faux import DictContaining, faux
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class TestServiceHooks(TestCase):
@@ -31,7 +33,8 @@ class TestServiceHooks(TestCase):
             key=self.hook.secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
-        assert expected == faux(safe_urlopen).kwargs["headers"]["X-ServiceHook-Signature"]
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert expected == kwargs["headers"]["X-ServiceHook-Signature"]
 
     @patch("sentry.tasks.servicehooks.safe_urlopen")
     @responses.activate
@@ -44,19 +47,17 @@ class TestServiceHooks(TestCase):
 
         process_service_hook(self.hook.id, event)
 
-        data = json.loads(faux(safe_urlopen).kwargs["data"])
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
 
-        assert faux(safe_urlopen).kwarg_equals("url", self.hook.url)
+        assert kwargs["url"] == self.hook.url
         assert data == json.loads(json.dumps(get_payload_v0(event)))
-        assert faux(safe_urlopen).kwarg_equals(
-            "headers",
-            DictContaining(
-                "Content-Type",
-                "X-ServiceHook-Timestamp",
-                "X-ServiceHook-GUID",
-                "X-ServiceHook-Signature",
-            ),
-        )
+        assert kwargs["headers"].keys() <= {
+            "Content-Type",
+            "X-ServiceHook-Timestamp",
+            "X-ServiceHook-GUID",
+            "X-ServiceHook-Signature",
+        }
 
     @responses.activate
     def test_v0_payload(self):
@@ -65,6 +66,7 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
         )
+        assert event.group is not None
 
         process_service_hook(self.hook.id, event)
         body = get_payload_v0(event)

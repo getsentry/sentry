@@ -4,10 +4,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk.api import capture_exception
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.snuba.outcomes import (
     QueryDefinition,
     massage_outcomes_result,
@@ -20,6 +21,9 @@ from sentry.utils.outcomes import Outcome
 
 @region_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

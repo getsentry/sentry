@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -58,10 +60,9 @@ export const EVENTS_TABLE_RESPONSE_FIELDS = [
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -69,12 +70,11 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: '1',
           transactionCursor: '1:0:0',
         },
       },
     },
-    project: 1,
     projects: [],
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
@@ -91,7 +91,7 @@ describe('Performance GridEditable Table', function () {
     t('timestamp'),
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const transactionName = 'transactionName';
   let data;
 
@@ -243,7 +243,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -260,7 +260,6 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('renders event id and trace id url', async function () {
@@ -323,7 +322,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -338,7 +337,6 @@ describe('Performance GridEditable Table', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
-    expect(container).toSnapshot();
   });
 
   it('renders profile id', async function () {
@@ -362,7 +360,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -377,6 +375,5 @@ describe('Performance GridEditable Table', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
-    expect(container).toSnapshot();
   });
 });

@@ -4,18 +4,25 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 
 logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
 class DocIntegrationDetailsEndpoint(DocIntegrationBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, doc_integration: DocIntegration) -> Response:
         return self.respond(serialize(doc_integration, request.user), status=status.HTTP_200_OK)
 

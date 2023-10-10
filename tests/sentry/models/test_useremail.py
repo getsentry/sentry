@@ -1,5 +1,5 @@
-from sentry.models import UserEmail
-from sentry.testutils import TestCase
+from sentry.models.useremail import UserEmail
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

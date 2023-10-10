@@ -29,7 +29,7 @@ export function defaultFormatAxisLabel(
   const formatOptions = {local: !utc};
 
   const timeFormat = showTimeInTooltip
-    ? getTimeFormat({displaySeconds: addSecondsToTimeFormat})
+    ? getTimeFormat({seconds: addSecondsToTimeFormat})
     : '';
 
   if (!bucketSize) {
@@ -102,7 +102,10 @@ export type TooltipSubLabel = {
   parentLabel: string;
 };
 
-type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
+export type FormatterOptions = Pick<
+  NonNullable<ChartProps['tooltip']>,
+  TooltipFormatters
+> &
   Pick<ChartProps, NeededChartProps> & {
     /**
      * If true seconds will be added to the Axis label time format
@@ -114,7 +117,7 @@ type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatte
     subLabels?: TooltipSubLabel[];
   };
 
-function getFormatter({
+export function getFormatter({
   filter,
   isGroupedByDate,
   showTimeInTooltip,

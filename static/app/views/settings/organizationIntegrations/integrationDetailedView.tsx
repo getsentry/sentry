@@ -1,12 +1,17 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {Panel, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,10 +19,14 @@ import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
-import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import AbstractIntegrationDetailedView, {Tab} from './abstractIntegrationDetailedView';
 import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
+
+// Show the features tab if the org has features for the integration
+const integrationFeatures = ['github'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -38,7 +47,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
 > {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  tabs: Tab[] = ['overview', 'configurations', 'features'];
+
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {integrationSlug} = this.props.params;
     return [
@@ -129,6 +140,27 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   get featureData() {
     return this.metadata.features;
+  }
+
+  renderTabs() {
+    // TODO: Convert to styled component
+    const tabs = integrationFeatures.includes(this.provider.key)
+      ? this.tabs
+      : this.tabs.filter(tab => tab !== 'features');
+
+    return (
+      <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
+        {tabs.map(tabName => (
+          <li
+            key={tabName}
+            className={this.state.tab === tabName ? 'active' : ''}
+            onClick={() => this.onTabChange(tabName)}
+          >
+            <CapitalizedLink>{this.getTabDisplay(tabName)}</CapitalizedLink>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   onInstall = (integration: Integration) => {
@@ -228,6 +260,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         <AddIntegrationButton
           provider={provider}
           onAddIntegration={this.onInstall}
+          installStatus={this.installationStatus}
           analyticsParams={{
             view: 'integrations_directory_integration_detail',
             already_installed: this.installationStatus !== 'Not Installed',
@@ -291,6 +324,102 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       </Fragment>
     );
   }
+
+  renderFeatures() {
+    const {configurations} = this.state;
+    const {organization} = this.props;
+    const hasIntegration = configurations ? configurations.length > 0 : false;
+    const endpoint = `/organizations/${organization.slug}/`;
+    const hasOrgWrite = organization.access.includes('org:write');
+
+    const forms: JsonFormObject[] = [
+      {
+        fields: [
+          {
+            name: 'githubPRBot',
+            type: 'boolean',
+            label: t('Enable Comments on Suspect Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+          },
+          {
+            name: 'githubOpenPRBot',
+            type: 'boolean',
+            label: t('Enable Comments on Open Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-open-pr-comment'),
+          },
+          {
+            name: 'githubNudgeInvite',
+            type: 'boolean',
+            label: t('Enable Missing Member Detection'),
+            help: t(
+              'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-gh-invite'),
+          },
+        ],
+      },
+    ];
+
+    const initialData = {
+      githubPRBot: organization.githubPRBot,
+      githubOpenPRBot: organization.githubOpenPRBot,
+      githubNudgeInvite: organization.githubNudgeInvite,
+    };
+
+    return (
+      <Form
+        apiMethod="PUT"
+        apiEndpoint={endpoint}
+        saveOnBlur
+        allowUndo
+        initialData={initialData}
+        onSubmitError={() => addErrorMessage('Unable to save change')}
+      >
+        <JsonForm
+          disabled={!hasOrgWrite}
+          features={organization.features}
+          forms={forms}
+        />
+      </Form>
+    );
+  }
+
+  renderBody() {
+    return (
+      <Fragment>
+        <BreadcrumbTitle routes={this.props.routes} title={this.integrationName} />
+        {this.renderAlert()}
+        {this.renderTopSection()}
+        {this.renderTabs()}
+        {this.state.tab === 'overview'
+          ? this.renderInformationCard()
+          : this.state.tab === 'configurations'
+          ? this.renderConfigurations()
+          : this.renderFeatures()}
+      </Fragment>
+    );
+  }
 }
 
 export default withOrganization(IntegrationDetailedView);
+
+const CapitalizedLink = styled('a')`
+  text-transform: capitalize;
+`;
