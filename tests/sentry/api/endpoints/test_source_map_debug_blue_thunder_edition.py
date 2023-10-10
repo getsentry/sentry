@@ -1728,12 +1728,15 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             )
 
             assert resp.data["exceptions"][0]["frames"][0]["scraping_process"]["source_file"] == {
-                "status": "success"
+                "url": "https://example.com/bundle0.js",
+                "status": "success",
             }
             assert resp.data["exceptions"][1]["frames"][0]["scraping_process"]["source_file"] == {
-                "status": "not_attempted"
+                "url": "https://example.com/bundle1.js",
+                "status": "not_attempted",
             }
             assert resp.data["exceptions"][2]["frames"][0]["scraping_process"]["source_file"] == {
+                "url": "https://example.com/bundle2.js",
                 "status": "failure",
                 "reason": "not_found",
                 "details": "Did not find source",
@@ -1799,12 +1802,15 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             )
 
             assert resp.data["exceptions"][0]["frames"][0]["scraping_process"]["source_map"] == {
-                "status": "success"
+                "url": "https://example.com/bundle0.js.map",
+                "status": "success",
             }
             assert resp.data["exceptions"][1]["frames"][0]["scraping_process"]["source_map"] == {
-                "status": "not_attempted"
+                "url": "https://example.com/bundle1.js.map",
+                "status": "not_attempted",
             }
             assert resp.data["exceptions"][2]["frames"][0]["scraping_process"]["source_map"] == {
+                "url": "https://example.com/bundle2.js.map",
                 "status": "failure",
                 "reason": "not_found",
                 "details": "Did not find source",

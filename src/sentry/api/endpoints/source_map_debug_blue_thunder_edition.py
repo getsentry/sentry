@@ -55,14 +55,17 @@ ARTIFACT_INDEX_LOOKUP_LIMIT = 25
 
 
 class ScrapingResultSuccess(TypedDict):
+    url: str
     status: Literal["success"]
 
 
 class ScrapingResultNotAttempted(TypedDict):
+    url: str
     status: Literal["not_attempted"]
 
 
 class ScrapingResultFailure(TypedDict):
+    url: str
     status: Literal["failure"]
     reason: Literal[
         "not_found",
@@ -682,7 +685,7 @@ def get_scraping_attempt_map(event_data):
     scraping_attempt_map = {}  # maps from url to attempt
     scraping_attempts = event_data.get("scraping_attempts") or []
     for scraping_attempt in scraping_attempts:
-        attempt_data = {"status": scraping_attempt["status"]}
+        attempt_data = {"status": scraping_attempt["status"], "url": scraping_attempt["url"]}
 
         reason = scraping_attempt.get("reason")
         if reason is not None:
