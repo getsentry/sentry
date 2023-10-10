@@ -22,6 +22,7 @@ from typing import (
     cast,
 )
 
+import mmh3
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
@@ -45,11 +46,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
-from sentry.db.postgres.transactions import (
-    django_test_transaction_water_mark,
-    enforce_constraints,
-    in_test_assert_no_transaction,
-)
+from sentry.db.postgres.transactions import enforce_constraints, in_test_assert_no_transaction
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
@@ -469,6 +466,10 @@ class OutboxBase(Model):
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
+    def hash_from(self, attrs: Iterable[str]) -> int:
+        # a single 64 bit result of hashing the given attrs.
+        return mmh3.hash64(".".join(str(v) for v in (getattr(self, attr) for attr in attrs)))[0]
+
     def selected_messages_in_shard(
         self, latest_shard_row: OutboxBase | None = None
     ) -> models.QuerySet:
@@ -525,27 +526,56 @@ class OutboxBase(Model):
         super().save(**kwds)
 
     @contextlib.contextmanager
+    def with_shard_lock(self, wait=True):
+        using: str = db.router.db_for_write(type(self))
+        with connections[using].cursor() as cursor:
+            try:
+                cursor.execute(
+                    f"SELECT  pg_advisory_lock(id) FROM {self._meta.db_table} WHERE ",
+                )
+                yield
+            finally:
+                pass
+
+    def lock_id(self, attrs: Iterable[str]) -> int:
+        # 64 bit integer that roughly encodes a unique, serializable lock identifier
+        return mmh3.hash64(".".join(str(getattr(self, attr)) for attr in attrs))[0]
+
+    @contextlib.contextmanager
     def process_shard(
         self, latest_shard_row: OutboxBase | None
     ) -> Generator[OutboxBase | None, None, None]:
         flush_all: bool = not bool(latest_shard_row)
-        next_shard_row: OutboxBase | None
         using: str = db.router.db_for_write(type(self))
-        with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
-            try:
-                next_shard_row = (
-                    self.selected_messages_in_shard(latest_shard_row=latest_shard_row)
-                    .select_for_update(nowait=flush_all)
-                    .first()
-                )
-            except OperationalError as e:
-                if "LockNotAvailable" in str(e):
-                    # If a non task flush process is running already, allow it to proceed without contention.
-                    next_shard_row = None
-                else:
-                    raise e
 
-            yield next_shard_row
+        shard_lock_id = self.lock_id(self.sharding_columns)
+        obtained_lock = True
+
+        try:
+            with connections[using].cursor() as cursor:
+                if flush_all:
+                    cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
+                    if not cursor.fetchone()[0]:
+                        obtained_lock = False
+                else:
+                    cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
+
+            if obtained_lock:
+                next_shard_row: OutboxBase | None
+                next_shard_row = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
+                yield next_shard_row
+            else:
+                yield None
+        finally:
+            try:
+                with connections[using].cursor() as cursor:
+                    cursor.execute("SELECT pg_advisory_unlock(%s)", [shard_lock_id])
+            except Exception:
+                # If something strange is going on with our connection, force it closed to prevent holding the lock.
+                connections[using].close()
+                raise
 
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
@@ -830,21 +860,3 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
-
-
-# Add this in after we successfully deploy, the job.
-# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-# def schedule_backfill_outboxes(app_config, using, **kwargs):
-#     from sentry.tasks.backfill_outboxes import (
-#         schedule_backfill_outbox_jobs,
-#         schedule_backfill_outbox_jobs_control,
-#     )
-#     from sentry.utils.env import in_test_environment
-#
-#     if in_test_environment():
-#         return
-#
-#     if SiloMode.get_current_mode() != SiloMode.REGION:
-#         schedule_backfill_outbox_jobs_control.delay()
-#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
-#         schedule_backfill_outbox_jobs.delay()
