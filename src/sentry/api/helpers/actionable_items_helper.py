@@ -1,4 +1,5 @@
-from sentry.models import EventError, SourceMapProcessingIssue
+from sentry.models.eventerror import EventError
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class ActionPriority:

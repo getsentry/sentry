@@ -9,7 +9,8 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import Serializer, serialize
-from sentry.models import NotificationSetting, UserOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationScopeType, UserOptionsSettingsKey
 from sentry.notifications.utils.legacy_mappings import (
     USER_OPTION_SETTINGS,

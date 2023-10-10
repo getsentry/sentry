@@ -4,8 +4,8 @@ from django.db import router
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import PlatformExternalIssue
 from sentry.models.group import Group
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 
 

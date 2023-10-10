@@ -16,7 +16,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializer, MonitorCheckInSerializerResponse
 

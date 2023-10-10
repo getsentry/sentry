@@ -2,12 +2,12 @@ from typing import Any, Dict, List, Optional
 
 from django.db import router, transaction
 
-from sentry.models import (
+from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
-    OrganizationSlugReservationReplica,
     OrganizationSlugReservationType,
-    outbox_context,
 )
+from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
+from sentry.models.outbox import outbox_context
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner

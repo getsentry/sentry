@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
 import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
@@ -22,7 +23,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
+import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
+import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
+import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -166,6 +169,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     }
   );
 
+  const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
+    onSuccess: () =>
+      router.push(
+        `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
+      ),
+  });
+
+  const handleDeleteDebugIdBundle = useCallback(() => {
+    if (!debugIdBundlesArtifactsData) {
+      return;
+    }
+    deleteDebugIdArtifacts({
+      projectSlug: project.slug,
+      bundleId: debugIdBundlesArtifactsData.bundleId,
+    });
+  }, [debugIdBundlesArtifactsData, deleteDebugIdArtifacts, project.slug]);
+
   const handleSearch = useCallback(
     (newQuery: string) => {
       router.push({
@@ -179,19 +199,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? t('Artifact Bundle') : t('Release Bundle')}
+        title={tabDebugIdBundlesActive ? params.bundleId : t('Release Bundle')}
+        action={
+          tabDebugIdBundlesActive && (
+            <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
+          )
+        }
         subtitle={
-          <VersionAndDetails>
-            {params.bundleId}
-            {tabDebugIdBundlesActive && (
-              <Associations
-                associations={debugIdBundlesArtifactsData?.associations}
-                loading={debugIdBundlesArtifactsLoading}
-              />
-            )}
-          </VersionAndDetails>
+          !tabDebugIdBundlesActive && (
+            <VersionAndDetails>{params.bundleId}</VersionAndDetails>
+          )
         }
       />
+      {tabDebugIdBundlesActive && debugIdBundlesArtifactsData && (
+        <DetailsPanel>
+          <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
+        </DetailsPanel>
+      )}
       <SearchBarWithMarginBottom
         placeholder={
           tabDebugIdBundlesActive ? t('Filter by Path or ID') : t('Filter by Path')
@@ -330,6 +354,10 @@ const ActionsColumn = styled(Column)`
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
+`;
+
+const DetailsPanel = styled(Panel)`
+  padding: ${space(1)} ${space(2)};
 `;
 
 const ArtifactColumn = styled('div')`

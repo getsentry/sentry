@@ -95,7 +95,7 @@ class OrganizationManager(BaseManager):
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Teams have access to."""
-        from sentry.models import Team
+        from sentry.models.team import Team
 
         return self.filter(
             status=OrganizationStatus.ACTIVE,
@@ -106,7 +106,7 @@ class OrganizationManager(BaseManager):
         """
         Returns a set of all organizations a user has access to.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
 
         if not user.is_authenticated:
             return []
@@ -168,7 +168,7 @@ class Organization(
     """
 
     category = OutboxCategory.ORGANIZATION_UPDATE
-    replication_version = 2
+    replication_version = 3
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
@@ -376,7 +376,7 @@ class Organization(
 
     @property
     def option_manager(self) -> OptionManager:
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         return OrganizationOption.objects
 

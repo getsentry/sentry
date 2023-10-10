@@ -15,7 +15,9 @@ from sentry.api.serializers.models.user_identity_config import (
     UserIdentityConfig,
     supports_login,
 )
-from sentry.models import AuthIdentity, Identity, User
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
+from sentry.models.user import User
 from social_auth.models import UserSocialAuth
 
 

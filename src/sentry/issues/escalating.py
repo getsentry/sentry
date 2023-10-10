@@ -31,18 +31,12 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    INBOX_REASON_DETAILS,
-    Activity,
-    Group,
-    GroupHistoryStatus,
-    GroupInboxReason,
-    GroupStatus,
-    Organization,
-    Project,
-    add_group_to_inbox,
-    record_group_history,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import INBOX_REASON_DETAILS, GroupInboxReason, add_group_to_inbox
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey

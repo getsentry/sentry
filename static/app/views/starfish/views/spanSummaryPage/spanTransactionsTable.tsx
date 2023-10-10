@@ -43,7 +43,7 @@ import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 type Row = {
   'avg(span.self_time)': number;
   'spm()': number;
-  'time_spent_percentage(local)': number;
+  'time_spent_percentage()': number;
   transaction: string;
   transactionMethod: string;
 } & SpanTransactionMetrics;
@@ -129,11 +129,14 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row, {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-    });
+    const rendered = renderer(
+      {...row, 'span.op': span['span.op']},
+      {
+        location,
+        organization,
+        unit: meta.units?.[column.key],
+      }
+    );
 
     return rendered;
   };
@@ -217,7 +220,7 @@ const getColumnOrder = (
       ] as TableColumnHeader[])
     : []),
   {
-    key: 'time_spent_percentage(local)',
+    key: 'time_spent_percentage()',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },

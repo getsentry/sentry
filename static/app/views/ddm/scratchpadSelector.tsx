@@ -4,17 +4,21 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
+import isEmpty from 'lodash/isEmpty';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {openConfirmModal} from 'sentry/components/confirm';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {clearQuery, updateQuery} from 'sentry/utils/metrics';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -29,20 +33,42 @@ type ScratchpadState = {
   scratchpads: Record<string, Scratchpad>;
 };
 
+function makeLocalStorageKey(orgSlug: string) {
+  return `ddm-scratchpads:${orgSlug}`;
+}
+
 export function useScratchpads() {
-  const [state, setState] = useLocalStorageState<ScratchpadState>('ddm-scratchpads', {
-    default: null,
-    scratchpads: {},
-  });
-  const [selected, setSelected] = useState<string | null | undefined>(state.default); // scratchpad id
+  const {slug} = useOrganization();
+  const [state, setState] = useLocalStorageState<ScratchpadState>(
+    makeLocalStorageKey(slug),
+    {
+      default: null,
+      scratchpads: {},
+    }
+  );
+  const [selected, setSelected] = useState<string | null | undefined>(undefined); // scratchpad id
   const router = useRouter();
   const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
+
+  useEffect(() => {
+    if (state.default && selected === undefined) {
+      setSelected(state.default);
+    }
+  }, [state.default, selected]);
 
   // changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
     if (selected) {
       const selectedQuery = state.scratchpads[selected].query;
-      updateQuery(router, selectedQuery);
+
+      const queryToUpdate = selectedQuery;
+
+      // if the selected scratchpad has a start and end date, override the statsPeriod
+      if (selectedQuery.start && selectedQuery.end) {
+        updateQuery(router, {...selectedQuery, statsPeriod: null});
+      } else {
+        updateQuery(router, queryToUpdate);
+      }
     } else if (selected === null) {
       clearQuery(router);
     }
@@ -51,7 +77,7 @@ export function useScratchpads() {
 
   // saves all changes to the selected scratchpad to local storage
   useEffect(() => {
-    if (selected) {
+    if (selected && !isEmpty(routerQuery)) {
       update(selected, routerQuery);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,7 +104,10 @@ export function useScratchpads() {
   const add = useCallback(
     (name: string) => {
       const id = uuid4();
-      const newScratchpads = {...state.scratchpads, [id]: {name, id, query: routerQuery}};
+      const newScratchpads = {
+        ...state.scratchpads,
+        [id]: {name, id, query: {environment: null, statsPeriod: null, ...routerQuery}},
+      };
       setState({...state, scratchpads: newScratchpads});
       toggleSelected(id);
     },
@@ -88,7 +117,11 @@ export function useScratchpads() {
   const update = useCallback(
     (id: string, query: Scratchpad['query']) => {
       const oldScratchpad = state.scratchpads[id];
-      const newScratchpads = {...state.scratchpads, [id]: {...oldScratchpad, query}};
+      const newQuery = {environment: null, statsPeriod: null, ...query};
+      const newScratchpads = {
+        ...state.scratchpads,
+        [id]: {...oldScratchpad, query: newQuery},
+      };
       setState({...state, scratchpads: newScratchpads});
     },
     [state, setState]
@@ -117,13 +150,18 @@ export function useScratchpads() {
     add,
     update,
     remove,
-    toggleSelect: toggleSelected,
+    toggleSelected,
     setDefault,
   };
 }
 
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
+
+  const isDefault = useCallback(
+    scratchpad => scratchpads.default === scratchpad.id,
+    [scratchpads]
+  );
 
   const scratchpadOptions = useMemo(
     () =>
@@ -132,8 +170,35 @@ export function ScratchpadSelector() {
         label: s.name,
         trailingItems: (
           <Fragment>
-            <StyledDropdownIcon>
-              <IconDelete
+            <Tooltip
+              title={
+                isDefault(s)
+                  ? t('Remove as default scratchpad')
+                  : t('Set as default scratchpad')
+              }
+            >
+              <Button
+                size="zero"
+                borderless
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => {
+                  if (isDefault(s)) {
+                    scratchpads.setDefault(null);
+                  } else {
+                    scratchpads.setDefault(s.id ?? null);
+                  }
+                }}
+              >
+                <StyledDropdownIcon>
+                  <IconBookmark isSolid={isDefault(s)} />
+                </StyledDropdownIcon>
+              </Button>
+            </Tooltip>
+            <Tooltip title={t('Remove scratchpad')}>
+              <Button
+                size="zero"
+                borderless
+                onPointerDown={e => e.stopPropagation()}
                 onClick={() => {
                   openConfirmModal({
                     onConfirm: () => scratchpads.remove(s.id),
@@ -141,32 +206,20 @@ export function ScratchpadSelector() {
                     confirmText: t('Delete'),
                   });
                 }}
-              />
-            </StyledDropdownIcon>
+              >
+                <StyledDropdownIcon danger>
+                  <IconDelete size="sm" />
+                </StyledDropdownIcon>
+              </Button>
+            </Tooltip>
           </Fragment>
         ),
       })),
-    [scratchpads]
+    [scratchpads, isDefault]
   );
-
-  const isDefaultSelected = scratchpads.default === scratchpads.selected;
 
   return (
     <ScratchpadGroup>
-      <Button
-        size="sm"
-        disabled={!scratchpads.selected}
-        onClick={() => {
-          if (isDefaultSelected) {
-            scratchpads.setDefault(null);
-          } else {
-            scratchpads.setDefault(scratchpads.selected ?? null);
-          }
-        }}
-        icon={<IconBookmark isSolid={isDefaultSelected} />}
-      >
-        {isDefaultSelected ? t('Remove default') : t('Set as default')}
-      </Button>
       <SaveAsDropdown
         onSave={name => {
           scratchpads.add(name);
@@ -174,13 +227,14 @@ export function ScratchpadSelector() {
         mode={scratchpads.selected ? 'fork' : 'save'}
       />
       <CompactSelect
+        grid
         options={scratchpadOptions}
-        value={scratchpads.selected ?? ''}
+        value={scratchpads.selected ?? `None`}
         closeOnSelect={false}
         onChange={option => {
-          scratchpads.toggleSelect(option.value);
+          scratchpads.toggleSelected(option.value);
         }}
-        triggerProps={{prefix: t('Scratchpad'), size: 'sm'}}
+        triggerProps={{prefix: t('Scratchpad')}}
         emptyMessage="No scratchpads yet."
         disabled={false}
       />
@@ -195,14 +249,36 @@ function SaveAsDropdown({
   mode: 'save' | 'fork';
   onSave: (name: string) => void;
 }) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({});
+  const {
+    isOpen,
+    triggerProps,
+    overlayProps,
+    arrowProps,
+    state: {setOpen},
+  } = useOverlay({});
   const theme = useTheme();
   const [name, setName] = useState('');
 
+  const save = useCallback(() => {
+    onSave(name);
+    setOpen(false);
+    setName('');
+  }, [name, onSave, setOpen]);
+
+  const enterKeyPressed = useKeyPress('Enter', undefined, true);
+
+  useEffect(() => {
+    if (isOpen && enterKeyPressed && name) {
+      save();
+    }
+  }, [enterKeyPressed, isOpen, name, save]);
+
+  const isFork = mode === 'fork';
+
   return (
     <div>
-      <Button size="sm" icon={<IconStar />} {...triggerProps}>
-        {mode === 'fork' ? t('Fork as ...') : t('Save as ...')}
+      <Button icon={<IconStar isSolid={isFork} />} {...triggerProps}>
+        {isFork ? t('Fork as ...') : t('Save as ...')}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -218,12 +294,11 @@ function SaveAsDropdown({
                   onChange={({target}) => setName(target.value)}
                 />
                 <SaveAsButton
+                  priority="primary"
                   disabled={!name}
                   onClick={() => {
-                    onSave(name);
+                    save();
                   }}
-                  size="sm"
-                  priority="primary"
                 >
                   {mode === 'fork' ? t('Fork') : t('Save')}
                 </SaveAsButton>
@@ -253,12 +328,12 @@ const SaveAsInput = styled(InputControl)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledDropdownIcon = styled('span')`
-  padding-top: ${space(0.5)};
-  opacity: 0.6;
+const StyledDropdownIcon = styled('span')<{danger?: boolean}>`
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
+  opacity: 0.5;
 
   :hover {
     opacity: 0.9;
-    color: ${p => p.theme.red300};
+    color: ${p => (p.danger ? p.theme.red300 : p.theme.gray300)};
   }
 `;

@@ -5,7 +5,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StackView} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
@@ -19,6 +19,7 @@ type Props = {
   event: Event;
   hasHierarchicalGrouping: boolean;
   platform: PlatformKey;
+  stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
   expandFirstFrame?: boolean;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
@@ -43,6 +44,7 @@ function StackTrace({
   meta,
   threadId,
   frameSourceMapDebuggerData,
+  stackType,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -125,6 +127,7 @@ function StackTrace({
       meta={meta}
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+      hideSourceMapDebugger={stackType === StackType.MINIFIED}
     />
   );
 }
