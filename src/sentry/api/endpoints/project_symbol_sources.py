@@ -53,7 +53,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.SYMBOL_SOURCES,
+        examples=ProjectExamples.GET_SYMBOL_SOURCES,
     )
     def get(self, request: Request, project: Project) -> Response:
         """
@@ -84,6 +84,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.DELETE_SYMBOL_SOURCES,
     )
     def delete(self, request: Request, project: Project) -> Response:
         """
@@ -114,6 +115,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=ProjectExamples.ADD_SYMBOL_SOURCES,
     )
     def post(self, request: Request, project: Project) -> Response:
         """
@@ -157,6 +159,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.UPDATE_SYMBOL_SOURCES,
     )
     def put(self, request: Request, project: Project) -> Response:
         """
