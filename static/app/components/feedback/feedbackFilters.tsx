@@ -15,7 +15,7 @@ export default function FeedbackFilters({className, style}: Props) {
     <PageFilterBar className={className} style={style}>
       <ProjectPageFilter resetParamsOnChange={['cursor']} />
       <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-      <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+      <DatePageFilter resetParamsOnChange={['cursor']} />
     </PageFilterBar>
   );
 }

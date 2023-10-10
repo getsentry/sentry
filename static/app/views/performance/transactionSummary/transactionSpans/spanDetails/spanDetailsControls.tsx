@@ -56,7 +56,6 @@ export default function SpanDetailsControls({
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter
-          alignDropdown="left"
           relativeOptions={SPAN_RELATIVE_PERIODS}
           maxPickableDays={SPAN_RETENTION_DAYS}
         />

@@ -145,7 +145,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                 <PageFilterBar>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
+                  <DatePageFilter position="bottom-end" />
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}

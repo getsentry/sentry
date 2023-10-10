@@ -87,7 +87,7 @@ function MonitorDetails({params, location}: Props) {
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {!hasLastCheckIn(monitor) ? (

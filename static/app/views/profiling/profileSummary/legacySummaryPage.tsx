@@ -239,7 +239,7 @@ function LegacyProfileSummaryPage(props: ProfileSummaryPageProps) {
                   <ActionBar>
                     <PageFilterBar condensed>
                       <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
+                      <DatePageFilter />
                     </PageFilterBar>
                     {profilingUsingTransactions ? (
                       <SearchBar

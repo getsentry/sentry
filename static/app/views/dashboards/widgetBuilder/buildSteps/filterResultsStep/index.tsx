@@ -127,7 +127,7 @@ export function FilterResultsStep({
       <StyledPageFilterBar>
         <ProjectPageFilter disabled />
         <EnvironmentPageFilter disabled />
-        <DatePageFilter alignDropdown="left" disabled />
+        <DatePageFilter disabled />
         <ReleasesProvider organization={organization} selection={selection}>
           <StyledReleasesSelectControl
             selectedReleases={

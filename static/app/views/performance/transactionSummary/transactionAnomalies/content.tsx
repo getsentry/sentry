@@ -278,7 +278,7 @@ function AnomaliesContent(props: Props) {
       <FilterActions>
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter />
         </PageFilterBar>
         <SearchBar
           organization={organization}

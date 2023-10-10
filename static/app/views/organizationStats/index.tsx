@@ -282,7 +282,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             options={options}
             onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
           />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter />
         </PageFilterBar>
       </PageControl>
     );

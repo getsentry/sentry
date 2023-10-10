@@ -107,7 +107,6 @@ function SpansContent(props: Props) {
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
           <DatePageFilter
-            alignDropdown="left"
             maxPickableDays={SPAN_RETENTION_DAYS}
             relativeOptions={SPAN_RELATIVE_PERIODS}
           />

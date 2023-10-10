@@ -187,10 +187,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter
-                    alignDropdown="left"
-                    resetParamsOnChange={CURSOR_PARAMS}
-                  />
+                  <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar

@@ -83,7 +83,7 @@ function ScreenLoadSpans() {
               <StarfishPageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
-                    <DatePageFilter alignDropdown="left" />
+                    <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                   <ScreenMetricsRibbon />

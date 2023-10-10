@@ -102,7 +102,7 @@ function Profiles(): React.ReactElement {
             <FilterActions>
               <PageFilterBar condensed>
                 <EnvironmentPageFilter />
-                <DatePageFilter alignDropdown="left" />
+                <DatePageFilter />
               </PageFilterBar>
               <SmartSearchBar
                 organization={organization}

@@ -194,7 +194,7 @@ function InnerContent(
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
+            <DatePageFilter />
           </PageFilterBar>
           <StyledSearchBar
             organization={organization}

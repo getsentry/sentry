@@ -39,7 +39,7 @@ export default function PageloadModule() {
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
+                    <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>

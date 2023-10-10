@@ -192,7 +192,7 @@ function VitalDetailContent(props: Props) {
           <PageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
+            <DatePageFilter />
           </PageFilterBar>
           <SearchBar
             searchSource="performance_vitals"

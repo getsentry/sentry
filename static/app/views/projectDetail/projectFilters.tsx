@@ -29,7 +29,7 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
     <FiltersWrapper>
       <PageFilterBar>
         <EnvironmentPageFilter />
-        <DatePageFilter relativeOptions={relativeDateOptions} alignDropdown="left" />
+        <DatePageFilter relativeOptions={relativeDateOptions} />
       </PageFilterBar>
       <GuideAnchor target="releases_search" position="bottom">
         <SmartSearchBar
