@@ -39,9 +39,9 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
 
         note = None
-        for note in notes_by_user:
-            if note.id == note_id:
-                note = note
+        for n in notes_by_user:
+            if n.id == note_id:
+                note = n
                 break
 
         if not note:
