@@ -619,9 +619,11 @@ export function getIntervalLine(
           },
           lineStyle: {color: theme.red300, type: 'solid', width: 4},
           data: [
+            // The line needs to be hard-coded to a pixel coordinate because
+            // the lowest y-value is dynamic and 'min' doesn't work here
             [
-              {xAxis: breakpoint, y: 177},
-              {xAxis: 'max', y: 177},
+              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
             ],
           ],
         }) ?? {},
