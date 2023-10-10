@@ -421,7 +421,7 @@ class GroupManager(BaseManager):
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        groups_list = []
+        modified_groups_list = []
         with transaction.atomic(router.db_for_write(Group)):
             selected_groups = (
                 Group.objects.filter(id__in=[g.id for g in groups])
@@ -432,11 +432,11 @@ class GroupManager(BaseManager):
             for group in selected_groups:
                 group.status = status
                 group.substatus = substatus
-                groups_list.append(group)
+                modified_groups_list.append(group)
 
-            Group.objects.bulk_update(groups_list, ["status", "substatus"])
+            Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
 
-            for group in groups_list:
+            for group in modified_groups_list:
                 Activity.objects.create_group_activity(
                     group,
                     activity_type,
