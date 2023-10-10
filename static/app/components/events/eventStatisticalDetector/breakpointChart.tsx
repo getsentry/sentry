@@ -40,7 +40,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
 
   const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 7,
+    relativeDays: 14,
   });
 
   eventView.start = (beforeDateTime as Date).toISOString();

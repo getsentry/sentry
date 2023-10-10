@@ -178,7 +178,7 @@ def test_project_config_uses_filter_features(
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
-    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "0")
 
     if has_blacklisted_ips:
@@ -208,10 +208,26 @@ def test_project_config_uses_filter_features(
 
 @django_db_all
 @region_silo_test(stable=True)
+def test_project_config_with_react_hydration_errors_filter(default_project):
+    default_project.update_option("filters:chunk-load-error", "0")
+
+    # We want to test both string and boolean option representations. See implementation for more details
+    # on this.
+    for value in ("1", True):
+        default_project.update_option("filters:react-hydration-errors", value)
+        project_cfg = get_project_config(default_project, full_config=True)
+
+        cfg = project_cfg.to_dict()
+        _validate_project_config(cfg["config"])
+        cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+        assert len(cfg_error_messages) == 1
+
+
+@django_db_all
+@region_silo_test(stable=True)
 def test_project_config_with_chunk_load_error_filter(default_project):
-    # The react-hydration-errors option is set as string in the defaults but then its changed as a boolean in the
-    # options endpoint, which is something that should be changed.
-    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "1")
 
     project_cfg = get_project_config(default_project, full_config=True)
