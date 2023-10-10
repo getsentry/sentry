@@ -51,6 +51,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
+  virtualizedTree?: VirtualizedTree<T>;
 }
 
 export function useVirtualizedTree<T extends TreeLike>(
@@ -71,11 +72,9 @@ export function useVirtualizedTree<T extends TreeLike>(
   });
 
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(
-      props.tree,
-      props.expanded,
-      props.skipFunction
-    );
+    const initialTree =
+      props.virtualizedTree ||
+      VirtualizedTree.fromRoots(props.tree, props.expanded, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);

@@ -336,8 +336,8 @@ export function FlamegraphTreeTable({
               This is useful when number of rows does not fill up the entire table height.
              */}
               <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
+                <FrameCallersTableCell bordered />
+                <FrameCallersTableCell bordered />
                 <FrameCallersTableCell style={{width: '100%'}} />
               </GhostRowContainer>
             </div>
