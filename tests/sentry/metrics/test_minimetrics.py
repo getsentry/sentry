@@ -212,7 +212,7 @@ def test_composite_backend_does_not_recurse(hub):
 
     # make sure the backend feeds back to itself
     with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()):
-        composite_backend.incr(key="sentrytest.composite", tags={"x": ["bar", "baz"]})
+        composite_backend.incr(key="sentrytest.composite", tags={"x": "bar"})
         full_flush(hub)
 
     # make sure that we did actually internally forward to the composite
@@ -225,7 +225,7 @@ def test_composite_backend_does_not_recurse(hub):
     # the minimetrics.add metric must not show up
     assert len(metrics) == 1
     assert metrics[0][1] == "sentry.sentrytest.composite@none"
-    assert metrics[0][4]["x"] == ["bar", "baz"]
+    assert metrics[0][4]["x"] == "bar"
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
