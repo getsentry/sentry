@@ -577,7 +577,7 @@ class ProjectExamples:
     SYMBOL_SOURCES = [
         OpenApiExample(
             "Get a Project's symbol sources",
-            value=detailed_project,
+            value=symbol_sources,
             status_codes=["200"],
             response_only=True,
         ),
