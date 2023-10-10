@@ -7,8 +7,8 @@ from django.core.mail.message import EmailMultiAlternatives
 import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models import Rule
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

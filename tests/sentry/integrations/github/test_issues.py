@@ -6,7 +6,8 @@ from django.test import RequestFactory
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
-from sentry.models import ExternalIssue, Integration
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase

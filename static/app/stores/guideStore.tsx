@@ -5,6 +5,7 @@ import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
+import ModalStore from 'sentry/stores/modalStore';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -78,10 +79,11 @@ const defaultState: GuideStoreState = {
 
 interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
-
   closeGuide(dismissed?: boolean): void;
+
   fetchSucceeded(data: GuidesServerData): void;
   init(): void;
+  modalStoreListener: null | Function;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
@@ -97,6 +99,7 @@ interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
 const storeConfig: GuideStoreDefinition = {
   state: defaultState,
   browserHistoryListener: null,
+  modalStoreListener: null,
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -106,6 +109,18 @@ const storeConfig: GuideStoreDefinition = {
 
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
+
+    // Guides will show above modals, but are not interactable because
+    // of the focus trap, so we force them to be hidden while a modal is open.
+    this.modalStoreListener = ModalStore.listen(() => {
+      const isOpen = typeof ModalStore.getState().renderer === 'function';
+
+      if (isOpen) {
+        this.setForceHide(true);
+      } else {
+        this.setForceHide(false);
+      }
+    }, undefined);
   },
 
   teardown() {
@@ -113,6 +128,9 @@ const storeConfig: GuideStoreDefinition = {
 
     if (this.browserHistoryListener) {
       this.browserHistoryListener();
+    }
+    if (this.modalStoreListener) {
+      this.modalStoreListener();
     }
   },
 

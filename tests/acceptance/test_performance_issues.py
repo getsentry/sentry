@@ -12,7 +12,7 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.testutils.cases import AcceptanceTestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test

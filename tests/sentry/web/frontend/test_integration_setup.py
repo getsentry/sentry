@@ -1,5 +1,6 @@
 from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 

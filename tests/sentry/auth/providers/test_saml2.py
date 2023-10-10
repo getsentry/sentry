@@ -7,7 +7,7 @@ import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
-from sentry.models import AuthProvider
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

@@ -6,9 +6,9 @@ import responses
 from rest_framework.serializers import ValidationError
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
-from sentry.models import Rule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.rule import Rule
 from sentry.tasks.integrations.migrate_opsgenie_plugins import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,

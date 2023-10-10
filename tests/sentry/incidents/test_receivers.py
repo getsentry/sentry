@@ -7,7 +7,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

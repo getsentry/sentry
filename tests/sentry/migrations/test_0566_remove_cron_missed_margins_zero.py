@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.models import outbox_context
+from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 

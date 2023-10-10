@@ -3,6 +3,7 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -96,6 +97,9 @@ function ErrorList() {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
@@ -131,6 +135,11 @@ function ErrorList() {
                 />
               )}
             </AutoSizer>
+            <JumpButtons
+              jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+              onClick={() => {}}
+              tableHeaderHeight={HEADER_HEIGHT}
+            />
           </OverflowHidden>
         ) : (
           <Placeholder height="100%" />
@@ -144,6 +153,7 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
 `;
 
 const ErrorTable = styled(FluidHeight)`

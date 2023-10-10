@@ -11,37 +11,33 @@ from rest_framework import status
 
 from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    GROUP_OWNER_TYPE,
-    Activity,
-    ApiToken,
-    ExternalIssue,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupHistory,
+from sentry.models.activity import Activity
+from sentry.models.apitoken import ApiToken
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
-    GroupLink,
-    GroupOwner,
-    GroupOwnerType,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Integration,
-    OrganizationIntegration,
-    Release,
-    ReleaseStages,
-    UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.user_option import UserOption
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,

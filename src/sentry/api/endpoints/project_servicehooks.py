@@ -11,7 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.services.hybrid_cloud.hook import hook_service
 
 

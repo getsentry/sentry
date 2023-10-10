@@ -16,7 +16,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models import UserIP
+from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger

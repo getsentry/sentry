@@ -10,7 +10,8 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Group, GroupHistoryStatus, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -111,15 +112,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
     span = sentry_sdk.Hub.current.scope.span
-    last_id = None
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -160,7 +153,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * 50,
                 result_value_getter=lambda item: item,
-                callbacks=[get_last_id, get_total_count],
+                callbacks=[get_total_count],
             ),
             ITERATOR_CHUNK,
         ):
@@ -168,26 +161,10 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    remaining_groups_queryset = base_queryset._clone()
-
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        if last_id is not None:
-            span.set_tag("last_id", last_id)
-            span.set_tag("total_count", total_count)
-            remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-        remaining_groups = remaining_groups_queryset.count()
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -243,15 +220,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    last_id = None
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -266,6 +235,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         .annotate(recent_regressed_history=Max("grouphistory__date_added"))
         .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
+
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
@@ -273,7 +243,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * 50,
                 result_value_getter=lambda item: item,
-                callbacks=[get_last_id, get_total_count],
+                callbacks=[get_total_count],
             ),
             ITERATOR_CHUNK,
         ):
@@ -281,26 +251,10 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
                 group_ids=group_ids_with_regressed_history,
             )
 
-    remaining_groups_queryset = base_queryset._clone()
-
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        if last_id is not None:
-            span.set_tag("last_id", last_id)
-            span.set_tag("total_count", total_count)
-            remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-        remaining_groups = remaining_groups_queryset.count()
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -356,16 +310,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-
-    last_id = None
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -388,7 +333,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * 50,
                 result_value_getter=lambda item: item,
-                callbacks=[get_last_id, get_total_count],
+                callbacks=[get_total_count],
             ),
             ITERATOR_CHUNK,
         ):
@@ -396,26 +341,10 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    remaining_groups_queryset = base_queryset._clone()
-
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        if last_id is not None:
-            span.set_tag("last_id", last_id)
-            span.set_tag("total_count", total_count)
-            remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-        remaining_groups = remaining_groups_queryset.count()
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 

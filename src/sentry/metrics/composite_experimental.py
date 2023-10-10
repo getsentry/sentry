@@ -50,7 +50,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         self._primary_backend.incr(key, instance, tags, amount, sample_rate)
-        if self._is_allowed(key):
+        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_incr"):
             self._minimetrics.incr(key, instance, tags, amount, self._minimetrics_sample_rate())
 
     def timing(
@@ -62,7 +62,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
-        if self._is_allowed(key):
+        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
             self._minimetrics.timing(key, value, instance, tags, self._minimetrics_sample_rate())
 
     def gauge(
@@ -74,5 +74,5 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         self._primary_backend.gauge(key, value, instance, tags, sample_rate)
-        if self._is_allowed(key):
+        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_gauge"):
             self._minimetrics.gauge(key, value, instance, tags, self._minimetrics_sample_rate())

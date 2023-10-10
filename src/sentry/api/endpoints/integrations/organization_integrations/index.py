@@ -19,7 +19,8 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, OrganizationIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
 

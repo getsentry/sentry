@@ -1,6 +1,8 @@
 from django.core import mail
 
-from sentry.models import OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test

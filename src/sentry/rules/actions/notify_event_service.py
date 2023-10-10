@@ -11,7 +11,7 @@ from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction

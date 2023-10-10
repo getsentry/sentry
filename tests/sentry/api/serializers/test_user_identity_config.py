@@ -3,7 +3,9 @@ from unittest import mock
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import Status, UserIdentityConfig
-from sentry.models import AuthIdentity, AuthProvider, Identity, IdentityProvider
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth

@@ -24,7 +24,10 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models import ActorTuple, Group, Team, User
+    from sentry.models.actor import ActorTuple
+    from sentry.models.group import Group
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -42,7 +45,9 @@ class GroupAssigneeManager(BaseManager):
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity, GroupSubscription, Team
+        from sentry.models.activity import Activity
+        from sentry.models.groupsubscription import GroupSubscription
+        from sentry.models.team import Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
@@ -114,7 +119,7 @@ class GroupAssigneeManager(BaseManager):
     def deassign(self, group: Group, acting_user: User | RpcUser | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity
+        from sentry.models.activity import Activity
         from sentry.models.projectownership import ProjectOwnership
 
         affected = self.filter(group=group)[:1].count()
@@ -189,6 +194,6 @@ class GroupAssignee(Model):
         raise NotImplementedError("Unknown Assignee")
 
     def assigned_actor(self) -> ActorTuple:
-        from sentry.models import ActorTuple
+        from sentry.models.actor import ActorTuple
 
         return ActorTuple.from_actor_identifier(self.assigned_actor_id())

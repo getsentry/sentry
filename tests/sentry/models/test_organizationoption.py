@@ -1,4 +1,4 @@
-from sentry.models import OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
