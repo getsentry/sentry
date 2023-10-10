@@ -40,7 +40,6 @@ def patch_sentry_sdk():
         report_tracked_add(ty)
 
     @wraps(real_emit)
-    @metrics_noop
     def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):
         flushable_metrics = []
         stats_by_type: Any = {}
