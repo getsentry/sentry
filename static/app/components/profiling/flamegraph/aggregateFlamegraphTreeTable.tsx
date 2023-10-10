@@ -173,7 +173,7 @@ export function AggregateFlamegraphTreeTable({
     }
   }, [profileGroup, profiles.threadId, dispatch]);
 
-  const [fixedScrollContainerRef, setFixedScrollContainerRef] =
+  const [scrollContainerRef, setFixedScrollContainerRef] =
     useState<HTMLDivElement | null>(null);
   const [dynamicScrollContainerRef, setDynamicScrollContainerRef] =
     useState<HTMLDivElement | null>(null);
@@ -187,7 +187,7 @@ export function AggregateFlamegraphTreeTable({
 
   const [clickedContextMenuNode, setClickedContextMenuClose] =
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
-  const contextMenu = useContextMenu({container: fixedScrollContainerRef});
+  const contextMenu = useContextMenu({container: scrollContainerRef});
 
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
@@ -277,8 +277,8 @@ export function AggregateFlamegraphTreeTable({
             ref={n => {
               r.ref = n;
             }}
-            style={r.styles}
             isSelected={selectedNodeIndex === r.key}
+            style={r.styles}
           >
             <FrameCallersFunctionRow
               node={r.item}
@@ -309,9 +309,12 @@ export function AggregateFlamegraphTreeTable({
     useCallback(
       (
         node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
-        scrollContainer: HTMLElement | null,
+        scrollContainer: HTMLElement | HTMLElement[] | null,
         coordinates?: {depth: number; top: number}
       ) => {
+        if (!scrollContainer) {
+          return;
+        }
         if (node) {
           const lastCell = node.ref?.lastChild?.firstChild as
             | HTMLElement
@@ -323,15 +326,32 @@ export function AggregateFlamegraphTreeTable({
             });
 
             const left = -328 + (node.item.depth * 14 + 8);
-            scrollContainer?.scrollBy({
+            if (Array.isArray(scrollContainer)) {
+              scrollContainer.forEach(c => {
+                c.scrollBy({
+                  left,
+                });
+              });
+            } else {
+              scrollContainer.scrollBy({
+                left,
+              });
+            }
+          }
+        } else if (coordinates && scrollContainer) {
+          const left = -328 + (coordinates.depth * 14 + 8);
+
+          if (Array.isArray(scrollContainer)) {
+            scrollContainer.forEach(c => {
+              c.scrollBy({
+                left,
+              });
+            });
+          } else {
+            scrollContainer.scrollBy({
               left,
             });
           }
-        } else if (coordinates) {
-          const left = -328 + (coordinates.depth * 14 + 8);
-          scrollContainer?.scrollBy({
-            left,
-          });
         }
       },
       []
@@ -341,54 +361,34 @@ export function AggregateFlamegraphTreeTable({
     return VirtualizedTree.fromRoots(tree ?? []);
   }, [tree]);
 
-  const dynamicScrollContainers = useMemo(() => {
-    return dynamicScrollContainerRef ? [dynamicScrollContainerRef] : [];
-  }, [dynamicScrollContainerRef]);
-
-  const fixedScrollContainers = useMemo(() => {
-    return fixedScrollContainerRef ? [fixedScrollContainerRef] : [];
-  }, [fixedScrollContainerRef]);
+  const scrollContainers = useMemo(() => {
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(
+      c => !!c
+    ) as HTMLElement[];
+  }, [dynamicScrollContainerRef, scrollContainerRef]);
 
   const {
-    renderedItems: fixedColumnRenderedItems,
-    scrollContainerStyles: fixedScrollContainerStyles,
+    items: renderItems,
+    scrollContainerStyles: scrollContainerStyles,
     containerStyles: fixedContainerStyles,
-    handleSortingChange: fixedHandleSortingChange,
-    handleScrollTo: fixedHandleScrollTo,
-    clickedGhostRowRef: fixedClickedGhostRowRef,
-    hoveredGhostRowRef: fixedHoveredGhostRowRef,
+    handleSortingChange,
+    handleScrollTo,
+    handleExpandTreeNode,
+    handleRowClick,
+    handleRowKeyDown,
+    handleRowMouseEnter,
+    selectedNodeIndex,
+    clickedGhostRowRef: clickedGhostRowRef,
+    hoveredGhostRowRef: hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     onScrollToNode,
-    renderRow: fixedRenderRow,
-    scrollContainer: fixedScrollContainerRef,
+    scrollContainer: scrollContainers,
     rowHeight: 24,
     tree,
     virtualizedTree,
-    syncScrollContainers: dynamicScrollContainers,
-  });
-
-  const {
-    renderedItems: dynamicColumnRenderedItems,
-    scrollContainerStyles: dynamicScrollContainerStyles,
-    containerStyles: dynamicContainerStyles,
-    handleSortingChange: dynamicHandleSortingChange,
-    handleScrollTo: dynamicHandleScrollTo,
-    clickedGhostRowRef: dynamicClickedGhostRowRef,
-    hoveredGhostRowRef: dynamicHoveredGhostRowRef,
-  } = useVirtualizedTree({
-    expanded,
-    skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
-    sortFunction,
-    onScrollToNode,
-    renderRow: dynamicRenderRow,
-    scrollContainer: dynamicScrollContainerRef,
-    rowHeight: 24,
-    tree,
-    virtualizedTree,
-    syncScrollContainers: fixedScrollContainers,
   });
 
   const onSortChange = useCallback(
@@ -400,21 +400,19 @@ export function AggregateFlamegraphTreeTable({
       setSort(newSort);
 
       const sortFn = makeSortFunction(newSort, newDirection);
-      fixedHandleSortingChange(sortFn);
-      dynamicHandleSortingChange(sortFn);
+      handleSortingChange(sortFn);
     },
-    [sort, direction, fixedHandleSortingChange, dynamicHandleSortingChange]
+    [sort, direction, handleSortingChange]
   );
 
   useEffect(() => {
     function onShowInTableView(frame: FlamegraphFrame) {
-      fixedHandleScrollTo(el => el.node === frame.node);
-      dynamicHandleScrollTo(el => el.node === frame.node);
+      handleScrollTo(el => el.node === frame.node);
     }
 
     canvasScheduler.on('show in table view', onShowInTableView);
     return () => canvasScheduler.off('show in table view', onShowInTableView);
-  }, [canvasScheduler, fixedHandleScrollTo, dynamicHandleScrollTo]);
+  }, [canvasScheduler, handleScrollTo]);
 
   const onSortBySelfWeight = useCallback(() => {
     onSortChange('self weight');
@@ -488,11 +486,19 @@ export function AggregateFlamegraphTreeTable({
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={fixedHoveredGhostRowRef} />
-          <div ref={fixedClickedGhostRowRef} />
-          <div ref={setFixedScrollContainerRef} style={fixedScrollContainerStyles}>
+          <div ref={hoveredGhostRowRef} />
+          <div ref={clickedGhostRowRef} />
+          <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
             <div style={fixedContainerStyles}>
-              {fixedColumnRenderedItems}
+              {renderItems.map(r => {
+                return fixedRenderRow(r, {
+                  handleRowClick: handleRowClick(r.key),
+                  handleRowMouseEnter: handleRowMouseEnter(r.key),
+                  handleExpandTreeNode,
+                  handleRowKeyDown,
+                  selectedNodeIndex,
+                });
+              })}
               <GhostRowContainer>
                 <FrameCallersTableCell bordered />
                 <FrameCallersTableCell bordered />
@@ -505,10 +511,18 @@ export function AggregateFlamegraphTreeTable({
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={dynamicHoveredGhostRowRef} />
-          <div ref={dynamicClickedGhostRowRef} />
-          <div ref={setDynamicScrollContainerRef} style={dynamicScrollContainerStyles}>
-            <div style={dynamicContainerStyles}>{dynamicColumnRenderedItems}</div>
+          <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
+            <div style={fixedContainerStyles}>
+              {renderItems.map(r => {
+                return dynamicRenderRow(r, {
+                  handleRowClick: handleRowClick(r.key),
+                  handleRowMouseEnter: handleRowMouseEnter(r.key),
+                  handleExpandTreeNode,
+                  handleRowKeyDown,
+                  selectedNodeIndex,
+                });
+              })}
+            </div>
           </div>
         </DynamicTableItemsContainer>
       </FrameCallersTable>
