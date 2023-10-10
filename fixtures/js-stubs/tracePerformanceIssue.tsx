@@ -10,8 +10,12 @@ export function TracePerformanceIssue(
     project_slug: 'santry',
     title: 'Large HTTP payload',
     level: 'info',
-    issue: '',
     type: 1015,
+    culprit: '',
+    start: 0,
+    end: 0,
+    span: [],
+    suspect_spans: [],
     ...params,
   };
 }
