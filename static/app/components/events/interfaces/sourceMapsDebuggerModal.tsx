@@ -45,7 +45,7 @@ const SOURCE_MAP_SCRAPING_REASON_MAP = {
   permission_denied: {
     shortName: t('Permission Denied'),
     explanation: t(
-      'Permission to access the source map was denied by the server hosting the source map.'
+      'Permission to access the source map was denied by the server hosting the source map. This means that the server hosting the source map returned a 401 Unauthorized or a 403 Forbidden response code.'
     ),
   },
   timeout: {
@@ -80,7 +80,7 @@ const SOURCE_FILE_SCRAPING_REASON_MAP = {
   permission_denied: {
     shortName: t('Permission Denied'),
     explanation: t(
-      'Permission to access the source file was denied by the server hosting it.'
+      'Permission to access the source file was denied by the server hosting it. This means that the server hosting the source file returned a 401 Unauthorized or a 403 Forbidden response code.'
     ),
   },
   timeout: {
