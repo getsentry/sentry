@@ -91,12 +91,19 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router
 
-from sentry import eventstore, models, nodestore, options
+from sentry import eventstore, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.file import File
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -108,19 +115,19 @@ logger = logging.getLogger("sentry.reprocessing")
 
 # Group-related models are only a few per-group and are migrated at
 # once.
-GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
+GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (Activity,)
 
 # If we were to move groupinbox to the new, empty group, inbox would show the
 # empty, unactionable group while it is reprocessing. Let post-process take
 # care of assigning GroupInbox like normally.
-GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != GroupInbox)
 
 # Event attachments and group reports are per-event. This means that:
 #
 # 1. they are migrated as part of the processing pipeline (post-process/save-event)
 # 2. there are a lot of them per group. For remaining events, we need to chunk
 #    up those queries for them to not get too slow
-EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
+EVENT_MODELS_TO_MIGRATE = (EventAttachment, UserReport)
 
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
@@ -180,7 +187,7 @@ def backup_unprocessed_event(data):
 class ReprocessableEvent:
     event: Event
     data: Dict[str, Any]
-    attachments: List[models.EventAttachment]
+    attachments: List[EventAttachment]
 
 
 def pull_event_data(project_id, event_id) -> ReprocessableEvent:
@@ -205,7 +212,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
     required_attachment_types = get_required_attachment_types(data)
     attachments = list(
-        models.EventAttachment.objects.filter(
+        EventAttachment.objects.filter(
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
         )
     )
@@ -241,7 +248,7 @@ def reprocess_event(project_id, event_id, start_time):
     # (we simply update group_id on the EventAttachment models in post_process)
     attachment_objects = []
 
-    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
+    files = {f.id: f for f in File.objects.filter(id__in=[ea.file_id for ea in attachments])}
 
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
@@ -595,11 +602,11 @@ def start_group_reprocessing(
 ):
     from django.db import transaction
 
-    with transaction.atomic(router.db_for_write(models.Group)):
-        group = models.Group.objects.get(id=group_id)
+    with transaction.atomic(router.db_for_write(Group)):
+        group = Group.objects.get(id=group_id)
         original_status = group.status
         original_substatus = group.substatus
-        if original_status == models.GroupStatus.REPROCESSING:
+        if original_status == GroupStatus.REPROCESSING:
             # This is supposed to be a rather unlikely UI race when two people
             # click reprocessing in the UI at the same time.
             #
@@ -607,7 +614,7 @@ def start_group_reprocessing(
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
 
         original_short_id = group.short_id
-        group.status = models.GroupStatus.REPROCESSING
+        group.status = GroupStatus.REPROCESSING
         group.substatus = None
         # satisfy unique constraint of (project_id, short_id)
         # we manually tested that multiple groups with (project_id=1,
@@ -659,8 +666,8 @@ def start_group_reprocessing(
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    new_activity = models.Activity.objects.create(
-        type=models.ActivityType.REPROCESS.value,
+    new_activity = Activity.objects.create(
+        type=ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
         group_id=group_id,

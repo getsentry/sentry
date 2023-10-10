@@ -11,14 +11,15 @@ from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
+
+# TODO: Add __all__ to be consistent with sibling modules
+from sentry.models.files.utils import ONE_DAY
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
-# TODO: Add __all__ to be consistent with sibling modules
-from ...models import ONE_DAY
 from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (

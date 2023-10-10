@@ -87,85 +87,133 @@ default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
 
 def load_defaults():
-    from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models import AlertRule
+    from sentry.models.activity import Activity
+    from sentry.models.apiapplication import ApiApplication
+    from sentry.models.apigrant import ApiGrant
+    from sentry.models.apikey import ApiKey
+    from sentry.models.apitoken import ApiToken
+    from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.commit import Commit
+    from sentry.models.commitauthor import CommitAuthor
     from sentry.models.commitfilechange import CommitFileChange
+    from sentry.models.deploy import Deploy
+    from sentry.models.distribution import Distribution
+    from sentry.models.environment import EnvironmentProject
+    from sentry.models.eventuser import EventUser
+    from sentry.models.group import Group
+    from sentry.models.groupassignee import GroupAssignee
+    from sentry.models.groupbookmark import GroupBookmark
+    from sentry.models.groupcommitresolution import GroupCommitResolution
+    from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.groupenvironment import GroupEnvironment
+    from sentry.models.grouphash import GroupHash
+    from sentry.models.grouphistory import GroupHistory
+    from sentry.models.grouplink import GroupLink
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.groupredirect import GroupRedirect
+    from sentry.models.grouprelease import GroupRelease
+    from sentry.models.groupresolution import GroupResolution
+    from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.groupseen import GroupSeen
+    from sentry.models.groupshare import GroupShare
+    from sentry.models.groupsnooze import GroupSnooze
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.integrations.organization_integration import OrganizationIntegration
+    from sentry.models.integrations.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
+    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+    from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+    from sentry.models.organization import Organization
+    from sentry.models.organizationmemberteam import OrganizationMemberTeam
+    from sentry.models.platformexternalissue import PlatformExternalIssue
+    from sentry.models.project import Project
+    from sentry.models.projectbookmark import ProjectBookmark
+    from sentry.models.projectkey import ProjectKey
+    from sentry.models.pullrequest import PullRequest
+    from sentry.models.release import Release, ReleaseProject
+    from sentry.models.releasecommit import ReleaseCommit
+    from sentry.models.releaseenvironment import ReleaseEnvironment
+    from sentry.models.releaseheadcommit import ReleaseHeadCommit
+    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+    from sentry.models.repository import Repository
+    from sentry.models.rule import Rule
+    from sentry.models.savedsearch import SavedSearch
+    from sentry.models.servicehook import ServiceHook
+    from sentry.models.team import Team
+    from sentry.models.userreport import UserReport
     from sentry.monitors import models as monitor_models
 
     from . import defaults
 
-    default_manager.register(models.Activity, BulkModelDeletionTask)
+    default_manager.register(Activity, BulkModelDeletionTask)
     default_manager.register(AlertRule, defaults.AlertRuleDeletionTask)
-    default_manager.register(models.ApiApplication, defaults.ApiApplicationDeletionTask)
-    default_manager.register(models.ApiGrant, BulkModelDeletionTask)
-    default_manager.register(models.ApiKey, BulkModelDeletionTask)
-    default_manager.register(models.ApiToken, BulkModelDeletionTask)
-    default_manager.register(models.Commit, defaults.CommitDeletionTask)
-    default_manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
+    default_manager.register(ApiApplication, defaults.ApiApplicationDeletionTask)
+    default_manager.register(ApiGrant, BulkModelDeletionTask)
+    default_manager.register(ApiKey, BulkModelDeletionTask)
+    default_manager.register(ApiToken, BulkModelDeletionTask)
+    default_manager.register(Commit, defaults.CommitDeletionTask)
+    default_manager.register(CommitAuthor, defaults.CommitAuthorDeletionTask)
     default_manager.register(CommitFileChange, BulkModelDeletionTask)
-    default_manager.register(models.Deploy, BulkModelDeletionTask)
+    default_manager.register(Deploy, BulkModelDeletionTask)
     default_manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
-    default_manager.register(models.Distribution, BulkModelDeletionTask)
-    default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
-    default_manager.register(models.EventUser, BulkModelDeletionTask)
-    default_manager.register(models.Group, defaults.GroupDeletionTask)
-    default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
-    default_manager.register(models.GroupBookmark, BulkModelDeletionTask)
-    default_manager.register(models.GroupCommitResolution, BulkModelDeletionTask)
-    default_manager.register(models.GroupEmailThread, BulkModelDeletionTask)
-    default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.GroupHash, BulkModelDeletionTask)
-    default_manager.register(models.GroupHistory, BulkModelDeletionTask)
-    default_manager.register(models.GroupLink, BulkModelDeletionTask)
-    default_manager.register(models.GroupMeta, BulkModelDeletionTask)
-    default_manager.register(models.GroupRedirect, BulkModelDeletionTask)
-    default_manager.register(models.GroupRelease, BulkModelDeletionTask)
-    default_manager.register(models.GroupResolution, BulkModelDeletionTask)
-    default_manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
-    default_manager.register(models.GroupSeen, BulkModelDeletionTask)
-    default_manager.register(models.GroupShare, BulkModelDeletionTask)
-    default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
-    default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    default_manager.register(Distribution, BulkModelDeletionTask)
+    default_manager.register(EnvironmentProject, BulkModelDeletionTask)
+    default_manager.register(EventUser, BulkModelDeletionTask)
+    default_manager.register(Group, defaults.GroupDeletionTask)
+    default_manager.register(GroupAssignee, BulkModelDeletionTask)
+    default_manager.register(GroupBookmark, BulkModelDeletionTask)
+    default_manager.register(GroupCommitResolution, BulkModelDeletionTask)
+    default_manager.register(GroupEmailThread, BulkModelDeletionTask)
+    default_manager.register(GroupEnvironment, BulkModelDeletionTask)
+    default_manager.register(GroupHash, BulkModelDeletionTask)
+    default_manager.register(GroupHistory, BulkModelDeletionTask)
+    default_manager.register(GroupLink, BulkModelDeletionTask)
+    default_manager.register(GroupMeta, BulkModelDeletionTask)
+    default_manager.register(GroupRedirect, BulkModelDeletionTask)
+    default_manager.register(GroupRelease, BulkModelDeletionTask)
+    default_manager.register(GroupResolution, BulkModelDeletionTask)
+    default_manager.register(GroupRuleStatus, BulkModelDeletionTask)
+    default_manager.register(GroupSeen, BulkModelDeletionTask)
+    default_manager.register(GroupShare, BulkModelDeletionTask)
+    default_manager.register(GroupSnooze, BulkModelDeletionTask)
+    default_manager.register(GroupSubscription, BulkModelDeletionTask)
     default_manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
     default_manager.register(
         monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
     )
-    default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
+    default_manager.register(Organization, defaults.OrganizationDeletionTask)
+    default_manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
+    default_manager.register(OrganizationMemberTeam, BulkModelDeletionTask)
+    default_manager.register(PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
+    default_manager.register(Project, defaults.ProjectDeletionTask)
+    default_manager.register(ProjectBookmark, BulkModelDeletionTask)
+    default_manager.register(ProjectKey, BulkModelDeletionTask)
+    default_manager.register(PullRequest, BulkModelDeletionTask)
+    default_manager.register(Release, defaults.ReleaseDeletionTask)
+    default_manager.register(ReleaseCommit, BulkModelDeletionTask)
+    default_manager.register(ReleaseEnvironment, BulkModelDeletionTask)
+    default_manager.register(ReleaseHeadCommit, BulkModelDeletionTask)
+    default_manager.register(ReleaseProject, BulkModelDeletionTask)
+    default_manager.register(ReleaseProjectEnvironment, BulkModelDeletionTask)
+    default_manager.register(Repository, defaults.RepositoryDeletionTask)
     default_manager.register(
-        models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
+        RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
     )
-    default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
+    default_manager.register(SentryApp, defaults.SentryAppDeletionTask)
+    default_manager.register(SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
     default_manager.register(
-        models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask
+        SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
     )
-    default_manager.register(models.Project, defaults.ProjectDeletionTask)
-    default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
-    default_manager.register(models.ProjectKey, BulkModelDeletionTask)
-    default_manager.register(models.PullRequest, BulkModelDeletionTask)
-    default_manager.register(models.Release, defaults.ReleaseDeletionTask)
-    default_manager.register(models.ReleaseCommit, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseHeadCommit, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseProject, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.Repository, defaults.RepositoryDeletionTask)
-    default_manager.register(
-        models.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
-    )
-    default_manager.register(models.SentryApp, defaults.SentryAppDeletionTask)
-    default_manager.register(
-        models.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask
-    )
-    default_manager.register(
-        models.SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
-    )
-    default_manager.register(models.ServiceHook, defaults.ServiceHookDeletionTask)
-    default_manager.register(models.SavedSearch, BulkModelDeletionTask)
-    default_manager.register(models.Team, defaults.TeamDeletionTask)
-    default_manager.register(models.UserReport, BulkModelDeletionTask)
-    default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
-    default_manager.register(models.Rule, defaults.RuleDeletionTask)
+    default_manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
+    default_manager.register(SavedSearch, BulkModelDeletionTask)
+    default_manager.register(Team, defaults.TeamDeletionTask)
+    default_manager.register(UserReport, BulkModelDeletionTask)
+    default_manager.register(ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(Rule, defaults.RuleDeletionTask)
 
 
 load_defaults()

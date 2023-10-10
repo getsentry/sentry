@@ -5,7 +5,28 @@ from collections import defaultdict
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupcommitresolution import GroupCommitResolution
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupowner import GroupOwner
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.userreport import UserReport
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -13,33 +34,33 @@ from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelat
 # be safe to delete/mutate within a single transaction for user-triggered
 # actions (delete/reprocess/merge/unmerge)
 DIRECT_GROUP_RELATED_MODELS = (
-    models.GroupHash,
-    models.GroupAssignee,
-    models.GroupCommitResolution,
-    models.GroupLink,
-    models.GroupHistory,
-    models.GroupBookmark,
-    models.GroupMeta,
-    models.GroupEnvironment,
-    models.GroupRelease,
-    models.GroupRedirect,
-    models.GroupResolution,
-    models.GroupRuleStatus,
-    models.GroupSeen,
-    models.GroupShare,
-    models.GroupSnooze,
-    models.GroupInbox,
-    models.GroupOwner,
-    models.GroupEmailThread,
-    models.GroupSubscription,
-    models.GroupHistory,
+    GroupHash,
+    GroupAssignee,
+    GroupCommitResolution,
+    GroupLink,
+    GroupHistory,
+    GroupBookmark,
+    GroupMeta,
+    GroupEnvironment,
+    GroupRelease,
+    GroupRedirect,
+    GroupResolution,
+    GroupRuleStatus,
+    GroupSeen,
+    GroupShare,
+    GroupSnooze,
+    GroupInbox,
+    GroupOwner,
+    GroupEmailThread,
+    GroupSubscription,
+    GroupHistory,
     RuleFireHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
     # prioritize GroupHash
-    models.UserReport,
-    models.EventAttachment,
+    UserReport,
+    EventAttachment,
 )
 
 
