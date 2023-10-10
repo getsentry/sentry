@@ -31,7 +31,7 @@ GRANULARITIES = [
 
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
-FIELD_REGEX = re.compile(r"^(\w+)\(([^\s]+)\)$")
+FIELD_REGEX = re.compile(r"^(\w+)\(([^\s)]+)\)$")
 QUERY_REGEX = re.compile(r"(\w+):([^\s]+)")
 
 
