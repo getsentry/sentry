@@ -226,7 +226,7 @@ Metric alert rule trigger actions follow the following structure:
     queryType = serializers.ChoiceField(
         required=False,
         choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types under Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations.",
+        help_text="The type of query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types under Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
@@ -313,10 +313,10 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
-        Updates a metric alert rule. See [Metric Alert Rule Types under
-        Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
+        Updates a metric alert rule. See Metric Alert Rule Types under
+        [Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
         to see valid request body configurations for different types of metric alert rule types.
-        > Please note that this endpoint rewrites the specified metric alert rule completely.
+        > Warning: Calling this endpoint fully overwrites the specified metric alert.
 
         A metric alert rule is a configuration that defines the conditions for triggering an alert.
         It specifies the metric type, function, time interval, and threshold
