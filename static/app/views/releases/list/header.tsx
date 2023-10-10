@@ -17,12 +17,12 @@ import {MONITOR_VIEW, THRESHOLDS_VIEW} from '../utils/constants';
 
 type Props = {
   hasV2ReleaseUIEnabled: boolean;
+  openPanel: (formData?) => void;
   organization: Organization;
   router: InjectedRouter;
-  togglePanel: () => void;
 };
 
-function Header({router, hasV2ReleaseUIEnabled, togglePanel}: Props) {
+function Header({router, hasV2ReleaseUIEnabled, openPanel}: Props) {
   const [selected, setSelected] = useState(router.location.query.view);
 
   const location = useMemo(() => router.location, [router]);
@@ -70,7 +70,7 @@ function Header({router, hasV2ReleaseUIEnabled, togglePanel}: Props) {
       </Layout.HeaderContent>
       {selected === THRESHOLDS_VIEW && (
         <Layout.HeaderActions>
-          <Button size="sm" priority="primary" onClick={togglePanel}>
+          <Button size="sm" priority="primary" onClick={() => openPanel()}>
             <IconAdd isCircled size="sm" />
             &nbsp; Create Threshold
           </Button>

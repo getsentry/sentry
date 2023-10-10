@@ -27,6 +27,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -206,6 +207,49 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
+  getAllSelectedProjects(): Project[] {
+    const {selection, projects} = this.props;
+    return projects.filter(
+      project =>
+        selection.projects.indexOf(parseInt(project.id, 10)) > -1 ||
+        selection.projects.indexOf(-1) > -1
+    );
+  }
+
+  getAllEnvironments(): string[] {
+    const {selection, projects} = this.props;
+    const selectedProjects = selection.projects;
+    const {user} = ConfigStore.getState();
+    const allEnvSet = new Set(projects.flatMap(project => project.environments));
+    // NOTE: taken from environmentSelector.tsx
+    const unSortedEnvs = new Set(
+      projects.flatMap(project => {
+        const projectId = parseInt(project.id, 10);
+        // Include environments from:
+        // - all projects if the user is a superuser
+        // - the requested projects
+        // - all member projects if 'my projects' (empty list) is selected.
+        // - all projects if -1 is the only selected project.
+        if (
+          (selectedProjects.length === 1 &&
+            selectedProjects[0] === ALL_ACCESS_PROJECTS &&
+            project.hasAccess) ||
+          (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
+          selectedProjects.includes(projectId)
+        ) {
+          return project.environments;
+        }
+
+        return [];
+      })
+    );
+    const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
+
+    return Array.from(unSortedEnvs)
+      .sort()
+      .concat([...envDiff].sort());
+  }
+
   get projectHasSessions() {
     return this.getSelectedProject()?.hasSessions ?? null;
   }
@@ -305,9 +349,9 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (loading && !reloading) || (loading && !releases?.length);
   }
 
-  openPanel = () => {
+  openPanel = (formData: {[key: string]: any} = {}) => {
     // NOTE: pass this to the threshold list/groups also for edit
-    this.setState({thresholdFormData: {}});
+    this.setState({thresholdFormData: formData});
   };
 
   renderLoading() {
@@ -574,7 +618,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
             organization={organization}
             router={router}
             hasV2ReleaseUIEnabled={hasV2ReleaseUIEnabled}
-            togglePanel={this.openPanel}
+            openPanel={this.openPanel}
           />
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -649,19 +693,15 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-
-              {/* <SlideOverPanel collapsed={!this.state.panelOpen}>
-                BizBaz
-                <Button onClick={() => this.setState({panelOpen: false})}>close</Button>
-              </SlideOverPanel> */}
               <ThresholdForm
                 formData={this.state.thresholdFormData}
                 onClose={() => {
                   this.setState({thresholdFormData: undefined});
                 }}
-              >
-                FooBar
-              </ThresholdForm>
+                selectedEnvs={selection.environments}
+                allEnvs={this.getAllEnvironments()}
+                selectedProjects={this.getAllSelectedProjects()}
+              />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>

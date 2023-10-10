@@ -6,6 +6,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import StyledIdBadge from '../components/styledIdBadge';
 import {forHumans} from '../utils';
 import {Threshold} from '../utils/types';
 
@@ -18,21 +19,32 @@ export function ThresholdGroupRow({thresholds}: Props) {
     {
       key: 'edit',
       label: t('Edit'),
-      to: '',
+      onAction: () => {},
     },
     {
       key: 'delete',
       label: t('Delete'),
       priority: 'danger',
       onAction: () => {
-        console.log('oops');
+        // console.log('oops');
       },
     },
   ];
 
   return thresholds.map((threshold: Threshold, idx: number) => (
     <Fragment key={idx}>
-      <FlexCenter>{idx === 0 ? threshold.project.slug : ''}</FlexCenter>
+      <FlexCenter>
+        {idx === 0 ? (
+          <StyledIdBadge
+            project={threshold.project}
+            avatarSize={16}
+            hideOverflow
+            disableLink
+          />
+        ) : (
+          ''
+        )}
+      </FlexCenter>
       <FlexCenter>{idx === 0 ? threshold.environment.name || 'None' : ''}</FlexCenter>
       <FlexCenter>{forHumans(threshold.window_in_seconds)}</FlexCenter>
       <FlexCenter>
