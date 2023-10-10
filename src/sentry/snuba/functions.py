@@ -122,7 +122,7 @@ def timeseries_query(
 def top_events_timeseries(
     timeseries_columns,
     selected_columns,
-    query,
+    user_query,
     params,
     orderby,
     rollup,
@@ -140,7 +140,18 @@ def top_events_timeseries(
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        assert top_events, "Need to provide top events"  # TODO: support this use case
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                equations=equations,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
 
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
@@ -148,7 +159,7 @@ def top_events_timeseries(
         interval=rollup,
         top_events=top_events["data"],
         other=False,
-        query=query,
+        query=user_query,
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
