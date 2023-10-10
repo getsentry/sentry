@@ -8,7 +8,8 @@ import sentry_sdk
 from sentry.integrations.msteams.card_builder import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
-from sentry.models import Team, User
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
     EscalatingActivityNotification,

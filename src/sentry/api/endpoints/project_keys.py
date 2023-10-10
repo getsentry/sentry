@@ -21,7 +21,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ProjectParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
 @extend_schema(tags=["Projects"])

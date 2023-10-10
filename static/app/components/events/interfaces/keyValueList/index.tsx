@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {space} from 'sentry/styles/space';
@@ -10,6 +11,7 @@ import theme from 'sentry/utils/theme';
 import {Value, ValueProps} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
+  className?: string;
   data?: KeyValueListData;
   longKeys?: boolean;
   onClick?: () => void;
@@ -23,6 +25,7 @@ function KeyValueList({
   raw = false,
   longKeys = false,
   onClick,
+  className,
   ...props
 }: Props) {
   if (!defined(data) || data.length === 0) {
@@ -32,7 +35,11 @@ function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
-    <Table className="table key-value" onClick={onClick} {...props}>
+    <Table
+      className={classNames('table key-value', className)}
+      onClick={onClick}
+      {...props}
+    >
       <tbody>
         {keyValueData.map(
           (

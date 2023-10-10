@@ -21,7 +21,8 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Identity, Integration
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import repository_service

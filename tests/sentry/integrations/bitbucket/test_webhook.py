@@ -5,7 +5,9 @@ from typing import Any
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
-from sentry.models import Commit, CommitAuthor, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

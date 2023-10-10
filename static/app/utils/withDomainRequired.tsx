@@ -30,15 +30,18 @@ type NormalizeUrlOptions = {
  * present in the initial page load.
  */
 export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
+
 export function normalizeUrl(
   path: LocationDescriptor,
   options?: NormalizeUrlOptions
 ): LocationDescriptor;
+
 export function normalizeUrl(
   path: LocationTarget,
   location?: Location,
   options?: NormalizeUrlOptions
 ): LocationTarget;
+
 export function normalizeUrl(
   path: LocationTarget,
   location?: Location | NormalizeUrlOptions,
@@ -90,6 +93,7 @@ export function normalizeUrl(
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within
  * static/app/routes.tsx whose route paths do not contain the :orgId parameter.
  * For example:
+ *
  *  <Route
  *    path="/issues/(searches/:searchId/)"
  *    component={withDomainRequired(errorHandler(IssueListContainer))}
@@ -98,8 +102,9 @@ export function normalizeUrl(
  * withDomainRequired ensures that the route path is only accessed whenever a customer domain is used.
  * For example: orgslug.sentry.io
  *
- * The side-effect that this HOC provides is that it'll redirect the browser to sentryUrl (from window.__initialData.links)
- * whenever one of the following conditions are not satisfied:
+ * The side-effect that this HOC provides is that it'll redirect the browser to sentryUrl
+ * (from window.__initialData.links) whenever one of the following conditions are not satisfied:
+ *
  * - window.__initialData.customerDomain is present.
  * - window.__initialData.features contains organizations:customer-domains feature.
  *

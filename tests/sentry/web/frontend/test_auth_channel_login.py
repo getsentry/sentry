@@ -3,10 +3,10 @@ from django.urls import reverse
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AuthOrganizationChannelLoginTest(TestCase):
     def create_auth_provider(self, partner_org_id, sentry_org_id):
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})

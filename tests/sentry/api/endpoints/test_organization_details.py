@@ -20,20 +20,17 @@ from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLE
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
-from sentry.models import (
-    AuditLogEntry,
-    Authenticator,
-    AuthProvider,
-    DeletedOrganization,
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationSlugReservation,
-    OrganizationStatus,
-    RegionScheduledDeletion,
-    User,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authenticator import Authenticator
+from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase

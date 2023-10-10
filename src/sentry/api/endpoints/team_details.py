@@ -18,7 +18,8 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import RegionScheduledDeletion, Team, TeamStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team, TeamStatus
 
 
 class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):

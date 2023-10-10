@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -325,6 +326,52 @@ class CustomRulesEndpoint(APITestCase):
             resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 404
+
+    @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
+    def test_invalidates_project_config(self, mock_invalidate_project_config):
+        """
+        Tests that project rules invalidates all the configurations for the
+        passed projects
+        """
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [self.project.id, self.second_project.id],
+            "period": "1h",
+        }
+
+        mock_invalidate_project_config.reset_mock()
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        mock_invalidate_project_config.assert_any_call(trigger=mock.ANY, project_id=self.project.id)
+
+        mock_invalidate_project_config.assert_any_call(
+            trigger=mock.ANY, project_id=self.second_project.id
+        )
+
+    @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
+    def test_invalidates_organisation_config(self, mock_invalidate_project_config):
+        """
+        Tests that org rules invalidates all the configurations for the projects
+        in the organisation
+        """
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [],
+            "period": "1h",
+        }
+
+        mock_invalidate_project_config.reset_mock()
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        mock_invalidate_project_config.assert_called_once_with(
+            trigger=mock.ANY, organization_id=self.organization.id
+        )
 
 
 @pytest.mark.parametrize(

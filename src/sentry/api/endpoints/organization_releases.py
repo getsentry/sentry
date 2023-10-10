@@ -26,16 +26,16 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Activity,
-    Project,
+from sentry.models.activity import Activity
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
+from sentry.models.release import (
     Release,
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
     SemverFilter,
 )
-from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,

@@ -21,15 +21,12 @@ from sentry.issues.ingest import (
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
-from sentry.models import (
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupRelease,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset

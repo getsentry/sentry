@@ -27,6 +27,9 @@ from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThr
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
 )
+from sentry.api.endpoints.release_thresholds.release_threshold_index import (
+    ReleaseThresholdIndexEndpoint,
+)
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
@@ -1491,6 +1494,7 @@ ORGANIZATION_URLS = [
         # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
+            OPTIONS=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
         ),
@@ -1503,6 +1507,7 @@ ORGANIZATION_URLS = [
         # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
+            OPTIONS=MonitorIngestCheckInDetailsEndpoint.as_view(),
             csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-details",
@@ -1511,6 +1516,7 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
+            OPTIONS=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
         ),
@@ -1541,6 +1547,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
         name="sentry-api-0-organization-sessions",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/releases/thresholds/$",
+        ReleaseThresholdIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-thresholds",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",

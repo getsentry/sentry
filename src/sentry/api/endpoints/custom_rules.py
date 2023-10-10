@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, cast
 
+import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,11 +15,15 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import CustomDynamicSamplingRule, TooManyRules
-from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
+from sentry.models.dynamicsampling import (
+    CUSTOM_RULE_DATE_FORMAT,
+    CustomDynamicSamplingRule,
+    TooManyRules,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
@@ -78,8 +84,31 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
+class CustomRulePermission(BasePermission):
+    scope_map = {
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+        ],
+    }
+
+
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
+    permission_classes = (CustomRulePermission,)
+
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
@@ -117,6 +146,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
             )
+
+            # schedule update for affected project configs
+            _schedule_invalidate_project_configs(organization, projects)
 
             return _rule_to_response(rule)
         except InvalidSearchQuery as e:
@@ -215,14 +247,22 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
 
 
 def _get_condition(query: Optional[str]) -> RuleCondition:
-    if not query:
-        # True condition when query not specified
-        condition: RuleCondition = {"op": "and", "inner": []}
-    else:
-        tokens = parse_search_query(query)
-        converter = SearchQueryConverter(tokens)
-        condition = converter.convert()
-    return condition
+    try:
+        if not query:
+            # True condition when query not specified
+            condition: RuleCondition = {"op": "and", "inner": []}
+        else:
+            tokens = parse_search_query(query)
+            converter = SearchQueryConverter(tokens)
+            condition = converter.convert()
+        return condition
+    except Exception as ex:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", ex)
+            message = "Could not convert query to custom dynamic sampling rule"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
 
 
 def _clean_project_list(project_ids: List[int]) -> List[int]:
@@ -230,3 +270,22 @@ def _clean_project_list(project_ids: List[int]) -> List[int]:
         # special case for all projects convention ( sends a project id of -1)
         return []
     return project_ids
+
+
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+    """
+    Schedule a task to update the project configs for the given projects
+    """
+    if not project_ids:
+        # an organisation rule, update all projects from the org
+        schedule_invalidate_project_config(
+            trigger="dynamic_sampling:custom_rule_upsert",
+            organization_id=organization.id,
+        )
+    else:
+        # update the given projects
+        for project_id in project_ids:
+            schedule_invalidate_project_config(
+                trigger="dynamic_sampling:custom_rule_upsert",
+                project_id=project_id,
+            )
