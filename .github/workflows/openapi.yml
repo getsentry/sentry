@@ -65,11 +65,6 @@ jobs:
         run: |
           cp src/sentry/apidocs/api_ownership_stats_dont_modify.json sentry-api-schema
 
-      - name: Remove publish status temp file from Sentry
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          rm src/sentry/apidocs/api_ownership_stats_dont_modify.json
-
       - name: Git Commit & Push
         uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
         if: steps.changes.outputs.api_docs == 'true'
