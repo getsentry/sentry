@@ -563,7 +563,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const FogOfWarOverlay = styled('div')`
-  height: 238px;
+  height: 239px;
   width: 10%;
   position: absolute;
   right: 10px;
