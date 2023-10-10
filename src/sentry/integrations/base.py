@@ -377,9 +377,6 @@ class IntegrationInstallation:
             raise Identity.DoesNotExist
         return identity
 
-    def get_trees_for_org(self) -> Any:
-        raise NotImplementedError
-
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:
         return data.get("message", "unknown error")
 

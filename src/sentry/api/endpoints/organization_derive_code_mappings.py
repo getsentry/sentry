@@ -52,7 +52,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        trees = installation.get_trees_for_org()
+        # This method is specific to the GithubIntegration
+        trees = installation.get_trees_for_org()  # type: ignore
         trees_helper = CodeMappingTreesHelper(trees)
         frame_filename = FrameFilename(stacktrace_filename) if stacktrace_filename else None
         possible_code_mappings: List[Dict[str, str]] = (
