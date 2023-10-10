@@ -1,6 +1,8 @@
 name: openapi
 on:
-  pull_request:
+  push:
+    branches:
+      - master
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
