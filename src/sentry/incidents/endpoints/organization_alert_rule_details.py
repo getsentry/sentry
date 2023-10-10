@@ -313,7 +313,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
-        Updates a metric alert rule. See Metric Alert Rule Types under
+        Updates a metric alert rule. See **Metric Alert Rule Types** under
         [Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
         to see valid request body configurations for different types of metric alert rule types.
         > Warning: Calling this endpoint fully overwrites the specified metric alert.
