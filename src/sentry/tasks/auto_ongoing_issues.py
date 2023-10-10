@@ -22,7 +22,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
-ITERATOR_CHUNK = 500
+ITERATOR_CHUNK = 10_000
 
 
 def log_error_if_queue_has_items(func):
