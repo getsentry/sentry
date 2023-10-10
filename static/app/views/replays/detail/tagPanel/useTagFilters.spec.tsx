@@ -13,21 +13,19 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-const tagFrame = TestStubs.ReplayRecord().tags;
+const tags = TestStubs.ReplayRecord().tags;
 
-// {
-//   frames: {
-//     'browser.name': [ 'Other' ],
-//     'device.family': [ 'Other' ],
-//     environment: [ 'demo' ],
-//     'os.name': [ 'Other' ],
-//     platform: [ 'javascript' ],
-//     releases: [ '1.0.0', '2.0.0' ],
-//     'sdk.name': [ 'sentry.javascript.browser' ],
-//     'sdk.version': [ '7.1.1' ],
-//     'user.ip': [ '127.0.0.1' ]
-//   }
-// }
+// const tags = {
+//   'browser.name': ['Other'],
+//   'device.family': ['Other'],
+//   environment: ['demo'],
+//   'os.name': ['Other'],
+//   platform: ['javascript'],
+//   releases: ['1.0.0', '2.0.0'],
+//   'sdk.name': ['sentry.javascript.browser'],
+//   'sdk.version': ['7.1.1'],
+//   'user.ip': ['127.0.0.1'],
+// };
 
 describe('useTagsFilters', () => {
   beforeEach(() => {
@@ -41,7 +39,7 @@ describe('useTagsFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useTagFilters, {
-      initialProps: {tagFrame},
+      initialProps: {tags},
     });
     expect(Object.keys(result.current.items).length).toEqual(9);
   });
@@ -55,7 +53,7 @@ describe('useTagsFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useTagFilters, {
-      initialProps: {tagFrame},
+      initialProps: {tags},
     });
     expect(Object.keys(result.current.items).length).toEqual(2);
   });

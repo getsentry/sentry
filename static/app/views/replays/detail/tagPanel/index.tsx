@@ -41,9 +41,9 @@ function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
-  const tagFrames = replayRecord?.tags;
+  const tags = replayRecord?.tags;
 
-  const filterProps = useTagFilters({tagFrame: tagFrames || {}});
+  const filterProps = useTagFilters({tags: tags || {}});
   const {items} = filterProps;
 
   const generateUrl = useCallback(
@@ -62,16 +62,16 @@ function TagPanel() {
   if (!replayRecord) {
     return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
-  const tags = Object.entries(items);
+  const filteredTags = Object.entries(items);
 
   return (
     <FluidHeight>
-      <TagFilters tagFrames={tagFrames} {...filterProps} />
+      <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
         <FluidPanel>
-          {tags.length ? (
+          {filteredTags.length ? (
             <KeyValueTable noMargin>
-              {tags.map(([key, values]) => (
+              {filteredTags.map(([key, values]) => (
                 <ReplayTagsTableRow
                   key={key}
                   name={key}

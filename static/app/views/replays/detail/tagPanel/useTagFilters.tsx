@@ -10,7 +10,7 @@ export type FilterFields = {
 };
 
 type Options = {
-  tagFrame: ReplayRecord['tags'];
+  tags: ReplayRecord['tags'];
 };
 
 type Return = {
@@ -26,7 +26,7 @@ const FILTERS = {
     ),
 };
 
-function useTagFilters({tagFrame}: Options): Return {
+function useTagFilters({tags}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const searchTerm = decodeScalar(query.f_t_search, '').toLowerCase();
@@ -34,13 +34,11 @@ function useTagFilters({tagFrame}: Options): Return {
   const filteredItems = useMemo(
     () =>
       filterItems<Record<string, string[]>, string>({
-        items: Object.entries(tagFrame).map(([key, val]) =>
-          Object.fromEntries([[key, val]])
-        ),
+        items: Object.entries(tags).map(([key, val]) => Object.fromEntries([[key, val]])),
         filterFns: FILTERS,
         filterVals: {searchTerm},
       }),
-    [tagFrame, searchTerm]
+    [tags, searchTerm]
   );
 
   const setSearchTerm = useCallback(
