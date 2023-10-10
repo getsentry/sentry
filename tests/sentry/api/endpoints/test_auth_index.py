@@ -4,8 +4,9 @@ from urllib.parse import urlencode
 
 from django.test import override_settings
 
-from sentry.models import Authenticator, AuthProvider
+from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test

@@ -25,7 +25,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
 @extend_schema(tags=["Projects"])

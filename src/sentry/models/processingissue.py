@@ -13,7 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models import Release
+from sentry.models.release import Release
 
 
 def get_processing_issue_checksum(scope, object):
@@ -50,13 +50,14 @@ class ProcessingIssueManager(BaseManager):
         Resolves all processing issues.
         """
         self.resolve_all_processing_issue(project)
-        from sentry.models import RawEvent, ReprocessingReport
+        from sentry.models.rawevent import RawEvent
+        from sentry.models.reprocessingreport import ReprocessingReport
 
         RawEvent.objects.filter(project_id=project.id).delete()
         ReprocessingReport.objects.filter(project_id=project.id).delete()
 
     def find_resolved_queryset(self, project_ids):
-        from sentry.models import RawEvent
+        from sentry.models.rawevent import RawEvent
 
         return RawEvent.objects.filter(
             project_id__in=project_ids, eventprocessingissue__isnull=True

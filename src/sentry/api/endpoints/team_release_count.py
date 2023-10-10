@@ -12,7 +12,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Project, Release
+from sentry.models.project import Project
+from sentry.models.release import Release
 
 
 @region_silo_endpoint

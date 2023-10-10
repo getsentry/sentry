@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 
 class RateLimiter(Service):

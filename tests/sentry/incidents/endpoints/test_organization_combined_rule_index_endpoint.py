@@ -4,8 +4,7 @@ import requests
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
-from sentry.models import Rule
-from sentry.models.rule import RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
@@ -860,7 +859,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
     def test_project_deleted(self):
-        from sentry.models import RegionScheduledDeletion
+        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.tasks.deletion.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")

@@ -16,7 +16,8 @@ from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
-from sentry.models import Project, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames

@@ -1,4 +1,6 @@
-from sentry.models import Group, Organization, Project
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.helpers import get_groups_for_query
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.testutils.cases import TestCase

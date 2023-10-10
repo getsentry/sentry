@@ -1,14 +1,12 @@
 from typing import Optional
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Integration,
-    NotificationSetting,
-    OrganizationIntegration,
-    Project,
-    ScheduledDeletion,
-    User,
-)
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.project import Project
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.models.user import User
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase

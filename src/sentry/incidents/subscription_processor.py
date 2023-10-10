@@ -33,7 +33,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import SubscriptionUpdate
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,

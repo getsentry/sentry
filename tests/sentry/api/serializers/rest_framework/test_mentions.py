@@ -1,5 +1,7 @@
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
-from sentry.models import ActorTuple, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
