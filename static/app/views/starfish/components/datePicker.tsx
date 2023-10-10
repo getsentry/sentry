@@ -1,4 +1,4 @@
-import DatePageFilter from 'sentry/components/datePageFilter';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
