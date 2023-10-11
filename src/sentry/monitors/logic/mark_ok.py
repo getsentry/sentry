@@ -31,9 +31,6 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
         # Run incident logic if recovery threshold is set
         if recovery_threshold:
-            # Safety check to prevent db lockup on check-in lookup
-            assert recovery_threshold is not None
-
             # Check if our incident is recovering
             previous_checkins = MonitorCheckIn.objects.filter(
                 monitor_environment=monitor_env
