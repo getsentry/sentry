@@ -72,10 +72,14 @@ function TraceErrorAlerts({
 
   return (
     <AlertContainer>
-      <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
+      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors)}>
         <ErrorLabel>{label}</ErrorLabel>
 
-        <TraceErrorList trace={parsedTrace} errors={traceErrors} />
+        <TraceErrorList
+          trace={parsedTrace}
+          errors={errors ?? []}
+          performanceIssues={performanceIssues}
+        />
       </Alert>
     </AlertContainer>
   );
@@ -83,7 +87,6 @@ function TraceErrorAlerts({
 
 function SpansInterface({event, affectedSpanIds, organization}: Props) {
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
-
   const waterfallModel = useMemo(
     () => new WaterfallModel(event, affectedSpanIds),
     [event, affectedSpanIds]
