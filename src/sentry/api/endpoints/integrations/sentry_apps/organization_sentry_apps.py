@@ -28,8 +28,9 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
     ) -> Response:
         queryset = SentryApp.objects.filter(owner_id=organization.id, application__isnull=False)
 
-        if SentryAppStatus.as_int(request.GET.get("status")) is not None:
-            queryset = queryset.filter(status=SentryAppStatus.as_int(request.GET.get("status")))
+        status = request.GET.get("status")
+        if status is not None:
+            queryset = queryset.filter(status=SentryAppStatus.as_int(status))
 
         return self.paginate(
             request=request,
