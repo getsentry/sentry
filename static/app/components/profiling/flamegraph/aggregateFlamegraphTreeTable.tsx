@@ -38,7 +38,7 @@ function computeRelativeWeight(base: number, value: number) {
   return (value / base) * 100;
 }
 
-enum FastFrameCallersTableClassNames {
+const enum FastFrameCallersTableClassNames {
   ROW = 'FrameCallersRow',
   CELL = 'FrameCallersTableCell',
   FRAME_CELL = 'FrameCallersTableCellFrame',
