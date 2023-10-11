@@ -183,7 +183,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self.captured_logs[0].token_type == "ApiToken"
+        assert self.captured_logs[0].token_type == "api_token"
 
 
 @override_settings(LOG_API_ACCESS=False)

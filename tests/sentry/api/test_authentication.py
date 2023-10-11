@@ -20,6 +20,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
     generate_request_signature,
@@ -143,7 +144,9 @@ class TestOrgAuthTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous
-        assert auth == self.org_auth_token
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(
+            self.org_auth_token
+        )
 
     def test_no_match(self):
         request = HttpRequest()
@@ -183,7 +186,7 @@ class TestTokenAuthentication(TestCase):
         user, auth = result
         assert user.is_anonymous is False
         assert user.id == self.user.id
-        assert auth == self.api_token
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
     def test_no_match(self):
         request = HttpRequest()
