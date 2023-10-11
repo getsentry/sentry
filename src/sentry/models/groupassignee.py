@@ -18,6 +18,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
@@ -121,6 +122,14 @@ class GroupAssigneeManager(BaseManager):
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.projectownership import ProjectOwnership
+        from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        previous_groupassignee = self.get(group=group)
+        if previous_groupassignee.user_id:
+            previous_assignee = user_service.get_user(previous_groupassignee.user_id)
+        else:
+            previous_assignee = Team.objects.get(id=previous_groupassignee.team.id)
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
@@ -140,6 +149,30 @@ class GroupAssigneeManager(BaseManager):
                 )
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
+
+            if features.has("organizations:participants-purge", group.organization):
+                if (
+                    features.has("organizations:team-workflow-notifications", group.organization)
+                    and type(previous_assignee) is Team
+                ):
+                    GroupSubscription.objects.filter(
+                        group=group,
+                        project=group.project,
+                        team=previous_assignee,
+                        reason=GroupSubscriptionReason.assigned,
+                    ).delete()
+                elif type(previous_assignee) is Team:
+                    team_members = list(
+                        previous_assignee.member_set.values_list("user_id", flat=True)
+                    )
+                    for member in team_members:
+                        GroupSubscription.objects.filter(
+                            group=group, project=group.project, user_id=member
+                        ).delete()
+                else:
+                    GroupSubscription.objects.filter(
+                        group=group, project=group.project, user_id=previous_assignee.id
+                    ).delete()
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues

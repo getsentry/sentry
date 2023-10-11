@@ -836,6 +836,9 @@ def handle_assigned_to(
     )
     if assigned_actor:
         for group in group_list:
+            if features.has("organizations:participants-purge", group.organization):
+                GroupAssignee.objects.deassign(group, acting_user)
+
             resolved_actor: RpcUser | Team = assigned_actor.resolve()
 
             assignment = GroupAssignee.objects.assign(
