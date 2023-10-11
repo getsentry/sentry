@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db.models import F
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -63,6 +65,12 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
+        if features.has(
+            "organizations:session-replay-count-query-optimize", organization, actor=request.user
+        ):
+            if not project_in_org_has_sent_replay(organization):
+                return Response({})
+
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():
             raise ParseError(result.errors)
@@ -77,3 +85,11 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(replay_counts)
+
+
+def project_in_org_has_sent_replay(organization):
+    return (
+        Project.objects.filter(organization=organization)
+        .filter(flags=F("flags").bitor(Project.flags.has_replays))
+        .exists()
+    )

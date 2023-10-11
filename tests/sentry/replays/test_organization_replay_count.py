@@ -5,8 +5,11 @@ import uuid
 from typing import Any
 
 import pytest
+from django.db.models import F
 from django.urls import reverse
 
+from sentry.models.project import Project
+from sentry.replays.endpoints.organization_replay_count import project_in_org_has_sent_replay
 from sentry.replays.testutils import mock_replay
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import (
@@ -512,3 +515,30 @@ class OrganizationReplayCountEndpointTest(
             b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
             b'escaped."}'
         ), response.content
+
+    def test_endpoint_org_hasnt_sent_replays(self):
+        event_id_a = "a" * 32
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        query = {"query": f"issue.id:[{event_a.group.id}]"}
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {}
+
+    def test_project_in_org_has_sent_replay(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        assert project_in_org_has_sent_replay(org) is False
+
+        project.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+        assert project_in_org_has_sent_replay(org) is True
