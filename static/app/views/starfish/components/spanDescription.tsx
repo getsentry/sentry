@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function SpanDescription({span}: Props) {
-  if (span[SpanMetricsField.SPAN_OP].startsWith('db')) {
+  if (span[SpanMetricsField.SPAN_OP]?.startsWith('db')) {
     return <DatabaseSpanDescription span={span} />;
   }
 
