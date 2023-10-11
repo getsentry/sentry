@@ -226,7 +226,8 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_unclaimed=True).count() == 4
+        # We don't mark `Global`ly imported `User`s unclaimed.
+        assert User.objects.filter(is_unclaimed=True).count() == 0
         assert User.objects.filter(is_managed=True).count() == 1
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
