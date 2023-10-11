@@ -181,11 +181,11 @@ function Entries({
   );
 
   const eventEntryProps = {
-    event: definedEvent,
-    group,
-    isShare,
-    organization,
     projectSlug,
+    group,
+    organization,
+    event: definedEvent,
+    isShare,
   };
 
   return (
