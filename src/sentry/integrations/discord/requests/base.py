@@ -116,28 +116,8 @@ class DiscordRequest:
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
 
-        logger.info(
-            "discord.authorize.request",
-            extra={
-                "public_key": public_key,
-                "signature": signature,
-                "timestamp": timestamp,
-                "body": body,
-            },
-        )
-
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
-        else:
-            logger.info(
-                "discord.verify.signature.failure",
-                extra={
-                    "public_key": public_key,
-                    "signature": signature,
-                    "timestamp": timestamp,
-                    "body": body,
-                },
-            )
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
@@ -152,8 +132,21 @@ class DiscordRequest:
 
     def get_identity(self) -> RpcIdentity | None:
         if not self._identity:
+            logger.info(
+                "discord.validate.identity.none",
+                extra={
+                    "guild_id": self.guild_id,
+                    "user_id": self.user_id,
+                },
+            )
             provider = identity_service.get_provider(
                 provider_type="discord", provider_ext_id=self.guild_id
+            )
+            logger.info(
+                "discord.validate.identity.provider",
+                extra={
+                    "provider_id": provider.id,
+                },
             )
             self._identity = (
                 identity_service.get_identity(
@@ -161,6 +154,18 @@ class DiscordRequest:
                 )
                 if provider
                 else None
+            )
+            if not provider:
+                logger.info(
+                    "discord.validate.identity.no.provider",
+                )
+            logger.info(
+                "discord.validate.identity.identity",
+                extra={
+                    "provider_id": provider.id,
+                    "external_id": self.user_id,
+                    "has_identity": self._identity is not None,
+                },
             )
         return self._identity
 
@@ -170,6 +175,14 @@ class DiscordRequest:
     def validate_integration(self) -> None:
         self._integration = integration_service.get_integration(
             provider="discord", external_id=self.guild_id
+        )
+        logger.info(
+            "discord.validate.integration",
+            extra={
+                "external_id": self.guild_id,
+                "integration_name": self._integration.name,
+                "integration_id": self._integration.id,
+            },
         )
 
     def has_identity(self) -> bool:
