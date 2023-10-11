@@ -165,17 +165,30 @@ class RuleSerializer(Serializer):
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
-        neglected_rule = NeglectedRule.objects.filter(
-            rule__in=item_list,
-            opted_out=False,
-            sent_initial_email_date__isnull=False,
-        )
-        rule_snooze = RuleSnooze.objects.filter(
-            Q(user_id=user.id) | Q(user_id=None), rule__in=[item.id for item in item_list]
-        )
+        neglected_rule_lookup = {
+            nr["rule_id"]: nr["disable_date"]
+            for nr in NeglectedRule.objects.filter(
+                rule__in=item_list,
+                opted_out=False,
+                sent_initial_email_date__isnull=False,
+            ).values("rule_id", "disable_date")
+        }
         for rule in item_list:
-            result[rule]["neglected_rule"] = neglected_rule
-            result[rule]["snooze"] = rule_snooze
+            disable_date = neglected_rule_lookup.get(rule.id, None)
+            if disable_date:
+                result[rule]["disable_date"] = disable_date
+
+        rule_snooze_lookup = {
+            snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
+            for snooze in RuleSnooze.objects.filter(
+                Q(user_id=user.id) | Q(user_id=None), rule__in=[item.id for item in item_list]
+            ).values("rule_id", "user_id", "owner_id")
+        }
+
+        for rule in item_list:
+            snooze = rule_snooze_lookup.get(rule.id, None)
+            if snooze:
+                result[rule]["snooze"] = snooze
 
         return result
 
@@ -222,30 +235,26 @@ class RuleSerializer(Serializer):
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
 
-        rule_snooze = attrs.get("snooze")
-        if rule_snooze:
-            snooze = rule_snooze[0]
+        if "snooze" in attrs:
+            snooze = attrs["snooze"]
             d["snooze"] = True
             created_by = None
-            if user.id == snooze.owner_id:
+            if user.id == snooze.get("owner_id"):
                 created_by = "You"
             else:
-                creator = user_service.get_user(snooze.owner_id)
+                creator = user_service.get_user(snooze.get("owner_id"))
                 if creator:
                     creator_name = creator.get_display_name()
                     created_by = creator_name
 
             if created_by is not None:
                 d["snoozeCreatedBy"] = created_by
-                d["snoozeForEveryone"] = snooze.user_id is None
+                d["snoozeForEveryone"] = snooze.get("user_id") is None
         else:
             d["snooze"] = False
 
-        neglected_rule = attrs.get("neglected_rule")
-        if neglected_rule:
-            neglected = neglected_rule[0]
-            if neglected.opted_out is False and neglected.sent_initial_email_date:
-                d["disableReason"] = "noisy"
-                d["disableDate"] = neglected.disable_date
+        if "disable_date" in attrs:
+            d["disableReason"] = "noisy"
+            d["disableDate"] = attrs["disable_date"]
 
         return d
