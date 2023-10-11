@@ -156,7 +156,7 @@ class QuietBasicAuthentication(BasicAuthentication):
     def transform_auth(
         self,
         user: int | User | RpcUser | None | AnonymousUser,
-        auth: Any,
+        request_auth: Any,
         entity_id_tag: str | None = None,
         **tags,
     ) -> Tuple[User | RpcUser | AnonymousUser, Any]:
@@ -171,7 +171,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         if user is None:
             user = AnonymousUser()
 
-        auth_token = AuthenticatedToken.from_token(auth)
+        auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
             with configure_scope() as scope:
                 scope.set_tag(entity_id_tag, auth_token.entity_id)
@@ -180,9 +180,9 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         return (
             user,
-            AuthenticatedToken.from_token(auth)
-            if auth is not None and self._use_authenticated_token()
-            else auth,
+            auth_token
+            if request_auth is not None and self._use_authenticated_token()
+            else request_auth,
         )
 
 
@@ -346,7 +346,8 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
         )
-        application_is_active = True
+
+        application_is_inactive = False
 
         if not token:
             if SiloMode.get_current_mode() == SiloMode.REGION:
@@ -354,7 +355,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                 if not atr:
                     raise AuthenticationFailed("Invalid token")
                 user = user_service.get_user(user_id=atr.user_id)
-                application_is_active = atr.application_is_active
+                application_is_inactive = not atr.application_is_active
             else:
                 try:
                     at = token = (
@@ -365,7 +366,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                 except ApiToken.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
                 user = at.user
-                application_is_active = at.application is None or at.application.is_active
+                application_is_inactive = (
+                    at.application is not None and not at.application.is_active
+                )
         elif isinstance(token, SystemToken):
             user = token.user
 
@@ -378,7 +381,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if user and hasattr(user, "is_active") and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
-        if not application_is_active:
+        if not application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
         return self.transform_auth(
