@@ -39,7 +39,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
 
         user_note = [n for n in notes_by_user if n.id == int(note_id)]
-        if not user_note or len(user_note) > 0:
+        if not user_note or len(user_note) > 1:
             raise ResourceDoesNotExist
         note = user_note[0]
 
