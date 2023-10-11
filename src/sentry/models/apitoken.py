@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
+from typing import Optional, Tuple
 
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import (
     BaseManager,
@@ -31,7 +34,7 @@ def generate_token():
 
 @control_silo_only_model
 class ApiToken(Model, HasApiScopes):
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -79,17 +82,40 @@ class ApiToken(Model, HasApiScopes):
 
         self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
 
+    def get_relocation_scope(self) -> RelocationScope:
+        if self.application_id is not None:
+            # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+            return RelocationScope.Global
+
+        return RelocationScope.Config
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # If there is a token collision, generate new tokens.
+        query = models.Q(token=self.token) | models.Q(refresh_token=self.refresh_token)
+        existing = self.__class__.objects.filter(query).first()
+        if existing:
+            self.expires_at = timezone.now() + DEFAULT_EXPIRATION
+            self.token = generate_token()
+            self.refresh_token = generate_token()
+
+        return super().write_relocation_import(scope, flags)
+
     @property
     def organization_id(self) -> int | None:
-        from sentry.models import SentryAppInstallation, SentryAppInstallationToken
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation_token import (
+            SentryAppInstallationToken,
+        )
 
         try:
             installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
         except SentryAppInstallation.DoesNotExist:
-            return None
+            installation = None
 
         # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
-        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
+        if not installation or installation.sentry_app.status == SentryAppStatus.INTERNAL:
             try:
                 install_token = SentryAppInstallationToken.objects.select_related(
                     "sentry_app_installation"

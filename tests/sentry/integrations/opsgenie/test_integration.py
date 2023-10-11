@@ -1,14 +1,15 @@
 from functools import cached_property
+from unittest.mock import patch
 
 import pytest
 import responses
 from rest_framework.serializers import ValidationError
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
-from sentry.models import Rule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.tasks.integrations.migrate_opsgenie_plugin import (
+from sentry.models.rule import Rule
+from sentry.tasks.integrations.migrate_opsgenie_plugins import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
@@ -151,7 +152,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    def test_migrate_plugin(self):
+    @patch("sentry.tasks.integrations.migrate_opsgenie_plugins.metrics")
+    def test_migrate_plugin(self, mock_metrics):
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.
@@ -224,6 +226,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert self.plugin.is_configured(self.project) is False
         assert plugin2.is_enabled(project2) is False
         assert plugin2.is_configured(self.project) is False
+        mock_metrics.incr.assert_any_call("opsgenie.migration_success", skip_internal=False)
 
     def test_no_duplicate_keys(self):
         """

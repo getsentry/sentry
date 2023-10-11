@@ -14,7 +14,7 @@ from requests.exceptions import ReadTimeout, RequestException, Timeout
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.net.http import SafeSession
 
 # Importing for backwards compatible API

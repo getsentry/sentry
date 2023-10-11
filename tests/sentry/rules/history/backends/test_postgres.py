@@ -1,14 +1,15 @@
 from datetime import timedelta, timezone
 
-from freezegun import freeze_time
-
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):

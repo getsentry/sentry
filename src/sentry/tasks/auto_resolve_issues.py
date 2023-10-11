@@ -1,20 +1,17 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
+from typing import Mapping
 
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.models import (
-    Activity,
-    Group,
-    GroupInboxRemoveAction,
-    GroupStatus,
-    Project,
-    ProjectOption,
-    remove_group_from_inbox,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
@@ -36,7 +33,7 @@ def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
-    opts_by_project = defaultdict(dict)
+    opts_by_project: Mapping[int, dict] = defaultdict(dict)
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 

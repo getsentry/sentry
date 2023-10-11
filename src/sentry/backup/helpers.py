@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import lru_cache
-from typing import NamedTuple, Type
+from typing import Generic, NamedTuple, Type, TypeVar
 
 from django.db import models
 
@@ -48,16 +48,19 @@ class Side(Enum):
     right = 2
 
 
-class Filter:
+T = TypeVar("T")
+
+
+class Filter(Generic[T]):
     """Specifies a field-based filter when performing an import or export operation. This is an
     allowlist based filtration: models of the given type whose specified field matches ANY of the
     supplied values will be allowed through."""
 
     model: Type[models.base.Model]
     field: str
-    values: set[str]
+    values: set[T]
 
-    def __init__(self, model: Type[models.base.Model], field: str, values: set[str] | None = None):
+    def __init__(self, model: Type[models.base.Model], field: str, values: set[T] | None = None):
         self.model = model
         self.field = field
         self.values = values if values is not None else set()
@@ -71,3 +74,8 @@ class ImportFlags(NamedTuple):
     # If a username already exists, should we re-use that user, or create a new one with a randomly
     # suffixed username (ex: "some-user" would become "some-user-ad21")
     merge_users: bool = False
+
+    # If a global configuration value `ControlOption`/`Option` (as identified by its unique
+    # `key`) or `Relay` (as identified by its unique `relay_id`) already exists, should we overwrite
+    # it with the new value, or keep the existing one and discard the incoming value instead?
+    overwrite_configs: bool = False

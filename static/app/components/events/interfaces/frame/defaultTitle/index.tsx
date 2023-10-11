@@ -9,7 +9,7 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, Meta, PlatformType} from 'sentry/types';
+import {Frame, Meta, PlatformKey} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
 import {FunctionName} from '../functionName';
@@ -20,7 +20,7 @@ import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {
   frame: Frame;
-  platform: PlatformType;
+  platform: PlatformKey;
   /**
    * Is the stack trace being previewed in a hovercard?
    */

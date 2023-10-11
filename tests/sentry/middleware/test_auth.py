@@ -4,7 +4,9 @@ from unittest.mock import patch
 from django.test import RequestFactory
 
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import ApiKey, ApiToken, UserIP
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
@@ -48,7 +50,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         with outbox_runner():
             self.middleware.process_request(request)
             # Force the user object to materialize
-            request.user.id  # noqa
+            request.user.id
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.refresh_from_db()

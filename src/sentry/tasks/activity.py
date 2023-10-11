@@ -33,7 +33,8 @@ def get_activity_notifiers(project):
     silo_mode=SiloMode.REGION,
 )
 def send_activity_notifications(activity_id):
-    from sentry.models import Activity, Organization
+    from sentry.models.activity import Activity
+    from sentry.models.organization import Organization
 
     try:
         activity = Activity.objects.get(pk=activity_id)

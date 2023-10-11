@@ -1,6 +1,6 @@
-import {SavedSearch} from 'sentry/types';
+import {Search} from 'sentry-fixture/search';
 
-import {Search} from './search';
+import {SavedSearch} from 'sentry/types';
 
 export function Searches(params: SavedSearch[] = []): SavedSearch[] {
   return [

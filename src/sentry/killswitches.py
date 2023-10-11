@@ -28,7 +28,7 @@ def _update_project_configs(
     """Callback for the relay.drop-transaction-metrics kill switch.
     On every change, force a recomputation of the corresponding project configs
     """
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
 
     old_project_ids = {ctx["project_id"] for ctx in old_option_value}
@@ -127,12 +127,6 @@ ALL_KILLSWITCH_OPTIONS = {
         fields={
             "project_id": "A project ID to filter events by.",
             "event_type": "transaction, csp, hpkp, expectct, expectstaple, transaction, default or null",
-            "platform": "The event platform as defined in the event payload's platform field, or 'none'",
-        },
-    ),
-    "store.save-event-highcpu-platforms": KillswitchInfo(
-        description="Send highcpu platform events to save_event highcpu queue",
-        fields={
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),

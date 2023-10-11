@@ -1,4 +1,6 @@
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -8,6 +10,7 @@ from sentry.notifications.types import (
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -19,15 +22,18 @@ def _get_kwargs(kwargs):
     )
 
 
-def assert_no_notification_settings(**kwargs):
-    assert NotificationSetting.objects._filter(**kwargs).count() == 0
+def assert_no_notification_settings():
+    assert NotificationSetting.objects.all().count() == 0
+    assert NotificationSettingOption.objects.all().count() == 0
+    assert NotificationSettingProvider.objects.all().count() == 0
 
 
 def create_setting(**kwargs):
-    NotificationSetting.objects.update_settings(
-        value=NotificationSettingOptionValues.ALWAYS,
-        **_get_kwargs(kwargs),
-    )
+    with Feature({"organizations:notifications-double-write": True}):
+        NotificationSetting.objects.update_settings(
+            value=NotificationSettingOptionValues.ALWAYS,
+            **_get_kwargs(kwargs),
+        )
 
 
 @control_silo_test(stable=True)
@@ -76,7 +82,7 @@ class NotificationSettingTest(TestCase):
             organization=self.organization,
             organization_id_for_team=self.organization.id,
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.organization.delete()
         assert_no_notification_settings()
 

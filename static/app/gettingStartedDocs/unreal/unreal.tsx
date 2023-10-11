@@ -105,7 +105,7 @@ void Verify()
       {
         description: (
           <Fragment>
-            <h5>{t('Include the UE4 Crash Reporter')}</h5>
+            <h5>{t('Include the UE Crash Reporter')}</h5>
             <p>
               {tct(
                 'You can add the crash reporter client to your game in [strong:Project Settings].',
@@ -143,7 +143,7 @@ void Verify()
             <h5>{t('Configure the Crash Reporter Endpoint')}</h5>
             <p>
               {tct(
-                "Now that the crash reporter and debug files are included, UE4 needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
+                "Now that the crash reporter and debug files are included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
                 {
                   code: <code />,
                   italic: <i />,

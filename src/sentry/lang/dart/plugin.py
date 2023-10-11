@@ -1,5 +1,5 @@
 from sentry.lang.dart.utils import deobfuscate_view_hierarchy, has_dart_symbols_file
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.plugins.base.v2 import Plugin2
 from sentry.utils.options import sample_modulo
 

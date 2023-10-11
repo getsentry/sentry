@@ -11,19 +11,17 @@ from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.eventstore.models import BaseEvent
-from sentry.models import (
-    Activity,
-    Environment,
-    EventAttachment,
-    EventUser,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupRelease,
-    Project,
-    Release,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventuser import EventUser
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
@@ -183,6 +181,14 @@ def migrate_events(
     opt_destination_id: Optional[int],
     opt_eventstream_state: Optional[Mapping[str, Any]],
 ) -> Tuple[int, Mapping[str, Any]]:
+    logger.info(
+        "migrate_events.start",
+        extra={
+            "source_id": args.source_id,
+            "opt_destination_id": opt_destination_id,
+            "migrate_args": args,
+        },
+    )
     if opt_destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
@@ -207,6 +213,8 @@ def migrate_events(
         destination_id = opt_destination_id
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
+
+    logger.info("migrate_events.migrate", extra={"destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
         eventstream_state = args.replacement.start_snuba_replacement(
@@ -513,7 +521,10 @@ def unmerge(*posargs, **kwargs):
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
-            logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
+            logger.warning(
+                f"Unmerge complete (eventstream state: {eventstream_state})",
+                extra={"source_id": source.id},
+            )
             if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
         return
@@ -545,6 +556,7 @@ def unmerge(*posargs, **kwargs):
             "source_id": source.id,
             "source_events": len(source_events),
             "destination_events": len(destination_events),
+            "source_fields_reset": source_fields_reset,
         },
     )
 

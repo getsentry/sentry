@@ -1,12 +1,11 @@
 import math
 import time
 from datetime import timedelta
-from itertools import chain
 from uuid import uuid4
 
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +27,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
@@ -43,14 +42,11 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
-from sentry.models import (
-    Group,
-    GroupStatus,
-    Project,
-    ProjectBookmark,
-    ProjectRedirect,
-    RegionScheduledDeletion,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
@@ -94,22 +90,63 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
 
 
 class ProjectMemberSerializer(serializers.Serializer):
-    isBookmarked = serializers.BooleanField()
-    isSubscribed = serializers.BooleanField()
+    isBookmarked = serializers.BooleanField(
+        help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
+    isSubscribed = serializers.BooleanField(
+        help_text="Subscribes the member for notifications related to the project. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
 
 
+@extend_schema_serializer(exclude_fields=["options"])
 class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
-    name = serializers.CharField(max_length=200)
+    name = serializers.CharField(
+        help_text="The name for the project",
+        max_length=200,
+        required=False,
+    )
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
         max_length=50,
         error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+        help_text="Uniquely identifies a project and is used for the interface.",
+        required=False,
     )
+    platform = serializers.CharField(
+        help_text="The platform for the project",
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+
+    subjectPrefix = serializers.CharField(
+        help_text="Custom prefix for emails from this project.",
+        max_length=200,
+        allow_blank=True,
+        required=False,
+    )
+    subjectTemplate = serializers.CharField(
+        help_text="""The email subject to use (excluding the prefix) for individual alerts. Here are the list of variables you can use:
+- `$title`
+- `$shortID`
+- `$projectID`
+- `$orgID`
+- `${tag:key}` - such as `${tag:environment}` or `${tag:release}`.""",
+        max_length=200,
+        required=False,
+    )
+    resolveAge = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
+    )
+
+    # TODO: Add help_text to all the fields for public documentation
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
-    subjectPrefix = serializers.CharField(max_length=200, allow_blank=True)
-    subjectTemplate = serializers.CharField(max_length=200)
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
     )
@@ -140,8 +177,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
-    resolveAge = EmptyIntegerField(required=False, allow_null=True)
-    platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
@@ -149,6 +185,13 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     recapServerUrl = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     recapServerToken = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    # DO NOT ADD MORE TO OPTIONS
+    # Each param should be a field in the serializer like above.
+    # Keeping options here for backward compatibility but removing it from documentation.
+    options = serializers.DictField(
+        required=False,
+    )
 
     def validate(self, data):
         max_delay = (
@@ -457,11 +500,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            GlobalParams.name("The name for the project."),
-            GlobalParams.slug("The slug for the project."),
-            ProjectParams.platform("The platform for the project."),
-            ProjectParams.IS_BOOKMARKED,
-            ProjectParams.OPTIONS,
         ],
         request=ProjectAdminSerializer,
         responses={
@@ -476,7 +514,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked` only.
+        `isBookmarked` and `isSubscribed`.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
@@ -509,14 +547,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         if not has_elevated_scopes:
-            # options isn't part of the serializer, but should not be editable by members
-            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
+            for key in ProjectAdminSerializer().fields.keys():
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": "You do not have permission to perform this action."},
                         status=403,
                     )
-
         changed = False
         changed_proj_settings = {}
 
@@ -689,9 +725,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
-        # TODO(dcramer): rewrite options to use standard API config
+
         if has_elevated_scopes:
-            options = request.data.get("options", {})
+            options = result.get("options", {})
             if "sentry:origins" in options:
                 project.update_option(
                     "sentry:origins", clean_newline_inputs(options["sentry:origins"])
@@ -769,7 +805,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
-                    bool(options["filters:react-hydration-errors"]),
+                    "1" if bool(options["filters:react-hydration-errors"]) else "0",
+                )
+            if "filters:chunk-load-error" in options:
+                project.update_option(
+                    "filters:chunk-load-error",
+                    "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(

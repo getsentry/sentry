@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
@@ -34,7 +34,7 @@ def create_compressed_asset_span():
         desc="https://someothersite.example.com/app.js",
         duration=1.0,
         data={
-            "http.transfer_size": 5,
+            "http.response_transfer_size": 5,
             "http.response_content_length": 4,
             "http.decoded_response_content_length": 5,
         },
@@ -62,7 +62,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -99,7 +99,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -127,6 +127,44 @@ class UncompressedAssetsDetectorTest(TestCase):
             )
         ]
 
+    def test_detects_uncompressed_asset_with_trailing_query_params(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
+            "spans": [
+                create_asset_span(
+                    duration=1000.0,
+                    data={
+                        "http.response_transfer_size": 1_000_000,
+                        "http.response_content_length": 1_000_000,
+                        "http.decoded_response_content_length": 1_000_000,
+                    },
+                    desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js?query_string=content",
+                ),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1012-6893fb5a8a875d692da96590f40dc6bddd6fcabc",
+                op="resource.script",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js?query_string=content",
+                type=PerformanceUncompressedAssetsGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
     def test_detects_uncompressed_asset_stylesheet(self):
         event = {
             "event_id": "a" * 16,
@@ -138,7 +176,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -177,7 +215,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -211,7 +249,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/some.jpg",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 1_000_000,
+                    "http.response_transfer_size": 1_000_000,
                     "http.response_content_length": 1_000_000,
                     "http.decoded_response_content_length": 1_000_000,
                 },
@@ -232,7 +270,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -266,7 +304,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.woff2",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 1_000_000,
+                    "http.response_transfer_size": 1_000_000,
                     "http.response_content_length": 1_000_000,
                     "http.decoded_response_content_length": 1_000_000,
                 },
@@ -285,7 +323,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },
@@ -304,7 +342,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 99_999,
                         "http.decoded_response_content_length": 99_999,
                     },
@@ -323,7 +361,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 101_000,
                         "http.decoded_response_content_length": 100_999,
                     },
@@ -342,7 +380,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=50.0,
                     data={
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 101_000,
                         "http.decoded_response_content_length": 101_000,
                     },

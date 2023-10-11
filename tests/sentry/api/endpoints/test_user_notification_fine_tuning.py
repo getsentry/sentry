@@ -1,5 +1,7 @@
-from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -345,12 +347,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="always",
+            type="reports",
         ).exists()
         assert NotificationSettingOption.objects.filter(
             user_id=self.user.id,
             scope_type="organization",
             scope_identifier=self.organization2.id,
             value="always",
+            type="reports",
         ).exists()
 
         # can disable
@@ -364,6 +368,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="never",
+            type="reports",
         ).exists()
 
         # re-enable
@@ -378,6 +383,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="always",
+            type="reports",
         ).exists()
 
     def test_permissions(self):

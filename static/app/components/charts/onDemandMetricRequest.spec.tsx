@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
@@ -10,7 +12,7 @@ jest.mock('sentry/actionCreators/events', () => ({
 }));
 
 describe('OnDemandMetricRequest', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const mock = jest.fn(() => null);
 
   const DEFAULTS = {

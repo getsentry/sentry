@@ -27,7 +27,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -44,7 +44,11 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -76,7 +80,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
     SessionAuthentication,
@@ -122,7 +126,10 @@ def allow_cors_options(func):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Access-Control-Expose-Headers"] = (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
 
         if request.META.get("HTTP_ORIGIN") == "null":
             # if ORIGIN header is explicitly specified as 'null' leave it alone
@@ -605,7 +612,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 

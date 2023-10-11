@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
+import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -186,7 +188,7 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
@@ -196,7 +198,7 @@ export function updateNote(
     }
   );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
@@ -415,6 +417,13 @@ type FetchIssueTagsParameters = {
   orgSlug: string;
   readable: boolean;
   groupId?: string;
+  isStatisticalDetector?: boolean;
+  statisticalDetectorParameters?: {
+    durationBaseline: number;
+    end: string;
+    start: string;
+    transaction: string;
+  };
 };
 
 export const makeFetchIssueTagsQueryKey = ({
@@ -428,13 +437,108 @@ export const makeFetchIssueTagsQueryKey = ({
   {query: {environment, readable, limit}},
 ];
 
+const makeFetchStatisticalDetectorTagsQueryKey = ({
+  orgSlug,
+  environment,
+  statisticalDetectorParameters,
+}: FetchIssueTagsParameters): ApiQueryKey => {
+  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
+    transaction: '',
+    durationBaseline: 0,
+    start: undefined,
+    end: undefined,
+  };
+  return [
+    `/organizations/${orgSlug}/events-facets/`,
+    {
+      query: {
+        environment,
+        transaction,
+        includeAll: true,
+        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+        start,
+        end,
+      },
+    },
+  ];
+};
+
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+  {
+    enabled = true,
+    ...options
+  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
-  return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
+  let queryKey = makeFetchIssueTagsQueryKey(parameters);
+  if (parameters.isStatisticalDetector) {
+    // Statistical detector issues need to use a Discover query for tags
+    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
+  }
+
+  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,
   });
 };
+
+type FetchIssueTagValuesParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+  cursor?: string;
+  environment?: string[];
+  sort?: string | string[];
+};
+
+export const makeFetchIssueTagValuesQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+  cursor,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  {query: {environment, sort, cursor}},
+];
+
+export function useFetchIssueTagValues(
+  parameters: FetchIssueTagValuesParameters,
+  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
+) {
+  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
+
+type FetchIssueTagParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+};
+
+export const makeFetchIssueTagQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTag(
+  parameters: FetchIssueTagParameters,
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+) {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}

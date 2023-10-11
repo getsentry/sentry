@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {MissingMembers} from 'sentry-fixture/missingMembers';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -27,9 +29,9 @@ const roles = [
 
 describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
-  const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
+  const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = {integration: 'github', users: TestStubs.MissingMembers()};
+  const missingMembers = {integration: 'github', users: MissingMembers()};
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -38,7 +40,7 @@ describe('InviteMissingMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     missingMembers: {integration: 'github', users: []},
     allowedRoles: [],
   };
@@ -61,7 +63,7 @@ describe('InviteMissingMembersModal', function () {
   });
 
   it('does not render without org:write', function () {
-    const organization = TestStubs.Organization({access: []});
+    const organization = Organization({access: []});
     render(<InviteMissingMembersModal {...modalProps} organization={organization} />);
 
     expect(
@@ -69,12 +71,14 @@ describe('InviteMissingMembersModal', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('disables invite button if no members selected', function () {
+  it('disables invite button if no members selected', async function () {
     render(<InviteMissingMembersModal {...modalProps} missingMembers={missingMembers} />);
 
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Deselect All'));
 
     expect(screen.getByLabelText('Send Invites')).toBeDisabled();
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
@@ -87,6 +91,7 @@ describe('InviteMissingMembersModal', function () {
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
+    await userEvent.click(screen.getByLabelText('Deselect All'));
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
 
     expect(screen.getByLabelText('Send Invites')).toBeEnabled();
@@ -98,36 +103,36 @@ describe('InviteMissingMembersModal', function () {
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
   });
 
-  it('can select and deselect all rows', async function () {
+  it('can deselect and select all rows', async function () {
     render(<InviteMissingMembersModal {...modalProps} missingMembers={missingMembers} />);
 
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('Select All'));
-
-    expect(screen.getByLabelText('Send Invites')).toBeEnabled();
-    expect(screen.getByText('Invite all 5 missing members')).toBeInTheDocument();
-
     await userEvent.click(screen.getByLabelText('Deselect All'));
 
     expect(screen.getByLabelText('Send Invites')).toBeDisabled();
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Select All'));
+
+    expect(screen.getByLabelText('Send Invites')).toBeEnabled();
+    expect(screen.getByText('Invite all 5 missing members')).toBeInTheDocument();
   });
 
   it('can invite all members', async function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={TestStubs.Organization({defaultRole: 'member'})}
+        organization={Organization({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
+      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       method: 'POST',
       body: {},
     });
@@ -136,7 +141,6 @@ describe('InviteMissingMembersModal', function () {
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('Select All'));
     await userEvent.click(screen.getByLabelText('Send Invites'));
 
     // Verify data sent to the backend
@@ -145,7 +149,7 @@ describe('InviteMissingMembersModal', function () {
     missingMembers.users.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
-        `/organizations/${org.slug}/members/`,
+        `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
         expect.objectContaining({
           data: {email: member.email, role: 'member', teams: []},
         })
@@ -157,14 +161,14 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={TestStubs.Organization({defaultRole: 'member', teams: [team]})}
+        organization={Organization({defaultRole: 'member', teams: [team]})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
+      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       method: 'POST',
       body: {},
     });
@@ -172,6 +176,8 @@ describe('InviteMissingMembersModal', function () {
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Deselect All'));
 
     const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
@@ -189,7 +195,7 @@ describe('InviteMissingMembersModal', function () {
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${org.slug}/members/`,
+      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       expect.objectContaining({
         data: {email: 'hello@sentry.io', role: 'admin', teams: []},
       })
@@ -197,7 +203,7 @@ describe('InviteMissingMembersModal', function () {
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${org.slug}/members/`,
+      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       expect.objectContaining({
         data: {email: 'abcd@sentry.io', role: 'member', teams: [team.slug]},
       })

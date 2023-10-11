@@ -3,7 +3,8 @@ from unittest import mock
 import pytest
 
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.models import OrganizationMember, UserEmail
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime, timedelta
@@ -10,10 +12,7 @@ import responses
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
-from urllib3 import HTTPResponse
-from urllib3.exceptions import MaxRetryError
 
 from fixtures.github import (
     COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
@@ -36,12 +35,10 @@ from sentry.event_manager import (
     EventManager,
     HashDiscarded,
     _get_event_instance,
-    _get_severity_score,
     _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
-    severity_connection_pool,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -53,32 +50,28 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    GroupTombstone,
-    Integration,
-    Project,
-    PullRequest,
-    PullRequestCommit,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
+from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
 from sentry.models.eventuser import EventUser
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestCommit
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
@@ -90,10 +83,11 @@ from sentry.testutils.cases import (
     TransactionTestCase,
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -101,6 +95,8 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):
@@ -2368,11 +2364,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2392,11 +2384,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
                 noise_limit=2,
@@ -2407,11 +2395,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
             )
@@ -2497,121 +2481,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
-
-    @patch(
-        "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
-    )
-    def test_get_severity_score_simple(self, mock_urlopen: MagicMock) -> None:
-        manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
-        )
-        event = manager.save(self.project.id)
-
-        severity = _get_severity_score(event)
-
-        mock_urlopen.assert_called_with(
-            "POST",
-            "/issues/severity-score",
-            body='{"message":"NopeError: Nopey McNopeface"}',
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
-        assert severity == 0.1231
-
-    @patch(
-        "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
-    )
-    def test_get_severity_score_no_message(self, mock_urlopen: MagicMock) -> None:
-        manager = EventManager(make_event())
-        event = manager.save(self.project.id)
-
-        severity = _get_severity_score(event)
-
-        mock_urlopen.assert_not_called()
-        assert severity is None
-
-    @patch(
-        "sentry.event_manager.severity_connection_pool.urlopen",
-        side_effect=MaxRetryError(
-            severity_connection_pool, "/issues/severity-score", Exception("It broke")
-        ),
-    )
-    @patch("sentry.event_manager.logger.warning")
-    def test_get_severity_score_max_retry_exception(
-        self,
-        mock_logger_warning: MagicMock,
-        _mock_urlopen: MagicMock,
-    ) -> None:
-        manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
-        )
-        event = manager.save(self.project.id)
-
-        severity = _get_severity_score(event)
-
-        warning_call_args = mock_logger_warning.call_args.args
-        warning_call_kwargs = mock_logger_warning.call_args.kwargs
-
-        assert warning_call_args == (
-            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
-        )
-        assert warning_call_kwargs["extra"]["event_id"] == event.event_id
-        assert repr(warning_call_kwargs["extra"]["reason"]) == repr(Exception("It broke"))
-        assert severity is None
-
-    @patch(
-        "sentry.event_manager.severity_connection_pool.urlopen",
-        side_effect=Exception("It broke"),
-    )
-    @patch("sentry.event_manager.logger.warning")
-    def test_get_severity_score_other_exception(
-        self,
-        mock_logger_warning: MagicMock,
-        _mock_urlopen: MagicMock,
-    ) -> None:
-        manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
-        )
-        event = manager.save(self.project.id)
-
-        severity = _get_severity_score(event)
-
-        warning_call_args = mock_logger_warning.call_args.args
-        warning_call_kwargs = mock_logger_warning.call_args.kwargs
-
-        assert warning_call_args == (
-            "Unable to get severity score from microservice. Got: Exception('It broke').",
-        )
-        assert warning_call_kwargs["extra"]["event_id"] == event.event_id
-        assert repr(warning_call_kwargs["extra"]["reason"]) == repr(Exception("It broke"))
-        assert severity is None
-
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
-    def test_severity_score_flag_on(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": True}):
-            manager = EventManager(
-                make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
-                )
-            )
-            event = manager.save(self.project.id)
-
-            mock_get_severity_score.assert_called()
-            assert event.group and event.group.get_event_metadata()["severity"] == 0.1121
-
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
-    def test_severity_score_flag_off(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": False}):
-            manager = EventManager(
-                make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
-                )
-            )
-            event = manager.save(self.project.id)
-
-            mock_get_severity_score.assert_not_called()
-            assert event.group and event.group.get_event_metadata().get("severity") is None
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

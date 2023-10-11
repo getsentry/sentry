@@ -5,14 +5,14 @@ from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
 )
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
@@ -24,7 +24,12 @@ def test_outcomes_consumed(track_outcome):
 
     topic = Topic("snuba-generic-metrics")
 
+    # NOTE: For a more realistic test, the usage metric is always emitted
+    # alongside the transaction duration metric. Formerly, the consumer used the
+    # duration metric to generate outcomes.
+
     empty_tags: dict[str, str] = {}
+    profile_tags: dict[str, str] = {str(SHARED_TAG_STRINGS["has_profile"]): "true"}
     buckets: list[MetricsBucket] = [
         {  # Counter metric with wrong ID will not generate an outcome
             "metric_id": 123,
@@ -44,8 +49,18 @@ def test_outcomes_consumed(track_outcome):
             "value": [1.0, 2.0],
             "tags": empty_tags,
         },
-        {  # Empty distribution will not generate an outcome
-            # NOTE: Should not be emitted by Relay anyway
+        # Usage with `0.0` will not generate an outcome
+        # NOTE: Should not be emitted by Relay anyway
+        {
+            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "type": "c",
+            "org_id": 1,
+            "project_id": 2,
+            "timestamp": 123456,
+            "value": 0.0,
+            "tags": empty_tags,
+        },
+        {
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
             "type": "d",
             "org_id": 1,
@@ -54,7 +69,17 @@ def test_outcomes_consumed(track_outcome):
             "value": [],
             "tags": empty_tags,
         },
-        {  # Valid distribution bucket emits an outcome
+        # Usage buckets with positive counter emit an outcome
+        {
+            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "type": "c",
+            "org_id": 1,
+            "project_id": 2,
+            "timestamp": 123456,
+            "value": 3.0,
+            "tags": empty_tags,
+        },
+        {
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
             "type": "d",
             "org_id": 1,
@@ -72,14 +97,24 @@ def test_outcomes_consumed(track_outcome):
             "value": 123.4,
             "tags": empty_tags,
         },
-        {  # Bucket with profiles
+        # Bucket with profiles
+        {
+            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "type": "c",
+            "org_id": 1,
+            "project_id": 2,
+            "timestamp": 123456,
+            "value": 1.0,
+            "tags": profile_tags,
+        },
+        {
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
             "type": "d",
             "org_id": 1,
             "project_id": 2,
             "timestamp": 123456,
             "value": [4.0],
-            "tags": {f"{(1 << 63) + 260}": "true"},
+            "tags": profile_tags,
         },
     ]
 
@@ -118,9 +153,9 @@ def test_outcomes_consumed(track_outcome):
         strategy.submit(generate_kafka_message(bucket))
         # commit is called for every message, and later debounced by arroyo's policy
         assert fake_commit.call_count == (i + 1)
-        if i < 3:
+        if i < 4:
             assert track_outcome.call_count == 0
-        elif i < 5:
+        elif i < 7:
             assert track_outcome.mock_calls == [
                 mock.call(
                     org_id=1,
@@ -160,9 +195,9 @@ def test_outcomes_consumed(track_outcome):
                 ),
             ]
 
-    assert fake_commit.call_count == 6
+    assert fake_commit.call_count == 9
 
     # Joining should commit the offset of the last message:
     strategy.join()
 
-    assert fake_commit.call_count == 7
+    assert fake_commit.call_count == 10

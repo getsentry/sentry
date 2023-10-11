@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -50,7 +51,7 @@ describe('ExternalIssueForm', () => {
       <ExternalIssueForm
         Body={styledWrapper()}
         Footer={styledWrapper()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         Header={c => <span>{c.children}</span>}
         group={group}
         integration={integration}
@@ -76,6 +77,24 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', async () => {
       await renderComponent();
+    });
+    it('if we have an error fields, we should disable the create button', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            name: 'error',
+            type: 'blank',
+          },
+        ],
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+      });
+      await renderComponent();
+
+      const submitButton = screen.getByRole('button', {name: 'Create Issue'});
+      expect(submitButton).toBeDisabled();
     });
   });
   describe('link', () => {

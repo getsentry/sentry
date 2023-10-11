@@ -1,10 +1,12 @@
 import logging
 import time
+from typing import List, Optional
 
-from sentry.digests import get_option_key
+from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
@@ -42,7 +44,7 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None):
+def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str] = None):
     from sentry import digests
     from sentry.mail import mail_adapter
 
@@ -61,6 +63,9 @@ def deliver_digest(key, schedule_timestamp=None):
         try:
             with digests.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
+
+                if not notification_uuid:
+                    notification_uuid = get_notification_uuid_from_records(records)
         except InvalidState as error:
             logger.info(f"Skipped digest delivery: {error}", exc_info=True)
             return
@@ -72,6 +77,7 @@ def deliver_digest(key, schedule_timestamp=None):
                 target_type,
                 target_identifier,
                 fallthrough_choice=fallthrough_choice,
+                notification_uuid=notification_uuid,
             )
         else:
             logger.info(
@@ -84,3 +90,14 @@ def deliver_digest(key, schedule_timestamp=None):
                     "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
                 },
             )
+
+
+def get_notification_uuid_from_records(records: List[Record]) -> Optional[str]:
+    for record in records:
+        try:
+            notification_uuid = record.value.notification_uuid
+            if notification_uuid:  # Take the first existing notification_uuid
+                return notification_uuid
+        except Exception:
+            return None
+    return None

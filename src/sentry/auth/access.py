@@ -24,42 +24,22 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
-from sentry.models import (
-    ApiKey,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    SentryApp,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState, auth_service
-from sentry.services.hybrid_cloud.organization import (
-    RpcTeamMember,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.access.service import access_service
+from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
+from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.request_cache import request_cache
-
-
-@request_cache
-def get_cached_organization_member(user_id: int, organization_id: int) -> OrganizationMember:
-    return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
-
-
-def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
-    user = user_service.get_user(user_id)
-    if user is None:
-        return frozenset()
-    return user.roles | user.permissions
 
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
@@ -492,7 +472,7 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(
+        return access_service.get_all_org_roles(
             member_id=self.rpc_user_organization_context.member.id,
             organization_id=self.rpc_user_organization_context.organization.id,
         )
@@ -648,7 +628,7 @@ class OrganizationMemberAccess(DbAccess):
         permissions: Iterable[str],
         scopes_upper_bound: Iterable[str] | None,
     ) -> None:
-        auth_state = auth_service.get_user_auth_state(
+        auth_state = access_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
             org_member=summarize_member(member),
@@ -965,7 +945,7 @@ def from_request_org_and_scopes(
 
     if is_superuser:
         member = rpc_user_org_context.member
-        auth_state = auth_service.get_user_auth_state(
+        auth_state = access_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=rpc_user_org_context.organization.id,
             is_superuser=is_superuser,
@@ -991,7 +971,7 @@ def from_request_org_and_scopes(
 
 def organizationless_access(user: User | RpcUser | AnonymousUser, is_superuser: bool) -> Access:
     return OrganizationlessAccess(
-        auth_state=auth_service.get_user_auth_state(
+        auth_state=access_service.get_user_auth_state(
             user_id=user.id,
             is_superuser=is_superuser,
             organization_id=None,
@@ -1047,10 +1027,12 @@ def from_request(
     if is_superuser:
         member: OrganizationMember | None = None
         try:
-            member = get_cached_organization_member(request.user.id, organization.id)
+            member = OrganizationMember.objects.get(
+                user_id=request.user.id, organization_id=organization.id
+            )
         except OrganizationMember.DoesNotExist:
             pass
-        sso_state = auth_service.get_user_auth_state(
+        sso_state = access_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
@@ -1063,7 +1045,7 @@ def from_request(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
-            permissions=get_permissions_for_user(request.user.id),
+            permissions=access_service.get_permissions_for_user(request.user.id),
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1130,7 +1112,7 @@ def from_user(
         return organizationless_access(user, is_superuser)
 
     try:
-        om = get_cached_organization_member(user.id, organization.id)
+        om = OrganizationMember.objects.get(user_id=user.id, organization_id=organization.id)
     except OrganizationMember.DoesNotExist:
         return organizationless_access(user, is_superuser)
 
@@ -1150,7 +1132,9 @@ def from_member(
     else:
         scope_intersection = member.get_scopes()
 
-    permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
+    permissions = (
+        access_service.get_permissions_for_user(member.user_id) if is_superuser else frozenset()
+    )
 
     return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
 
@@ -1168,7 +1152,7 @@ def from_rpc_member(
         rpc_user_organization_context=rpc_user_organization_context,
         scopes_upper_bound=_wrap_scopes(scopes),
         auth_state=auth_state
-        or auth_service.get_user_auth_state(
+        or access_service.get_user_auth_state(
             user_id=rpc_user_organization_context.user_id,
             organization_id=rpc_user_organization_context.organization.id,
             is_superuser=is_superuser,

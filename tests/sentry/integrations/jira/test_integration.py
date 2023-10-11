@@ -11,23 +11,24 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
-from sentry.models import (
-    ExternalIssue,
-    GroupLink,
-    GroupMeta,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-)
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
 from sentry_plugins.jira.plugin import JiraPlugin
+
+pytestmark = [requires_snuba]
 
 
 def get_client():

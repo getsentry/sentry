@@ -3,25 +3,31 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {
+  FrameSourceMapDebuggerData,
+  SourceMapsDebuggerModal,
+} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFlag, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
   Frame,
   Organization,
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -50,7 +56,9 @@ export interface DeprecatedLineProps {
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  frameSourceResolutionResults?: FrameSourceMapDebuggerData;
   hiddenFrameCount?: number;
+  hideSourceMapDebugger?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -73,7 +81,7 @@ export interface DeprecatedLineProps {
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
@@ -308,6 +316,22 @@ export class DeprecatedLine extends Component<Props, State> {
         lockAddress
       );
 
+    const shouldShowSourceMapDebuggerToggle =
+      !this.props.hideSourceMapDebugger &&
+      data.inApp &&
+      this.props.frameSourceResolutionResults &&
+      (!this.props.frameSourceResolutionResults.frameIsResolved ||
+        !hasContextSource(data));
+
+    const sourceMapDebuggerAmplitudeData = {
+      organization: this.props.organization ?? null,
+      project_id: this.props.event.projectID,
+      event_id: this.props.event.id,
+      event_platform: this.props.event.platform,
+      sdk_name: this.props.event.sdk?.name,
+      sdk_version: this.props.event.sdk?.version,
+    };
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -341,6 +365,45 @@ export class DeprecatedLine extends Component<Props, State> {
               </Tag>
             ) : null}
             {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {shouldShowSourceMapDebuggerToggle ? (
+              <SourceMapDebuggerToggle
+                icon={<IconFlag />}
+                to=""
+                tooltipText={t(
+                  'Learn how to show the original source code for this stack frame.'
+                )}
+                onClick={e => {
+                  e.stopPropagation();
+
+                  trackAnalytics(
+                    'source_map_debug_blue_thunder.modal_opened',
+                    sourceMapDebuggerAmplitudeData
+                  );
+
+                  openModal(
+                    modalProps => (
+                      <SourceMapsDebuggerModal
+                        analyticsParams={sourceMapDebuggerAmplitudeData}
+                        sourceResolutionResults={this.props.frameSourceResolutionResults!}
+                        {...modalProps}
+                      />
+                    ),
+                    {
+                      onClose: () => {
+                        trackAnalytics(
+                          'source_map_debug_blue_thunder.modal_closed',
+                          sourceMapDebuggerAmplitudeData
+                        );
+                      },
+                    }
+                  );
+                }}
+              >
+                {hasContextSource(data)
+                  ? t('Not your source code?')
+                  : t('No source code?')}
+              </SourceMapDebuggerToggle>
+            ) : null}
             {!data.inApp ? (
               stacktraceChangesEnabled ? null : (
                 <Tag>{t('System')}</Tag>
@@ -609,5 +672,17 @@ const ToggleButton = styled(Button)`
 
   &:hover {
     color: ${p => p.theme.subText};
+  }
+`;
+
+const SourceMapDebuggerToggle = styled(Tag)`
+  cursor: pointer;
+  span {
+    color: ${p => p.theme.gray300};
+
+    &:hover {
+      text-decoration: underline;
+      text-decoration-color: ${p => p.theme.gray200};
+    }
   }
 `;

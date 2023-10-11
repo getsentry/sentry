@@ -1,13 +1,13 @@
 from typing import Optional
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.lang.native.sources import get_bundle_index_urls
-from sentry.models import ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import ArtifactBundleFlatFileIndex
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 

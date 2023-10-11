@@ -8,8 +8,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Release, ReleaseCommit, Repository
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 
 
 @region_silo_endpoint
@@ -50,10 +52,20 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
             )
         )
 
+        repo_id = request.query_params.get("repo_id")
         repo_name = request.query_params.get("repo_name")
 
-        # TODO: use id instead of name
-        if repo_name:
+        # prefer repo external ID to name
+        if repo_id:
+            try:
+                repo = Repository.objects.get(
+                    organization_id=organization.id, external_id=repo_id, status=ObjectStatus.ACTIVE
+                )
+                queryset = queryset.filter(commit__repository_id=repo.id)
+            except Repository.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        elif repo_name:
             try:
                 repo = Repository.objects.get(
                     organization_id=organization.id, name=repo_name, status=ObjectStatus.ACTIVE

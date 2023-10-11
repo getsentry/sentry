@@ -116,8 +116,6 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
-const DEFAULT_RATE_SIG_DIGITS = 3;
-
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
@@ -235,7 +233,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnits, DEFAULT_RATE_SIG_DIGITS)}
+          {formatRate(data[field], unit as RateUnits, {minimumValue: 0.01})}
         </NumberContainer>
       );
     },
@@ -770,6 +768,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       <TimeSpentCell
         percentage={data[fieldName]}
         total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        op={data[`span.op`]}
       />
     );
   },

@@ -137,7 +137,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    const queryWithTypeFilter = (
+      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+    ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
@@ -605,7 +607,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -1032,7 +1034,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

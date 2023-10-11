@@ -1,10 +1,13 @@
+import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
-const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
+const eventEntryStacktrace = EventEntryStacktrace();
 const event = TestStubs.Event({
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
@@ -154,7 +157,7 @@ describe('StackTrace', function () {
   });
 
   describe('with stacktrace improvements feature flag enabled', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['issue-details-stacktrace-improvements'],
     });
 

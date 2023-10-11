@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from copy import deepcopy
+from dataclasses import dataclass
 from enum import IntEnum, auto, unique
-from typing import NamedTuple
+from typing import Optional
+
+from sentry.backup.dependencies import NormalizedModelName
+from sentry.utils import json
 
 
-class InstanceID(NamedTuple):
+@dataclass
+class InstanceID:
     """Every entry in the generated backup JSON file should have a unique model+ordinal combination,
     which serves as its identifier."""
 
@@ -15,6 +21,13 @@ class InstanceID(NamedTuple):
     # can use the ordinal as a unique identifier.
     ordinal: int | None = None
 
+    def __init__(self, model: NormalizedModelName, ordinal: Optional[int] = None):
+        self.model = str(model)
+        self.ordinal = ordinal
+
+    def __hash__(self):
+        return hash((self.model, self.ordinal))
+
     def pretty(self) -> str:
         out = f"InstanceID(model: {self.model!r}"
         if self.ordinal:
@@ -22,8 +35,14 @@ class InstanceID(NamedTuple):
         return out + ")"
 
 
+class FindingKind(IntEnum):
+    pass
+
+
 @unique
-class ComparatorFindingKind(IntEnum):
+class ComparatorFindingKind(FindingKind):
+    Unknown = auto()
+
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
 
@@ -90,6 +109,13 @@ class ComparatorFindingKind(IntEnum):
     # present or `None`.
     SecretHexComparatorExistenceCheck = auto()
 
+    # Subscription ID fields did not match their regex specification.
+    SubscriptionIDComparator = auto()
+
+    # Failed to compare a subscription id field because one of the fields being compared was not
+    # present or `None`.
+    SubscriptionIDComparatorExistenceCheck = auto()
+
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()
 
@@ -105,14 +131,30 @@ class ComparatorFindingKind(IntEnum):
     UserPasswordObfuscatingComparatorExistenceCheck = auto()
 
 
-class ComparatorFinding(NamedTuple):
-    """Store all information about a single failed matching between expected and actual output."""
+@dataclass(frozen=True)
+class Finding:
+    """
+    A JSON serializable and user-reportable finding for an import/export operation.
+    """
 
-    kind: ComparatorFindingKind
     on: InstanceID
+
+    # The original `pk` of the model in question, if one is specified in the `InstanceID`.
     left_pk: int | None = None
+
+    # The post-import `pk` of the model in question, if one is specified in the `InstanceID`.
     right_pk: int | None = None
+
     reason: str = ""
+
+
+@dataclass(frozen=True)
+class ComparatorFinding(Finding):
+    """
+    Store all information about a single failed matching between expected and actual output.
+    """
+
+    kind: ComparatorFindingKind = ComparatorFindingKind.Unknown
 
     def pretty(self) -> str:
         out = f"Finding(\n\tkind: {self.kind.name},\n\ton: {self.on.pretty()}"
@@ -142,3 +184,18 @@ class ComparatorFindings:
 
     def pretty(self) -> str:
         return "\n".join(f.pretty() for f in self.findings)
+
+
+class FindingJSONEncoder(json.JSONEncoder):
+    """JSON serializer that handles findings properly."""
+
+    def default(self, obj):
+        if isinstance(obj, Finding):
+            d = deepcopy(obj.__dict__)
+            kind = d.get("kind")
+            if isinstance(kind, FindingKind):
+                d["kind"] = kind.name
+            return d
+        if isinstance(obj, InstanceID):
+            return obj.__dict__
+        return super().default(obj)

@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -208,17 +209,6 @@ function ActionSet({
           {t('Unarchive')}
         </Button>
       ) : null}
-      {hasEscalatingIssuesUi ? (
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -252,12 +242,30 @@ function ActionSet({
           anySelected={anySelected}
           params={{
             hasRelease: false,
+            multipleProjectsSelected: true,
+            disabled: true,
             confirm,
             label,
           }}
         />
       )}
-      {hasEscalatingIssuesUi ? null : (
+      {hasEscalatingIssuesUi ? (
+        <GuideAnchor
+          target="issue_stream_archive_button"
+          position="bottom"
+          disabled={ignoreDisabled}
+        >
+          <ArchiveActions
+            onUpdate={onUpdate}
+            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+            confirmMessage={() =>
+              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+            }
+            confirmLabel={label('archive')}
+            disabled={ignoreDisabled}
+          />
+        </GuideAnchor>
+      ) : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}

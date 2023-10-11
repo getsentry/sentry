@@ -9,9 +9,12 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
-from sentry.models import Identity, IdentityProvider, Team
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.team import Team
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 
@@ -30,11 +33,12 @@ class SlackCommandsTest(APITestCase, TestCase):
         self.response_url = "http://example.slack.com/response_url"
 
         self.integration = install_slack(self.organization, self.external_id)
-        self.idp = IdentityProvider.objects.create(
-            type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            external_id=self.external_id,
-            config={},
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.idp = IdentityProvider.objects.create(
+                type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                external_id=self.external_id,
+                config={},
+            )
         self.login_as(self.user)
 
     def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:

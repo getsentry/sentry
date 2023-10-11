@@ -1,3 +1,7 @@
+import {Commit} from 'sentry-fixture/commit';
+import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -5,7 +9,14 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Event, Group, Organization, Project, Team, User} from 'sentry/types';
+import type {
+  Event,
+  Group,
+  Organization as TOrganization,
+  Project,
+  Team,
+  User,
+} from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
   let USER_1!: User;
@@ -14,11 +25,11 @@ describe('Group > AssignedTo', () => {
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
-  let organization!: Organization;
+  let organization!: TOrganization;
   const project = TestStubs.Project();
 
   beforeEach(() => {
-    organization = TestStubs.Organization();
+    organization = Organization();
     USER_1 = TestStubs.User({
       id: '1',
       name: 'Jane Bloggs',
@@ -188,13 +199,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = TestStubs.CommitAuthor({id: USER_2.id});
+    const author = CommitAuthor({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author})],
+            commits: [Commit({author})],
             author,
           },
         ],

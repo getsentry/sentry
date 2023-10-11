@@ -46,8 +46,9 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
 )
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -311,7 +312,10 @@ class FetchProjectTransactionTotals:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             data = raw_snql_query(
                 request,
@@ -487,7 +491,10 @@ class FetchProjectTransactionVolumes:
                 .set_offset(self.offset)
             )
             request = Request(
-                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
             )
             data = raw_snql_query(
                 request,

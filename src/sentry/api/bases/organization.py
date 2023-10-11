@@ -20,11 +20,12 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
-from sentry.models import Organization, Project, ReleaseProject
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.models.release import Release
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -357,7 +358,9 @@ class OrganizationEndpoint(Endpoint):
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
-    def get_environments(self, request: Request, organization: Organization) -> list[Environment]:
+    def get_environments(
+        self, request: Request, organization: Organization | RpcOrganization
+    ) -> list[Environment]:
         return get_environments(request, organization)
 
     def get_filter_params(

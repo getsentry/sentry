@@ -2,12 +2,12 @@ import time
 from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 

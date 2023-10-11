@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from types import ModuleType
 from typing import Dict, List, Optional, Sequence, TypedDict, Union, cast
 
@@ -10,11 +11,12 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events import fields
 from sentry.snuba import discover, metrics_performance
 from sentry.snuba.metrics.extraction import to_standard_metrics_query
 from sentry.snuba.referrer import Referrer
+from sentry.utils import metrics
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -25,6 +27,25 @@ class CountResult(TypedDict):
 # Type returned by get_events_stats_data is actually a [int, List[CountResult]] where the first
 # param is the timestamp
 MetricVolumeRow = List[Union[int, List[CountResult]]]
+
+
+class StatsQualityEstimation(Enum):
+    """
+    Enum to represent the quality of the stats estimation
+    """
+
+    NO_DATA = "no-data"  # no data available (not even metrics)
+    NO_INDEXED_DATA = "no-indexed-data"  # no indexed data available
+    POOR_INDEXED_DATA = (
+        "poor-indexed-data"  # indexed data available but missing more than 40% intervals
+    )
+    ACCEPTABLE_INDEXED_DATA = (
+        "acceptable-indexed-data"  # indexed data available and missing between 20% and 60%
+    )
+    # intervals
+    GOOD_INDEXED_DATA = (
+        "good-indexed-data"  # indexed data available and missing less than 20% intervals
+    )
 
 
 @region_silo_endpoint
@@ -53,9 +74,8 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
                     organization,
                     get_stats_generator(use_discover=True, remove_on_demand=False),
                 )
-
+                stats_quality = estimate_stats_quality(discover_stats["data"])
                 if _should_scale(measurement):
-
                     # we scale the indexed data with the ratio between indexed counts and metrics counts
                     # in order to get an estimate of the true volume of transactions
 
@@ -77,12 +97,57 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
                     )
                     discover_stats["data"] = estimated_volume
 
+                    # we can't find any data (not even in metrics))
+                    if (
+                        stats_quality == StatsQualityEstimation.NO_INDEXED_DATA
+                        and _count_non_zero_intervals(base_discover["data"]) == 0
+                    ):
+                        stats_quality = StatsQualityEstimation.NO_DATA
+
+                    metrics.incr(
+                        "metrics_estimation_stats.data_quality",
+                        sample_rate=1.0,
+                        tags={"data_quality": stats_quality.value},
+                    )
+
             except ValidationError:
                 return Response(
                     {"detail": "Comparison period is outside retention window"}, status=400
                 )
 
         return Response(discover_stats, status=200)
+
+
+def _count_non_zero_intervals(stats: List[MetricVolumeRow]) -> int:
+    """
+    Counts the number of intervals with non-zero values
+    """
+    non_zero_intervals = 0
+    for idx in range(len(stats)):
+        if _get_value(stats[idx]) != 0:
+            non_zero_intervals += 1
+    return non_zero_intervals
+
+
+def estimate_stats_quality(stats: List[MetricVolumeRow]) -> StatsQualityEstimation:
+    """
+    Estimates the quality of the stats estimation based on the number of intervals with no data
+    """
+    if len(stats) == 0:
+        return StatsQualityEstimation.NO_DATA
+
+    data_intervals = _count_non_zero_intervals(stats)
+
+    data_ratio = data_intervals / len(stats)
+
+    if data_ratio >= 0.8:
+        return StatsQualityEstimation.GOOD_INDEXED_DATA
+    elif data_ratio > 0.4:
+        return StatsQualityEstimation.ACCEPTABLE_INDEXED_DATA
+    elif data_intervals > 0:
+        return StatsQualityEstimation.POOR_INDEXED_DATA
+    else:
+        return StatsQualityEstimation.NO_INDEXED_DATA
 
 
 def get_stats_generator(use_discover: bool, remove_on_demand: bool):

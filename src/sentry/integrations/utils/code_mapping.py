@@ -5,6 +5,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -100,15 +101,18 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
+        if frame_file_path[0] == "/":
+            frame_file_path = frame_file_path.replace("/", "", 1)
+
         # Using regexes would be better but this is easier to understand
         if (
             not frame_file_path
-            or frame_file_path[0] in ["[", "<", "/"]
+            or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
             or frame_file_path.find("\\") > -1  # Windows support
             or frame_file_path.find("/") == -1
         ):
-            raise UnsupportedFrameFilename("Either garbage or will need work to support.")
+            raise UnsupportedFrameFilename("This path is not supported.")
 
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
@@ -174,10 +178,7 @@ def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]
             buckets[bucket_key].append(frame_filename)
 
         except UnsupportedFrameFilename:
-            logger.info(
-                "Frame's filepath not supported.",
-                extra={"frame_file_path": stacktrace_frame_file_path},
-            )
+            logger.info(f"Frame's filepath not supported: {stacktrace_frame_file_path}")
         except Exception:
             logger.exception("Unable to split stacktrace path into buckets")
 
@@ -267,32 +268,10 @@ class CodeMappingTreesHelper:
                         "repo_name": repo_tree.repo.name,
                         "repo_branch": repo_tree.repo.branch,
                         "stacktrace_root": f"{frame_filename.root}/",
-                        "source_path": self._get_code_mapping_source_path(file, frame_filename),
+                        "source_path": _get_code_mapping_source_path(file, frame_filename),
                     }
                 )
         return file_matches
-
-    def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
-        """Generate the source code root for a code mapping. It always includes a last backslash"""
-        source_code_root = None
-        if frame_filename.frame_type() == "packaged":
-            if frame_filename.dir_path != "":
-                # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
-                source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
-                source_code_root = f"{source_path}/"
-            elif frame_filename.root != "":
-                # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
-                source_code_root = src_file.rsplit(frame_filename.file_name)[0]
-            else:
-                # ssl.py -> raise NotImplementedError
-                raise NotImplementedError("We do not support top level files.")
-        else:
-            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
-            # static/app/foo.tsx (app/foo.tsx) -> static/app/
-            source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
-        if source_code_root:
-            assert source_code_root.endswith("/")
-        return source_code_root
 
     def _normalized_stack_and_source_roots(
         self, stacktrace_root: str, source_path: str
@@ -327,7 +306,7 @@ class CodeMappingTreesHelper:
             return []
 
         stacktrace_root = f"{frame_filename.root}/"
-        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        source_path = _get_code_mapping_source_path(matched_files[0], frame_filename)
         if frame_filename.frame_type() != "packaged":
             stacktrace_root, source_path = self._normalized_stack_and_source_roots(
                 stacktrace_root, source_path
@@ -406,7 +385,9 @@ class CodeMappingTreesHelper:
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
+    organization_integration: Union[OrganizationIntegration, RpcOrganizationIntegration],
+    project: Project,
+    code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:
     repository, _ = Repository.objects.get_or_create(
         name=code_mapping.repo.name,
@@ -440,3 +421,26 @@ def create_code_mapping(
         )
 
     return new_code_mapping
+
+
+def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) -> str:
+    """Generate the source code root for a code mapping. It always includes a last backslash"""
+    source_code_root = None
+    if frame_filename.frame_type() == "packaged":
+        if frame_filename.dir_path != "":
+            # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            source_code_root = f"{source_path}/"
+        elif frame_filename.root != "":
+            # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
+            source_code_root = src_file.rsplit(frame_filename.file_name)[0]
+        else:
+            # ssl.py -> raise NotImplementedError
+            raise NotImplementedError("We do not support top level files.")
+    else:
+        # static/app/foo.tsx (./app/foo.tsx) -> static/app/
+        # static/app/foo.tsx (app/foo.tsx) -> static/app/
+        source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
+    if source_code_root:
+        assert source_code_root.endswith("/")
+    return source_code_root

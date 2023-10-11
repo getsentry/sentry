@@ -9,7 +9,10 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics
-from sentry.models import ExternalActor, Integration, OrganizationMember, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -139,7 +142,6 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
         external_team, created = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
             team_id=team.id,
             organization=team.organization,
             integration_id=integration.id,

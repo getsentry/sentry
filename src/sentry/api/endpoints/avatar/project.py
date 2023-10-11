@@ -2,7 +2,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import ProjectAvatar
+from sentry.models.avatars.project_avatar import ProjectAvatar
 
 
 @region_silo_endpoint

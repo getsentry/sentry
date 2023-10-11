@@ -270,6 +270,18 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
+      {usingCustomerDomain && (
+        <Route
+          path="/stories/"
+          component={make(() => import('sentry/views/stories/index'))}
+          key="orgless-stories"
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/stories/"
+        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
+        key="org-stories"
+      />
     </Fragment>
   );
 
@@ -1189,7 +1201,11 @@ function buildRoutes() {
           component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
         <Route path="rules/">
-          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/alerts/list/rules/alertRulesList')
+            )}
+          />
           <Route
             path="details/:ruleId/"
             component={make(() => import('sentry/views/alerts/rules/metric/details'))}
@@ -1362,6 +1378,12 @@ function buildRoutes() {
   const replayChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
+      <Route
+        path="selectors/"
+        component={make(
+          () => import('sentry/views/replays/deadRageClick/deadRageClickList')
+        )}
+      />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
@@ -1601,6 +1623,29 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route
+          path="pageloads/"
+          component={make(
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+          )}
+        />
+        <Route path="resources/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/resources/index')
+            )}
+          />
+          <Route
+            path="resource/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/performance/browser/resources/resourceSummaryPage/index'
+                )
+            )}
+          />
+        </Route>
       </Route>
       <Route path="summary/">
         <IndexRoute
@@ -1645,6 +1690,13 @@ function buildRoutes() {
           component={make(
             () =>
               import('sentry/views/performance/transactionSummary/transactionProfiles')
+          )}
+        />
+        <Route
+          path="aggregateWaterfall/"
+          component={make(
+            () =>
+              import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
           )}
         />
         <Route path="spans/">
@@ -1727,6 +1779,12 @@ function buildRoutes() {
         <IndexRoute
           component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
         />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+          )}
+        />
       </Route>
       <Route path="responsiveness/">
         <IndexRoute
@@ -1786,10 +1844,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
-      />
-      <Route
-        path=":feedbackId/"
-        component={make(() => import('sentry/views/feedback/details'))}
       />
     </Fragment>
   );
@@ -2109,6 +2163,33 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const ddmChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+    </Fragment>
+  );
+
+  const ddmRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/ddm/"
+          component={withDomainRequired(make(() => import('sentry/views/ddm')))}
+          key="orgless-ddm-route"
+        >
+          {ddmChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/ddm/"
+        component={withDomainRedirect(make(() => import('sentry/views/ddm')))}
+        key="org-ddm"
+      >
+        {ddmChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
   // canonical URLs.
   //
@@ -2216,6 +2297,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
+      {ddmRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}

@@ -1,3 +1,5 @@
+import random
+import string
 from typing import Any, MutableMapping
 
 from django.db import router, transaction
@@ -6,11 +8,16 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from sentry import options
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
 
 
 class MetadataField(serializers.JSONField):
@@ -24,7 +31,7 @@ class MetadataField(serializers.JSONField):
         try:
             validated_data = validate_metadata_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(e.message)  # noqa: B306
+            raise ValidationError(e.message)
 
         return validated_data
 
@@ -59,6 +66,12 @@ class DocIntegrationSerializer(Serializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
         slug = self._generate_slug(validated_data["name"])
+
+        # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
+        # eg: 123 -> 123-abc
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+            slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
+
         features = validated_data.pop("features") if validated_data.get("features") else []
         with transaction.atomic(router.db_for_write(DocIntegration)):
             doc_integration = DocIntegration.objects.create(slug=slug, **validated_data)

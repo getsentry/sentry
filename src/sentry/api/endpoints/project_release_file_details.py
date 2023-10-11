@@ -16,9 +16,9 @@ from sentry.api.endpoints.project_release_files import pseudo_releasefile
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import decode_release_file_id
-from sentry.models import Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import delete_from_artifact_index, read_artifact_index
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, delete_from_artifact_index, read_artifact_index
 
 #: Cannot update release artifacts in release archives
 INVALID_UPDATE_MESSAGE = "Can only update release files with integer IDs"

@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import pytest
 from django.utils import timezone as django_timezone
-from freezegun import freeze_time
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -39,14 +38,14 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 

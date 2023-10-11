@@ -10,7 +10,7 @@ from sentry.api.helpers.group_index import build_query_params_from_request, calc
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

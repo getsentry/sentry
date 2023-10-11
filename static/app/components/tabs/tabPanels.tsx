@@ -90,7 +90,8 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 
   &.focus-visible {
     outline: none;
-    box-shadow: inset ${p => p.theme.focusBorder} 0 0 0 1px,
+    box-shadow:
+      inset ${p => p.theme.focusBorder} 0 0 0 1px,
       ${p => p.theme.focusBorder} 0 0 0 1px;
     z-index: 1;
   }

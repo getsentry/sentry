@@ -8,14 +8,16 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, Project, ProjectKey
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -112,7 +114,7 @@ class MonitorIngestEndpoint(Endpoint):
 
     authentication_classes = (
         DSNAuthentication,
-        TokenAuthentication,
+        UserAuthTokenAuthentication,
         OrgAuthTokenAuthentication,
         ApiKeyAuthentication,
     )

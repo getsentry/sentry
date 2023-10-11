@@ -94,7 +94,7 @@ class MovingAverageDetector(DetectorAlgorithm):
             timestamp=self.timestamp,
             count=self.count,
             moving_avg_short=self.moving_avg_short.value,
-            moving_avg_long=self.moving_avg_short.value,
+            moving_avg_long=self.moving_avg_long.value,
         )
 
 

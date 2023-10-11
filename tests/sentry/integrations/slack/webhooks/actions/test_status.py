@@ -4,31 +4,30 @@ from urllib.parse import parse_qs
 import responses
 from django.db import router
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
-from sentry.models import (
-    AuthIdentity,
-    AuthProvider,
-    Group,
-    GroupAssignee,
-    GroupStatus,
-    Identity,
-    InviteStatus,
-    OrganizationMember,
-    Release,
-)
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.identity import Identity
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.release import Release
 from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from . import BaseEventTest
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

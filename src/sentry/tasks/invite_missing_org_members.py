@@ -1,11 +1,22 @@
+import logging
+
 from sentry import features
-from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
+from sentry.api.endpoints.organization_missing_org_members import (
+    FILTERED_CHARACTERS,
+    FILTERED_EMAIL_DOMAINS,
+    _format_external_id,
+    _get_missing_organization_members,
+    _get_shared_email_domain,
+)
 from sentry.constants import ObjectStatus
+from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.missing_members_nudge import MissingMembersNudgeNotification
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -14,6 +25,9 @@ from sentry.tasks.base import instrumented_task
     silo_mode=SiloMode.REGION,
 )
 def schedule_organizations():
+    logger.info("invite_missing_org_members.schedule_organizations")
+
+    # NOTE: currently only for github
     github_org_integrations = integration_service.get_organization_integrations(
         providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -31,12 +45,27 @@ def schedule_organizations():
     queue="nudge.invite_missing_org_members",
 )
 def send_nudge_email(org_id):
+    logger.info("invite_missing_org_members.send_nudge_email")
+
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
+        logger.info(
+            "invite_missing_org_members.send_nudge_email.missing_org",
+            extra={"organization_id": org_id},
+        )
         return
 
     if not features.has("organizations:integrations-gh-invite", organization):
+        logger.info(
+            "invite_missing_org_members.send_nudge_email.missing_flag",
+            extra={"organization_id": org_id},
+        )
+        return
+
+    if not OrganizationOption.objects.get_value(
+        organization=organization, key="sentry:github_nudge_invite", default=True
+    ):
         return
 
     integrations = integration_service.get_integrations(
@@ -44,6 +73,10 @@ def send_nudge_email(org_id):
     )
 
     if not integrations:
+        logger.info(
+            "invite_missing_org_members.send_nudge_email.missing_integrations",
+            extra={"organization_id": org_id},
+        )
         return
 
     commit_author_query = _get_missing_organization_members(
@@ -51,20 +84,42 @@ def send_nudge_email(org_id):
     )
 
     if not commit_author_query.exists():  # don't email if no missing commit authors
+        logger.info(
+            "invite_missing_org_members.send_nudge_email.no_commit_authors",
+            extra={"organization_id": org_id},
+        )
         return
 
+    shared_domain = _get_shared_email_domain(organization)
+
+    if shared_domain:
+        commit_author_query = commit_author_query.filter(email__endswith=shared_domain)
+    else:
+        for filtered_email in FILTERED_EMAIL_DOMAINS:
+            commit_author_query = commit_author_query.exclude(email__endswith=filtered_email)
+
+    for filtered_character in FILTERED_CHARACTERS:
+        commit_author_query = commit_author_query.exclude(email__icontains=filtered_character)
+
     commit_authors = []
-    for commit_author in commit_author_query:
+    for commit_author in commit_author_query[:3]:
+        formatted_external_id = _format_external_id(commit_author.external_id)
+
         commit_authors.append(
             {
                 "email": commit_author.email,
-                "external_id": commit_author.external_id,
+                "external_id": formatted_external_id,
                 "commit_count": commit_author.commit__count,
             }
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors
+        organization=organization, commit_authors=commit_authors, provider="github"
+    )
+
+    logger.info(
+        "invite_missing_org_members.send_nudge_email.send_notification",
+        extra={"organization_id": org_id},
     )
 
     notification.send()

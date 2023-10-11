@@ -154,10 +154,19 @@ export const useFetchIssueTagsForDetailsPage = (
     groupId,
     orgSlug,
     environment = [],
+    isStatisticalDetector = false,
+    statisticalDetectorParameters,
   }: {
     environment: string[];
     orgSlug: string;
     groupId?: string;
+    isStatisticalDetector?: boolean;
+    statisticalDetectorParameters?: {
+      durationBaseline: number;
+      end: string;
+      start: string;
+      transaction: string;
+    };
   },
   {enabled = true}: {enabled?: boolean} = {}
 ) => {
@@ -168,6 +177,8 @@ export const useFetchIssueTagsForDetailsPage = (
       environment,
       readable: true,
       limit: 4,
+      isStatisticalDetector,
+      statisticalDetectorParameters,
     },
     {enabled}
   );

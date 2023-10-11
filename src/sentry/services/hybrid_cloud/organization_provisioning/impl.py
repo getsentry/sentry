@@ -4,23 +4,16 @@ from django.db import IntegrityError, router, transaction
 from sentry_sdk import capture_exception
 
 from sentry import roles
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_and_member_for_monolith,
 )
-from sentry.services.hybrid_cloud.organization_provisioning import (
-    OrganizationProvisioningOptions,
-    OrganizationProvisioningService,
-)
+from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningService
+from sentry.services.organization import OrganizationProvisioningOptions
 
 
 class SlugMismatchException(Exception):
@@ -65,6 +58,8 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
+                create_default_team=provision_options.create_default_team,
+                is_test=provision_options.is_test,
             )
 
             org = org_creation_result.organization

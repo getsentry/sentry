@@ -10,14 +10,10 @@ from rest_framework.serializers import ValidationError
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import (
-    INVITE_DAYS_VALID,
-    AuthIdentity,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationOption,
-)
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
@@ -26,6 +22,32 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+
+
+class MockOrganizationRoles:
+    TEST_ORG_ROLES = [
+        {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
+        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
+    ]
+
+    TEST_TEAM_ROLES = [
+        {"id": "alice", "name": "Alice"},
+        {"id": "bob", "name": "Bob"},
+        {"id": "carol", "name": "Carol"},
+    ]
+
+    def __init__(self):
+        from sentry.roles.manager import RoleManager
+
+        self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+        self.organization_roles = self.default_manager.organization_roles
+
+    def get_all(self):
+        return self.organization_roles.get_all()
+
+    def get(self, x):
+        return self.organization_roles.get(x)
 
 
 @region_silo_test(stable=True)
@@ -52,6 +74,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             )
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
+
+    def test_get_invite_link_with_referrer(self):
+        member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
+
+        link = member.get_invite_link(referrer="test_referrer")
+        assert "?referrer=test_referrer" in link
 
     def test_send_invite_email(self):
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
@@ -189,7 +217,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert qs.exists()
 
         with outbox_runner():
-            member.save_outbox_for_update()
+            member.outbox_for_update().save()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
@@ -498,6 +526,34 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             roles.get("admin"),
             roles.get("manager"),
         ]
+
+    def test_get_allowed_org_roles_to_invite_subset_logic(self):
+        mock_org_roles = MockOrganizationRoles()
+        with patch("sentry.roles.organization_roles.get", mock_org_roles.get), patch(
+            "sentry.roles.organization_roles.get_all", mock_org_roles.get_all
+        ):
+            alice = self.create_member(
+                user=self.create_user(), organization=self.organization, role="alice"
+            )
+            assert alice.get_allowed_org_roles_to_invite() == [
+                roles.get("alice"),
+                roles.get("bob"),
+                roles.get("carol"),
+            ]
+
+            bob = self.create_member(
+                user=self.create_user(), organization=self.organization, role="bob"
+            )
+            assert bob.get_allowed_org_roles_to_invite() == [
+                roles.get("bob"),
+            ]
+
+            carol = self.create_member(
+                user=self.create_user(), organization=self.organization, role="carol"
+            )
+            assert carol.get_allowed_org_roles_to_invite() == [
+                roles.get("carol"),
+            ]
 
     def test_org_roles_by_source(self):
         manager_team = self.create_team(organization=self.organization, org_role="manager")

@@ -7,6 +7,7 @@ from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequ
 from django.conf import settings
 from django.core.cache import caches
 
+from sentry import options
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
@@ -23,7 +24,11 @@ from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
-_INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
+_INDEXER_CACHE_BULK_RECORD_METRIC = "sentry_metrics.indexer.memcache"
+_INDEXER_CACHE_RESOLVE_METRIC = "sentry_metrics.indexer.memcache.resolve"
+_INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC = (
+    "sentry_metrics.indexer.memcache.resolve.replenish"
+)
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
@@ -116,12 +121,12 @@ class CachingIndexer(StringIndexer):
 
         # record all the cache hits we had
         metrics.incr(
-            _INDEXER_CACHE_METRIC,
+            _INDEXER_CACHE_BULK_RECORD_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
             amount=len(hits),
         )
         metrics.incr(
-            _INDEXER_CACHE_METRIC,
+            _INDEXER_CACHE_BULK_RECORD_METRIC,
             tags={"cache_hit": "false", "caller": "get_many_ids"},
             amount=len(cache_results) - len(hits),
         )
@@ -164,14 +169,26 @@ class CachingIndexer(StringIndexer):
         result = self.cache.get(key)
 
         if result and isinstance(result, int):
-            metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
+            metrics.incr(
+                _INDEXER_CACHE_RESOLVE_METRIC,
+                tags={"cache_hit": "true", "use_case": use_case_id.value},
+            )
             return result
 
-        metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
         id = self.indexer.resolve(use_case_id, org_id, string)
-
         if id is not None:
-            self.cache.set(key, id)
+            metrics.incr(
+                _INDEXER_CACHE_RESOLVE_METRIC,
+                tags={"cache_hit": "false", "use_case": use_case_id.value},
+            )
+            if random.random() >= options.get(
+                "sentry-metrics.indexer.disable-memcache-replenish-rollout"
+            ):
+                metrics.incr(
+                    _INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC,
+                    tags={"use_case": use_case_id.value},
+                )
+                self.cache.set(key, id)
 
         return id
 

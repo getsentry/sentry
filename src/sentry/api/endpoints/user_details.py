@@ -11,17 +11,24 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -250,37 +257,62 @@ class UserDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # from `frontend/remove_account.py`
-        org_list = Organization.objects.filter(
-            member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user_id=user.id,
+        org_mappings = OrganizationMapping.objects.filter(
+            organization_id__in=OrganizationMemberMapping.objects.filter(
+                user_id=user.id, role__in=[r.id for r in roles.with_scope("org:admin")]
+            ).values("organization_id"),
             status=OrganizationStatus.ACTIVE,
         )
 
         org_results = []
-        for org in org_list:
-            org_results.append({"organization": org, "single_owner": org.has_single_owner()})
+        for org in org_mappings:
+            first_two_owners = OrganizationMemberMapping.objects.filter(
+                organization_id=org.organization_id, role__in=[roles.get_top_dog().id]
+            )[:2]
+            has_single_owner = len(first_two_owners) == 1
+            org_results.append(
+                {
+                    "organization_id": org.organization_id,
+                    "single_owner": has_single_owner,
+                }
+            )
 
-        avail_org_slugs = {o["organization"].slug for o in org_results}
-        orgs_to_remove = set(serializer.validated_data.get("organizations")).intersection(
-            avail_org_slugs
-        )
+        avail_org_ids = {o["organization_id"] for o in org_results}
+        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_ids_to_remove = OrganizationMapping.objects.filter(
+            slug__in=requested_org_slugs_to_remove
+        ).values_list("organization_id", flat=True)
+
+        orgs_to_remove = set(requested_org_ids_to_remove).intersection(avail_org_ids)
 
         for result in org_results:
             if result["single_owner"]:
-                orgs_to_remove.add(result["organization"].slug)
+                orgs_to_remove.add(result["organization_id"])
 
-        for org_slug in orgs_to_remove:
-            client.delete(path=f"/organizations/{org_slug}/", request=request, is_sudo=True)
+        for org_id in orgs_to_remove:
+            org_delete_response = organization_service.delete_organization(
+                organization_id=org_id, user=serialize_generic_user(request.user)
+            )
+            if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+                post_org_pending_deletion(
+                    request=request,
+                    org_delete_response=org_delete_response,
+                )
 
         remaining_org_ids = [
-            o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)
+            o.organization_id
+            for o in org_mappings
+            if o.organization_id in avail_org_ids.difference(orgs_to_remove)
         ]
 
         if remaining_org_ids:
-            for member in OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids, user_id=user.id
+            for member_mapping in OrganizationMemberMapping.objects.filter(
+                organization_id__in=remaining_org_ids, user_id=user.id
             ):
-                member.delete()
+                organization_service.delete_organization_member(
+                    organization_id=member_mapping.organization_id,
+                    organization_member_id=member_mapping.organizationmember_id,
+                )
 
         logging_data = {
             "actor_id": request.user.id,

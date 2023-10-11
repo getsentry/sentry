@@ -14,7 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.models import FileBlob
+from sentry.models.files.fileblob import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri
@@ -23,7 +23,7 @@ MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
-SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
+SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble

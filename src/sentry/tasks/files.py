@@ -42,13 +42,14 @@ def delete_file_control(path, checksum, **kwargs):
 
 
 def delete_file(file_blob_model, path, checksum, **kwargs):
-    from sentry.locks import locks
-    from sentry.models.files import get_storage
-    from sentry.utils.retries import TimedRetryPolicy
+    from sentry.models.files.utils import get_storage, lock_blob
 
-    lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
-    with TimedRetryPolicy(60)(lock.acquire):
-        if not file_blob_model.objects.filter(checksum=checksum).exists():
+    lock = lock_blob(checksum, "fileblob_upload")
+    with lock:
+        # check that the fileblob with *this* path exists, as its possible
+        # that a concurrent re-upload added the same chunk once again, with a
+        # different path that time
+        if not file_blob_model.objects.filter(checksum=checksum, path=path).exists():
             get_storage().delete(path)
 
 
@@ -61,7 +62,8 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
-    from sentry.models import FileBlob, FileBlobIndex
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
     delete_unreferenced_blobs(FileBlob, FileBlobIndex, blob_ids)
 
@@ -75,7 +77,8 @@ def delete_unreferenced_blobs_region(blob_ids):
 )
 @retry
 def delete_unreferenced_blobs_control(blob_ids):
-    from sentry.models import ControlFileBlob, ControlFileBlobIndex
+    from sentry.models.files.control_fileblob import ControlFileBlob
+    from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 
     delete_unreferenced_blobs(ControlFileBlob, ControlFileBlobIndex, blob_ids)
 

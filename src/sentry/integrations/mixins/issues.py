@@ -4,11 +4,13 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, UserOption
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -181,13 +183,18 @@ class IssueBasicMixin:
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project, user):
+    def get_defaults(self, project: Project, user: User):
         project_defaults = self.get_project_defaults(project.id)
 
-        user_option_key = dict(user=user, key="issue:defaults", project=project)
-        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.model.provider, {}
+        user_option_value = get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [user.id], "keys": ["issue:defaults"], "project_id": project.id}
+            ),
+            key="issue:defaults",
+            default={},
         )
+
+        user_defaults = user_option_value.get(self.model.provider, {})
 
         defaults = {}
         defaults.update(project_defaults)
@@ -341,11 +348,11 @@ class IssueBasicMixin:
 
 
 class IssueSyncMixin(IssueBasicMixin):
-    comment_key = None
-    outbound_status_key = None
-    inbound_status_key = None
-    outbound_assignee_key = None
-    inbound_assignee_key = None
+    comment_key: ClassVar[str | None] = None
+    outbound_status_key: ClassVar[str | None] = None
+    inbound_status_key: ClassVar[str | None] = None
+    outbound_assignee_key: ClassVar[str | None] = None
+    inbound_assignee_key: ClassVar[str | None] = None
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)

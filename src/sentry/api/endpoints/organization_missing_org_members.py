@@ -13,34 +13,66 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import Repository
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
-    from django_stubs_ext import WithAnnotations
+    # XXX: this should use WithAnnotations but it breaks the cache typeddjango/django-stubs#760
+    class CommitAuthor___commit__count(CommitAuthor):
+        commit__count: int
+
+
+FILTERED_EMAIL_DOMAINS = {
+    "gmail.com",
+    "yahoo.com",
+    "icloud.com",
+    "hotmail.com",
+    "outlook.com",
+    "noreply.github.com",
+    "localhost",
+}
+
+FILTERED_CHARACTERS = {"+"}
 
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit__count}
+        formatted_external_id = _format_external_id(obj.external_id)
+
+        return {
+            "email": obj.email,
+            "externalId": formatted_external_id,
+            "commitCount": obj.commit__count,
+        }
 
 
 class MissingMembersPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
 
 
+def _format_external_id(external_id: str | None) -> str | None:
+    formatted_external_id = external_id
+
+    if external_id is not None and ":" in external_id:
+        formatted_external_id = external_id.split(":")[1]
+
+    return formatted_external_id
+
+
 def _get_missing_organization_members(
     organization: Organization, provider: str, integration_ids: Sequence[int]
-) -> QuerySet[WithAnnotations[CommitAuthor]]:
+) -> QuerySet[CommitAuthor___commit__count]:
     member_emails = set(
         organization.member_set.exclude(email=None).values_list("email", flat=True)
     ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
@@ -55,11 +87,12 @@ def _get_missing_organization_members(
         integration_id__in=integration_ids,
     ).values_list("id", flat=True)
 
+    recent_commits = Commit.objects.filter(
+        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
+    ).values_list("id", flat=True)
+
     return (
-        nonmember_authors.filter(
-            commit__repository_id__in=set(org_repos),
-            commit__date_added__gte=timezone.now() - timedelta(days=30),
-        )
+        nonmember_authors.filter(commit__id__in=recent_commits)
         .annotate(Count("commit"))
         .order_by("-commit__count")
     )
@@ -91,8 +124,11 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    owner = ApiOwner.ENTERPRISE
+
     permission_classes = (MissingMembersPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -130,6 +166,12 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
+            else:
+                for filtered_email in FILTERED_EMAIL_DOMAINS:
+                    queryset = queryset.exclude(email__endswith=filtered_email)
+
+            for filtered_character in FILTERED_CHARACTERS:
+                queryset = queryset.exclude(email__icontains=filtered_character)
 
             if queryset.exists():
                 query = request.GET.get("query")
@@ -144,7 +186,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             missing_members_for_integration = {
                 "integration": integration_provider,
                 "users": serialize(
-                    list(queryset), request.user, serializer=MissingOrgMemberSerializer()
+                    list(queryset[:50]), request.user, serializer=MissingOrgMemberSerializer()
                 ),
             }
 
