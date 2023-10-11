@@ -68,7 +68,9 @@ function AccordionItem({
           borderless
           onClick={() => setExpandedIndex(index)}
         />
-        {children}
+        <StyledAccordionHeader onClick={() => setExpandedIndex(index)}>
+          {children}
+        </StyledAccordionHeader>
       </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
     </StyledLineItem>
@@ -121,4 +123,10 @@ const StyledContentContainer = styled('div')`
 
 const LeftContentContainer = styled('div')`
   padding: ${space(0)} ${space(0.25)};
+`;
+
+const StyledAccordionHeader = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  flex: 1;
 `;
