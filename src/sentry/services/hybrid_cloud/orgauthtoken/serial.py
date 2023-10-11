@@ -1,4 +1,4 @@
-from sentry.models import OrgAuthToken
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 
 

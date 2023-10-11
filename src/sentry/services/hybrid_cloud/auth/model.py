@@ -76,7 +76,9 @@ class AuthenticatedToken(RpcModel):
     def kinds(cls) -> Mapping[str, Collection[Type[Any]]]:
         from sentry.auth.system import SystemToken
         from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
-        from sentry.models import ApiKey, ApiToken, OrgAuthToken
+        from sentry.models.apikey import ApiKey
+        from sentry.models.apitoken import ApiToken
+        from sentry.models.orgauthtoken import OrgAuthToken
 
         return {
             "system": frozenset([SystemToken]),

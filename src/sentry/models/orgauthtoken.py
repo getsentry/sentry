@@ -20,8 +20,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.models import OutboxCategory
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 MAX_NAME_LENGTH = 255

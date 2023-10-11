@@ -21,10 +21,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
     middleware = cached_property(AuthenticationMiddleware)
 
     def assert_user_equals(self, request):
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            assert request.user == self.user
-        else:
-            assert request.user == user_service.get_user(user_id=self.user.id)
+        assert request.user == user_service.get_user(user_id=self.user.id)
 
     def setUp(self):
         from django.core.cache import cache
@@ -54,7 +51,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.refresh_from_db()
-            assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
+            assert UserIP.objects.filter(user_id=self.user.id, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated
         self.assert_user_equals(request)

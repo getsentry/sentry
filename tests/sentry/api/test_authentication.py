@@ -182,7 +182,7 @@ class TestTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous is False
-        assert user == self.user
+        assert user.id == self.user.id
         assert auth == self.api_token
 
     def test_no_match(self):

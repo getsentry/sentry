@@ -360,12 +360,12 @@ class User(BaseModel, AbstractBaseUser):
             # NOTE: This could, become calls to identity_service.delete_ide
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
-                auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
-                    "auth_provider__organization_id"
-                ),
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(
+                    user_id=to_user.id
+                ).values("auth_provider__organization_id"),
             ):
                 ai.delete()
-            for ai in AuthIdentity.objects.filter(user=from_user):
+            for ai in AuthIdentity.objects.filter(user_id=from_user.id):
                 ai.update(user=to_user)
 
     def set_password(self, raw_password):
