@@ -19,7 +19,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
-  cursor: string | undefined;
+  cursor?: string;
   error: string | null;
   eventView: EventView;
   isLoading: boolean;
