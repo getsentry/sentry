@@ -29,7 +29,7 @@ function ProjectExpectCtReports() {
   const {
     data: keyList,
     isLoading,
-    error,
+    isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
     staleTime: 0,
@@ -39,57 +39,56 @@ function ProjectExpectCtReports() {
     return <LoadingIndicator />;
   }
 
-  if (error) {
+  if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
 
   return (
-    <SentryDocumentTitle
-      title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
-    >
-      <div>
-        <SettingsPageHeader title={t('Certificate Transparency')} />
+    <div>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
+      />
+      <SettingsPageHeader title={t('Certificate Transparency')} />
 
-        <PreviewFeature />
+      <PreviewFeature />
 
-        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
-        <Panel>
-          <PanelHeader>{t('About')}</PanelHeader>
-          <PanelBody withPadding>
-            <p>
-              {tct(
-                `[link:Certificate Transparency]
+      <Panel>
+        <PanelHeader>{t('About')}</PanelHeader>
+        <PanelBody withPadding>
+          <p>
+            {tct(
+              `[link:Certificate Transparency]
       (CT) is a security standard which helps track and identify valid certificates, allowing identification of maliciously issued certificates`,
-                {
-                  link: (
-                    <ExternalLink href="https://en.wikipedia.org/wiki/Certificate_Transparency" />
-                  ),
-                }
-              )}
-            </p>
-            <p>
-              {tct(
-                "To configure reports in Sentry, you'll need to configure the [header] a header from your server:",
-                {
-                  header: <code>Expect-CT</code>,
-                }
-              )}
-            </p>
-
-            <pre>{getInstructions(keyList)}</pre>
-
-            <p>
-              {tct('For more information, see [link:the article on MDN].', {
+              {
                 link: (
-                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
+                  <ExternalLink href="https://en.wikipedia.org/wiki/Certificate_Transparency" />
                 ),
-              })}
-            </p>
-          </PanelBody>
-        </Panel>
-      </div>
-    </SentryDocumentTitle>
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              "To configure reports in Sentry, you'll need to configure the [header] a header from your server:",
+              {
+                header: <code>Expect-CT</code>,
+              }
+            )}
+          </p>
+
+          <pre>{getInstructions(keyList)}</pre>
+
+          <p>
+            {tct('For more information, see [link:the article on MDN].', {
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
+              ),
+            })}
+          </p>
+        </PanelBody>
+      </Panel>
+    </div>
   );
 }
 
