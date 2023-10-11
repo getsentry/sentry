@@ -12,7 +12,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
@@ -92,4 +91,4 @@ function ProjectExpectCtReports() {
   );
 }
 
-export default withOrganization(ProjectExpectCtReports);
+export default ProjectExpectCtReports;
