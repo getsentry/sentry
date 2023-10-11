@@ -185,7 +185,6 @@ module = [
     "sentry.api.endpoints.integrations.sentry_apps.interaction",
     "sentry.api.endpoints.integrations.sentry_apps.internal_app_token.details",
     "sentry.api.endpoints.integrations.sentry_apps.internal_app_token.index",
-    "sentry.api.endpoints.integrations.sentry_apps.organization_sentry_apps",
     "sentry.api.endpoints.integrations.sentry_apps.publish_request",
     "sentry.api.endpoints.integrations.sentry_apps.requests",
     "sentry.api.endpoints.integrations.sentry_apps.stats.details",
