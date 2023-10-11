@@ -1,7 +1,6 @@
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
-
-import {renderWithOnboardingLayout} from 'sentry/utils/gettingStartedDocs/tests';
 
 import docs, {PackageManager, SpringBootVersion} from './spring-boot';
 
