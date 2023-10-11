@@ -11,18 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Mapping,
-    MutableSequence,
-    Optional,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -42,8 +31,7 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_DefaultT = TypeVar("_DefaultT")
-_TypeParser = TypeVar("_TypeParser", bound=Type)
+_EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
@@ -52,21 +40,22 @@ def env(key: str) -> str:
 
 
 @overload
-def env(key: str, default: _DefaultT, type: Optional[_TypeParser] = None) -> _DefaultT:
+def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
     ...
 
 
 def env(
     key: str,
-    default: str | _DefaultT = "",
-    type: Optional[_TypeParser] = None,
-) -> _DefaultT:
+    default: str | _EnvTypes = "",
+    type: Optional[Type] = None,
+) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
 
     :param key: The environment variable to be extracted.
     :param default: The value to be returned if `key` is not found.
     :param type: The type of the returned object (defaults to the type of `default`).
+       Type parsers must come from sentry.utils.types and not python stdlib.
     :return: The environment variable if it exists, else `default`.
     """
 
@@ -90,7 +79,7 @@ def env(
             rv = default
 
     if type is None:
-        type = cast(_TypeParser, type_from_value(default))
+        type = type_from_value(default)
 
     return type(rv)
 
