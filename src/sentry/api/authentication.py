@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit, SiloMode
+from sentry.utils.env import in_test_environment
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -148,6 +149,7 @@ class QuietBasicAuthentication(BasicAuthentication):
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             or options.get("hybrid_cloud.authentication.use_rpc_user")
             >= self._hybrid_cloud_rollout_level
+            or in_test_environment()
         )
 
     def transform_auth(

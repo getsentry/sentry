@@ -28,6 +28,7 @@ from sentry import options
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils import json
+from sentry.utils.env import in_test_environment
 from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
     AuthCanceled,
@@ -191,6 +192,7 @@ class SocialAuthBackend:
         if (
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             or options.get("hybrid_cloud.authentication.use_rpc_user") >= 5
+            or in_test_environment()
         ):
             user = user_service.get_user(user_id=user_id)
             if user and user.is_active:
