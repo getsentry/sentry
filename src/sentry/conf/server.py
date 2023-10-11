@@ -41,8 +41,8 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-T = TypeVar("T")
-TypeParser = TypeVar("TypeParser", bound=Type)
+_DefaultT = TypeVar("_DefaultT")
+_TypeParser = TypeVar("_TypeParser", bound=Type)
 
 
 @overload
@@ -51,15 +51,15 @@ def env(key: str) -> str:
 
 
 @overload
-def env(key: str, default: T, type: Optional[TypeParser] = None) -> T:
+def env(key: str, default: _DefaultT, type: Optional[_TypeParser] = None) -> _DefaultT:
     ...
 
 
 def env(
     key: str,
-    default: str | T = "",
-    type: Optional[TypeParser] = None,
-) -> T:
+    default: str | _DefaultT = "",
+    type: Optional[_TypeParser] = None,
+) -> _DefaultT:
     """
     Extract an environment variable for use in configuration
 
@@ -89,7 +89,7 @@ def env(
             rv = default
 
     if type is None:
-        type = cast(TypeParser, type_from_value(default))
+        type = cast(_TypeParser, type_from_value(default))
 
     return type(rv)
 
