@@ -437,6 +437,22 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     for model_name in relocation_root_models:
         model_dependencies_dict[model_name].dangling = False
 
+    # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
+    # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
+    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
+    # reference at least one `User` or `Team`, neither of which are dangling.
+    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
+
+    # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this
+    # list: the schema defines all of their foreign keys as nullable, but since these models have no
+    # other models referencing them (ie, they are leaves on our dependency graph), we know that at
+    # least one of those nullable relations will be present on every model.
+    model_dependencies_dict[NormalizedModelName("sentry.savedsearch")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False
+
     # Now that all `ModelRelations` have been added to the `model_dependencies_dict`, we can circle
     # back and figure out which ones are actually dangling. We do this by marking all of the root
     # models non-dangling, then traversing from every other model to a (possible) root model
@@ -449,6 +465,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             raise RuntimeError(
                 f"Circular dependency: {model_name} cannot transitively reference itself"
             )
+        if model_relations.relocation_scope == RelocationScope.Excluded:
+            model_relations.dangling = False
+            return model_relations.dangling
         if model_relations.dangling is not None:
             return model_relations.dangling
 
