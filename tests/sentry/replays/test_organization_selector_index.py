@@ -72,7 +72,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 node_id=1,
                 tag="div",
                 id="myid",
-                class_=["class1", "class2"],
+                class_=["class1", "class2", ""],
                 role="button",
                 testid="1",
                 alt="Alt",
