@@ -19,7 +19,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
-  cursor?: string;
   error: string | null;
   eventView: EventView;
   isLoading: boolean;
@@ -30,6 +29,7 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  cursor?: string;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
