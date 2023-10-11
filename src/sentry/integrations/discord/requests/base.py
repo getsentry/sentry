@@ -89,9 +89,6 @@ class DiscordRequest:
         data: dict[str, str | int | None] = {
             "discord_guild_id": self.guild_id,
             "discord_channel_id": self.channel_id,
-            "discord_user_id": self.user_id,
-            "public_key": options.get("discord.public-key"),
-            "body": self.request.body.decode("utf-8"),
         }
 
         if self.integration:
@@ -104,10 +101,6 @@ class DiscordRequest:
             data["command"] = self.get_command_name()
         if self.is_message_component():
             data["component_custom_id"] = self.get_component_custom_id()
-        if self.request.META.get("HTTP_X_SIGNATURE_ED25519"):
-            data["signature"] = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
-        if self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP"):
-            data["timestamp"] = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
 
         return {k: v for k, v in data.items() if v}
 
