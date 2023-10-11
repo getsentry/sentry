@@ -15,7 +15,7 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconQuestion, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconOpen, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -407,7 +407,7 @@ export class DeprecatedLine extends Component<Props, State> {
                       ? t('Not your source code?')
                       : t('No source code?')}
                   </SourceMapDebuggerButtonText>
-                  <IconQuestion size="xs" />
+                  <IconOpen size="xs" />
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
