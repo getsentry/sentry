@@ -19,7 +19,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.conditions import IntegerScalar
-from sentry.replays.lib.new_query.fields import IntegerColumnField
+from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
 from sentry.replays.query import Paginators, make_pagination_values
 from sentry.replays.usecases.query import handle_ordering, handle_search_filters
@@ -224,7 +224,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
     ]
 
 
-query_config = {
+query_config: dict[str, FieldProtocol] = {
     "count_dead_clicks": IntegerColumnField("count_dead_clicks", parse_int, IntegerScalar),
     "count_rage_clicks": IntegerColumnField("count_rage_clicks", parse_int, IntegerScalar),
 }
