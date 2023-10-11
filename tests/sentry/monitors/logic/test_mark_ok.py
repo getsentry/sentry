@@ -32,6 +32,7 @@ class MarkOkTestCase(TestCase):
                 "schedule_type": ScheduleType.CRONTAB,
                 "max_runtime": None,
                 "checkin_margin": None,
+                "recovery_threshold": None,
             },
         )
 
