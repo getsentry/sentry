@@ -62,7 +62,7 @@ function AccordionItem({
       <ButtonLeftListItemContainer>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
+          aria-label={isExpanded ? t('Collapse') : t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
           borderless
