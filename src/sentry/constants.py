@@ -517,8 +517,10 @@ class SentryAppStatus:
             raise ValueError(f"Not a SentryAppStatus int: {status!r}")
 
     @classmethod
-    def as_int(cls, status: str) -> int:
-        if status == cls.UNPUBLISHED_STR:
+    def as_int(cls, status: Optional[str]) -> Optional[int]:
+        if status is None:
+            return None
+        elif status == cls.UNPUBLISHED_STR:
             return cls.UNPUBLISHED
         elif status == cls.PUBLISHED_STR:
             return cls.PUBLISHED
