@@ -278,52 +278,55 @@ IssueElementAlternative Type:
 
 - Response 200
 
-  ```json
-  {
-    "meta": {
-      "total": 1
-    },
-    "data": [
-      [
-        {
-          "elements": [
-            {
-              "alternatives": [
-                {
-                  "id": "button-has-visible-text",
-                  "message": "Element does not have inner text that is visible to screen readers"
-                },
-                {
-                  "id": "aria-label",
-                  "message": "aria-label attribute does not exist or is empty"
-                },
-                {
-                  "id": "aria-labelledby",
-                  "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
-                },
-                {
-                  "id": "non-empty-title",
-                  "message": "Element has no title attribute"
-                },
-                {
-                  "id": "presentational-role",
-                  "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
-                }
-              ],
-              "element": "<button class=\"svelte-19ke1iv\">",
-              "target": ["button:nth-child(1)"]
-            }
-          ],
-          "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
-          "help": "Buttons must have discernible text",
-          "id": "button-name",
-          "impact": "critical",
-          "timestamp": 1695967678108
-        }
+  - Headers
+
+    - X-Hits=1
+
+  - Body
+
+    ```json
+    {
+      "data": [
+        [
+          {
+            "elements": [
+              {
+                "alternatives": [
+                  {
+                    "id": "button-has-visible-text",
+                    "message": "Element does not have inner text that is visible to screen readers"
+                  },
+                  {
+                    "id": "aria-label",
+                    "message": "aria-label attribute does not exist or is empty"
+                  },
+                  {
+                    "id": "aria-labelledby",
+                    "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+                  },
+                  {
+                    "id": "non-empty-title",
+                    "message": "Element has no title attribute"
+                  },
+                  {
+                    "id": "presentational-role",
+                    "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+                  }
+                ],
+                "element": "<button class=\"svelte-19ke1iv\">",
+                "target": ["button:nth-child(1)"]
+              }
+            ],
+            "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
+            "help": "Buttons must have discernible text",
+            "id": "button-name",
+            "impact": "critical",
+            "timestamp": 1695967678108
+          }
+        ]
       ]
-    ]
-  }
-  ```
+    }
+    ```
 
 ## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
 
@@ -358,20 +361,20 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column             | Type           | Description                                        |
-| ------------------ | ------         | -------------------------------------------------- |
-| count_dead_clicks  | number         | The number of dead clicks for a given DOM element. |
-| count_rage_clicks  | number         | The number of rage clicks for a given DOM element. |
-| dom_element        | string         | -                                                  |
-| element.alt        | string         | -                                                  |
-| element.aria_label | string         | -                                                  |
-| element.class      | array[string]  | -                                                  |
-| element.id         | string         | -                                                  |
-| element.role       | string         | -                                                  |
-| element.tag        | string         | -                                                  |
-| element.testid     | string         | -                                                  |
-| element.title      | string         | -                                                  |
-| project_id         | string         | -                                                  |
+| Column             | Type          | Description                                        |
+| ------------------ | ------------- | -------------------------------------------------- |
+| count_dead_clicks  | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks  | number        | The number of rage clicks for a given DOM element. |
+| dom_element        | string        | -                                                  |
+| element.alt        | string        | -                                                  |
+| element.aria_label | string        | -                                                  |
+| element.class      | array[string] | -                                                  |
+| element.id         | string        | -                                                  |
+| element.role       | string        | -                                                  |
+| element.tag        | string        | -                                                  |
+| element.testid     | string        | -                                                  |
+| element.title      | string        | -                                                  |
+| project_id         | string        | -                                                  |
 
 - Response 200
 
