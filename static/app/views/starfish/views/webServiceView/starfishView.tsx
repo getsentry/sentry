@@ -15,7 +15,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -30,6 +30,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const [activeSpanGroup, setActiveSpanGroup] = useState<string | null>(null);
+  const [transactionsList, setTransactionsList] = useState<string[]>([]);
+  const [inactiveTransactions, setInactiveTransactions] = useState<string[]>([]);
 
   function useRenderCharts() {
     let query = new MutableSearch([
@@ -55,8 +57,29 @@ export function StarfishView(props: BaseStarfishViewProps) {
         }`,
       ];
     }
+    const transactionsFilter = `"${transactionsList.join('","')}"`;
+    const queryString = query.formatString() + ` transaction:[${transactionsFilter}]`;
 
     const {isLoading: loading, data: results} = useEventsStatsQuery({
+      eventView: EventView.fromNewQueryWithPageFilters(
+        {
+          name: '',
+          fields: ['transaction', yAxis[0]],
+          yAxis,
+          query: queryString,
+          dataset,
+          version: 2,
+          topEvents: '5',
+          interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
+        },
+        selection
+      ),
+      enabled: transactionsList.length > 0,
+      excludeOther: true,
+      referrer: 'api.starfish-web-service.homepage-charts',
+      initialData: {},
+    });
+    const {isLoading: totalLoading, data: totalResults} = useEventsStatsQuery({
       eventView: EventView.fromNewQueryWithPageFilters(
         {
           name: '',
@@ -74,19 +97,42 @@ export function StarfishView(props: BaseStarfishViewProps) {
       initialData: {},
     });
     useSynchronizeCharts([!loading]);
-    if (loading || !results || !results[yAxis[0]]) {
+    if (loading || totalLoading || !totalResults || !results) {
       return <ChartPlaceholder />;
     }
-    const seriesByName: {[category: string]: Series} = {};
-    Object.keys(results).forEach(key => {
-      const seriesData: EventsStats = results?.[key];
-      seriesByName[key] = {
-        seriesName: key,
-        data:
-          seriesData?.data.map(datum => {
-            return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
-          }) ?? [],
-      };
+    const seriesByName: {[category: string]: Series[]} = {};
+    yAxis.forEach(axis => {
+      seriesByName[axis] = [];
+    });
+    if (!inactiveTransactions.includes('Overall')) {
+      Object.keys(totalResults).forEach(key => {
+        seriesByName[key].push({
+          seriesName: 'Overall',
+          color: CHART_PALETTE[transactionsList.length][5],
+          data:
+            totalResults[key]?.data.map(datum => {
+              return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
+            }) ?? [],
+        });
+      });
+    }
+    transactionsList.forEach((transaction, index) => {
+      const seriesData: EventsStats = results?.[transaction];
+      if (!inactiveTransactions.includes(transaction)) {
+        yAxis.forEach(key => {
+          seriesByName[key].push({
+            seriesName: transaction,
+            color: CHART_PALETTE[transactionsList.length][index],
+            data:
+              seriesData?.[key]?.data.map(datum => {
+                return {
+                  name: datum[0] * 1000,
+                  value: datum[1][0].count,
+                } as SeriesDataUnit;
+              }) ?? [],
+          });
+        });
+      }
     });
 
     return (
@@ -95,7 +141,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
           <MiniChartPanel title={titles[2]}>
             <Chart
               height={142}
-              data={[seriesByName[yAxis[2]]]}
+              data={seriesByName[yAxis[2]]}
               loading={loading}
               utc={false}
               grid={{
@@ -104,9 +150,9 @@ export function StarfishView(props: BaseStarfishViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
+              aggregateOutputFormat="duration"
               definedAxisTicks={2}
               isLineChart
-              chartColors={[AVG_COLOR]}
               tooltipFormatterOptions={{
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -118,7 +164,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
           <MiniChartPanel title={titles[0]}>
             <Chart
               height={142}
-              data={[seriesByName[yAxis[0]]]}
+              data={seriesByName[yAxis[0]]}
               loading={loading}
               utc={false}
               grid={{
@@ -144,7 +190,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
           <MiniChartPanel title={titles[1]}>
             <Chart
               height={142}
-              data={[seriesByName[yAxis[1]]]}
+              data={seriesByName[yAxis[1]]}
               loading={loading}
               utc={false}
               grid={{
@@ -172,7 +218,14 @@ export function StarfishView(props: BaseStarfishViewProps) {
         </ChartsContainer>
       </StyledRow>
 
-      <EndpointList {...props} setError={usePageError().setPageError} />
+      <EndpointList
+        {...props}
+        transactionsList={transactionsList}
+        setTransactionsList={setTransactionsList}
+        setError={usePageError().setPageError}
+        inactiveTransactions={inactiveTransactions}
+        setInactiveTransactions={setInactiveTransactions}
+      />
     </div>
   );
 }

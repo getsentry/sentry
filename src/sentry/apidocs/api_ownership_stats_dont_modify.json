@@ -18,6 +18,8 @@
     "issues": {
         "block_start": 18,
         "public": [
+            "ProjectOwnershipEndpoint::GET",
+            "ProjectOwnershipEndpoint::PUT",
             "ProjectRuleDetailsEndpoint::DELETE",
             "ProjectRuleDetailsEndpoint::GET",
             "ProjectRuleDetailsEndpoint::PUT",
@@ -91,10 +93,13 @@
         ]
     },
     "unowned": {
-        "block_start": 93,
+        "block_start": 95,
         "public": [
             "MonitorIngestCheckInDetailsEndpoint::PUT",
             "MonitorIngestCheckInIndexEndpoint::POST",
+            "OrganizationAlertRuleDetailsEndpoint::DELETE",
+            "OrganizationAlertRuleDetailsEndpoint::GET",
+            "OrganizationAlertRuleDetailsEndpoint::PUT",
             "OrganizationAlertRuleIndexEndpoint::GET",
             "OrganizationAlertRuleIndexEndpoint::POST",
             "OrganizationMemberDetailsEndpoint::DELETE",
@@ -237,9 +242,6 @@
             "OrganizationAccessRequestDetailsEndpoint::GET",
             "OrganizationAccessRequestDetailsEndpoint::PUT",
             "OrganizationAlertRuleAvailableActionIndexEndpoint::GET",
-            "OrganizationAlertRuleDetailsEndpoint::DELETE",
-            "OrganizationAlertRuleDetailsEndpoint::GET",
-            "OrganizationAlertRuleDetailsEndpoint::PUT",
             "OrganizationApiKeyDetailsEndpoint::DELETE",
             "OrganizationApiKeyDetailsEndpoint::GET",
             "OrganizationApiKeyDetailsEndpoint::PUT",
@@ -378,8 +380,6 @@
             "ProjectIssuesResolvedInReleaseEndpoint::GET",
             "ProjectKeyStatsEndpoint::GET",
             "ProjectMemberIndexEndpoint::GET",
-            "ProjectOwnershipEndpoint::GET",
-            "ProjectOwnershipEndpoint::PUT",
             "ProjectPerformanceIssueSettingsEndpoint::DELETE",
             "ProjectPerformanceIssueSettingsEndpoint::GET",
             "ProjectPerformanceIssueSettingsEndpoint::PUT",

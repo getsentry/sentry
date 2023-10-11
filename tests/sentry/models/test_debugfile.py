@@ -9,8 +9,7 @@ from typing import Any
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import debugfile
-from sentry.models.debugfile import DifMeta, ProjectDebugFile
+from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -131,9 +130,7 @@ class CreateDebugFileTest(APITestCase):
         }
 
         args.update(kwargs)
-        return debugfile.create_dif_from_id(
-            self.project, DifMeta(**args), fileobj=fileobj, file=file
-        )
+        return create_dif_from_id(self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
     def test_create_dif_from_file(self):
         file = self.create_file(
