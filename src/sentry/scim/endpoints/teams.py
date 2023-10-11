@@ -159,11 +159,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     help_text="The slug of the team that is shown in the UI.",
                     required=True,
                 ),
-                "members": serializers.ListField(
-                    child=serializers.IntegerField(),
-                    help_text="A list of member IDs that should be on the team.",
-                    required=True,
-                ),
             },
         ),
         responses={
@@ -177,8 +172,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Create a new team bound to an organization via a SCIM Groups POST Request.
-        The endpoint will also do a normalization of uppercase/spaces to lowercase
-        and dashes for the slug.
+
+        Note that teams are always created with an empty member set, and the endpoint will
+        do a normalization of uppercase/spaces to lowercases and dashes for the slug.
         """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
