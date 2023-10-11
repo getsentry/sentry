@@ -48,16 +48,23 @@ function useBreadcrumbFilters({frames}: Options): Return {
     [frames, type, searchTerm]
   );
 
-  const TYPE_TO_LABEL = useMemo(() => {}, []);
+  const TYPE_TO_LABEL: Record<string, string> = useMemo(() => ({}), []);
   frames.forEach(frame => {
-    TYPE_TO_LABEL[getFrameOpOrCategory(frame)] = getFrameDetails(frame).title;
+    const frameType = getFrameOpOrCategory(frame);
+    const label = getFrameDetails(frame).title?.toString();
+    if (frameType && label) {
+      TYPE_TO_LABEL[frameType] = label;
+    }
   });
 
   const getBreadcrumbTypes = useCallback(
     () =>
       uniq(frames.map(frame => getFrameOpOrCategory(frame)).concat(type))
         .sort()
-        .map(value => ({value, label: TYPE_TO_LABEL[value]})),
+        .map(value => ({
+          value,
+          label: TYPE_TO_LABEL[value],
+        })),
     [frames, type, TYPE_TO_LABEL]
   );
 
