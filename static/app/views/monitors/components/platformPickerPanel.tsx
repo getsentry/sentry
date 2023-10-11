@@ -18,8 +18,7 @@ export type SupportedPlatform =
   | 'node'
   | 'go'
   | 'java'
-  | 'java-spring-boot'
-  | 'java-quartz';
+  | 'java-spring-boot';
 
 interface SDKPlatformInfo {
   label: string;
@@ -34,7 +33,6 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'node', label: 'Node'},
   {platform: 'go', label: 'Go'},
   {platform: 'java', label: 'Java'},
-  {platform: 'java-quartz', label: 'Quartz'},
   {platform: 'java-spring-boot', label: 'Spring Boot'},
 ];
 
