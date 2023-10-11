@@ -22,7 +22,6 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         "next_checkin_latest": next_checkin_latest,
     }
 
-    # Don't update incidents + certain params if monitor is disabled or already in an OK state
     if (
         monitor_env.monitor.status != ObjectStatus.DISABLED
         and monitor_env.status != MonitorStatus.OK
