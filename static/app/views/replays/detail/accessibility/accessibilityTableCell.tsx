@@ -105,7 +105,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps}>
           <Text>
             {a11yIssue.impact ? (
-              <Tooltip title={a11yIssue.impact ?? 'unknown'}>
+              <Tooltip title={a11yIssue.impact ?? EMPTY_CELL}>
                 {IMPACT_ICON_MAPPING[a11yIssue.impact]}
               </Tooltip>
             ) : (
@@ -116,7 +116,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{a11yIssue.id ?? 'unknown'}</Text>
+          <Text>{a11yIssue.id ?? EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
