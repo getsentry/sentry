@@ -5,7 +5,7 @@ from typing import Any, List
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema, extend_schema_serializer, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -63,6 +63,7 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@extend_schema_serializer(dict)
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = serializers.JSONField(required=False)
@@ -77,10 +78,10 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
+@extend_schema_serializer(exclude_fields="schemas")
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=True)
-
     Operations = serializers.ListField(
         child=SCIMTeamPatchOperationSerializer(),
         required=True,

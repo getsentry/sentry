@@ -6,7 +6,12 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_field,
+    extend_schema_serializer,
+    inline_serializer,
+)
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
@@ -91,6 +96,7 @@ class OperationValue(Field):
         raise ValidationError("value must be a boolean or object")
 
 
+@extend_schema_serializer(dict)
 class SCIMPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = OperationValue()
@@ -103,12 +109,27 @@ class SCIMPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
+@extend_schema_serializer(exclude_fields="schemas")
 class SCIMPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=False)
-
     Operations = serializers.ListField(
-        child=SCIMPatchOperationSerializer(), required=True, source="operations", max_length=100
+        child=SCIMPatchOperationSerializer(),
+        required=True,
+        source="operations",
+        max_length=100,
+        help_text="""A list of operations to perform. Currently, the only valid operation is setting
+a member's `active` attribute to false, after which the member will be permanently deleted.
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "path": "active",
+        "value": False
+    }]
+}
+```
+""",
     )
 
 
@@ -245,8 +266,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     def patch(self, request: Request, organization, member):
         """
         Update an organization member's attributes with a SCIM PATCH Request.
-        The only supported attribute is `active`. After setting `active` to false
-        Sentry will permanently delete the Organization Member.
         """
         serializer = SCIMPatchRequestSerializer(data=request.data)
 
@@ -400,7 +419,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     @extend_schema(
         operation_id="List an Organization's Members",
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
-        request=None,
         responses={
             200: inline_sentry_response_serializer(
                 "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListMembersResponse
