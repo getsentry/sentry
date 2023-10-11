@@ -16,6 +16,7 @@ type Props = {
   // TODO: type
   projectScore: ProjectScore;
   onClick?: (webVital: WebVitals) => void;
+  transaction?: string;
 };
 
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {

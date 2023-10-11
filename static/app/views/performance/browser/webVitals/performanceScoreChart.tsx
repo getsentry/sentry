@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
@@ -19,6 +18,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 
 type Props = {
   projectScore: ProjectScore;
+  transaction?: string;
   webVital?: WebVitals | null;
 };
 
@@ -32,11 +32,11 @@ const {
 
 const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
 
-export function PerformanceScoreChart({projectScore, webVital}: Props) {
+export function PerformanceScoreChart({projectScore, webVital, transaction}: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
 
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
+  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({transaction});
   const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
   const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
 
@@ -65,10 +65,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
-        <PerformanceScoreLabel>
-          {t('Performance Score')}
-          <IconChevron size="xs" direction="down" style={{top: 1}} />
-        </PerformanceScoreLabel>
+        <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
           {webVitalTooltip && (
@@ -142,10 +139,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
-        <PerformanceScoreLabel>
-          {t('Score Breakdown')}
-          <IconChevron size="xs" direction="down" style={{top: 1}} />
-        </PerformanceScoreLabel>
+        <PerformanceScoreLabel>{t('Score Breakdown')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
           stacked
@@ -252,7 +246,6 @@ const PerformanceScoreLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  margin-right: ${space(1)};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
