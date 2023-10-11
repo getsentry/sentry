@@ -49,6 +49,7 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
+        cursor={undefined}
       />,
       {context: context.routerContext}
     );
@@ -395,6 +396,7 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
+        cursor="0:0:0"
       />
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
@@ -438,6 +440,7 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
+        cursor={undefined}
       />
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
