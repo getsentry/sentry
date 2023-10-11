@@ -9,6 +9,7 @@ from typing import Final, Literal
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from typing_extensions import TypeAlias
@@ -168,6 +169,10 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         start_time = None
         if timed:
             start_time = time.time()
+        transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
+        transaction.__enter__()
+        transaction.set_tag("router", router)
+        transaction.set_tag("model", model)
 
         # list of models which this query is restricted to
         model_list = {m.lower() for m in model}
@@ -395,6 +400,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         duration = int(time.time() - start_time)
         metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
+
+    if transaction:
+        transaction.__exit__(None, None, None)
 
 
 def cleanup_unused_files(quiet=False):

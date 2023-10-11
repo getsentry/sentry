@@ -317,8 +317,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
-    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
-    # "csp.middleware.CSPMiddleware",
+    "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -1430,6 +1429,8 @@ SENTRY_FEATURES = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable participants purge
+    "organizations:participants-purge": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
