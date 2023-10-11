@@ -158,11 +158,17 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         operation_id="Provision a New Team",
         parameters=[GlobalParams.ORG_SLUG],
         request=inline_serializer(
-            name="SCIMTeamRequestBody",
+            "SCIMProvisionTeam",
             fields={
-                "schemas": serializers.ListField(child=serializers.CharField()),
-                "displayName": serializers.CharField(),
-                "members": serializers.ListField(child=serializers.IntegerField()),
+                "displayName": serializers.CharField(
+                    help_text="The slug of the team that is shown in the UI.",
+                    required=True,
+                ),
+                "members": serializers.ListField(
+                    child=serializers.IntegerField(),
+                    help_text="A list of member IDs that should be on the team.",
+                    required=True,
+                ),
             },
         ),
         responses={
@@ -176,8 +182,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Create a new team bound to an organization via a SCIM Groups POST Request.
-        Note that teams are always created with an empty member set.
-        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
+        The endpoint will also do a normalization of uppercase/spaces to
+        lowercase and dashes for the slug.
         """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
