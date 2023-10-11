@@ -298,7 +298,7 @@ class _TransactionsList extends Component<Props> {
           <InvestigationRuleCreation
             buttonProps={{size: 'xs'}}
             eventView={eventView}
-            numSamples={numSamples}
+            numSamples={totalNumSamples}
           />
         </div>
         {!this.isTrend() &&
