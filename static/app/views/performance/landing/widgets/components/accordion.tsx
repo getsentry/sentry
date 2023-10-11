@@ -66,7 +66,9 @@ function AccordionItem({
           aria-expanded={isExpanded}
           size="zero"
           borderless
-          onClick={() => setExpandedIndex(index)}
+          onClick={() => {
+            isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index);
+          }}
         />
         {children}
       </ButtonLeftListItemContainer>
