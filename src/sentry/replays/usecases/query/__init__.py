@@ -38,13 +38,13 @@ from snuba_sdk.expressions import Expression
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
-from sentry.replays.lib.new_query.fields import ColumnField
+from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 
 def handle_search_filters(
-    search_config: dict[str, Union[ColumnField, ComputedField, TagField]],
+    search_config: dict[str, FieldProtocol],
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
@@ -105,7 +105,7 @@ def attempt_compressed_condition(
 
 
 def search_filter_to_condition(
-    search_config: dict[str, Union[ColumnField, ComputedField, TagField]],
+    search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
 ) -> Condition:
     # The field-name is whatever the API says it is.  We take it at face value.
@@ -123,14 +123,10 @@ def search_filter_to_condition(
         # update our search config to point to this field-name.
         field = cast(TagField, search_config["*"])
 
-    # Tags that are namespaced are stripped.
-    if field_name.startswith("tags["):
-        field_name = field_name[5:-1]
-
     # The field_name in this case does not represent a column_name but instead it represents a
     # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
     # function.
-    return field.apply(field_name, search_filter)
+    return field.apply(search_filter)
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
@@ -234,7 +230,7 @@ def make_scalar_search_conditions_query(
     # "segment_id = 0" condition to the WHERE clause.
 
     where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(sort)
+    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
     return Query(
         match=Entity("replays"),
@@ -258,7 +254,7 @@ def make_aggregate_search_conditions_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    orderby = handle_ordering(sort)
+    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
@@ -329,18 +325,16 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     )
 
 
-def handle_ordering(sort: str | None) -> list[OrderBy]:
-    if sort is None:
-        return [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
-    elif sort.startswith("-"):
-        return [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
+def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
+    if sort.startswith("-"):
+        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
     else:
-        return [OrderBy(_get_sort_column(sort), Direction.ASC)]
+        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
 
 
-def _get_sort_column(column_name: str) -> Function:
+def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
     try:
-        return agg_sort_config[column_name]
+        return config[column_name]
     except KeyError:
         raise ParseError(f"The field `{column_name}` is not a sortable field.")
 
