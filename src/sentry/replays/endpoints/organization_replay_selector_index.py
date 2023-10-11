@@ -1,24 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Limit,
-    Offset,
-    Op,
-    OrderBy,
-    Query,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
@@ -26,11 +14,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
-from sentry.api.event_search import SearchConfig
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.lib.query import Number, QueryConfig, get_valid_sort_commands
+from sentry.replays.lib.new_query.conditions import IntegerScalar
+from sentry.replays.lib.new_query.fields import IntegerColumnField
+from sentry.replays.lib.new_query.parsers import parse_int
 from sentry.replays.query import Paginators, make_pagination_values
+from sentry.replays.usecases.query import handle_ordering, handle_search_filters
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
@@ -70,6 +62,11 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
                 filter_params[key] = value
 
         def data_fn(offset, limit):
+            try:
+                search_filters = parse_search_query(request.query_params.get("query", ""))
+            except InvalidSearchQuery as e:
+                raise ParseError(str(e))
+
             return query_selector_collection(
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
@@ -77,6 +74,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
                 sort=filter_params.get("sort"),
                 limit=limit,
                 offset=offset,
+                search_filters=search_filters,
                 organization=organization,
             )
 
@@ -87,14 +85,6 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         )
 
 
-selector_search_config = SearchConfig(numeric_keys={"count_dead_clicks", "count_rage_clicks"})
-
-
-class SelectorQueryConfig(QueryConfig):
-    count_dead_clicks = Number()
-    count_rage_clicks = Number()
-
-
 def query_selector_collection(
     project_ids: List[int],
     start: datetime,
@@ -102,6 +92,7 @@ def query_selector_collection(
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
+    search_filters: List[Condition],
     organization: Organization,
 ) -> dict:
     """Query aggregated replay collection."""
@@ -116,6 +107,7 @@ def query_selector_collection(
         project_ids=project_ids,
         start=start,
         end=end,
+        search_filters=search_filters,
         pagination=paginators,
         sort=sort,
         tenant_ids=tenant_ids,
@@ -127,6 +119,7 @@ def query_selector_dataset(
     project_ids: List[int],
     start: datetime,
     end: datetime,
+    search_filters: List[Union[SearchFilter, ParenExpression, str]],
     pagination: Optional[Paginators],
     sort: Optional[str],
     tenant_ids: dict[str, Any] | None = None,
@@ -137,11 +130,8 @@ def query_selector_dataset(
         query_options["limit"] = Limit(pagination.limit)
         query_options["offset"] = Offset(pagination.offset)
 
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("count_dead_clicks"), Direction.DESC),
-        query_config=SelectorQueryConfig(),
-    )
+    conditions = handle_search_filters(query_config, search_filters)
+    sorting = handle_ordering(sort_config, sort or "-count_dead_clicks")
 
     snuba_request = SnubaRequest(
         dataset="replays",
@@ -167,6 +157,7 @@ def query_selector_dataset(
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("click_tag"), Op.NEQ, ""),
             ],
+            having=conditions,
             orderby=sorting,
             groupby=[
                 Column("project_id"),
@@ -231,3 +222,14 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
         }
         for row in response
     ]
+
+
+query_config = {
+    "count_dead_clicks": IntegerColumnField("count_dead_clicks", parse_int, IntegerScalar),
+    "count_rage_clicks": IntegerColumnField("count_rage_clicks", parse_int, IntegerScalar),
+}
+
+sort_config = {
+    "count_dead_clicks": Column("count_dead_clicks"),
+    "count_rage_clicks": Column("count_rage_clicks"),
+}

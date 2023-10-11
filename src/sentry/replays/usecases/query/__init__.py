@@ -234,7 +234,7 @@ def make_scalar_search_conditions_query(
     # "segment_id = 0" condition to the WHERE clause.
 
     where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(sort)
+    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
     return Query(
         match=Entity("replays"),
@@ -258,7 +258,7 @@ def make_aggregate_search_conditions_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    orderby = handle_ordering(sort)
+    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
@@ -329,18 +329,16 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     )
 
 
-def handle_ordering(sort: str | None) -> list[OrderBy]:
-    if sort is None:
-        return [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
-    elif sort.startswith("-"):
-        return [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
+def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
+    if sort.startswith("-"):
+        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
     else:
-        return [OrderBy(_get_sort_column(sort), Direction.ASC)]
+        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
 
 
-def _get_sort_column(column_name: str) -> Function:
+def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
     try:
-        return agg_sort_config[column_name]
+        return config[column_name]
     except KeyError:
         raise ParseError(f"The field `{column_name}` is not a sortable field.")
 

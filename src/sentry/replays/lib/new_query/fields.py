@@ -121,11 +121,15 @@ class ColumnField(BaseField[T]):
 
 
 class StringColumnField(ColumnField[str]):
-    """String type conditional column field."""
+    """String-type condition column field."""
+
+
+class IntegerColumnField(ColumnField[int]):
+    """Integer-type condition column field."""
 
 
 class UUIDColumnField(ColumnField[UUID]):
-    """UUID type conditional column field."""
+    """UUID-type condition column field."""
 
 
 class CountField(ColumnField[int]):
