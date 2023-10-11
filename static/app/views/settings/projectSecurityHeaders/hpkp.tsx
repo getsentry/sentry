@@ -49,7 +49,7 @@ function ProjectHpkpReports() {
   const {
     data: keyList,
     isLoading,
-    error,
+    isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
     staleTime: 0,
@@ -59,77 +59,76 @@ function ProjectHpkpReports() {
     return <LoadingIndicator />;
   }
 
-  if (error) {
+  if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
 
   return (
-    <SentryDocumentTitle
-      title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
-    >
-      <div>
-        <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
+    <div>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
+      />
+      <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
 
-        <PreviewFeature />
+      <PreviewFeature />
 
-        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
-        <Panel>
-          <PanelHeader>{t('About')}</PanelHeader>
+      <Panel>
+        <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody withPadding>
-            <p>
-              {tct(
-                `[link:HTTP Public Key Pinning]
+        <PanelBody withPadding>
+          <p>
+            {tct(
+              `[link:HTTP Public Key Pinning]
               (HPKP) is a security feature that tells a web client to associate a specific
               cryptographic public key with a certain web server to decrease the risk of MITM
               attacks with forged certificates. It's enforced by browser vendors, and Sentry
               supports capturing violations using the standard reporting hooks.`,
-                {
-                  link: (
-                    <ExternalLink href="https://en.wikipedia.org/wiki/HTTP_Public_Key_Pinning" />
-                  ),
-                }
-              )}
-            </p>
+              {
+                link: (
+                  <ExternalLink href="https://en.wikipedia.org/wiki/HTTP_Public_Key_Pinning" />
+                ),
+              }
+            )}
+          </p>
 
-            <p>
-              {t(
-                `To configure HPKP reports
+          <p>
+            {t(
+              `To configure HPKP reports
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.`
-              )}
-            </p>
+            )}
+          </p>
 
-            <p>
-              {t(
-                'For example, in Python you might achieve this via a simple web middleware'
-              )}
-            </p>
-            <pre>{getInstructions(keyList)}</pre>
+          <p>
+            {t(
+              'For example, in Python you might achieve this via a simple web middleware'
+            )}
+          </p>
+          <pre>{getInstructions(keyList)}</pre>
 
-            <p>
-              {t(`Alternatively you can setup HPKP reports to simply send reports rather than
+          <p>
+            {t(`Alternatively you can setup HPKP reports to simply send reports rather than
               actually enforcing the policy`)}
-            </p>
-            <pre>{getReportOnlyInstructions(keyList)}</pre>
+          </p>
+          <pre>{getReportOnlyInstructions(keyList)}</pre>
 
-            <p>
-              {tct(
-                `We recommend setting this up to only run on a percentage of requests, as
+          <p>
+            {tct(
+              `We recommend setting this up to only run on a percentage of requests, as
               otherwise you may find that you've quickly exhausted your quota. For more
               information, take a look at [link:the documentation on MDN].`,
-                {
-                  link: (
-                    <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning" />
-                  ),
-                }
-              )}
-            </p>
-          </PanelBody>
-        </Panel>
-      </div>
-    </SentryDocumentTitle>
+              {
+                link: (
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning" />
+                ),
+              }
+            )}
+          </p>
+        </PanelBody>
+      </Panel>
+    </div>
   );
 }
 
