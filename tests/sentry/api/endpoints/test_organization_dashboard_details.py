@@ -5,9 +5,8 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,

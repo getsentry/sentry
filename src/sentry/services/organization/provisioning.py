@@ -71,7 +71,7 @@ class OrganizationProvisioningService:
         :return:
         """
 
-        from sentry.models import Organization
+        from sentry.models.organization import Organization
 
         try:
             with transaction.atomic(using=router.db_for_write(Organization)):

@@ -10,7 +10,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
 

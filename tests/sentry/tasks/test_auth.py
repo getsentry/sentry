@@ -1,6 +1,7 @@
 from django.core import mail
 
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.tasks.auth import (
     email_missing_links,

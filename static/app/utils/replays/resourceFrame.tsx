@@ -30,8 +30,8 @@ export function getFrameStatus(frame: SpanFrame) {
 export function getReqRespContentTypes(frame: SpanFrame) {
   if (isRequestFrame(frame)) {
     return {
-      req: frame.data.request?.headers['content-type'],
-      resp: frame.data.response?.headers['content-type'],
+      req: frame.data.request?.headers?.['content-type'],
+      resp: frame.data.response?.headers?.['content-type'],
     };
   }
   return {

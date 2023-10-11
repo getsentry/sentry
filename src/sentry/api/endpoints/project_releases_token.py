@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.utils.http import absolute_uri
 
 

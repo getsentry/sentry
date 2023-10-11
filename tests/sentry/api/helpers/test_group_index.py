@@ -14,20 +14,17 @@ from sentry.api.helpers.group_index.update import (
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
-from sentry.models import (
-    Activity,
-    GroupBookmark,
-    GroupInbox,
-    GroupInboxReason,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    add_group_to_inbox,
-)
+from sentry.models.activity import Activity
 from sentry.models.actor import ActorTuple
+from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -400,15 +397,42 @@ class TestHandleIsBookmarked(TestCase):
         handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
 
         assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group, user_id=self.user.id, reason=GroupSubscriptionReason.bookmark
+        ).exists()
 
     def test_not_is_bookmarked(self) -> None:
         GroupBookmark.objects.create(
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
+        GroupSubscription.objects.create(
+            project=self.group.project,
+            group=self.group,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.bookmark,
+        )
 
         handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert GroupSubscription.objects.filter(
+            project=self.group.project,
+            group=self.group,
+            user_id=self.user.id,
+        ).exists()
+
+        # test with feature flag
+        GroupBookmark.objects.create(
+            group=self.group, user_id=self.user.id, project_id=self.group.project_id
+        )
+
+        with self.feature("organizations:participants-purge"):
+            handle_is_bookmarked(
+                False, self.group_list, self.group_ids, self.project_lookup, self.user
+            )
+
+        assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
 class TestHandleHasSeen(TestCase):

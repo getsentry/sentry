@@ -23,6 +23,7 @@ type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
 > & {
+  menuFooterMessage?: string;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */

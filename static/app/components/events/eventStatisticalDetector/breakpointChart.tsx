@@ -7,6 +7,7 @@ import {
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -31,16 +32,20 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {transaction, requestStart, requestEnd} = event?.occurrence?.evidenceData ?? {};
+  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
-  eventView.start = new Date(requestStart * 1000).toISOString();
-  eventView.end = new Date(requestEnd * 1000).toISOString();
   eventView.dataset = DiscoverDatasets.METRICS;
 
-  // If start and end were defined, then do not use default 14d stats period
-  eventView.statsPeriod = requestStart && requestEnd ? '' : eventView.statsPeriod;
+  const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 14,
+  });
+
+  eventView.start = (beforeDateTime as Date).toISOString();
+  eventView.end = (afterDateTime as Date).toISOString();
+  eventView.statsPeriod = undefined;
 
   // The evidence data keys are returned to us in camelCase, but we need to
   // convert them to snake_case to match the NormalizedTrendsTransaction type

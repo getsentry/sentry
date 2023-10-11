@@ -5,15 +5,13 @@ from django.core import mail
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.locks import locks
-from sentry.models import (
-    Commit,
-    Deploy,
-    Integration,
-    LatestRepoReleaseEnvironment,
-    Release,
-    ReleaseHeadCommit,
-    Repository,
-)
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.integrations.integration import Integration
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.release import Release
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils.cases import TestCase

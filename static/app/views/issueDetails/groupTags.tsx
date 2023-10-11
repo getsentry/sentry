@@ -31,6 +31,7 @@ type Props = DeprecatedAsyncComponent['props'] & {
 } & RouteComponentProps<{}, {}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
+  now: number;
   tagList: null | TagWithTopValues[];
 };
 
@@ -39,6 +40,7 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       tagList: null,
+      now: Date.now(),
     };
   }
 
@@ -47,7 +49,8 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
 
     if (
       organization.features.includes('performance-duration-regression-visible') &&
-      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+      this.state
     ) {
       if (!event) {
         // We need the event for its occurrence data to get the timestamps
@@ -55,7 +58,7 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
         return [];
       }
 
-      const {transaction, aggregateRange2, breakpoint, requestEnd} =
+      const {transaction, aggregateRange2, breakpoint} =
         event.occurrence?.evidenceData ?? {};
       return [
         [
@@ -72,7 +75,7 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
                 addUpperBound: false,
               }),
               start: new Date(breakpoint * 1000).toISOString(),
-              end: new Date(requestEnd * 1000).toISOString(),
+              end: new Date(this.state.now).toISOString(),
             },
           },
         ],

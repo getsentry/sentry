@@ -9,8 +9,8 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.debug_files.upload import find_missing_chunks
-from sentry.models import Project
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,

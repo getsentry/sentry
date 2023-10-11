@@ -4,7 +4,7 @@ from .apitoken import ModelApiTokenDeletionTask
 
 class SentryAppInstallationTokenDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import ApiToken
+        from sentry.models.apitoken import ApiToken
 
         return [
             ModelRelation(ApiToken, {"id": instance.api_token_id}, task=ModelApiTokenDeletionTask),

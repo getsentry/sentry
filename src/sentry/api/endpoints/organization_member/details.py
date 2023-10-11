@@ -27,13 +27,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
