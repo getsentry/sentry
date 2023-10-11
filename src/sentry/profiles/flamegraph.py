@@ -170,6 +170,7 @@ def get_profile_ids_with_spans(
             Condition(Column("timestamp"), Op.GTE, params["start"]),
             Condition(Column("timestamp"), Op.LT, params["end"]),
             Condition(Column("group"), Op.EQ, span_group),
+            Condition(Column("profile_id"), Op.IS_NOT_NULL),
         ],
         limit=Limit(100),
     )
