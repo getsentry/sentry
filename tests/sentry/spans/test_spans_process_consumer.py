@@ -107,6 +107,7 @@ def test_v1_span():
     ).encode()
     value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)  # type: ignore
     processed = _process_message(Message(value))
+    assert isinstance(processed, KafkaPayload)
     assert json.loads(processed.value) == {
         "description": "GET /api/0/organizations/?member=1",
         "duration_ms": 1111,
@@ -128,9 +129,7 @@ def test_v1_span():
             "transaction": "hi",
             "transaction.op": "hi",
         },
-        "span_grouping_config": {"id": "default:2022-10-27"},
         "span_id": "bbbbbbbbbbbbbbbb",
         "start_timestamp_ms": 123456,
         "trace_id": "ff62a8b040f340bda5d830223def1d81",
-        "version": 1,
     }
