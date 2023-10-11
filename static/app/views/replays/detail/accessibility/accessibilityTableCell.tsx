@@ -64,7 +64,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
     const isBeforeHover =
       currentHoverTime === undefined || currentHoverTime >= a11yIssue.offsetMs;
 
-    const isByTimestamp = sortConfig.by === 'startTimestamp';
+    const isByTimestamp = sortConfig.by === 'timestampMs';
     const isAsc = isByTimestamp ? sortConfig.asc : undefined;
     const columnProps = {
       className: classNames({
