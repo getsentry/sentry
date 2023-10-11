@@ -489,18 +489,26 @@ function HasDebugIdChecklistItem({
           <h6>Uploaded Files Not Deployed</h6>
           <p>
             {t(
-              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Make sure the files you deployed are exactly the files you uploaded to Sentry. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
-            )}
-          </p>
-          <p>
-            {t(
-              'If you are using a bundler plugin, you need to use the plugin when you build your production app. It is not possible to build your app once with the plugin, just to upload, and then once without. The plugin needs to be active for every build!'
+              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
             )}
           </p>
           <p>
             {tct(
-              'If you are using Sentry CLI, make sure to deploy the files you ran [injectCommand] on!',
+              'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
               {
+                bundlerPluginRepoLink: (
+                  <ExternalLinkWithIcon href="https://github.com/getsentry/sentry-javascript-bundler-plugins" />
+                ),
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
+              {
+                sentryCliLink: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/" />
+                ),
                 injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
               }
             )}
