@@ -1,3 +1,4 @@
+import logging
 from itertools import islice
 from typing import Any, Sequence
 
@@ -5,7 +6,7 @@ import sentry_sdk
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -13,6 +14,8 @@ from . import ClustererNamespace, rules
 from .datasource import redis
 from .meta import track_clusterer_run
 from .tree import TreeClusterer
+
+logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tasks")
 
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See ``TreeClusterer`` for more information.
@@ -59,6 +62,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
 )
 def cluster_projects(projects: Sequence[Project]) -> None:
+    pending = set(projects)
     num_clustered = 0
     try:
         for project in projects:
@@ -86,6 +90,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
                 redis.clear_samples(ClustererNamespace.TRANSACTIONS, project)
+            pending.remove(project)
             num_clustered += 1
     finally:
         metrics.incr(
@@ -101,6 +106,14 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 amount=unclustered,
                 tags={"clustered": False},
                 sample_rate=1.0,
+            )
+            logger_transactions.error(
+                "Transaction clusterer missed projects",
+                extra={
+                    "projects.total": len(projects),
+                    "projects.unclustered.number": unclustered,
+                    "projects.unclustered.ids": [p.id for p in pending],
+                },
             )
 
 
@@ -126,7 +139,7 @@ def spawn_clusterers_span_descs(**kwargs: Any) -> None:
 
 
 @instrumented_task(
-    name="sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs",
+    name="sentry.ingest.span_clusterer.tasks.cluster_projects_span_descs",
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer

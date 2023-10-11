@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
-from sentry.models import User
+from sentry.models.user import User
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
@@ -76,7 +76,7 @@ class AuthenticationForm(forms.Form):
         UserModel = get_user_model()
         self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
         if not self.fields["username"].label:
-            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # typeddjango/django-stubs#1626
+            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # issue: typeddjango/django-stubs#1626
 
     def clean_username(self, value=None):
         if not value:
@@ -231,7 +231,9 @@ class RegistrationForm(PasswordlessRegistrationForm):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(
+            password, user=User(username=self.cleaned_data.get("username"))
+        )
         return password
 
     def save(self, commit=True):
@@ -281,9 +283,13 @@ class RecoverPasswordForm(forms.Form):
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(password, user=self.user)
         return password
 
 

@@ -80,9 +80,37 @@ export type ResponseMeta<R = any> = {
 /**
  * Check if the requested method does not require CSRF tokens
  */
-function csrfSafeMethod(method?: string) {
+function csrfSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
+}
+
+/**
+ * Check if we a request is going to the same or similar origin.
+ * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
+ * are similar origins, but sentry.sentry.io and sentry.example.io are not.
+ */
+export function isSimilarOrigin(target: string, origin: string): boolean {
+  const targetUrl = new URL(target, origin);
+  const originUrl = new URL(origin);
+  // If one of the domains is a child of the other.
+  if (
+    originUrl.hostname.endsWith(targetUrl.hostname) ||
+    targetUrl.hostname.endsWith(originUrl.hostname)
+  ) {
+    return true;
+  }
+  // Check if the target and origin are on sibiling subdomains.
+  const targetHost = targetUrl.hostname.split('.');
+  const originHost = originUrl.hostname.split('.');
+
+  // Remove the subdomains. If don't have at least 2 segments we aren't subdomains.
+  targetHost.shift();
+  originHost.shift();
+  if (targetHost.length < 2 || originHost.length < 2) {
+    return false;
+  }
+  return targetHost.join('.') === originHost.join('.');
 }
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
@@ -460,21 +488,18 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers(this.headers);
+    const requestHeaders = new Headers(this.headers);
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
-    const absoluteUrl = new URL(fullUrl, window.location.origin);
-    const originUrl = new URL(window.location.origin);
-    const isSameOrigin = originUrl.hostname.endsWith(absoluteUrl.hostname);
-    if (!csrfSafeMethod(method) && isSameOrigin) {
-      headers.set('X-CSRFToken', getCsrfToken());
+    if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
+      requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
       method,
       body,
-      headers,
+      headers: requestHeaders,
       credentials: this.credentials,
       signal: aborter?.signal,
     });
@@ -510,6 +535,8 @@ export class Client {
 
           const responseContentType = response.headers.get('content-type');
           const isResponseJSON = responseContentType?.includes('json');
+          const wasExpectingJson =
+            requestHeaders.get('Content-Type') === 'application/json';
 
           const isStatus3XX = status >= 300 && status < 400;
           if (status !== 204 && !isStatus3XX) {
@@ -525,6 +552,16 @@ export class Client {
                 // this should be an error.
                 ok = false;
                 errorReason = 'JSON parse error';
+              } else if (
+                // Empty responses from POST 201 requests are valid
+                responseText?.length > 0 &&
+                wasExpectingJson &&
+                error instanceof SyntaxError
+              ) {
+                // Was expecting json but was returned something else. Possibly HTML.
+                // Ideally this would not be a 200, but we should reject the promise
+                ok = false;
+                errorReason = 'JSON parse error. Possibly returned HTML';
               }
             }
           }
@@ -682,6 +719,10 @@ export function resolveHostname(path: string, hostname?: string): string {
 }
 
 function detectControlSiloPath(path: string): boolean {
+  // We sometimes include querystrings in paths.
+  // Using URL() to avoid handrolling URL parsing
+  const url = new URL(path, 'https://sentry.io');
+  path = url.pathname;
   path = path.startsWith('/') ? path.substring(1) : path;
   for (const pattern of controlsilopatterns) {
     if (pattern.test(path)) {

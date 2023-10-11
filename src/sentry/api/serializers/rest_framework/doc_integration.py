@@ -12,8 +12,12 @@ from sentry import options
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
 
 
 class MetadataField(serializers.JSONField):
@@ -27,7 +31,7 @@ class MetadataField(serializers.JSONField):
         try:
             validated_data = validate_metadata_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(e.message)  # noqa: B306
+            raise ValidationError(e.message)
 
         return validated_data
 

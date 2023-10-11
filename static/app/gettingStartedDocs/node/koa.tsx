@@ -17,7 +17,8 @@ interface StepsParams {
   hasPerformanceMonitoring: boolean;
   importContent: string;
   initContent: string;
-  installSnippet: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
   sourceMapStep: StepProps;
 }
 
@@ -27,7 +28,8 @@ const performanceIntegrations: string[] = [
 ];
 
 export const steps = ({
-  installSnippet,
+  installSnippetYarn,
+  installSnippetNpm,
   importContent,
   initContent,
   hasPerformanceMonitoring,
@@ -38,8 +40,20 @@ export const steps = ({
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: installSnippet,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -186,7 +200,7 @@ export function GettingStartedWithKoa({
   const additionalPackages = productSelection['performance-monitoring']
     ? ['@sentry/utils']
     : [];
-  const installSnippet = getInstallSnippet({productSelection, additionalPackages});
+
   let imports = getDefaultNodeImports({productSelection});
   imports = imports.concat([
     'import { stripUrlQueryAndFragment } from "@sentry/utils";',
@@ -212,7 +226,16 @@ export function GettingStartedWithKoa({
   return (
     <Layout
       steps={steps({
-        installSnippet,
+        installSnippetNpm: getInstallSnippet({
+          additionalPackages,
+          productSelection,
+          packageManager: 'npm',
+        }),
+        installSnippetYarn: getInstallSnippet({
+          additionalPackages,
+          productSelection,
+          packageManager: 'yarn',
+        }),
         importContent: imports.join('\n'),
         initContent,
         hasPerformanceMonitoring: productSelection['performance-monitoring'],

@@ -25,7 +25,7 @@ import {
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {EntryType, EventTransaction} from 'sentry/types';
+import {EntryType, EventTransaction, RequestState} from 'sentry/types';
 import {EntrySpans} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
@@ -156,6 +156,28 @@ function findLongestMatchingFrame(
   }
 
   return longestFrame;
+}
+
+function computeProfileOffset(
+  flamegraph: FlamegraphModel,
+  transaction: RequestState<EventTransaction | null>
+): number {
+  let offset = flamegraph.profile.startedAt;
+
+  const transactionStart =
+    transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
+
+  const profileStart = flamegraph.profile.timestamp;
+
+  if (defined(transactionStart) && defined(profileStart)) {
+    offset += formatTo(
+      profileStart - transactionStart,
+      'second',
+      flamegraph.profile.unit
+    );
+  }
+
+  return offset;
 }
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
@@ -305,6 +327,11 @@ function Flamegraph(): ReactElement {
 
     return newFlamegraph;
   }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
+
+  const profileOffsetFromTransaction = useMemo(
+    () => computeProfileOffset(flamegraph, profiledTransaction),
+    [flamegraph, profiledTransaction]
+  );
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -474,23 +501,6 @@ function Flamegraph(): ReactElement {
         return null;
       }
 
-      let offset = flamegraph.profile.startedAt;
-
-      const transactionStart =
-        profiledTransaction.type === 'resolved'
-          ? profiledTransaction.data?.startTimestamp ?? null
-          : null;
-
-      const profileStart = flamegraph.profile.timestamp;
-
-      if (defined(transactionStart) && defined(profileStart)) {
-        offset += formatTo(
-          profileStart - transactionStart,
-          'second',
-          flamegraph.profile.unit
-        );
-      }
-
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: flamegraph,
@@ -499,7 +509,7 @@ function Flamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: new Rect(offset, 0, 0, 0),
+          configSpaceTransform: new Rect(profileOffsetFromTransaction, 0, 0, 0),
         },
       });
 
@@ -575,7 +585,7 @@ function Flamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, profiledTransaction]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profileOffsetFromTransaction]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -593,6 +603,7 @@ function Flamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 10,
           depthOffset: 0,
+          configSpaceTransform: new Rect(profileOffsetFromTransaction, 0, 0, 0),
         },
       });
 
@@ -604,7 +615,7 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
+    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, profileOffsetFromTransaction]
   );
 
   const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
@@ -626,6 +637,7 @@ function Flamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: batteryChart.configSpace.height,
           minHeight: batteryChart.configSpace.height,
+          configSpaceTransform: new Rect(profileOffsetFromTransaction, 0, 0, 0),
         },
       });
 
@@ -646,6 +658,7 @@ function Flamegraph(): ReactElement {
       batteryChart,
       uiFrames.minFrameDuration,
       batteryChartCanvas,
+      profileOffsetFromTransaction,
     ]
   );
 
@@ -668,6 +681,7 @@ function Flamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
           minHeight: CPUChart.configSpace.height,
+          configSpaceTransform: new Rect(profileOffsetFromTransaction, 0, 0, 0),
         },
       });
 
@@ -688,6 +702,7 @@ function Flamegraph(): ReactElement {
       CPUChart,
       uiFrames.minFrameDuration,
       cpuChartCanvas,
+      profileOffsetFromTransaction,
     ]
   );
 
@@ -710,6 +725,7 @@ function Flamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
           minHeight: memoryChart.configSpace.height,
+          configSpaceTransform: new Rect(profileOffsetFromTransaction, 0, 0, 0),
         },
       });
 
@@ -730,6 +746,7 @@ function Flamegraph(): ReactElement {
       memoryChart,
       uiFrames.minFrameDuration,
       memoryChartCanvas,
+      profileOffsetFromTransaction,
     ]
   );
 
@@ -779,6 +796,7 @@ function Flamegraph(): ReactElement {
     uiFramesView?.setMinWidth?.(minWidthBetweenViews);
     cpuChartView?.setMinWidth?.(minWidthBetweenViews);
     memoryChartView?.setMinWidth?.(minWidthBetweenViews);
+    batteryChartView?.setMinWidth?.(minWidthBetweenViews);
   }, [
     flamegraphView,
     spansView,
@@ -818,6 +836,9 @@ function Flamegraph(): ReactElement {
         if (memoryChartView) {
           memoryChartView.setConfigView(rect);
         }
+        if (batteryChartView) {
+          batteryChartView.setConfigView(rect);
+        }
       }
 
       if (sourceConfigViewChange === spansView) {
@@ -834,6 +855,9 @@ function Flamegraph(): ReactElement {
         }
         if (memoryChartView) {
           memoryChartView.setConfigView(rect);
+        }
+        if (batteryChartView) {
+          batteryChartView.setConfigView(rect);
         }
       }
 

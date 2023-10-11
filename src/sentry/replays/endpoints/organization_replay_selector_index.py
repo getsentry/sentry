@@ -13,6 +13,8 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
+    Identifier,
+    Lambda,
     Limit,
     Offset,
     Op,
@@ -149,9 +151,20 @@ def query_selector_dataset(
         query=Query(
             match=Entity("replays"),
             select=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
-                Column("click_class"),
+                Function(
+                    "arrayFilter",
+                    parameters=[
+                        Lambda(
+                            ["v"],
+                            Function("notEquals", parameters=[Identifier("v"), ""]),
+                        ),
+                        Column("click_class"),
+                    ],
+                    alias="click_class_filtered",
+                ),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -168,9 +181,10 @@ def query_selector_dataset(
             ],
             orderby=sorting,
             groupby=[
+                Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
-                Column("click_class"),
+                Column("click_class_filtered"),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -193,8 +207,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
         if row["click_id"]:
             selector = selector + f"#{row['click_id']}"
-        if row["click_class"]:
-            selector = selector + "." + ".".join(row["click_class"])
+        if row["click_class_filtered"]:
+            selector = selector + "." + ".".join(row["click_class_filtered"])
 
         if row["click_role"]:
             selector = selector + f'[role="{row["click_role"]}"]'
@@ -211,9 +225,21 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     return [
         {
-            "dom_element": make_selector_name(row),
             "count_dead_clicks": row["count_dead_clicks"],
             "count_rage_clicks": row["count_rage_clicks"],
+            "dom_element": make_selector_name(row),
+            "element": {
+                "alt": row["click_alt"],
+                "aria_label": row["click_aria_label"],
+                "class": row["click_class_filtered"],
+                "id": row["click_id"],
+                "project_id": row["project_id"],
+                "role": row["click_role"],
+                "tag": row["click_tag"],
+                "testid": row["click_testid"],
+                "title": row["click_title"],
+            },
+            "project_id": row["project_id"],
         }
         for row in response
     ]

@@ -172,7 +172,7 @@ runs:
         fi
 
         if [ "$NEED_KAFKA" = "true" ]; then
-          services+=(zookeeper kafka)
+          services+=(kafka)
         fi
 
         sentry devservices up "${services[@]}"
@@ -185,4 +185,3 @@ runs:
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where tools are located
         cd "$WORKDIR"
-        python3 -u -S -m tools.devservices_healthcheck

@@ -10,7 +10,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 
-export const useProjectWebVitalsTimeseriesQuery = () => {
+type Props = {
+  transaction?: string;
+};
+
+export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -25,7 +29,8 @@ export const useProjectWebVitalsTimeseriesQuery = () => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload (transaction:/performance* or transaction:/discover* or transaction:/dashboards*)',
+        'transaction.op:pageload' +
+        (transaction ? ` transaction:"*${transaction}*"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

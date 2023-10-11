@@ -72,7 +72,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 node_id=1,
                 tag="div",
                 id="myid",
-                class_=["class1", "class2"],
+                class_=["class1", "class2", ""],
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -92,9 +92,18 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
+            assert response_data["data"][0]["project_id"] == project.id
             assert (
                 response_data["data"][0]["dom_element"]
                 == 'div#myid.class1.class2[role="button"][alt="Alt"][testid="1"][aria="AriaLabel"][title="MyTitle"]'
             )
             assert response_data["data"][0]["count_dead_clicks"] == 2
             assert response_data["data"][0]["count_rage_clicks"] == 1
+            assert response_data["data"][0]["element"]["alt"] == "Alt"
+            assert response_data["data"][0]["element"]["aria_label"] == "AriaLabel"
+            assert response_data["data"][0]["element"]["class"] == ["class1", "class2"]
+            assert response_data["data"][0]["element"]["id"] == "myid"
+            assert response_data["data"][0]["element"]["role"] == "button"
+            assert response_data["data"][0]["element"]["tag"] == "div"
+            assert response_data["data"][0]["element"]["testid"] == "1"
+            assert response_data["data"][0]["element"]["title"] == "MyTitle"

@@ -63,4 +63,6 @@ can_update = default_manager.can_update
 
 
 def load_defaults():
+    from sentry.hybridcloud import options  # NOQA
+
     from . import defaults  # NOQA

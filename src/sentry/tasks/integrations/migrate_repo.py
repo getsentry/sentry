@@ -1,5 +1,7 @@
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, Organization, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.repository import repository_service

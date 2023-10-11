@@ -8,9 +8,10 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
-from sentry.models import OrganizationIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.silo import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -114,7 +115,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -147,9 +148,10 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        OrganizationIntegration.objects.create(
-            organization_id=organization2.id, integration=self.integration
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.create(
+                organization_id=organization2.id, integration=self.integration
+            )
         self.link_team(team2)
 
         data = self.send_slack_message(

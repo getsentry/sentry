@@ -2,8 +2,8 @@ from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -38,6 +38,7 @@ class DashboardWidgetSerializer(Serializer):
             "title": obj.title,
             "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
+            "thresholds": obj.thresholds,
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
             "dateCreated": obj.date_added,

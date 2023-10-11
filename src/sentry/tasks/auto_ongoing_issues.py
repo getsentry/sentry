@@ -3,13 +3,15 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import List
 
+import sentry_sdk
 from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Group, GroupHistoryStatus, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -65,24 +67,25 @@ def schedule_auto_transition_to_ongoing() -> None:
     that transition Issues to Ongoing according to their specific
     criteria.
     """
-    now = datetime.now(tz=timezone.utc)
+    with sentry_sdk.start_transaction(op="task", name="schedule_auto_transition_to_ongoing"):
+        now = datetime.now(tz=timezone.utc)
 
-    seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
+        seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
-    schedule_auto_transition_issues_new_to_ongoing.delay(
-        first_seen_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
-    )
+        schedule_auto_transition_issues_new_to_ongoing.delay(
+            first_seen_lte=int(seven_days_ago.timestamp()),
+            expires=now + timedelta(hours=1),
+        )
 
-    schedule_auto_transition_issues_regressed_to_ongoing.delay(
-        date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
-    )
+        schedule_auto_transition_issues_regressed_to_ongoing.delay(
+            date_added_lte=int(seven_days_ago.timestamp()),
+            expires=now + timedelta(hours=1),
+        )
 
-    schedule_auto_transition_issues_escalating_to_ongoing.delay(
-        date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
-    )
+        schedule_auto_transition_issues_escalating_to_ongoing.delay(
+            date_added_lte=int(seven_days_ago.timestamp()),
+            expires=now + timedelta(hours=1),
+        )
 
 
 @instrumented_task(
@@ -108,16 +111,8 @@ def schedule_auto_transition_issues_new_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-
-    last_id = None
+    span = sentry_sdk.Hub.current.scope.span
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -130,6 +125,13 @@ def schedule_auto_transition_issues_new_to_ongoing(
         .order_by("-id")
         .first()
     )
+
+    if span is not None:
+        span.set_tag(
+            "most_recent_group_first_seen_seven_days_ago",
+            most_recent_group_first_seen_seven_days_ago.id,
+        )
+
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra={
@@ -144,36 +146,25 @@ def schedule_auto_transition_issues_new_to_ongoing(
         id__lte=most_recent_group_first_seen_seven_days_ago.id,
     )
 
-    for new_group_ids in chunked(
-        RangeQuerySetWrapper(
-            base_queryset._clone().values_list("id", flat=True),
-            step=ITERATOR_CHUNK,
-            limit=ITERATOR_CHUNK * 50,
-            result_value_getter=lambda item: item,
-            callbacks=[get_last_id, get_total_count],
-        ),
-        ITERATOR_CHUNK,
-    ):
-        run_auto_transition_issues_new_to_ongoing.delay(
-            group_ids=new_group_ids,
-        )
-
-    remaining_groups_queryset = base_queryset._clone()
-
-    if last_id is not None:
-        remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-    remaining_groups = remaining_groups_queryset.count()
+    with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
+        for new_group_ids in chunked(
+            RangeQuerySetWrapper(
+                base_queryset._clone().values_list("id", flat=True),
+                step=ITERATOR_CHUNK,
+                limit=ITERATOR_CHUNK * 50,
+                result_value_getter=lambda item: item,
+                callbacks=[get_total_count],
+            ),
+            ITERATOR_CHUNK,
+        ):
+            run_auto_transition_issues_new_to_ongoing.delay(
+                group_ids=new_group_ids,
+            )
 
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -196,12 +187,14 @@ def run_auto_transition_issues_new_to_ongoing(
     Child task of `auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    bulk_transition_group_to_ongoing(
-        GroupStatus.UNRESOLVED,
-        GroupSubStatus.NEW,
-        group_ids,
-        activity_data={"after_days": TRANSITION_AFTER_DAYS},
-    )
+    with sentry_sdk.start_span(description="bulk_transition_group_to_ongoing") as span:
+        span.set_tag("group_ids", group_ids)
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED,
+            GroupSubStatus.NEW,
+            group_ids,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        )
 
 
 @instrumented_task(
@@ -227,15 +220,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    last_id = None
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -251,36 +236,25 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    for group_ids_with_regressed_history in chunked(
-        RangeQuerySetWrapper(
-            base_queryset._clone().values_list("id", flat=True),
-            step=ITERATOR_CHUNK,
-            limit=ITERATOR_CHUNK * 50,
-            result_value_getter=lambda item: item,
-            callbacks=[get_last_id, get_total_count],
-        ),
-        ITERATOR_CHUNK,
-    ):
-        run_auto_transition_issues_regressed_to_ongoing.delay(
-            group_ids=group_ids_with_regressed_history,
-        )
-
-    remaining_groups_queryset = base_queryset._clone()
-
-    if last_id is not None:
-        remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-    remaining_groups = remaining_groups_queryset.count()
+    with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
+        for group_ids_with_regressed_history in chunked(
+            RangeQuerySetWrapper(
+                base_queryset._clone().values_list("id", flat=True),
+                step=ITERATOR_CHUNK,
+                limit=ITERATOR_CHUNK * 50,
+                result_value_getter=lambda item: item,
+                callbacks=[get_total_count],
+            ),
+            ITERATOR_CHUNK,
+        ):
+            run_auto_transition_issues_regressed_to_ongoing.delay(
+                group_ids=group_ids_with_regressed_history,
+            )
 
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -303,12 +277,14 @@ def run_auto_transition_issues_regressed_to_ongoing(
     Child task of `auto_transition_issues_regressed_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    bulk_transition_group_to_ongoing(
-        GroupStatus.UNRESOLVED,
-        GroupSubStatus.REGRESSED,
-        group_ids,
-        activity_data={"after_days": TRANSITION_AFTER_DAYS},
-    )
+    with sentry_sdk.start_span(description="bulk_transition_group_to_ongoing") as span:
+        span.set_tag("group_ids", group_ids)
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED,
+            GroupSubStatus.REGRESSED,
+            group_ids,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        )
 
 
 @instrumented_task(
@@ -334,16 +310,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-
-    last_id = None
     total_count = 0
-
-    def get_last_id(results):
-        nonlocal last_id
-        try:
-            last_id = results[-1]
-        except IndexError:
-            last_id = None
 
     def get_total_count(results):
         nonlocal total_count
@@ -359,36 +326,25 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         .filter(recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    for new_group_ids in chunked(
-        RangeQuerySetWrapper(
-            base_queryset._clone().values_list("id", flat=True),
-            step=ITERATOR_CHUNK,
-            limit=ITERATOR_CHUNK * 50,
-            result_value_getter=lambda item: item,
-            callbacks=[get_last_id, get_total_count],
-        ),
-        ITERATOR_CHUNK,
-    ):
-        run_auto_transition_issues_escalating_to_ongoing.delay(
-            group_ids=new_group_ids,
-        )
-
-    remaining_groups_queryset = base_queryset._clone()
-
-    if last_id is not None:
-        remaining_groups_queryset = remaining_groups_queryset.filter(id__gt=last_id)
-
-    remaining_groups = remaining_groups_queryset.count()
+    with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
+        for new_group_ids in chunked(
+            RangeQuerySetWrapper(
+                base_queryset._clone().values_list("id", flat=True),
+                step=ITERATOR_CHUNK,
+                limit=ITERATOR_CHUNK * 50,
+                result_value_getter=lambda item: item,
+                callbacks=[get_total_count],
+            ),
+            ITERATOR_CHUNK,
+        ):
+            run_auto_transition_issues_escalating_to_ongoing.delay(
+                group_ids=new_group_ids,
+            )
 
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -411,9 +367,11 @@ def run_auto_transition_issues_escalating_to_ongoing(
     Child task of `auto_transition_issues_escalating_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    bulk_transition_group_to_ongoing(
-        GroupStatus.UNRESOLVED,
-        GroupSubStatus.ESCALATING,
-        group_ids,
-        activity_data={"after_days": TRANSITION_AFTER_DAYS},
-    )
+    with sentry_sdk.start_span(description="bulk_transition_group_to_ongoing") as span:
+        span.set_tag("group_ids", group_ids)
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED,
+            GroupSubStatus.ESCALATING,
+            group_ids,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        )

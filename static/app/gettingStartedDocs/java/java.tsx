@@ -5,16 +5,55 @@ import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+export enum PackageManager {
+  GRADLE = 'gradle',
+  MAVEN = 'maven',
+  SBT = 'sbt',
+}
+
+type PlaformOptionKey = 'packageManager';
 
 interface StepsParams {
   dsn: string;
+  hasPerformance: boolean;
+  packageManager: PackageManager;
   organizationSlug?: string;
   projectSlug?: string;
   sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
 }
 
 // Configuration Start
+const packageManagerName: Record<PackageManager, string> = {
+  [PackageManager.GRADLE]: 'Gradle',
+  [PackageManager.MAVEN]: 'Maven',
+  [PackageManager.SBT]: 'SBT',
+};
+
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  packageManager: {
+    label: t('Package Manager'),
+    items: [
+      {
+        label: packageManagerName[PackageManager.GRADLE],
+        value: PackageManager.GRADLE,
+      },
+      {
+        label: packageManagerName[PackageManager.MAVEN],
+        value: PackageManager.MAVEN,
+      },
+      {
+        label: packageManagerName[PackageManager.SBT],
+        value: PackageManager.SBT,
+      },
+    ],
+  },
+};
+
 const introduction = (
   <p>
     {tct(
@@ -30,12 +69,14 @@ const introduction = (
 export const steps = ({
   dsn,
   sourcePackageRegistries,
+  packageManager,
   projectSlug,
+  hasPerformance,
   organizationSlug,
 }: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Install the SDK via Gradle, Maven, or SBT:'),
+    description: t(`Install the SDK via %s:`, packageManagerName[packageManager]),
     configurations: [
       {
         description: (
@@ -49,30 +90,27 @@ export const steps = ({
           </p>
         ),
         language: 'bash',
-        code: `
-SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
-            `,
+        code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
       },
-      {
-        description: <h5>{t('Gradle')}</h5>,
-        configurations: [
-          {
-            language: 'groovy',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: (
-              <p>
-                {tct(
-                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                    ),
-                  }
-                )}
-              </p>
-            ),
-            code: `
+      ...(packageManager === PackageManager.GRADLE
+        ? [
+            {
+              language: 'groovy',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              description: (
+                <p>
+                  {tct(
+                    'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                    {
+                      code: <code />,
+                      link: (
+                        <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                      ),
+                    }
+                  )}
+                </p>
+              ),
+              code: `
 buildscript {
   repositories {
     mavenCentral()
@@ -99,21 +137,24 @@ sentry {
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
         `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Maven')}</h5>,
-        configurations: [
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: (
-              <p>
-                {tct('For Maven, add to your [code:pom.xml] file:', {code: <code />})}
-              </p>
-            ),
-            code: `
+            },
+          ]
+        : []),
+      ...(packageManager === PackageManager.MAVEN
+        ? [
+            {
+              description: (
+                <p>
+                  {tct('Add the Sentry SDK to your [code:pom.xml] file:', {
+                    code: <code />,
+                  })}
+                </p>
+              ),
+              configurations: [
+                {
+                  language: 'xml',
+                  partialLoading: sourcePackageRegistries?.isLoading,
+                  code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
@@ -124,14 +165,14 @@ sentry {
   }</version>
 </dependency>
             `,
-          },
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
-            ),
-            code: `
+                },
+                {
+                  language: 'xml',
+                  partialLoading: sourcePackageRegistries?.isLoading,
+                  description: t(
+                    'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
+                  ),
+                  code: `
 <build>
   <plugins>
     <plugin>
@@ -169,32 +210,39 @@ sentry {
 ...
 </build>
             `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('SBT')}</h5>,
-        configurations: [
-          {
-            description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
-            language: 'scala',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `libraryDependencies += "io.sentry" % "sentry" % "${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
-            }"`,
-          },
-        ],
-      },
+                },
+              ],
+            },
+          ]
+        : []),
+      ...(packageManager === PackageManager.SBT
+        ? [
+            {
+              description: (
+                <p>
+                  {tct('Add the sentry SDK to your [code:libraryDependencies]:', {
+                    code: <code />,
+                  })}
+                </p>
+              ),
+              language: 'scala',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              code: `libraryDependencies += "io.sentry" % "sentry" % "${
+                sourcePackageRegistries?.isLoading
+                  ? t('\u2026loading')
+                  : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+              }"`,
+            },
+          ]
+        : []),
     ],
     additionalInfo: (
       <p>
         {tct(
-          'To upload your source code to Sentry so it can be shown in stack traces, please refer to [link:Manually Uploading Source Context].',
+          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
             ),
           }
         )}
@@ -213,10 +261,14 @@ sentry {
 import io.sentry.Sentry;
 
 Sentry.init(options -> {
-  options.setDsn("${dsn}");
+  options.setDsn("${dsn}");${
+    hasPerformance
+      ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
   // We recommend adjusting this value in production.
-  options.setTracesSampleRate(1.0);
+  options.setTracesSampleRate(1.0);`
+      : ''
+  }
   // When first trying Sentry it's good to see what the SDK is doing:
   options.setDebug(true);
 });
@@ -289,8 +341,15 @@ export function GettingStartedWithJava({
   sourcePackageRegistries,
   projectSlug,
   organization,
+  activeProductSelection = [],
   ...props
 }: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
+
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+
   const nextStepDocs = [...nextSteps];
 
   return (
@@ -300,7 +359,10 @@ export function GettingStartedWithJava({
         sourcePackageRegistries,
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+        packageManager: optionValues.packageManager as PackageManager,
+        hasPerformance,
       })}
+      platformOptions={platformOptions}
       nextSteps={nextStepDocs}
       introduction={introduction}
       projectSlug={projectSlug}

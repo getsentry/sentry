@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
 import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
@@ -22,8 +23,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
+import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
+import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
+import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -46,6 +48,7 @@ function ArtifactsTableRow({
   downloadRole,
   downloadUrl,
   size,
+  type,
   orgSlug,
   artifactColumnDetails,
 }: {
@@ -55,6 +58,7 @@ function ArtifactsTableRow({
   name: string;
   orgSlug: string;
   size: number;
+  type?: string;
 }) {
   return (
     <Fragment>
@@ -62,6 +66,7 @@ function ArtifactsTableRow({
         <Name>{name || `(${t('empty')})`}</Name>
         {artifactColumnDetails}
       </ArtifactColumn>
+      {type && <TypeColumn>{type}</TypeColumn>}
       <SizeColumn>
         <FileSize bytes={size} />
       </SizeColumn>
@@ -164,6 +169,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     }
   );
 
+  const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
+    onSuccess: () =>
+      router.push(
+        `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
+      ),
+  });
+
+  const handleDeleteDebugIdBundle = useCallback(() => {
+    if (!debugIdBundlesArtifactsData) {
+      return;
+    }
+    deleteDebugIdArtifacts({
+      projectSlug: project.slug,
+      bundleId: debugIdBundlesArtifactsData.bundleId,
+    });
+  }, [debugIdBundlesArtifactsData, deleteDebugIdArtifacts, project.slug]);
+
   const handleSearch = useCallback(
     (newQuery: string) => {
       router.push({
@@ -177,24 +199,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? t('Artifact Bundle') : t('Release Bundle')}
+        title={tabDebugIdBundlesActive ? params.bundleId : t('Release Bundle')}
+        action={
+          tabDebugIdBundlesActive && (
+            <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
+          )
+        }
         subtitle={
-          <VersionAndDetails>
-            {params.bundleId}
-            {tabDebugIdBundlesActive &&
-              // TODO(Pri): Move the loading to the component once fully transitioned to associations.
-              !debugIdBundlesArtifactsLoading &&
-              (debugIdBundlesArtifactsData?.associations ? (
-                <Associations associations={debugIdBundlesArtifactsData?.associations} />
-              ) : (
-                <DebugIdBundlesTags
-                  dist={debugIdBundlesArtifactsData?.dist}
-                  release={debugIdBundlesArtifactsData?.release}
-                />
-              ))}
-          </VersionAndDetails>
+          !tabDebugIdBundlesActive && (
+            <VersionAndDetails>{params.bundleId}</VersionAndDetails>
+          )
         }
       />
+      {tabDebugIdBundlesActive && debugIdBundlesArtifactsData && (
+        <DetailsPanel>
+          <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
+        </DetailsPanel>
+      )}
       <SearchBarWithMarginBottom
         placeholder={
           tabDebugIdBundlesActive ? t('Filter by Path or ID') : t('Filter by Path')
@@ -203,8 +224,12 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         query={query}
       />
       <StyledPanelTable
+        hasTypeColumn={tabDebugIdBundlesActive}
         headers={[
           t('Artifact'),
+          ...(tabDebugIdBundlesActive
+            ? [<TypeColumn key="type">{t('Type')}</TypeColumn>]
+            : []),
           <SizeColumn key="file-size">{t('File Size')}</SizeColumn>,
           '',
         ]}
@@ -238,14 +263,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                   key={data.id}
                   size={data.fileSize}
                   name={data.filePath}
+                  type={debugIdBundleTypeLabels[data.fileType]}
                   downloadRole={organization.debugFilesRole}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <DebugIdAndFileTypeWrapper>
-                      <div>{data.debugId}</div>
-                      <div>{debugIdBundleTypeLabels[data.fileType]}</div>
-                    </DebugIdAndFileTypeWrapper>
+                    <Fragment>
+                      {data.sourcemap ? (
+                        <div>
+                          <SubText>{t('Sourcemap Reference:')}</SubText> {data.sourcemap}
+                        </div>
+                      ) : null}
+                      {data.debugId ? (
+                        <div>
+                          <SubText>{t('Debug ID:')}</SubText> {data.debugId}
+                        </div>
+                      ) : null}
+                    </Fragment>
                   }
                 />
               );
@@ -294,11 +328,18 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
   grid-template-columns: minmax(220px, 1fr) minmax(120px, max-content) minmax(
       74px,
       max-content
     );
+  ${p =>
+    p.hasTypeColumn &&
+    `
+  grid-template-columns:
+    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+    minmax(74px, max-content);
+    `}
 `;
 
 const Column = styled('div')`
@@ -315,16 +356,31 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
+const DetailsPanel = styled(Panel)`
+  padding: ${space(1)} ${space(2)};
+`;
+
 const ArtifactColumn = styled('div')`
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 140%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const Name = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
+`;
+
+const TypeColumn = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  text-align: right;
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;
 
 const SizeColumn = styled('div')`
@@ -355,8 +411,7 @@ const StyledTag = styled(Tag)`
   margin-left: ${space(1)};
 `;
 
-const DebugIdAndFileTypeWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const SubText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 

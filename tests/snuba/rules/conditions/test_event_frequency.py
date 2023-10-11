@@ -8,12 +8,13 @@ import pytest
 from django.utils.timezone import now
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -23,48 +24,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@pytest.mark.snuba_ci
-class FrequencyConditionMixin:
-    def increment(self, event, count, environment=None, timestamp=None):
-        raise NotImplementedError
-
-    def _run_test(self, minutes, data, passes, add_events=False):
-        if not self.environment:
-            self.environment = self.create_environment(name="prod")
-
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
-
-        event = self.add_event(
-            data={
-                "fingerprint": ["something_random"],
-                "user": {"id": uuid4().hex},
-            },
-            project_id=self.project.id,
-            timestamp=before_now(minutes=minutes),
-        )
-        if add_events:
-            self.increment(
-                event,
-                data["value"] + 1,
-                environment=self.environment.name,
-                timestamp=now() - timedelta(minutes=minutes),
-            )
-            self.increment(
-                event,
-                data["value"] + 1,
-                timestamp=now() - timedelta(minutes=minutes),
-            )
-
-        if passes:
-            self.assertPasses(rule, event)
-            self.assertPasses(environment_rule, event)
-        else:
-            self.assertDoesNotPass(rule, event)
-            self.assertDoesNotPass(environment_rule, event)
-
-
-class ErrorEventMixin:
+class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
         data["timestamp"] = iso_format(timestamp)
         # Store an error event
@@ -107,7 +67,51 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
         return event
 
 
-class StandardIntervalMixin:
+@pytest.mark.snuba_ci
+class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
+    def add_event(self, data, project_id, timestamp):
+        raise NotImplementedError
+
+    def increment(self, event, count, environment=None, timestamp=None):
+        raise NotImplementedError
+
+    def _run_test(self, minutes, data, passes, add_events=False):
+        if not self.environment:
+            self.environment = self.create_environment(name="prod")
+
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+        environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
+
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=minutes),
+        )
+        if add_events:
+            self.increment(
+                event,
+                data["value"] + 1,
+                environment=self.environment.name,
+                timestamp=now() - timedelta(minutes=minutes),
+            )
+            self.increment(
+                event,
+                data["value"] + 1,
+                timestamp=now() - timedelta(minutes=minutes),
+            )
+
+        if passes:
+            self.assertPasses(rule, event)
+            self.assertPasses(environment_rule, event)
+        else:
+            self.assertDoesNotPass(rule, event)
+            self.assertDoesNotPass(environment_rule, event)
+
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
@@ -217,9 +221,9 @@ class StandardIntervalMixin:
         self.assertDoesNotPass(rule, event)
 
 
-class EventFrequencyConditionTestCase(
-    FrequencyConditionMixin, StandardIntervalMixin, SnubaTestCase
-):
+class EventFrequencyConditionTestCase(StandardIntervalTestBase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     rule_cls = EventFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
@@ -236,11 +240,9 @@ class EventFrequencyConditionTestCase(
             )
 
 
-class EventUniqueUserFrequencyConditionTestCase(
-    FrequencyConditionMixin,
-    StandardIntervalMixin,
-    SnubaTestCase,
-):
+class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     rule_cls = EventUniqueUserFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
@@ -259,8 +261,13 @@ class EventUniqueUserFrequencyConditionTestCase(
             )
 
 
-class EventFrequencyPercentConditionTestCase(SnubaTestCase):
+class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     rule_cls = EventFrequencyPercentCondition
+
+    def add_event(self, data, project_id, timestamp):
+        raise NotImplementedError
 
     def _make_sessions(self, num):
         received = time.time()
@@ -432,9 +439,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class ErrorIssueFrequencyConditionTestCase(
-    EventFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
-):
+class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
 
@@ -443,7 +448,6 @@ class ErrorIssueFrequencyConditionTestCase(
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
-    RuleTestCase,
 ):
     pass
 
@@ -451,7 +455,8 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
-    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
+    ErrorEventMixin,
+    EventUniqueUserFrequencyConditionTestCase,
 ):
     pass
 
@@ -461,7 +466,6 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
-    RuleTestCase,
 ):
     pass
 
@@ -469,7 +473,7 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
-    EventFrequencyPercentConditionTestCase, RuleTestCase, ErrorEventMixin
+    ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
     pass
 
@@ -479,6 +483,5 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,
-    RuleTestCase,
 ):
     pass

@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -8,7 +9,7 @@ import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {PageFilters} from '../types/core';
+import {DateString, PageFilters} from '../types/core';
 
 // TODO(ddm): reuse from types/metrics.tsx
 type MetricMeta = {
@@ -28,10 +29,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
-export function useMetricsMeta(): Record<string, MetricMeta> {
+export function useMetricsMeta(
+  projects: PageFilters['projects']
+): Record<string, MetricMeta> {
   const {slug} = useOrganization();
   const getKey = (useCase: UseCase): ApiQueryKey => {
-    return [`/organizations/${slug}/metrics/meta/`, {query: {useCase}}];
+    return [
+      `/organizations/${slug}/metrics/meta/`,
+      {query: {useCase, project: projects}},
+    ];
   };
 
   const opts = {
@@ -55,22 +61,32 @@ type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string) {
+export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/`, {query: {metric: mri, useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
     }
   );
 }
 
-export function useMetricsTagValues(mri: string, tag: string) {
+export function useMetricsTagValues(
+  mri: string,
+  tag: string,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/${tag}`, {query: {useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/${tag}/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
       enabled: !!tag,
@@ -78,13 +94,14 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
-export type MetricsDataProps = {
+export type MetricsQuery = {
   datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
   mri: string;
+  projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
-  projects?: string[];
-  queryString?: string;
+  query?: string;
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -109,24 +126,26 @@ export function useMetricsData({
   op,
   datetime,
   projects,
-  queryString,
+  environments,
+  query,
   groupBy,
-}: MetricsDataProps) {
+}: MetricsQuery) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
-
-  const query = getQueryString({projects, queryString});
 
   const interval = getInterval(datetime, 'metrics');
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
+    query,
+    project: projects,
+    environment: environments,
     field,
     useCase,
     interval,
-    query,
     groupBy,
+    allowPrivate: true, // TODO(ddm): reconsider before widening audience
 
     // max result groups
     per_page: 20,
@@ -151,27 +170,70 @@ export function useMetricsData({
   );
 }
 
+// Wraps useMetricsData and provides two additional features:
+// 1. return data is undefined only during the initial load
+// 2. provides a callback to trim the data to a specific time range when chart zoom is used
+export function useMetricsDataZoom(props: MetricsQuery) {
+  const [metricsData, setMetricsData] = useState<MetricsData | undefined>();
+  const {data: rawData, isLoading, isError, error} = useMetricsData(props);
+
+  useEffect(() => {
+    if (rawData) {
+      setMetricsData(rawData);
+    }
+  }, [rawData]);
+
+  const trimData = (start, end): MetricsData | undefined => {
+    if (!metricsData) {
+      return metricsData;
+    }
+    // find the index of the first interval that is greater than the start time
+    const startIndex = metricsData.intervals.findIndex(interval => interval >= start) - 1;
+    const endIndex = metricsData.intervals.findIndex(interval => interval >= end);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return metricsData;
+    }
+
+    return {
+      ...metricsData,
+      intervals: metricsData.intervals.slice(startIndex, endIndex),
+      groups: metricsData.groups.map(group => ({
+        ...group,
+        series: Object.fromEntries(
+          Object.entries(group.series).map(([seriesName, series]) => [
+            seriesName,
+            series.slice(startIndex, endIndex),
+          ])
+        ),
+      })),
+    };
+  };
+
+  return {
+    data: metricsData,
+    isLoading,
+    isError,
+    error,
+    onZoom: (start: DateString, end: DateString) => {
+      setMetricsData(trimData(start, end));
+    },
+  };
+}
+
 function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
   return period
     ? {statsPeriod: period}
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
-function getQueryString({
-  projects = [],
-  queryString = '',
-}: Pick<MetricsDataProps, 'projects' | 'queryString'>): string {
-  const projectQuery = projects.length ? `project:[${projects}]` : '';
-  return [projectQuery, queryString].join(' ');
-}
-
 type UseCase = 'sessions' | 'transactions' | 'custom';
 
 export function getUseCaseFromMri(mri?: string): UseCase {
-  if (mri?.includes('custom')) {
+  if (mri?.includes('custom/')) {
     return 'custom';
   }
-  if (mri?.includes('transactions')) {
+  if (mri?.includes('transactions/')) {
     return 'transactions';
   }
   return 'sessions';
@@ -274,4 +336,25 @@ export function formatMetricsUsingUnitAndOp(
     return value?.toLocaleString() ?? '';
   }
   return formatMetricUsingUnit(value, unit);
+}
+
+export function isAllowedOp(op: string) {
+  return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
+}
+
+export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+  router.push({
+    ...router.location,
+    query: {
+      ...router.location.query,
+      ...partialQuery,
+    },
+  });
+}
+
+export function clearQuery(router: InjectedRouter) {
+  router.push({
+    ...router.location,
+    query: {},
+  });
 }

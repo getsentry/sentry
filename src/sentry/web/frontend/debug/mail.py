@@ -31,17 +31,14 @@ from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    Project,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
@@ -712,7 +709,7 @@ def recover_account(request):
 
 @login_required
 def org_delete_confirm(request):
-    from sentry.models import AuditLogEntry
+    from sentry.models.auditlogentry import AuditLogEntry
 
     org = Organization.get_default()
     entry = AuditLogEntry(

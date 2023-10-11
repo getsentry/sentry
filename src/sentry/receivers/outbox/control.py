@@ -12,14 +12,10 @@ from typing import Any, Mapping
 
 from django.dispatch import receiver
 
-from sentry.models import (
-    ApiApplication,
-    Integration,
-    OrganizationIntegration,
-    OutboxCategory,
-    SentryAppInstallation,
-    process_control_outbox,
-)
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 from sentry.silo.base import SiloMode
@@ -58,17 +54,6 @@ def process_sentry_app_installation_updates(object_identifier: int, region_name:
     ) is None:
         return
     sentry_app_installation  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE)
-def process_organization_integration_update(object_identifier: int, region_name: str, **kwds: Any):
-    if (
-        organization_integration := maybe_process_tombstone(
-            OrganizationIntegration, object_identifier, region_name=region_name
-        )
-    ) is None:
-        return
-    organization_integration  # Currently we do not sync any other organization integration changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)

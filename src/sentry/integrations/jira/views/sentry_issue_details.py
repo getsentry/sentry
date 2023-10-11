@@ -12,7 +12,9 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import ExternalIssue, Group, Organization
+from sentry.models.group import Group
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri

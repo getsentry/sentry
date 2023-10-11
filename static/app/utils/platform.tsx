@@ -4,9 +4,9 @@ import {
   frontend,
   mobile,
   PlatformCategory,
-  PlatformKey,
   serverless,
 } from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/types';
 
 /**
  *

@@ -9,7 +9,9 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
-from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.models.dashboard_widget import DashboardWidgetQuery
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode
@@ -53,6 +55,7 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.javascript.node": "7.6.0",
     "sentry.javascript.angular-ivy": "7.6.0",
     "sentry.javascript.sveltekit": "7.6.0",
+    "sentry.javascript.bun": "7.70.0",
     # Apple
     "sentry-cocoa": "7.23.0",
     "sentry-objc": "7.23.0",
@@ -211,6 +214,7 @@ SDKS_SUPPORTING_PERFORMANCE = {
     "sentry-laravel",
     "sentry.php.laravel",
     "sentry.javascript.node",
+    "sentry.javascript.bun",
     "sentry-php",
     "sentry.php",
     "sentry-python",
@@ -245,6 +249,7 @@ SDKS_SUPPORTING_PERFORMANCE = {
     "sentry.java.android.unity",
 }
 
+CACHING_TTL_IN_SECONDS = 60 * 10  # 10 minutes
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
 
@@ -606,7 +611,7 @@ def generate_cache_key_for_async_result(org_id):
     return f"ds::o:{org_id}:check_am2_compatibility_results"
 
 
-def set_check_status(org_id, status, ttl=TASK_SOFT_LIMIT_IN_SECONDS):
+def set_check_status(org_id, status, ttl=CACHING_TTL_IN_SECONDS):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
@@ -631,7 +636,7 @@ def set_check_results(org_id, results):
     cache_key = generate_cache_key_for_async_result(org_id)
 
     redis_client.set(cache_key, json.dumps(results))
-    redis_client.expire(cache_key, TASK_SOFT_LIMIT_IN_SECONDS)
+    redis_client.expire(cache_key, CACHING_TTL_IN_SECONDS)
 
 
 def get_check_results(org_id):
@@ -645,6 +650,14 @@ def get_check_results(org_id):
             return json.loads(serialised_val)
     except (TypeError, ValueError):
         return None
+
+
+def refresh_check_state(org_id):
+    redis_client = get_redis_client_for_ds()
+    status_cache_key = generate_cache_key_for_async_progress(org_id)
+    results_cache_key = generate_cache_key_for_async_result(org_id)
+
+    redis_client.delete(status_cache_key, results_cache_key)
 
 
 @instrumented_task(

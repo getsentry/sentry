@@ -8,7 +8,7 @@ from django.db import router, transaction
 from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 

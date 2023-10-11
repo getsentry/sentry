@@ -8,14 +8,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.integrations.opsgenie.integration import OpsgenieIntegration
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 
 @region_silo_endpoint
 class OrganizationIntegrationMigrateOpsgenieEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 

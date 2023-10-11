@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import {
   Frame,
   Organization,
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -58,6 +58,7 @@ export interface DeprecatedLineProps {
   frameMeta?: Record<any, any>;
   frameSourceResolutionResults?: FrameSourceMapDebuggerData;
   hiddenFrameCount?: number;
+  hideSourceMapDebugger?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -80,7 +81,7 @@ export interface DeprecatedLineProps {
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
@@ -316,6 +317,7 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     const shouldShowSourceMapDebuggerToggle =
+      !this.props.hideSourceMapDebugger &&
       data.inApp &&
       this.props.frameSourceResolutionResults &&
       (!this.props.frameSourceResolutionResults.frameIsResolved ||

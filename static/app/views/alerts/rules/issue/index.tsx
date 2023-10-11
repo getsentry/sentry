@@ -54,6 +54,9 @@ import {
   Team,
 } from 'sentry/types';
 import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
@@ -355,7 +358,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       this.handleChange('conditions', [
         {
           id,
-          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[id]}...`,
         },
       ]);
     }
@@ -610,11 +613,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       transaction.setTag('operation', isNew ? 'create' : 'edit');
       if (rule) {
         for (const action of rule.actions) {
-          // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
-          const splitActionId = action.id.split('.');
-          const actionName = splitActionId[splitActionId.length - 1];
-          if (actionName === 'SlackNotifyServiceAction') {
-            transaction.setTag(actionName, true);
+          if (action.id === IssueAlertActionType.SLACK) {
+            transaction.setTag('SlackNotifyServiceAction', true);
           }
           // to avoid storing inconsistent data in the db, don't pass the name fields
           delete action.name;
@@ -877,7 +877,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
           ? ({
               ...condition,
-              label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
+              label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
             } as IssueAlertRuleConditionTemplate)
           : condition
       ) ?? null
@@ -1623,19 +1623,19 @@ export const findIncompatibleRules = (
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
       const id = conditions[i].id;
-      if (id.endsWith('FirstSeenEventCondition')) {
+      if (id === IssueAlertConditionType.FIRST_SEEN_EVENT) {
         firstSeen = i;
-      } else if (id.endsWith('RegressionEventCondition')) {
+      } else if (id === IssueAlertConditionType.REGRESSION_EVENT) {
         regression = i;
-      } else if (id.endsWith('ReappearedEventCondition')) {
+      } else if (id === IssueAlertConditionType.REAPPEARED_EVENT) {
         reappeared = i;
       } else if (
-        id.endsWith('EventFrequencyCondition') &&
+        id === IssueAlertConditionType.EVENT_FREQUENCY &&
         (conditions[i].value as number) >= 1
       ) {
         eventFrequency = i;
       } else if (
-        id.endsWith('EventUniqueUserFrequencyCondition') &&
+        id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY &&
         (conditions[i].value as number) >= 1
       ) {
         userFrequency = i;
@@ -1663,7 +1663,7 @@ export const findIncompatibleRules = (
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i];
       const id = filter.id;
-      if (id.endsWith('IssueOccurrencesFilter') && filter) {
+      if (id === IssueAlertFilterType.ISSUE_OCCURRENCES && filter) {
         if (
           (rule.filterMatch === 'all' && (filter.value as number) > 1) ||
           (rule.filterMatch === 'none' && (filter.value as number) <= 1)
@@ -1673,7 +1673,7 @@ export const findIncompatibleRules = (
         if (rule.filterMatch === 'any' && (filter.value as number) > 1) {
           incompatibleFilters += 1;
         }
-      } else if (id.endsWith('AgeComparisonFilter')) {
+      } else if (id === IssueAlertFilterType.AGE_COMPARISON) {
         if (rule.filterMatch !== 'none') {
           if (filter.comparison_type === 'older') {
             if (rule.filterMatch === 'all') {

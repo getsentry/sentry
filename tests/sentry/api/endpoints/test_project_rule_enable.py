@@ -4,7 +4,8 @@ from rest_framework import status
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
-from sentry.models import AuditLogEntry, Rule
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.rule import Rule
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -40,7 +41,7 @@ class ProjectRuleEnableTestCase(APITestCase):
             ).exists()
         assert self.analytics_called_with_args(
             record_analytics,
-            "rule.reenable",
+            "rule_reenable.explicit",
             rule_id=self.rule.id,
             user_id=self.user.id,
             organization_id=self.organization.id,

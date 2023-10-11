@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import IntEnum, auto, unique
 from typing import Optional
 
 from sentry.backup.dependencies import NormalizedModelName
+from sentry.utils import json
 
 
 @dataclass
@@ -33,8 +35,12 @@ class InstanceID:
         return out + ")"
 
 
+class FindingKind(IntEnum):
+    pass
+
+
 @unique
-class ComparatorFindingKind(IntEnum):
+class ComparatorFindingKind(FindingKind):
     Unknown = auto()
 
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
@@ -178,3 +184,18 @@ class ComparatorFindings:
 
     def pretty(self) -> str:
         return "\n".join(f.pretty() for f in self.findings)
+
+
+class FindingJSONEncoder(json.JSONEncoder):
+    """JSON serializer that handles findings properly."""
+
+    def default(self, obj):
+        if isinstance(obj, Finding):
+            d = deepcopy(obj.__dict__)
+            kind = d.get("kind")
+            if isinstance(kind, FindingKind):
+                d["kind"] = kind.name
+            return d
+        if isinstance(obj, InstanceID):
+            return obj.__dict__
+        return super().default(obj)

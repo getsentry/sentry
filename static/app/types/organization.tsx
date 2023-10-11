@@ -1,3 +1,4 @@
+import {Project} from 'sentry/types/project';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -75,6 +76,11 @@ export interface Organization extends OrganizationSummary {
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   orgRole?: string;
+}
+
+export interface DetailedOrganization extends Organization {
+  projects: Project[];
+  teams: Team[];
 }
 
 export interface Team {

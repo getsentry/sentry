@@ -126,21 +126,29 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         # sorted so the result key is consistent
         return sorted(translated)
 
+    def is_aggregate_field(self, field: str) -> bool:
+        resolved = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
+        return resolved in self.aggregates
+
     def resolve_top_event_conditions(
         self, top_functions: List[Dict[str, Any]], other: bool
     ) -> Optional[WhereType]:
         assert not other, "Other is not supported"  # TODO: support other
 
+        # we only want to create conditions on the non aggregate fields
+        fields = [field for field in self.fields if not self.is_aggregate_field(field)]
+
         conditions = []
 
         # if the project id is in the query, we can further narrow down the
         # list of projects to only the set that matches the top functions
-        for field in self.fields:
+        for field in fields:
             if field in ["project", "project.id"] and not other:
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
 
@@ -158,9 +166,13 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         for function in top_functions:
             terms = [
                 SearchFilter(SearchKey(field), "=", SearchValue(function.get(field) or ""))
-                for field in self.fields
+                for field in fields
             ]
-            conditions.append(And(self.resolve_where(terms)))
+            function_condition = self.resolve_where(terms)
+            if len(function_condition) > 1:
+                conditions.append(And(function_condition))
+            elif len(function_condition) == 1:
+                conditions.append(function_condition[0])
 
         if len(conditions) > 1:
             return Or(conditions=conditions)

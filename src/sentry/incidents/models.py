@@ -26,8 +26,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models import Organization, Team
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
@@ -596,7 +597,13 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     _type_registrations = {}
 
     INTEGRATION_TYPES = frozenset(
-        (Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value, Type.OPSGENIE.value)
+        (
+            Type.PAGERDUTY.value,
+            Type.SLACK.value,
+            Type.MSTEAMS.value,
+            Type.OPSGENIE.value,
+            Type.DISCORD.value,
+        )
     )
 
     # ActionService items which are not supported for AlertRuleTriggerActions

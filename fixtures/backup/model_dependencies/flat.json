@@ -1,13 +1,31 @@
 {
-  "feedback.feedback": [],
+  "feedback.feedback": [
+    "sentry.environment",
+    "sentry.organization",
+    "sentry.project"
+  ],
+  "hybridcloud.apikeyreplica": [
+    "sentry.apikey",
+    "sentry.organization"
+  ],
+  "hybridcloud.organizationslugreservationreplica": [
+    "sentry.organization",
+    "sentry.organizationslugreservation",
+    "sentry.user"
+  ],
+  "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
-  "replays.replayrecordingsegment": [],
+  "replays.replayrecordingsegment": [
+    "sentry.file",
+    "sentry.project"
+  ],
   "sentry.activity": [
     "sentry.group",
     "sentry.project",
     "sentry.user"
   ],
   "sentry.actor": [
+    "sentry.team",
     "sentry.user"
   ],
   "sentry.alertrule": [
@@ -743,7 +761,6 @@
     "sentry.organization"
   ],
   "sentry.team": [
-    "sentry.actor",
     "sentry.organization"
   ],
   "sentry.teamavatar": [

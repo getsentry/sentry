@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,7 +12,7 @@ import {TeamWithProjects} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import Header from '../header';
 
@@ -27,7 +28,7 @@ type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsIssues({location, router}: Props) {
   const organization = useOrganization();
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, isLoading, isError} = useUserTeams();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -55,6 +56,10 @@ function TeamStatsIssues({location, router}: Props) {
     );
   }
 
+  if (isError) {
+    return <LoadingError />;
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Team Issues')} orgSlug={organization.slug} />
@@ -69,8 +74,8 @@ function TeamStatsIssues({location, router}: Props) {
           currentEnvironment={environment}
         />
 
-        {!initiallyLoaded && <LoadingIndicator />}
-        {initiallyLoaded && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}

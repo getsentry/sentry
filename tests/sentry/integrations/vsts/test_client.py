@@ -1,7 +1,7 @@
 from time import time
 from unittest import mock
 from unittest.mock import call
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote_plus
 
 import pytest
 import responses
@@ -11,7 +11,10 @@ from responses import matchers
 from fixtures.vsts import VstsIntegrationTestCase
 from sentry.integrations.vsts.client import VstsApiClient
 from sentry.integrations.vsts.integration import VstsIntegrationProvider
-from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -193,6 +196,109 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             ),
         ]
         assert self.metrics.incr.mock_calls == calls
+
+    @responses.activate
+    def test_check_file(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        client = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        ).get_client(base_url=self.vsts_base_url)
+
+        path = "src/sentry/integrations/vsts/client.py"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path}&api-version=7.0&versionDescriptor.version={version}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"text": 200},
+        )
+
+        resp = client.check_file(repo, path, version)
+        assert resp.status_code == 200
+
+    @responses.activate
+    def test_check_no_file(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        client = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        ).get_client(base_url=self.vsts_base_url)
+
+        path = "src/sentry/integrations/vsts/client.py"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path}&api-version=7.0&versionDescriptor.version={version}"
+
+        responses.add(method=responses.HEAD, url=url, status=404)
+
+        with pytest.raises(ApiError):
+            client.check_file(repo, path, version)
+
+    @responses.activate
+    def test_get_stacktrace_link(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        path = "/src/sentry/integrations/vsts/client.py"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path.lstrip('/')}&api-version=7.0&versionDescriptor.version={version}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = installation.get_stacktrace_link(repo, path, "master", version)
+        assert (
+            source_url
+            == f"https://MyVSTSAccount.visualstudio.com/project-name/_git/{repo.name}?path={quote_plus(path)}&version=GB{version}"
+        )
 
 
 def assert_proxy_request(request, is_proxy=True):

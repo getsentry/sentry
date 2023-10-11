@@ -6,25 +6,30 @@ import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+export enum InstallationMode {
+  AUTO = 'auto',
+  MANUAL = 'manual',
+}
+
+type PlaformOptionKey = 'installationMode';
 
 interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   hasProfiling: boolean;
+  installationMode?: InstallationMode;
   sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
 }
 
 // Configuration Start
-export const steps = ({
-  dsn,
-  sourcePackageRegistries,
-  hasPerformance,
-  hasProfiling,
-}: StepsParams): LayoutProps['steps'] => [
+const autoInstallSteps = [
   {
-    title: t('Auto-Install'),
+    type: StepType.INSTALL,
     description: (
       <p>
         {tct(
@@ -80,12 +85,11 @@ export const steps = ({
             </List>
             <p>
               {tct(
-                'Alternatively, you can also [manualSetupLink:set up the SDK manually]. [stepsBelow: You can skip the steps below when using the wizard].',
+                'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
                 {
                   manualSetupLink: (
                     <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
                   ),
-                  stepsBelow: <strong />,
                 }
               )}
             </p>
@@ -94,29 +98,38 @@ export const steps = ({
       },
     ],
   },
-  {
-    title: t('Or Manually Install and Configure'),
-    description: (
-      <Fragment>
-        <strong>{t('Install the Sentry SDK:')}</strong>
-        <p>
-          {tct(
-            'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+];
+
+export const steps = ({
+  dsn,
+  sourcePackageRegistries,
+  hasPerformance,
+  hasProfiling,
+  installationMode,
+}: StepsParams): LayoutProps['steps'] =>
+  installationMode === InstallationMode.AUTO
+    ? autoInstallSteps
+    : [
+        {
+          type: StepType.INSTALL,
+          description: (
+            <p>
+              {tct(
+                'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+                {
+                  sagpLink: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
+                  ),
+                  app: <code />,
+                }
+              )}
+            </p>
+          ),
+          configurations: [
             {
-              sagpLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
-              ),
-              app: <code />,
-            }
-          )}
-        </p>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        language: 'groovy',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        code: `
+              language: 'groovy',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              code: `
 plugins {
   id "com.android.application" // should be in the same module
   id "io.sentry.android.gradle" version "${
@@ -127,25 +140,29 @@ plugins {
   }"
 }
         `,
-      },
-      {
-        description: (
-          <Fragment>
-            <strong>{t('Configure the Sentry SDK:')}</strong>
-            <p>
-              {tct(
-                'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
-                {
-                  manifest: <code />,
-                  provider: <code />,
-                }
-              )}
-            </p>
-            <p>{t("Here's an example config which should get you started:")}</p>
-          </Fragment>
-        ),
-        language: 'xml',
-        code: `
+            },
+          ],
+        },
+        {
+          type: StepType.CONFIGURE,
+          description: (
+            <Fragment>
+              <p>
+                {tct(
+                  'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
+                  {
+                    manifest: <code />,
+                    provider: <code />,
+                  }
+                )}
+              </p>
+              <p>{t("Here's an example config which should get you started:")}</p>
+            </Fragment>
+          ),
+          configurations: [
+            {
+              language: 'xml',
+              code: `
 <application>
   <!-- Required: set your sentry.io project identifier (DSN) -->
   <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
@@ -171,44 +188,44 @@ plugins {
   }
 </application>
         `,
-      },
-    ],
-  },
-  {
-    type: StepType.VERIFY,
-    description: (
-      <p>
-        {tct(
-          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. You can add it to your app's [mainActivity: MainActivity].",
-          {
-            mainActivity: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'kotlin',
-        code: `
+            },
+          ],
+        },
+        {
+          type: StepType.VERIFY,
+          description: (
+            <p>
+              {tct(
+                "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected. You can add it to your app's [mainActivity: MainActivity].",
+                {
+                  mainActivity: <code />,
+                }
+              )}
+            </p>
+          ),
+          configurations: [
+            {
+              language: 'kotlin',
+              code: `
 val breakWorld = Button(this).apply {
   text = "Break the world"
   setOnClickListener {
-    throw RuntimeException("Break the world")
+    Sentry.captureException(RuntimeException("This app uses Sentry! :)"))
   }
 }
 
 addContentView(breakWorld, ViewGroup.LayoutParams(
   ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         `,
-      },
-    ],
-  },
-];
+            },
+          ],
+        },
+      ];
 
-export const nextSteps = [
+export const nextStepsManual = [
   {
-    id: 'manual-configuration',
-    name: t('Manual Configuration'),
+    id: 'advanced-configuration',
+    name: t('Advanced Configuration'),
     description: t('Customize the SDK initialization behavior.'),
     link: 'https://docs.sentry.io/platforms/android/configuration/manual-init/#manual-initialization',
   },
@@ -231,6 +248,21 @@ export const nextSteps = [
     link: 'https://docs.sentry.io/platforms/android/enhance-errors/source-context/',
   },
 ];
+
+export const nextStepsAuto = [
+  {
+    id: 'advanced-configuration',
+    name: t('Advanced Configuration'),
+    description: t('Customize the SDK initialization behavior.'),
+    link: 'https://docs.sentry.io/platforms/android/configuration/manual-init/#manual-initialization',
+  },
+  {
+    id: 'jetpack-compose',
+    name: t('Jetpack Compose'),
+    description: t('Learn about our first class integration with Jetpack Compose.'),
+    link: 'https://docs.sentry.io/platforms/android/configuration/integrations/jetpack-compose/',
+  },
+];
 // Configuration End
 
 export function GettingStartedWithAndroid({
@@ -239,14 +271,45 @@ export function GettingStartedWithAndroid({
   activeProductSelection = [],
   ...props
 }: ModuleProps) {
+  const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+    installationMode: {
+      label: t('Installation Mode'),
+      items: [
+        {
+          label: t('Auto'),
+          value: InstallationMode.AUTO,
+        },
+        {
+          label: t('Manual'),
+          value: InstallationMode.MANUAL,
+        },
+      ],
+      defaultValue:
+        navigator.userAgent.indexOf('Win') !== -1
+          ? InstallationMode.MANUAL
+          : InstallationMode.AUTO,
+    },
+  };
+  const optionValues = useUrlPlatformOptions(platformOptions);
+
+  const installationMode = optionValues.installationMode as InstallationMode;
   const hasPerformance = activeProductSelection.includes(
     ProductSolution.PERFORMANCE_MONITORING
   );
   const hasProfiling = activeProductSelection.includes(ProductSolution.PROFILING);
   return (
     <Layout
-      steps={steps({dsn, sourcePackageRegistries, hasPerformance, hasProfiling})}
-      nextSteps={nextSteps}
+      steps={steps({
+        dsn,
+        sourcePackageRegistries,
+        hasPerformance,
+        hasProfiling,
+        installationMode,
+      })}
+      platformOptions={platformOptions}
+      nextSteps={
+        installationMode === InstallationMode.AUTO ? nextStepsAuto : nextStepsManual
+      }
       {...props}
     />
   );

@@ -21,7 +21,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.constants import ObjectStatus
-from sentry.models import RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
@@ -238,7 +239,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
-                if type(monitor_object) == Monitor:
+                if isinstance(monitor_object, Monitor):
                     monitor_object.update(slug=get_random_string(length=24))
 
                 schedule = RegionScheduledDeletion.schedule(

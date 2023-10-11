@@ -5,7 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
-from sentry.models import Group, GroupMeta
+from sentry.models.group import Group
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base import plugins
 from sentry.web.frontend.base import ProjectView
 

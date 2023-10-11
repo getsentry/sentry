@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -223,14 +223,14 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
         help_text="""
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
-- `ie_pre_9`: Internet Explorer Version 8 and lower
-- `ie9`: Internet Explorer Version 9
-- `ie10`: Internet Explorer Version 10
-- `ie11`: Internet Explorer Version 11
-- `safari_pre_6`: Safari Version 5 and lower
-- `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and lower
-- `android_pre_4`: Android Version 3 and lower
+- `ie_pre_9` - Internet Explorer Version 8 and lower
+- `ie9` - Internet Explorer Version 9
+- `ie10` - Internet Explorer Version 10
+- `ie11` - Internet Explorer Version 11
+- `safari_pre_6` - Safari Version 5 and lower
+- `opera_pre_15` - Opera Version 14 and lower
+- `opera_mini_pre_8` - Opera Mini Version 8 and lower
+- `android_pre_4` - Android Version 3 and lower
 """,
         choices=[
             "ie_pre_9",
