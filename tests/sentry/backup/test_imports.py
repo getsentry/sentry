@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import tempfile
 from copy import deepcopy
-from datetime import datetime
+from datetime import date, datetime
 from functools import cached_property
+from os import environ
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1473,3 +1474,16 @@ class CollisionTests(ImportTestCase):
 
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
+
+
+@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+class TestLegacyTestSuite:
+    def test_deleteme(self):
+        """
+        The monolith-dbs test suite should only exist until relocation code
+        handles monolith- and hybrid-database modes with the same code path,
+        which is planned work.
+        """
+        assert date.today() <= date(
+            2023, 11, 11
+        ), "Please delete the monolith-dbs test suite!"  # or else bump the date

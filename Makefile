@@ -143,11 +143,13 @@ test-python-ci: create-db
 #   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
 test-monolith-dbs: create-db
 	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
+	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
 	pytest \
 	  tests/sentry/backup \
 	  tests/sentry/runner/commands/test_backup.py \
-	  --cov . --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	  --cov . \
+	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
 	;
 	@echo ""
 
