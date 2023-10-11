@@ -8,7 +8,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp} from '../colors/utils';
+import {clamp, colorComponentsToRGBA} from '../colors/utils';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
@@ -382,23 +382,25 @@ export function formatColorForSpan(
 ): string {
   const color = renderer.getColorForFrame(frame);
   if (Array.isArray(color)) {
-    if (color.length === 4) {
-      return `rgba(${color
-        .slice(0, 3)
-        .map(n => n * 255)
-        .join(',')}, ${color[3]})`;
-    }
-
-    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return colorComponentsToRGBA(color);
   }
   return '';
 }
 
+export function formatColorForFrame(frame: FlamegraphFrame, color: ColorChannels): string;
 export function formatColorForFrame(
   frame: FlamegraphFrame,
-  renderer: FlamegraphRenderer
+  color: FlamegraphRenderer
+): string;
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  rendererOrColor: FlamegraphRenderer | ColorChannels
 ): string {
-  const color = renderer.getColorForFrame(frame);
+  if (Array.isArray(rendererOrColor)) {
+    return colorComponentsToRGBA(rendererOrColor);
+  }
+
+  const color = rendererOrColor.getColorForFrame(frame);
   if (color.length === 4) {
     return `rgba(${color
       .slice(0, 3)

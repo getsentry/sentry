@@ -15,7 +15,8 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, Team
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 

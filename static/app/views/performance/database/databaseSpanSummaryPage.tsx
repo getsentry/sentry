@@ -234,7 +234,7 @@ const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage(local)',
+  field: 'time_spent_percentage()',
 };
 
 const PaddedContainer = styled('div')`

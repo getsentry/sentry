@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.project import RpcProject
 
 

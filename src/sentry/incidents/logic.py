@@ -37,8 +37,11 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, OrganizationIntegration, Project
+from sentry.models.actor import Actor
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.models.project import Project
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
@@ -47,6 +50,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiTimeoutError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -1349,6 +1353,10 @@ def get_alert_rule_trigger_action_discord_channel_id(
         )
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
+    except ApiTimeoutError:
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
+        )
 
     return name
 

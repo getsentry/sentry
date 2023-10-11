@@ -9,12 +9,14 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
   A11Y = 'a11y',
+  BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
   DOM = 'dom',
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',
   PERF = 'perf',
+  TAGS = 'tags',
   TRACE = 'trace',
 }
 
@@ -46,7 +48,7 @@ function useDefaultTab() {
     return TabKey.DOM;
   }
 
-  return TabKey.CONSOLE;
+  return TabKey.BREADCRUMBS;
 }
 
 function useActiveReplayTab() {

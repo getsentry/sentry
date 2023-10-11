@@ -21,10 +21,11 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {RESOURCE_TYPE, DOMAIN, PAGE, DESCRIPTION} = BrowserStarfishFields;
+const {RESOURCE_TYPE, DOMAIN, TRANSACTION: PAGE, DESCRIPTION} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -116,9 +117,9 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: '.js', label: 'Javscript (.js)'},
-    {value: '.css', label: 'Stylesheets (.css)'},
-    {value: '.png', label: 'Images (.png, .jpg, .jpeg, .gif, etc)'},
+    {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
+    {value: '.css', label: `${t('Stylesheet')} (.css)`},
+    {value: 'resource.img', label: `${t('Images')} (.png, .jpg, .jpeg, .gif, etc)`},
   ];
   return (
     <SelectControlWithProps
@@ -140,13 +141,11 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
 function PageSelector({value}: {value?: string}) {
   const location = useLocation();
+  const {data: pages} = useResourcePagesQuery();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: '/performance', label: '/performance'},
-    {value: '/profiling', label: '/profiling'},
-    {value: '/starfish', label: '/starfish'},
-  ];
+  const options: Option[] = pages.map(page => {
+    return {value: page, label: page};
+  });
 
   return (
     <SelectControlWithProps

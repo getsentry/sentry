@@ -4,7 +4,7 @@ from rest_framework.request import Request
 
 from sentry.api.bases import OrganizationPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 
 class OrganizationRequestChangeEndpointPermission(OrganizationPermission):

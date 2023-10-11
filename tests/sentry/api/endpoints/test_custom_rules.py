@@ -8,6 +8,7 @@ from sentry.api.endpoints.custom_rules import (
     DEFAULT_PERIOD_STRING,
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
+    get_condition,
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
@@ -223,7 +224,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
         projects = data["projects"]
         assert projects == [self.project.id]
         org_id = data["orgId"]
@@ -251,7 +252,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)  # hard coded at 2 days
         projects = data["projects"]
         assert projects == [self.project.id]
         org_id = data["orgId"]
@@ -288,7 +289,7 @@ class CustomRulesEndpoint(APITestCase):
         rule_id = data["ruleId"]
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
 
         request_data = {
             "query": "event.type:transaction",
@@ -305,7 +306,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date >= timedelta(hours=2)
+        assert end_date - start_date >= timedelta(days=2)
 
         projects = data["projects"]
         assert projects == [self.project.id]
@@ -471,3 +472,33 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         assert not serializer.is_valid()
         # the two invalid projects should be in the error message
         assert len(serializer.errors["projects"]) == 2
+
+
+@pytest.mark.parametrize(
+    "query,condition",
+    [
+        ("", {"op": "and", "inner": []}),
+        (
+            "event.type:transaction",
+            {"name": "event.tags.event.type", "op": "eq", "value": "transaction"},
+        ),
+        ("environment:prod", {"op": "eq", "name": "event.environment", "value": "prod"}),
+        ("hello world", {"op": "eq", "name": "event.transaction", "value": "hello world"}),
+        (
+            "environment:prod hello world",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.environment", "value": "prod"},
+                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
+                ],
+            },
+        ),
+    ],
+)
+def test_get_condition(query, condition):
+    """
+    Test that the get_condition function works as expected
+    """
+    actual_condition = get_condition(query)
+    assert actual_condition == condition

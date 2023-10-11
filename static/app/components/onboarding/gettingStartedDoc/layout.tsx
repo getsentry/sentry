@@ -7,6 +7,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {NextStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
@@ -18,12 +19,6 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
   defaultComponent: ProductSelection,
 });
-
-type NextStep = {
-  description: string;
-  link: string;
-  name: string;
-};
 
 export type LayoutProps = {
   projectSlug: string;
@@ -52,14 +47,16 @@ export function Layout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        {introduction && <Introduction>{introduction}</Introduction>}
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          platform={platformKey}
-        />
-        {platformOptions ? (
-          <PlatformOptionsControl platformOptions={platformOptions} />
-        ) : null}
+        <Header>
+          {introduction && <Introduction>{introduction}</Introduction>}
+          <ProductSelectionAvailabilityHook
+            organization={organization}
+            platform={platformKey}
+          />
+          {platformOptions ? (
+            <PlatformOptionsControl platformOptions={platformOptions} />
+          ) : null}
+        </Header>
         <Divider withBottomMargin={newOrg} />
         <Steps>
           {steps.map(step => (
@@ -86,6 +83,12 @@ export function Layout({
   );
 }
 
+const Header = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
@@ -104,7 +107,6 @@ const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  padding-bottom: ${space(2)};
 `;
 
 const Wrapper = styled('div')`

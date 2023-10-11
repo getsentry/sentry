@@ -195,6 +195,7 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
@@ -822,6 +823,9 @@ export interface AggregateEventTransaction
     | 'tags'
     | 'title'
   > {
+  count: number;
+  frequency: number;
+  total: number;
   type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 

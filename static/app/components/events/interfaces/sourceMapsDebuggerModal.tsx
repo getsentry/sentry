@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -93,7 +94,10 @@ export function SourceMapsDebuggerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Make Your Stack Traces Readable')}</h4>
+        <ModalHeadingContainer>
+          <h4>{t('Make Your Stack Traces Readable')}</h4>
+          <FeatureBadge type="beta" tooltipProps={{position: 'right'}} />
+        </ModalHeadingContainer>
       </Header>
       <Body>
         <p>
@@ -213,7 +217,8 @@ export function SourceMapsDebuggerModal({
                 <HasDebugIdChecklistItem
                   shouldValidate={
                     sourceResolutionResults.sdkDebugIdSupport === 'full' ||
-                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk'
+                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
+                    sourceResolutionResults.eventHasDebugIds
                   }
                   sourceResolutionResults={sourceResolutionResults}
                 />
@@ -316,7 +321,7 @@ export function SourceMapsDebuggerModal({
             ));
           }}
         >
-          {t('Was this helpful?')} <IconMegaphone size="xs" />
+          {t('Was this helpful? Give us feedback!')} <IconMegaphone size="xs" />
         </Link>
       </Footer>
     </Fragment>
@@ -839,6 +844,19 @@ function ReleaseSourceFileMatchingChecklistItem({
             </li>
           ))}
         </InstructionList>
+        <p>
+          {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
+          {sourceResolutionResults.dist !== null
+            ? tct(
+                'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
+                {
+                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
+                }
+              )
+            : t(
+                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
+              )}
+        </p>
         {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
@@ -944,6 +962,19 @@ function ReleaseSourceMapMatchingChecklistItem({
               ),
             }
           )}
+        </p>
+        <p>
+          {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
+          {sourceResolutionResults.dist !== null
+            ? tct(
+                'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
+                {
+                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
+                }
+              )
+            : t(
+                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
+              )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
@@ -1203,4 +1234,9 @@ const InstructionList = styled('ul')`
   li {
     margin-bottom: ${space(0.5)};
   }
+`;
+
+const ModalHeadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
 `;

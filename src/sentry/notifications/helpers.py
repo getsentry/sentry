@@ -41,7 +41,12 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.models.group import Group
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +101,7 @@ def get_default_for_provider(
     # Defaults are defined for the old int enum
     _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
     if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
-        logger.warning(
-            "Could not find default for notification type",
-            extra={"type": type, "_type": _type, "provider": provider},
-        )
+        # some keys are missing that we should default to never
         return NotificationSettingsOptionEnum.NEVER
 
     try:

@@ -12,6 +12,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {parseCursor} from 'sentry/utils/cursor';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -263,7 +264,13 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader({numSamples}: {numSamples: number | null | undefined}): React.ReactNode {
+  renderHeader({
+    cursor,
+    numSamples,
+  }: {
+    numSamples: number | null | undefined;
+    cursor?: string | undefined;
+  }): React.ReactNode {
     const {
       organization,
       selected,
@@ -275,7 +282,9 @@ class _TransactionsList extends Component<Props> {
       breakdown,
       eventView,
     } = this.props;
-
+    const cursorOffset = parseCursor(cursor)?.offset ?? 0;
+    numSamples = numSamples ?? null;
+    const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
     return (
       <Fragment>
         <div>
@@ -290,8 +299,7 @@ class _TransactionsList extends Component<Props> {
           <InvestigationRuleCreation
             buttonProps={{size: 'xs'}}
             eventView={eventView}
-            organization={organization}
-            numSamples={numSamples}
+            numSamples={totalNumSamples}
           />
         </div>
         {!this.isTrend() &&
@@ -391,7 +399,10 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
-            header={this.renderHeader({numSamples: tableData?.data?.length ?? null})}
+            header={this.renderHeader({
+              numSamples: tableData?.data?.length ?? null,
+              cursor,
+            })}
           />
         )}
       </DiscoverQuery>

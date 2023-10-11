@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from django.utils import timezone
 
-from sentry.models import CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test

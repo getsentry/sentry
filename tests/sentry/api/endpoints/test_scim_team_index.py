@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import Team
+from sentry.models.team import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.helpers.options import override_options

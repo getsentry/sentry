@@ -350,6 +350,7 @@ function BaseChartUnwrapped({
   transformSinglePointToLine = false,
   onChartReady = () => {},
   'data-test-id': dataTestId,
+  visualMap,
 }: BaseChartProps) {
   const theme = useTheme();
 
@@ -512,6 +513,7 @@ function BaseChartUnwrapped({
     dataZoom,
     graphic,
     aria,
+    visualMap,
   };
 
   const chartStyles = {
