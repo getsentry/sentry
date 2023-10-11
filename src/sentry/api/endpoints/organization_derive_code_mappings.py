@@ -55,17 +55,13 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         # This method is specific to the GithubIntegration
         trees = installation.get_trees_for_org()  # type: ignore
         trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings = []
-        if not stacktrace_filename:
-            resp_status = status.HTTP_204_NO_CONTENT
-        else:
+        possible_code_mappings: List[Dict[str, str]] = []
+        resp_status: int = status.HTTP_204_NO_CONTENT
+        if stacktrace_filename:
             frame_filename = FrameFilename(stacktrace_filename)
-            possible_code_mappings: List[Dict[str, str]] = trees_helper.list_file_matches(
-                frame_filename
-            )
-            resp_status = (
-                status.HTTP_200_OK if possible_code_mappings else status.HTTP_204_NO_CONTENT
-            )
+            possible_code_mappings = trees_helper.list_file_matches(frame_filename)
+            if possible_code_mappings:
+                resp_status = status.HTTP_200_OK
         return Response(serialize(possible_code_mappings), status=resp_status)
 
     def post(self, request: Request, organization: Organization) -> Response:
