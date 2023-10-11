@@ -3,7 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # There is a bunch of orphaned `File`s still being stored that will be cleaned up.
 # They have the following `type`s:
@@ -20,9 +20,11 @@ def rm_cficache_symcache(apps, schema_editor):
     # According to <https://develop.sentry.dev/database-migrations/#filters>:
     # > it is better to iterate over the entire table instead of using a filter
     # Also, there is no index on `type` anyway.
-    for file in RangeQuerySetWrapperWithProgressBar(File.objects.filter(type__in=TYPES_TO_DELETE)):
-        if file.type in TYPES_TO_DELETE:
-            file.delete()
+    # However, we also do not want to stream down every object into Python land.
+    for file in RangeQuerySetWrapperWithProgressBarApprox(
+        File.objects.filter(type__in=TYPES_TO_DELETE)
+    ):
+        file.delete()
 
 
 class Migration(CheckedMigration):
