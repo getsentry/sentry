@@ -129,7 +129,7 @@ class DiscordRequest:
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
         else:
-            logger.warn(
+            logger.info(
                 "discord.verify.signature.failure",
                 extra={
                     "public_key": public_key,
