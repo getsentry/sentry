@@ -422,15 +422,20 @@ def configure_sdk():
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
                 s4s_args = args
-                if method_name == "capture_envelope":
+                # We want to control whether we want to send metrics at the s4s upstream.
+                if (
+                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                    and method_name == "capture_envelope"
+                ):
                     args_list = list(args)
                     envelope = args_list[0]
-                    # Do not forward metrics to s4s
+                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     safe_items = [x for x in envelope.items if x.data_category != "statsd"]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items
                         s4s_args = (relay_envelope, *args_list[1:])
+
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
