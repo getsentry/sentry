@@ -289,7 +289,9 @@ class GroupSerializerBase(Serializer, ABC):
         ):
             merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
 
-        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+        snuba_stats = {}
+        if not self._collapse("unhandled"):
+            snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         result = {}
         for item in item_list:
@@ -325,8 +327,8 @@ class GroupSerializerBase(Serializer, ABC):
                 "share_id": share_ids.get(item.id),
                 "authorized": authorized,
             }
-
-            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+            if not self._collapse("unhandled"):
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
