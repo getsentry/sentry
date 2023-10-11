@@ -179,9 +179,9 @@ const Title = styled('h4')`
 `;
 
 const SpanDescription = styled('div')`
-  display: block;
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
+  max-width: 35vw;
 `;
