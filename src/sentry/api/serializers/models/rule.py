@@ -96,15 +96,15 @@ class RuleSerializer(Serializer):
         for rule_activity in ras:
             u = users.get(rule_activity.user_id)
             if u:
-                user = {
+                creator = {
                     "id": u.id,
                     "name": u.get_display_name(),
                     "email": u.email,
                 }
             else:
-                user = None
+                creator = None
 
-            result[rule_activity.rule].update({"created_by": user})
+            result[rule_activity.rule].update({"created_by": creator})
 
         rules = {item.id: item for item in item_list}
         resolved_actors = {}
@@ -181,7 +181,7 @@ class RuleSerializer(Serializer):
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
             for snooze in RuleSnooze.objects.filter(
-                Q(user_id=user.get("id")) | Q(user_id=None),
+                Q(user_id=user.id) | Q(user_id=None),
                 rule__in=[item.id for item in item_list],
             ).values("rule_id", "user_id", "owner_id")
         }
