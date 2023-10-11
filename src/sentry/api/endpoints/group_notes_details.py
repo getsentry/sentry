@@ -38,14 +38,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not len(notes_by_user):
             raise ResourceDoesNotExist
 
-        note = None
-        for n in notes_by_user:
-            if n.id == int(note_id):
-                note = n
-                break
-
-        if not note:
+        user_note = [n for n in notes_by_user if n.id == int(note_id)]
+        if not user_note or len(user_note) > 0:
             raise ResourceDoesNotExist
+        note = user_note[0]
 
         webhook_data = {
             "comment_id": note.id,
