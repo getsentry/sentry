@@ -71,8 +71,6 @@ function ResourceTable({sort}: Props) {
           Math.random() * (1000 - 500) + 500
         ),
         'http.response_content_length': Math.floor(Math.random() * (500 - 50) + 50),
-        'resource.render_blocking_status':
-          Math.random() > 0.5 ? 'blocking' : 'non-blocking',
         domain: 's1.sentry-cdn.com',
       }))
     : [];
