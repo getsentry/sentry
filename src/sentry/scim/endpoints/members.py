@@ -17,6 +17,7 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
+from sentry.api.endpoints.organization_member.details import ROLE_CHOICES
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -460,8 +461,16 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={
-                "userName": serializers.EmailField(),
-                "sentryOrgRole": serializers.CharField(required=False),
+                "userName": serializers.EmailField(
+                    help_text="The SAML field used for email.",
+                    required=True,
+                ),
+                "sentryOrgRole": serializers.ChoiceField(
+                    help_text="""The organization role of the member. If unspecified, this will be
+                    set to the organization's default role. The options are:""",
+                    choices=[role for role in ROLE_CHOICES if role[0] != "owner"],
+                    required=False,
+                ),
             },
         ),
         responses={
@@ -475,11 +484,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     def post(self, request: Request, organization) -> Response:
         """
         Create a new Organization Member via a SCIM Users POST Request.
-        - `userName` should be set to the SAML field used for email, and active should be set to `true`.
-        - `sentryOrgRole` can only be `admin`, `manager`, `billing`, or `member`.
-        - Sentry's SCIM API doesn't currently support setting users to inactive,
-        and the member will be deleted if active is set to `false`.
-        - The API also does not support setting secondary emails.
+
+        Note that this API does not support setting secondary emails.
         """
         update_role = False
 
