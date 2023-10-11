@@ -191,7 +191,7 @@ export function FlamegraphTreeTable({
     useCallback(
       (
         node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
-        scrollContainer: HTMLElement | null,
+        scrollContainer: HTMLElement | HTMLElement[] | null,
         coordinates?: {depth: number; top: number}
       ) => {
         if (node) {
@@ -205,15 +205,32 @@ export function FlamegraphTreeTable({
             });
 
             const left = -328 + (node.item.depth * 14 + 8);
+            if (Array.isArray(scrollContainer)) {
+              scrollContainer.forEach(container => {
+                container.scrollBy({
+                  left,
+                });
+              });
+            } else {
+              scrollContainer?.scrollBy({
+                left,
+              });
+            }
+          }
+        } else if (coordinates) {
+          const left = -328 + (coordinates.depth * 14 + 8);
+
+          if (Array.isArray(scrollContainer)) {
+            scrollContainer.forEach(container => {
+              container.scrollBy({
+                left,
+              });
+            });
+          } else {
             scrollContainer?.scrollBy({
               left,
             });
           }
-        } else if (coordinates) {
-          const left = -328 + (coordinates.depth * 14 + 8);
-          scrollContainer?.scrollBy({
-            left,
-          });
         }
       },
       []
@@ -336,8 +353,8 @@ export function FlamegraphTreeTable({
               This is useful when number of rows does not fill up the entire table height.
              */}
               <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
+                <FrameCallersTableCell bordered />
+                <FrameCallersTableCell bordered />
                 <FrameCallersTableCell style={{width: '100%'}} />
               </GhostRowContainer>
             </div>
