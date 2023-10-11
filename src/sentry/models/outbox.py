@@ -529,7 +529,7 @@ class OutboxBase(Model):
     def process_shard(
         self, latest_shard_row: OutboxBase | None
     ) -> Generator[OutboxBase | None, None, None]:
-        flush_all: bool = not bool(latest_shard_row)
+        latest_shard_row = None
         using: str = db.router.db_for_write(type(self))
 
         shard_lock_id = self.lock_id(self.sharding_columns)
@@ -537,12 +537,9 @@ class OutboxBase(Model):
 
         try:
             with connections[using].cursor() as cursor:
-                if flush_all:
-                    cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
-                    if not cursor.fetchone()[0]:
-                        obtained_lock = False
-                else:
-                    cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
+                cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
+                if not cursor.fetchone()[0]:
+                    obtained_lock = False
 
             if obtained_lock:
                 next_shard_row: OutboxBase | None
