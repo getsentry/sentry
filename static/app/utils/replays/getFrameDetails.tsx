@@ -203,7 +203,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
-    title: 'Navigation',
+    title: 'Navigation (Push)',
     icon: <IconLocation size="xs" />,
   }),
   'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({

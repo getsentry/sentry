@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import uniq from 'lodash/uniq';
+import upperFirst from 'lodash/upperFirst';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -51,7 +52,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
   const TYPE_TO_LABEL: Record<string, string> = useMemo(() => ({}), []);
   frames.forEach(frame => {
     const frameType = getFrameOpOrCategory(frame);
-    const label = getFrameDetails(frame).title?.toString();
+    const label = upperFirst(getFrameDetails(frame).title?.toString());
     if (frameType && label) {
       TYPE_TO_LABEL[frameType] = label;
     }

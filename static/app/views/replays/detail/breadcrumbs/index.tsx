@@ -100,7 +100,7 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <BreadcrumbFilters frames={frames} {...filterProps} />
-      <TabItemContainer>
+      <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
             {({height, width}) => (
