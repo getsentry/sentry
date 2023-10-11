@@ -64,11 +64,11 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
-      hasPerformance: activeProductSelection.includes(
+      isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
-      hasProfiling: activeProductSelection.includes(ProductSolution.PROFILING),
-      hasReplay: activeProductSelection.includes(ProductSolution.SESSION_REPLAY),
+      isProfilingSelected: activeProductSelection.includes(ProductSolution.PROFILING),
+      isReplaySelected: activeProductSelection.includes(ProductSolution.SESSION_REPLAY),
       sourcePackageRegistries: {
         isLoading: isLoadingRegistry,
         data: registryData,

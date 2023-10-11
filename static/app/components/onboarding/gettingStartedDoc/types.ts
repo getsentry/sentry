@@ -37,9 +37,9 @@ export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
   dsn: string;
-  hasPerformance: boolean;
-  hasProfiling: boolean;
-  hasReplay: boolean;
+  isPerformanceSelected: boolean;
+  isProfilingSelected: boolean;
+  isReplaySelected: boolean;
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
