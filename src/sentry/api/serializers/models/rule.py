@@ -181,7 +181,8 @@ class RuleSerializer(Serializer):
         rule_snooze_lookup = {
             snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
             for snooze in RuleSnooze.objects.filter(
-                Q(user_id=user.id) | Q(user_id=None), rule__in=[item.id for item in item_list]
+                Q(user_id=user.get("id")) | Q(user_id=None),
+                rule__in=[item.id for item in item_list],
             ).values("rule_id", "user_id", "owner_id")
         }
 
