@@ -147,7 +147,7 @@ def get_profile_ids_with_spans(
         select=[
             Column("profile_id"),
             Function(
-                "groupArray",
+                "groupArray(100)",
                 parameters=[
                     Function(
                         "tuple",
