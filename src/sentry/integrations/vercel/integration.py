@@ -27,11 +27,11 @@ from sentry.models.user import User
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.project_key import project_key_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 from ...sentry_apps.apps import SentryAppCreator
-from ...services.hybrid_cloud.project_key import project_key_service
 from .client import VercelClient
 
 logger = logging.getLogger("sentry.integrations.vercel")
