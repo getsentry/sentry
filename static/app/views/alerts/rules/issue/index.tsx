@@ -21,6 +21,7 @@ import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -1423,7 +1424,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               </StyledFieldHelp>
             </StyledListItem>
             <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
-            <PreviewIssues members={members} rule={rule} project={project} />
+            <ErrorBoundary mini>
+              <PreviewIssues members={members} rule={rule} project={project} />
+            </ErrorBoundary>
             <StyledListItem>
               <StepHeader>{t('Add a name and owner')}</StepHeader>
               <StyledFieldHelp>

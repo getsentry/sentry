@@ -80,6 +80,9 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
     [rule]
   );
 
+  /**
+   * Not using useApiQuery because it makes a post request
+   */
   const fetchApiData = useCallback(
     (ruleFields: any, cursor?: string | null, resetCursor?: boolean) => {
       setIsLoading(true);
