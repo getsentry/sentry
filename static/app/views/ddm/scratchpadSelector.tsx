@@ -266,7 +266,7 @@ function SaveAsDropdown({
     setName('');
   }, [name, onSave, setOpen]);
 
-  const enterKeyPressed = useKeyPress('Enter', undefined, true);
+  const enterKeyPressed = useKeyPress('Enter');
 
   useEffect(() => {
     if (isOpen && enterKeyPressed && name) {
