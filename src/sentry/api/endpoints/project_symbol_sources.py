@@ -148,7 +148,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            ProjectParams.source_id("The id of the source to update.", True),
+            ProjectParams.source_id("The ID of the source to update.", True),
         ],
         request=None,
         responses={
