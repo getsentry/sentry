@@ -384,7 +384,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
-class SCIMListResponseDict(SCIMListBaseResponse):
+class SCIMListMembersResponse(SCIMListBaseResponse):
     Resources: List[OrganizationMemberSCIMSerializerResponse]
 
 
@@ -402,7 +402,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListResponseDict
+                "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListMembersResponse
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

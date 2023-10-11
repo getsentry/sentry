@@ -90,7 +90,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-class SCIMListResponseDict(SCIMListBaseResponse):
+class SCIMListTeamsResponse(SCIMListBaseResponse):
     Resources: List[OrganizationTeamSCIMSerializerResponse]
 
 
@@ -109,7 +109,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListResponseDict
+                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListTeamsResponse
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -120,7 +120,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     def get(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
-        - Note that the members field will only contain up to 10000 members.
+
+        Note that the members field will only contain up to 10,000 members.
         """
         query_params = self.get_query_parameters(request)
 
