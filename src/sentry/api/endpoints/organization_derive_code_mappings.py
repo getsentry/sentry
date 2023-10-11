@@ -48,17 +48,20 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         installation, _ = get_installation(organization)
         if not installation:
             return self.respond(
-                "Could not find this integration installed on your organization",
+                {"text": "Could not find this integration installed on your organization"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        trees = installation.get_trees_for_org()
+        # This method is specific to the GithubIntegration
+        trees = installation.get_trees_for_org()  # type: ignore
         trees_helper = CodeMappingTreesHelper(trees)
-        frame_filename = FrameFilename(stacktrace_filename)
-        possible_code_mappings: List[Dict[str, str]] = trees_helper.list_file_matches(
-            frame_filename
-        )
-        resp_status = status.HTTP_200_OK if possible_code_mappings else status.HTTP_204_NO_CONTENT
+        possible_code_mappings: List[Dict[str, str]] = []
+        resp_status: int = status.HTTP_204_NO_CONTENT
+        if stacktrace_filename:
+            frame_filename = FrameFilename(stacktrace_filename)
+            possible_code_mappings = trees_helper.list_file_matches(frame_filename)
+            if possible_code_mappings:
+                resp_status = status.HTTP_200_OK
         return Response(serialize(possible_code_mappings), status=resp_status)
 
     def post(self, request: Request, organization: Organization) -> Response:
@@ -78,23 +81,27 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         installation, organization_integration = get_installation(organization)
-        if not installation:
+        if not installation or not organization_integration:
             return self.respond(
-                "Could not find this integration installed on your organization",
+                {"text": "Could not find this integration installed on your organization"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         try:
             project = Project.objects.get(id=request.data.get("projectId"))
         except Project.DoesNotExist:
-            return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
+            return self.respond(
+                {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         repo_name = request.data.get("repoName")
         stack_root = request.data.get("stackRoot")
         source_root = request.data.get("sourceRoot")
         branch = request.data.get("defaultBranch")
         if not repo_name or not stack_root or not source_root or not branch:
-            return self.respond("Missing required parameters", status=status.HTTP_400_BAD_REQUEST)
+            return self.respond(
+                {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         code_mapping = CodeMapping(
             stacktrace_root=stack_root,
