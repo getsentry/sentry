@@ -332,7 +332,6 @@ def _prepare_containers(
         # with each other
         options.setdefault("restart_policy", {"Name": "unless-stopped"})
         options["ports"] = ensure_interface(options["ports"])
-        options["extra_hosts"] = {"host.docker.internal": "host-gateway"}
         containers[name] = options
 
     # keys are service names

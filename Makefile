@@ -134,10 +134,22 @@ test-python-ci: create-db
 		tests/sentry_plugins \
 		tests/symbolicator \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
-	SENTRY_USE_MONOLITH_DBS=1 pytest tests/sentry/backup \
-		--cov . --cov-report="xml:.artifacts/python-backup-tests.coverage.xml"
 	@echo ""
 
+# it's not possible to change settings.DATABASE after django startup, so
+# unfortunately these tests must be run seperately. References:
+#   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
+#   * https://code.djangoproject.com/ticket/19031
+#   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
+test-python-ci-monolith-dbs: create-db
+	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
+	SENTRY_USE_MONOLITH_DBS=1 \
+	pytest \
+		tests/sentry/backup \
+		tests/sentry/runner/commands/test_backup.py \
+		--cov . --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	;
+	@echo ""
 
 test-snuba: create-db
 	@echo "--> Running snuba tests"

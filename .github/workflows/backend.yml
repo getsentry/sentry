@@ -76,6 +76,13 @@ jobs:
         instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         pg-version: ['14']
 
+        # it's not possible to change settings.DATABASE after django startup, so
+        # unfortunately these tests must be run seperately. References:
+        #   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
+        #   * https://code.djangoproject.com/ticket/19031
+        #   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
+        make-target: [ "test-python-ci", "test-python-ci-monolith-dbs" ]
+
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.

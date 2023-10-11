@@ -105,7 +105,6 @@ def relay_server_setup(live_server, tmpdir_factory):
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
-        "extra_hosts": {"host.docker.internal": "host-gateway"},
     }
 
     # Some structure similar to what the live_server fixture returns

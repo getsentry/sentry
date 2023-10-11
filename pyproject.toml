@@ -58,6 +58,20 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 
+# extra strictness (buck)
+strict = true
+disallow_any_unimported = true
+disallow_any_expr = true
+disallow_any_decorated = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_return_any = true
+
+
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
 

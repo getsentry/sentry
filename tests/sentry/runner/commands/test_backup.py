@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 from django.db import IntegrityError
 
@@ -133,6 +134,24 @@ class BadImportExportCommandTests(TransactionTestCase):
         rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH])
         assert not isinstance(rv.exception, IntegrityError)
         assert rv.exit_code == 2, rv.output
+
+
+###class MonomodeBadImportExportCommandTests(BadImportExportCommandTests):
+###    def test_import_integrity_error_exit_code(self):
+###        subprocess.check_call(
+###            "pytest", f"{__file__}:BadImportExportCommandTests.test_import_integrity_error_exit_code"
+###            env={"SENTRY_MONO_DB": "1"}
+###        )
+###
+###    def test_import_file_read_error_exit_code(self):
+###        subprocess.check_call(
+###            "pytest", f"{__file__}:BadImportExportCommandTests.test_import_file_read_error_exit_code"
+###            env={"SENTRY_MONO_DB": "1"}
+###        )
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc):
+    breakpoint()
 
 
 # TODO(getsentry/team-ospo#199): Add bad compare tests.
