@@ -358,7 +358,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       this.handleChange('conditions', [
         {
           id,
-          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[id]}...`,
         },
       ]);
     }
@@ -877,7 +877,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
           ? ({
               ...condition,
-              label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
+              label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
             } as IssueAlertRuleConditionTemplate)
           : condition
       ) ?? null
