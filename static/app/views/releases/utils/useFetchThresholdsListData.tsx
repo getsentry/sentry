@@ -3,12 +3,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {Threshold, ThresholdQuery} from './types';
 
-export const EMPTY_THRESHOLDS_LIST_DATA: ReturnType<typeof useFetchThresholdsListData> = {
-  isError: false,
-  isLoading: false,
-  thresholds: [],
-};
-
 export type HookProps = {
   selectedEnvs: string[];
   selectedProjects: number[];
@@ -30,11 +24,7 @@ export default function useFetchThresholdsListData({
     query.environment = selectedEnvs;
   }
 
-  const {
-    data: thresholds,
-    isLoading,
-    isError,
-  } = useApiQuery<Threshold[]>(
+  return useApiQuery<Threshold[]>(
     [
       `/organizations/${organization.id}/releases/thresholds/`,
       {
@@ -43,10 +33,4 @@ export default function useFetchThresholdsListData({
     ],
     {staleTime: 0}
   );
-
-  return {
-    isError,
-    isLoading,
-    thresholds,
-  };
 }
