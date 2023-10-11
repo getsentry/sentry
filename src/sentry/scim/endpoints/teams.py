@@ -10,7 +10,6 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -56,6 +55,7 @@ from .utils import (
     SCIMApiError,
     SCIMEndpoint,
     SCIMFilterError,
+    SCIMListBaseResponse,
     SCIMQueryParamSerializer,
     parse_filter_conditions,
 )
@@ -90,11 +90,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+class SCIMListResponseDict(SCIMListBaseResponse):
     Resources: List[OrganizationTeamSCIMSerializerResponse]
 
 
@@ -126,7 +122,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
         - Note that the members field will only contain up to 10000 members.
         """
-
         query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
@@ -160,9 +155,15 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
-                "schemas": serializers.ListField(child=serializers.CharField()),
-                "displayName": serializers.CharField(),
-                "members": serializers.ListField(child=serializers.IntegerField()),
+                "displayName": serializers.CharField(
+                    help_text="The slug of the team that is shown in the UI.",
+                    required=True,
+                ),
+                "members": serializers.ListField(
+                    child=serializers.IntegerField(),
+                    help_text="A list of member IDs that should be on the team.",
+                    required=True,
+                ),
             },
         ),
         responses={
@@ -176,8 +177,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Create a new team bound to an organization via a SCIM Groups POST Request.
-        Note that teams are always created with an empty member set.
-        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
+        The endpoint will also do a normalization of uppercase/spaces to lowercase
+        and dashes for the slug.
         """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST

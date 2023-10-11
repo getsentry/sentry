@@ -12,7 +12,6 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -54,6 +53,7 @@ from .utils import (
     OrganizationSCIMMemberPermission,
     SCIMApiError,
     SCIMEndpoint,
+    SCIMListBaseResponse,
     SCIMQueryParamSerializer,
 )
 
@@ -384,11 +384,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+class SCIMListResponseDict(SCIMListBaseResponse):
     Resources: List[OrganizationMemberSCIMSerializerResponse]
 
 
