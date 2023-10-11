@@ -59,8 +59,6 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
-} & {
-  'time_spent_percentage(local)': number;
 };
 
 export type MetricsFilters = {

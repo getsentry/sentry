@@ -10,10 +10,10 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events.constants import (

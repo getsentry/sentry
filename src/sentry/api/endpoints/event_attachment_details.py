@@ -12,7 +12,9 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
-from sentry.models import EventAttachment, File, OrganizationMember
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.organizationmember import OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):

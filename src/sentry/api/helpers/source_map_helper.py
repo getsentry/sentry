@@ -6,8 +6,10 @@ from rest_framework.exceptions import NotFound, ParseError
 
 from sentry import eventstore
 from sentry.api.endpoints.project_release_files import ArtifactSource
-from sentry.models import Distribution, Release, ReleaseFile, SourceMapProcessingIssue
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.distribution import Distribution
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
 

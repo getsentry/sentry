@@ -7,7 +7,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 
 @region_silo_endpoint

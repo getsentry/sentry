@@ -241,10 +241,10 @@ sentry {
     additionalInfo: (
       <p>
         {tct(
-          'To upload your source code to Sentry so it can be shown in stack traces, please refer to [link:Manually Uploading Source Context].',
+          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
             ),
           }
         )}

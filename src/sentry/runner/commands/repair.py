@@ -40,7 +40,8 @@ def sync_docs():
 
 @region_silo_function
 def create_missing_dsns():
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     click.echo("Creating missing DSNs")
     queryset = Project.objects.filter(key_set__isnull=True)

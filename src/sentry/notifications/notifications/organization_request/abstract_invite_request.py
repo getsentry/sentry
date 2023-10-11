@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
     MemberWriteRoleRecipientStrategy,
@@ -16,7 +16,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models.user import User
 
 
 # Abstract class for invite and join requests to inherit from

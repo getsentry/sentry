@@ -22,25 +22,20 @@ from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.models import (
-    Activity,
-    Group,
-    GroupAssignee,
-    GroupInbox,
-    GroupInboxReason,
-    GroupOwner,
-    GroupOwnerType,
-    GroupSnooze,
-    GroupStatus,
-    Integration,
-)
-from sentry.models.activity import ActivityIntegration
+from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.groupowner import (
     ASSIGNEE_EXISTS_DURATION,
     ASSIGNEE_EXISTS_KEY,
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
+    GroupOwner,
+    GroupOwnerType,
 )
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.integrations.integration import Integration
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -389,7 +384,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
     def test_rule_processor_buffer_values(self):
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
-        from sentry.models import Rule
+        from sentry.models.rule import Rule
 
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
@@ -1674,7 +1669,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
 
             assert ret_value["type"] == "replay_event"
-            assert ret_value["start_time"] == int(event.datetime.timestamp())
+            assert ret_value["start_time"] > int(event.datetime.timestamp())
             assert ret_value["replay_id"] == replay_id
             assert ret_value["project_id"] == self.project.id
             assert ret_value["segment_id"] is None

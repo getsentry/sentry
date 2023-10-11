@@ -11,7 +11,9 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
 )
-from sentry.models import Activity, Group, Project
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
     PREVIEW_TIME_RANGE,

@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from fixtures.gitlab import GitLabTestCase
-from sentry.models import ExternalIssue
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import DEFAULT_EVENT_DATA

@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models.release import Release
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
