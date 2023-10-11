@@ -27,7 +27,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         and monitor_env.status != MonitorStatus.OK
     ):
         params["status"] = MonitorStatus.OK
-        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 0)
+        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold")
 
         # Run incident logic if recovery threshold is set
         if recovery_threshold:
