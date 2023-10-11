@@ -290,7 +290,6 @@ class _TransactionsList extends Component<Props> {
           <InvestigationRuleCreation
             buttonProps={{size: 'xs'}}
             eventView={eventView}
-            organization={organization}
             numSamples={numSamples}
           />
         </div>
