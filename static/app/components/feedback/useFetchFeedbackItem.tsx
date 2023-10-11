@@ -1,40 +1,25 @@
-import {useEffect, useState} from 'react';
-
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {exampleItemResponse} from 'sentry/utils/feedback/example';
-import {FeedbackItemResponse, HydratedFeedbackItem} from 'sentry/utils/feedback/types';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {Organization, Project} from 'sentry/types';
+import {FeedbackItemResponse} from 'sentry/utils/feedback/item/types';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 
-type MockState = {
-  data: undefined | FeedbackItemResponse;
-  isError: false;
-  isLoading: boolean;
-};
+interface Props {
+  feedbackId: string;
+  organization: Organization;
+  project: undefined | Project;
+}
 
 export default function useFetchFeedbackItem(
-  _params: {},
-  _options: Partial<UseApiQueryOptions<HydratedFeedbackItem>> = {}
+  {feedbackId, organization, project}: Props,
+  options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
 ) {
-  // Mock some state to simulate `useApiQuery` while the backend is being constructed
-  const [state, setState] = useState<MockState>({
-    isLoading: true,
-    isError: false,
-    data: undefined,
-  });
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setState({
-        isLoading: false,
-        isError: false,
-        data: exampleItemResponse,
-      });
-    }, Math.random() * 1000);
-    return () => clearTimeout(timeout);
-  }, []);
+  const {data, ...result} = useApiQuery<FeedbackItemResponse>(
+    [`/projects/${organization.slug}/${project?.slug}/feedback/${feedbackId}/`],
+    {staleTime: 0, enabled: Boolean(project), ...options}
+  );
 
   return {
-    ...state,
-    data: state.data ? hydrateFeedbackRecord(state.data) : undefined,
+    data: data ? hydrateFeedbackRecord(data) : undefined,
+    ...result,
   };
 }

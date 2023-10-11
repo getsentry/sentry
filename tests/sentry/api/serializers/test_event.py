@@ -7,14 +7,17 @@ from sentry.api.serializers.models.event import (
     SqlFormatEventSerializer,
 )
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

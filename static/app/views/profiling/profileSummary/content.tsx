@@ -16,7 +16,7 @@ import {PageFilters, Project} from 'sentry/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
+import {ProfilesChart} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
   location: Location;
@@ -68,7 +68,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts
+        <ProfilesChart
           referrer="api.profiling.profile-summary-chart"
           query={props.query}
           hideCount
@@ -116,6 +116,11 @@ const ALL_FIELDS = [
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+  'last_seen()',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -128,7 +133,15 @@ export function getProfilesTableFields(platform: Project['platform']) {
   return DEFAULT_FIELDS;
 }
 
-const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
+const MOBILE_FIELDS: ProfilingFieldType[] = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'device.arch',
+  'transaction.duration',
+];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
   'profile.id',
   'timestamp',

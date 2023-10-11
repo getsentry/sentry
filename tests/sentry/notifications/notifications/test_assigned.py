@@ -2,17 +2,16 @@ import responses
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    NotificationSetting,
-    UserOption,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, install_slack, link_team
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class AssignedNotificationAPITest(APITestCase):

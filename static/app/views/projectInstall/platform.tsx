@@ -14,16 +14,13 @@ import {
   platformProductAvailability,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {
-  performance as performancePlatforms,
-  Platform,
-  PlatformKey,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
+import {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -142,7 +139,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   );
 
   const platform: Platform = {
-    key: currentPlatformKey as PlatformKey,
+    key: currentPlatformKey,
     id: currentPlatform?.id,
     name: currentPlatform?.name,
     link: currentPlatform?.link,

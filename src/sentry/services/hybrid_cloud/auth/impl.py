@@ -10,19 +10,18 @@ from django.db.models import Count, F
 from sentry import audit_log
 from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import (
-    ApiKey,
-    ApiToken,
-    AuthIdentity,
-    AuthProvider,
-    OrganizationMemberMapping,
-    OrgAuthToken,
-    User,
-    outbox_context,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
     AuthenticationContext,
@@ -154,7 +153,6 @@ class DatabaseBackedAuthService(AuthService):
 
         result = MiddlewareAuthenticationResponse(
             auth=auth,
-            user_from_signed_request=fake_request.user_from_signed_request,
             accessed=fake_request.session._accessed,
         )
 
@@ -272,14 +270,11 @@ class FakeAuthenticationRequest:
     """
 
     session: FakeRequestDict
-    GET: FakeRequestDict
-    POST: FakeRequestDict
     req: AuthenticationRequest
 
     # These attributes are expected to be mutated when we call into the authentication middleware.  The result of those
     # mutations becomes, the result of authentication.
     user: User | AnonymousUser | None
-    user_from_signed_request: bool = False
     auth: Any
 
     def build_absolute_uri(self, path: str | None = None) -> str:
@@ -296,18 +291,10 @@ class FakeAuthenticationRequest:
             _auth_user_hash=req.user_hash,
             _nonce=req.nonce,
         )
-        self.POST = FakeRequestDict(
-            _sentry_request_signature=req.signature,
-        )
-
-        self.GET = FakeRequestDict(
-            _=req.signature,
-        )
 
         self.META = FakeRequestDict(
             HTTP_AUTHORIZATION=_unwrap_b64(req.authorization_b64), REMOTE_ADDR=req.remote_addr
         )
-        self.user_from_signed_request = False
 
     @property
     def path(self) -> str:
@@ -325,6 +312,7 @@ AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
 AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
+AuthenticatedToken.register_kind("api_key", ApiKeyReplica)
 
 
 def promote_request_rpc_user(request: Any) -> User:

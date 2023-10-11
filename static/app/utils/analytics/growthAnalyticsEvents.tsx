@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/types';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -63,7 +63,7 @@ export type GrowthEventParameters = {
     guide: string;
   };
   'github_invite_banner.snoozed': {};
-  'github_invite_banner.viewed': {};
+  'github_invite_banner.viewed': {members_shown: number};
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;

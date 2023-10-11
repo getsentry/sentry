@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from rest_framework.exceptions import ParseError
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore
 from sentry.search.events.builder import QueryBuilder
@@ -142,51 +141,67 @@ def get_profile_ids_with_spans(
     project_id: int,
     params: ParamsType,
     span_group: str,
-    backend: str,
-    query: Optional[str] = None,
 ):
-    data = query_profiles_data(
-        params,
-        Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
-        selected_columns=["id", "profile.id"],
-        query=query,
-        additional_conditions=[
-            Condition(Function("has", [Column("spans.group"), span_group]), Op.EQ, 1)
+    query = Query(
+        match=Entity(EntityKey.Spans.value),
+        select=[
+            Column("profile_id"),
+            Function(
+                "groupArray(100)",
+                parameters=[
+                    Function(
+                        "tuple",
+                        [
+                            Column("start_timestamp"),
+                            Column("start_ms"),
+                            Column("end_timestamp"),
+                            Column("end_ms"),
+                        ],
+                    )
+                ],
+                alias="intervals",
+            ),
         ],
+        groupby=[
+            Column("profile_id"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, params["start"]),
+            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("group"), Op.EQ, span_group),
+            Condition(Column("profile_id"), Op.IS_NOT_NULL),
+        ],
+        limit=Limit(100),
     )
-    # map {transaction_id: (profile_id, [span intervals])}
-
-    transaction_to_prof: Dict[str, Tuple[str, List[Dict[str, str]]]] = {
-        row["id"]: (row["profile.id"], []) for row in data
-    }
-
-    if backend == "nodestore":
-        data = get_span_intervals_from_nodestore(
-            project_id,
-            span_group,
-            list(transaction_to_prof.keys()),
-        )
-    elif backend == "indexed_spans":
-        data = get_span_intervals(
-            project_id,
-            Condition(Column("group_raw"), Op.EQ, span_group),
-            list(transaction_to_prof.keys()),
-            organization_id,
-            params,
-        )
-    else:
-        raise ParseError(
-            detail="Backend not supported: choose between 'indexed_spans' or 'nodestore'."
-        )
-
+    request = Request(
+        dataset=Dataset.SpansIndexed.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
+            "organization_id": organization_id,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
+    )["data"]
+    profile_ids = []
+    spans = []
     for row in data:
-        transaction_to_prof[row["transaction_id"]][1].append(
-            {"start": row["start_ns"], "end": row["end_ns"]}
-        )
-
-    profile_ids = [tup[0] for tup in transaction_to_prof.values()]
-    spans = [tup[1] for tup in transaction_to_prof.values()]
-
+        transformed_intervals = []
+        profile_ids.append(row["profile_id"].replace("-", ""))
+        for interval in row["intervals"]:
+            start_timestamp, start_ms, end_timestamp, end_ms = interval
+            start_ns = (int(datetime.fromisoformat(start_timestamp).timestamp()) * 10**9) + (
+                start_ms * 10**6
+            )
+            end_ns = (int(datetime.fromisoformat(end_timestamp).timestamp()) * 10**9) + (
+                end_ms * 10**6
+            )
+            transformed_intervals.append({"start": str(start_ns), "end": str(end_ns)})
+        spans.append(transformed_intervals)
     return {"profile_ids": profile_ids, "spans": spans}
 
 
@@ -239,3 +254,38 @@ def get_profile_ids_for_span_op(
     spans = [tup[1] for tup in transaction_to_prof.values()]
 
     return {"profile_ids": profile_ids, "spans": spans}
+
+
+def get_profiles_with_function(
+    organization_id: int,
+    project_id: int,
+    function_fingerprint: int,
+    params: ParamsType,
+):
+    query = Query(
+        match=Entity(EntityKey.Functions.value),
+        select=[
+            Function("groupUniqArrayMerge(100)", [Column("examples")], "profile_ids"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, params["start"]),
+            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("fingerprint"), Op.EQ, function_fingerprint),
+        ],
+    )
+
+    request = Request(
+        dataset=Dataset.Functions.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+            "organization_id": organization_id,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+    )["data"]
+    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"]))}

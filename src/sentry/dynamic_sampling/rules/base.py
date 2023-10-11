@@ -14,10 +14,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
+ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, RuleType.CUSTOM_RULE}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 

@@ -7,24 +7,23 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.locks import locks
-from sentry.models import (
-    Activity,
-    Environment,
-    File,
-    Release,
-    ReleaseCommit,
-    ReleaseFile,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-    Repository,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject, ReleaseStatus
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

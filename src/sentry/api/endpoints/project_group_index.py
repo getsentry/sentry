@@ -17,7 +17,8 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
-from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -200,7 +201,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         The following attributes can be modified and are supplied as
         JSON object in the body:
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be mutated.  This
@@ -263,7 +264,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This

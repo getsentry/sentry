@@ -2,6 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {
+  prepareSourceMapDebuggerFrameInformation,
+  useSourceMapDebuggerData,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -121,6 +125,7 @@ export function Content({
   groupingCurrentLevel,
   hasHierarchicalGrouping,
   platform,
+  projectSlug,
   values,
   type,
   meta,
@@ -128,6 +133,8 @@ export function Content({
 }: Props) {
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
+
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
@@ -140,6 +147,12 @@ export function Content({
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
       : undefined;
+
+    const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
+      excIdx
+    ].frames.map(debuggerFrame =>
+      prepareSourceMapDebuggerFrameInformation(sourceMapDebuggerData, debuggerFrame)
+    );
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
@@ -190,6 +203,8 @@ export function Content({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
+          frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+          stackType={type}
         />
       </div>
     );

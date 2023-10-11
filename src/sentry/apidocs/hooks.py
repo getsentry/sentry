@@ -1,5 +1,6 @@
 import json  # noqa: S003
 import os
+from collections import OrderedDict
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
 from sentry.api.api_owners import ApiOwner
@@ -193,22 +194,65 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     return filtered
 
 
+def dereference_schema(schema: dict, schema_components: dict) -> dict:
+    """
+    Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
+    """
+    if len(schema) == 1 and "$ref" in schema:
+        # The reference always takes the form of #/components/schemas/{schema_name}
+        schema_name = schema["$ref"].split("/")[-1]
+        schema = schema_components[schema_name]
+    return schema
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    # Fetch schema component references
+    schema_components = result["components"]["schemas"]
+
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
             _check_tag(path, method_info)
+            endpoint_name = f"'{method_info['operationId']}'"
 
             if method_info.get("description") is None:
                 raise SentryApiBuildError(
-                    "Please add a description to your endpoint method via a docstring"
+                    f"Please add a description via docstring to your endpoint {endpoint_name}"
                 )
-            # ensure path parameters have a description
+
             for param in method_info.get("parameters", []):
+                # Ensure path parameters have a description
                 if param["in"] == "path" and param.get("description") is None:
                     raise SentryApiBuildError(
-                        f"Please add a description to your path parameter '{param['name']}'"
+                        f"Please add a description to your path parameter '{param['name']}' for endpoint {endpoint_name}"
                     )
 
+            # Ensure body parameters are sorted by placing required parameters first
+            if "requestBody" in method_info:
+                try:
+                    content = method_info["requestBody"]["content"]
+                    # media type can either "multipart/form-data" or "application/json"
+                    if "multipart/form-data" in content:
+                        schema = content["multipart/form-data"]["schema"]
+                    else:
+                        schema = content["application/json"]["schema"]
+
+                    # Dereference schema if needed
+                    schema = dereference_schema(schema, schema_components)
+
+                    # Required params are stored in a list and not in the param itself
+                    required = set(schema.get("required", []))
+                    if required:
+                        # Explicitly sort body params by converting the dict to an ordered dict
+                        schema["properties"] = OrderedDict(
+                            sorted(
+                                schema["properties"].items(),
+                                key=lambda param: 0 if param[0] in required else 1,
+                            )
+                        )
+                except KeyError as e:
+                    raise SentryApiBuildError(
+                        f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-apis to fix."
+                    )
     return result
 
 

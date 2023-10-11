@@ -42,7 +42,7 @@ export default function ChartFooter({
 }: Props) {
   const elements: React.ReactNode[] = [];
 
-  elements.push(<SectionHeading key="total-label">{t('Event Count')}</SectionHeading>);
+  elements.push(<SectionHeading key="total-label">{t('Sample Count')}</SectionHeading>);
   elements.push(
     total === null ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">

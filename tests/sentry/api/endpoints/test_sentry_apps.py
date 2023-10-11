@@ -9,15 +9,12 @@ from rest_framework.response import Response
 
 from sentry import deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import (
-    ApiToken,
-    Organization,
-    OrganizationMember,
-    SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationToken,
-)
-from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -29,7 +26,10 @@ POPULARITY = 27
 EXPECTED = {
     "events": ["issue"],
     "name": "MyApp",
-    "scopes": ["project:read", "event:read"],
+    "scopes": [
+        "event:read",
+        "project:read",
+    ],
     "webhookUrl": "https://example.com",
 }
 

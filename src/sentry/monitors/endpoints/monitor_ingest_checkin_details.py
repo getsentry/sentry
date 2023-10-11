@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
@@ -121,7 +121,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, current_datetime)
+                monitor_failed = mark_failed(checkin, ts=current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:

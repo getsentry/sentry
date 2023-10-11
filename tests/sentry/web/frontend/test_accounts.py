@@ -1,8 +1,9 @@
 from functools import cached_property
 
+from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import LostPasswordHash
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -77,3 +78,18 @@ class TestAccounts(TestCase):
 
         assert resp.has_header(header_name)
         assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
+        ]
+    )
+    def test_unable_to_set_weak_password_via_recover_form(self):
+        lost_password = LostPasswordHash.objects.create(user=self.user)
+
+        resp = self.client.post(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+            data={"user": self.user.email, "password": self.user.email},
+        )
+        assert resp.status_code == 200
+        assert b"The password is too similar to the username." in resp.content

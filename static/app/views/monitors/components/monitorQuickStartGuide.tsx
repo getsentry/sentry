@@ -3,15 +3,16 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  GoCronQuickStart,
   NodeJSCronQuickStart,
   PHPCronQuickStart,
   PHPLaravelCronQuickStart,
@@ -66,7 +67,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   php: {
     label: 'PHP',
     Guide: PHPCronQuickStart,
-    platforms: new Set(['php', 'php-monolog', 'php-symfony2']),
+    platforms: new Set(['php', 'php-monolog', 'php-symfony']),
   },
   phpLaravel: {
     label: 'Laravel',
@@ -77,6 +78,11 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Node',
     Guide: NodeJSCronQuickStart,
     platforms: new Set(['node']),
+  },
+  go: {
+    label: 'Go',
+    Guide: GoCronQuickStart,
+    platforms: new Set(['go']),
   },
 };
 
@@ -105,8 +111,8 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
     {label: t('Generic'), options: genericGuides.map(guideToSelectOption)},
   ];
 
-  const platformSpecific = platformGuides.filter(guide =>
-    guide.platforms?.has(monitor.project.platform ?? 'other')
+  const platformSpecific = platformGuides.filter(
+    guide => guide.platforms?.has(monitor.project.platform ?? 'other')
   );
 
   const defaultExample = platformSpecific.length > 0 ? platformSpecific[0].key : 'cli';

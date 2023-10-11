@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Activity
+    from sentry.models.activity import Activity
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):
@@ -165,7 +165,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
-            group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
+            group_url = self.group.get_absolute_url(
+                params={
+                    "referrer": "activity_notification",
+                    "notification_uuid": self.notification_uuid,
+                }
+            )
             issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url, provider=provider)}"
 
         context = {"author": name, "an issue": issue_name}

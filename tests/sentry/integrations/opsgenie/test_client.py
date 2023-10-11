@@ -1,8 +1,12 @@
 import responses
 
-from sentry.models import Integration, Rule
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 EXTERNAL_ID = "test-app"
 METADATA = {
@@ -71,7 +75,7 @@ class OpsgenieClientTest(APITestCase):
         rule = Rule.objects.create(project=self.project, label="my rule")
         client = self.installation.get_client(integration_key="1234-5678")
         with self.options({"system.url-prefix": "http://example.com"}):
-            client.send_notification(event, [rule])
+            client.send_notification(event, "P2", [rule])
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
@@ -80,6 +84,7 @@ class OpsgenieClientTest(APITestCase):
             "tags": ["level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
+            "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
@@ -89,7 +94,7 @@ class OpsgenieClientTest(APITestCase):
                 "Logger": "",
                 "Level": "warning",
                 "Project ID": "bar",
-                "Issue URL": "http://example.com/organizations/baz/issues/%s/" % group_id,
+                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
                 "Release": event.release,
             },
             "message": "Hello world",

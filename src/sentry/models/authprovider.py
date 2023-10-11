@@ -62,10 +62,10 @@ class AuthProvider(ReplicatedControlModel):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
-        from sentry.services.hybrid_cloud.organization.service import organization_service
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
 
         serialized = serialize_auth_provider(self)
-        organization_service.upsert_replicated_auth_provider(
+        region_replica_service.upsert_replicated_auth_provider(
             auth_provider=serialized, region_name=region_name
         )
 
@@ -99,7 +99,10 @@ class AuthProvider(ReplicatedControlModel):
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
-        from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation_for_provider import (
+            SentryAppInstallationForProvider,
+        )
         from sentry.sentry_apps.apps import SentryAppCreator
 
         if (
@@ -160,7 +163,9 @@ class AuthProvider(ReplicatedControlModel):
 
     def disable_scim(self):
         from sentry import deletions
-        from sentry.models import SentryAppInstallationForProvider
+        from sentry.models.integrations.sentry_app_installation_for_provider import (
+            SentryAppInstallationForProvider,
+        )
 
         if self.flags.scim_enabled:
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs

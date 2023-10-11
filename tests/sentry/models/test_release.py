@@ -4,41 +4,38 @@ from unittest.mock import patch
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupInbox,
-    GroupInboxReason,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.release import (
     Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseHeadCommit,
     ReleaseProject,
-    ReleaseProjectEnvironment,
     ReleaseProjectModelManager,
     ReleaseStatus,
-    Repository,
-    add_group_to_inbox,
     follows_semver_versioning_scheme,
 )
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
 

@@ -16,11 +16,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -76,7 +77,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
         ],
         responses={
@@ -106,9 +107,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
-                )
+                ).distinct()
             else:
-                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+                queryset = queryset.filter(
+                    monitorenvironment__environment__in=environments
+                ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 

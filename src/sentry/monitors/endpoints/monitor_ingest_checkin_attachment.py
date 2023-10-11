@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.models import File
+from sentry.models.files.file import File
 
 from .base import MonitorIngestEndpoint
 

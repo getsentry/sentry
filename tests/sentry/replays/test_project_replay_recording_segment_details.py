@@ -10,12 +10,21 @@ from sentry.replays.lib.storage import (
     make_filename,
 )
 from sentry.replays.testutils import mock_replay
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
 
-class EnvironmentMixin:
+class EnvironmentBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-project-replay-recording-segment-details"
+
+    segment_filename: str
+
+    def init_environment(self) -> None:
+        raise NotImplementedError
 
     def setUp(self):
         super().setUp()
@@ -60,11 +69,11 @@ class EnvironmentMixin:
             )
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/json"
-            assert self.segment_data == b"".join(response.streaming_content)
+            assert self.segment_data == close_streaming_response(response)
 
 
 @region_silo_test(stable=True)
-class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCase):
+class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -78,9 +87,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCa
 
 
 @region_silo_test(stable=True)
-class StorageReplayRecordingSegmentDetailsTestCase(
-    EnvironmentMixin, APITestCase, ReplaysSnubaTestCase
-):
+class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -94,7 +101,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(
         self.store_replays(
             mock_replay(
                 datetime.datetime.now() - datetime.timedelta(seconds=22),
-                metadata.project_id,
+                str(metadata.project_id),
                 metadata.replay_id,
                 segment_id=metadata.segment_id,
                 retention_days=metadata.retention_days,

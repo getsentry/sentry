@@ -24,26 +24,19 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
-from sentry.models import (
-    ApiKey,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    SentryApp,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.organization import (
-    RpcTeamMember,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
@@ -479,7 +472,7 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(
+        return access_service.get_all_org_roles(
             member_id=self.rpc_user_organization_context.member.id,
             organization_id=self.rpc_user_organization_context.organization.id,
         )

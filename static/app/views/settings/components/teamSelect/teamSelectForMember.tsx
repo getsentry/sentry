@@ -111,7 +111,7 @@ function TeamSelect({
 
   return (
     <Panel>
-      <TeamPanelHeader>
+      <TeamPanelHeader hasButtons>
         <div>{t('Team')}</div>
         <div />
         <div>

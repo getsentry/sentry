@@ -54,6 +54,9 @@ import {
   Team,
 } from 'sentry/types';
 import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
@@ -562,8 +565,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    this.setState({detailedError: null, loading: false, rule});
-
     // The onboarding task will be completed on the server side when the alert
     // is created
     updateOnboardingTask(null, organization, {
@@ -612,11 +613,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       transaction.setTag('operation', isNew ? 'create' : 'edit');
       if (rule) {
         for (const action of rule.actions) {
-          // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
-          const splitActionId = action.id.split('.');
-          const actionName = splitActionId[splitActionId.length - 1];
-          if (actionName === 'SlackNotifyServiceAction') {
-            transaction.setTag(actionName, true);
+          if (action.id === IssueAlertActionType.SLACK) {
+            transaction.setTag('SlackNotifyServiceAction', true);
           }
           // to avoid storing inconsistent data in the db, don't pass the name fields
           delete action.name;
@@ -628,6 +626,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           delete filter.name;
         }
         transaction.setData('actions', rule.actions);
+
+        // Check if rule is currently disabled or going to be disabled
+        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+          rule.optOutEdit = true;
+        }
       }
       const [data, , resp] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
@@ -1291,7 +1294,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main>
+      <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1620,19 +1623,19 @@ export const findIncompatibleRules = (
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
       const id = conditions[i].id;
-      if (id.endsWith('FirstSeenEventCondition')) {
+      if (id === IssueAlertConditionType.FIRST_SEEN_EVENT) {
         firstSeen = i;
-      } else if (id.endsWith('RegressionEventCondition')) {
+      } else if (id === IssueAlertConditionType.REGRESSION_EVENT) {
         regression = i;
-      } else if (id.endsWith('ReappearedEventCondition')) {
+      } else if (id === IssueAlertConditionType.REAPPEARED_EVENT) {
         reappeared = i;
       } else if (
-        id.endsWith('EventFrequencyCondition') &&
+        id === IssueAlertConditionType.EVENT_FREQUENCY &&
         (conditions[i].value as number) >= 1
       ) {
         eventFrequency = i;
       } else if (
-        id.endsWith('EventUniqueUserFrequencyCondition') &&
+        id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY &&
         (conditions[i].value as number) >= 1
       ) {
         userFrequency = i;
@@ -1660,7 +1663,7 @@ export const findIncompatibleRules = (
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i];
       const id = filter.id;
-      if (id.endsWith('IssueOccurrencesFilter') && filter) {
+      if (id === IssueAlertFilterType.ISSUE_OCCURRENCES && filter) {
         if (
           (rule.filterMatch === 'all' && (filter.value as number) > 1) ||
           (rule.filterMatch === 'none' && (filter.value as number) <= 1)
@@ -1670,7 +1673,7 @@ export const findIncompatibleRules = (
         if (rule.filterMatch === 'any' && (filter.value as number) > 1) {
           incompatibleFilters += 1;
         }
-      } else if (id.endsWith('AgeComparisonFilter')) {
+      } else if (id === IssueAlertFilterType.AGE_COMPARISON) {
         if (rule.filterMatch !== 'none') {
           if (filter.comparison_type === 'older') {
             if (rule.filterMatch === 'all') {
@@ -1692,6 +1695,10 @@ export const findIncompatibleRules = (
   }
   return {conditionIndices: null, filterIndices: null};
 };
+
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`
@@ -1833,10 +1840,6 @@ const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-left: ${space(4)};
   }
-`;
-
-const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
 `;
 
 const AcknowledgeLabel = styled('label')`

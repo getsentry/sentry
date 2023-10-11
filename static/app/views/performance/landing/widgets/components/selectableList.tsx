@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -12,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -84,6 +86,17 @@ export function WidgetEmptyStateWarning() {
         {t(
           'Transactions may not be listed due to the filters above or a low sampling rate'
         )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        <NoDataMessage Wrapper={Fragment} />
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );

@@ -17,16 +17,25 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.helpers import (
+    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
-from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+    NotificationSettingTypes,
+)
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Team, User
+    from sentry.models.group import Group
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.notifications.utils.participants import ParticipantMap
 
 
@@ -41,7 +50,8 @@ class GroupSubscriptionManager(BaseManager):
         Subscribe a user or team to an issue, but only if that user or team has not explicitly
         unsubscribed.
         """
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
@@ -72,7 +82,8 @@ class GroupSubscriptionManager(BaseManager):
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry import features
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)
@@ -166,15 +177,55 @@ class GroupSubscriptionManager(BaseManager):
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
+        subscriptions_by_user_id = {
+            subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
+        }
+
+        if should_use_notifications_v2(group.project.organization):
+            if not all_possible_users:  # no users, no notifications
+                return ParticipantMap()
+
+            providers_by_recipient = notifications_service.get_participants(
+                recipients=all_possible_users,
+                project_ids=[group.project_id],
+                organization_id=group.organization.id,
+                type=NotificationSettingEnum.WORKFLOW,
+            )
+            result = ParticipantMap()
+            for user in all_possible_users:
+                subscription_option = subscriptions_by_user_id.get(user.id, {})
+                if user.id not in providers_by_recipient:
+                    continue
+
+                for provider_str, val in providers_by_recipient[user.id].items():
+                    value = NotificationSettingsOptionEnum(val)
+                    is_subcribed = (
+                        subscription_option
+                        and subscription_option.is_active
+                        and value
+                        in [
+                            NotificationSettingsOptionEnum.ALWAYS,
+                            NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                        ]
+                    )
+                    is_implicit = (
+                        not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS
+                    )
+                    if is_subcribed or is_implicit:
+                        reason = (
+                            subscription_option
+                            and subscription_option.reason
+                            or GroupSubscriptionReason.implicit
+                        )
+                        provider = ExternalProviders(provider_str)
+                        result.add(provider, user, reason)
+            return result
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=NotificationSettingTypes.WORKFLOW,
             recipients=all_possible_users,
             parent_id=group.project_id,
         )
-        subscriptions_by_user_id = {
-            subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
-        }
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, all_possible_users
         )
@@ -202,8 +253,18 @@ class GroupSubscriptionManager(BaseManager):
         """Return the list of user ids participating in this issue."""
 
         return list(
-            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+            GroupSubscription.objects.filter(group=group, is_active=True, team=None).values_list(
                 "user_id", flat=True
+            )
+        )
+
+    @staticmethod
+    def get_participating_team_ids(group: Group) -> Sequence[int]:
+        """Return the list of team ids participating in this issue."""
+
+        return list(
+            GroupSubscription.objects.filter(group=group, is_active=True, user_id=None).values_list(
+                "team_id", flat=True
             )
         )
 

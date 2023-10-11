@@ -26,8 +26,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models import Organization, Team
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
@@ -216,10 +217,10 @@ class Incident(Model):
     def duration(self):
         return self.current_end_date - self.date_started
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -296,10 +297,10 @@ class IncidentActivity(Model):
         app_label = "sentry"
         db_table = "sentry_incidentactivity"
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -596,7 +597,13 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     _type_registrations = {}
 
     INTEGRATION_TYPES = frozenset(
-        (Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value, Type.OPSGENIE.value)
+        (
+            Type.PAGERDUTY.value,
+            Type.SLACK.value,
+            Type.MSTEAMS.value,
+            Type.OPSGENIE.value,
+            Type.DISCORD.value,
+        )
     )
 
     # ActionService items which are not supported for AlertRuleTriggerActions

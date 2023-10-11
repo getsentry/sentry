@@ -33,7 +33,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
@@ -235,7 +238,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
@@ -440,8 +443,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             # delete all the current team members
                             # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
-                                queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
-                                queryset.delete()
+                                existing = list(
+                                    OrganizationMemberTeam.objects.filter(team_id=team.id)
+                                )
+                                OrganizationMemberTeam.objects.bulk_delete(existing)
                                 self._add_members_operation(request, operation, team)
                         # azure and okta handle team name change operation differently
                         elif path is None:

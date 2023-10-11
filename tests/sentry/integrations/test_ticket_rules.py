@@ -6,9 +6,14 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.models import ExternalIssue, Integration, Rule
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+
+pytestmark = [requires_snuba]
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):

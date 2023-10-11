@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -13,6 +15,7 @@ test_data = {
         "message": "I really like this user-feedback feature!",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "url": "https://docs.sentry.io/platforms/javascript/",
+        "name": "Colton Allen",
     },
     "platform": "javascript",
     "release": "version@1.3",
@@ -41,7 +44,8 @@ test_data = {
 class FeedbackIngestTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-feedback-ingest"
 
-    def test_save_feedback(self):
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_save_feedback(self, mock_produce_occurrence_to_kafka):
         # Feature enabled should lead to successful save
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
@@ -55,12 +59,13 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             # Feedback object is what was posted
             feedback = feedback_list[0]
             assert feedback.data["dist"] == "abc123"
-            assert feedback.data["environment"] == "production"
+            assert feedback.environment.name == "production"
             assert feedback.data["sdk"]["name"] == "sentry.javascript.react"
             assert feedback.data["feedback"]["contact_email"] == "colton.allen@sentry.io"
             assert (
                 feedback.data["feedback"]["message"] == "I really like this user-feedback feature!"
             )
+            assert feedback.data["feedback"]["name"] == "Colton Allen"
             assert feedback.data["tags"]["key"] == "value"
             assert feedback.data["release"] == "version@1.3"
             assert feedback.data["user"]["name"] == "user"
@@ -69,6 +74,8 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 == "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
             )
             assert feedback.data["platform"] == "javascript"
+
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save
@@ -177,6 +184,27 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         # Optional fields missing should still result in successful save
         test_data_missing_optional_fields = {
             "feedback": {
+                "message": "I really like this user-feedback feature!",
+                "url": "https://docs.sentry.io/platforms/javascript/",
+            },
+            "platform": "javascript",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "timestamp": 1234456,
+        }
+
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            path = reverse(self.endpoint)
+            response = self.client.post(
+                path,
+                data=test_data_missing_optional_fields,
+                **self.dsn_auth_headers,
+            )
+            assert response.status_code == 201, response.content
+
+    def test_env(self):
+        # No environment name in input should default the field to "production"
+        test_data_missing_optional_fields = {
+            "feedback": {
                 "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
                 "url": "https://docs.sentry.io/platforms/javascript/",
@@ -194,3 +222,6 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 **self.dsn_auth_headers,
             )
             assert response.status_code == 201, response.content
+            feedback_list = Feedback.objects.all()
+            feedback = feedback_list[0]
+            assert feedback.environment.name == "production"

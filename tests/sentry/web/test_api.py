@@ -6,8 +6,11 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth import superuser
-from sentry.models import ApiToken, Organization, OrganizationMember, OrganizationStatus
+from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -19,6 +22,11 @@ class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):
         return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
+
+    def test_inaccessible_in_control_silo(self):
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 404
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_global(self, get_origins):

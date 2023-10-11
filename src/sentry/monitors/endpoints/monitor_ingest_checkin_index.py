@@ -16,7 +16,8 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.constants import ObjectStatus
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -211,7 +212,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, last_checkin=checkin.date_added)
+                monitor_failed = mark_failed(checkin, ts=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)

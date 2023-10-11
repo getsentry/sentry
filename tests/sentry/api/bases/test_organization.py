@@ -7,7 +7,6 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
@@ -22,13 +21,16 @@ from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import ApiKey, Organization, OrganizationMember
+from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

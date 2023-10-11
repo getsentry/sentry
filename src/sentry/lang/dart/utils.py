@@ -7,7 +7,8 @@ from typing import Any
 import sentry_sdk
 
 from sentry.lang.java.utils import deobfuscation_template
-from sentry.models import Project, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.safe import get_path
 

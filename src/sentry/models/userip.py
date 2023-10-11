@@ -8,7 +8,7 @@ from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
@@ -45,14 +45,16 @@ class UserIP(Model):
             _perform_log(user, ip_address)
             cache.set(cache_key, 1, 300)
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
+        from sentry.models.user import User
+
         # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
             return None
 
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -61,19 +63,15 @@ class UserIP(Model):
         self.country_code = None
         self.region_code = None
 
-        # Only preserve the submitted timing data in the global scope.
+        # Only preserve the submitted timing data in the backup/restore scope.
         if scope != ImportScope.Global:
             self.first_seen = self.last_seen = timezone.now()
 
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         # Ensures that the IP address is valid. Exclude the codes, as they should be `None` until we
         # `log()` them below.
         self.full_clean(exclude=["country_code", "region_code"])
@@ -86,7 +84,7 @@ class UserIP(Model):
         )
         userip.log(self.user, self.ip_address)
 
-        return (old_pk, userip.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (userip.pk, ImportKind.Inserted if created else ImportKind.Existing)
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):

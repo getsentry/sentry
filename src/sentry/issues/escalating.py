@@ -1,10 +1,13 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
+from __future__ import annotations
+
 import logging
+import math
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Dict, List, Mapping, Sequence, Tuple, TypedDict
 
 import jsonschema
 from django.db.models.signals import post_save
@@ -21,23 +24,24 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from snuba_sdk.expressions import Granularity
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    INBOX_REASON_DETAILS,
-    Activity,
-    Group,
-    GroupHistoryStatus,
-    GroupInboxReason,
-    GroupStatus,
-    add_group_to_inbox,
-    record_group_history,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import INBOX_REASON_DETAILS, GroupInboxReason, add_group_to_inbox
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
+from sentry.snuba.metrics.naming_layer.mri import ErrorsMRI
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
@@ -48,12 +52,17 @@ logger = logging.getLogger(__name__)
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
 REFERRER = "sentry.issues.escalating"
-ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 GROUP_HOURLY_COUNT_TTL = 60
+HOUR = 3600  # 3600 seconds
+
+ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
+ELEMENTS_PER_SNUBA_METRICS_QUERY = math.floor(
+    ELEMENTS_PER_SNUBA_PAGE / BUCKETS_PER_GROUP
+)  # This is the maximum value for Snuba Metrics Query
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -103,7 +112,7 @@ def _process_groups(
     groups: Sequence[Group],
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory] = None,
+    category: GroupCategory | None = None,
 ) -> List[GroupsCountResponse]:
     """Given a list of groups, query Snuba for their hourly bucket count.
     The category defines which Snuba dataset and entity we query."""
@@ -111,35 +120,38 @@ def _process_groups(
     if not groups:
         return all_results
 
-    group_ids_by_project = _extract_project_and_group_ids(groups)
+    group_ids_by_project_by_organization = _extract_organization_and_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
-    total_projects_count = len(group_ids_by_project)
-    organization_id = groups[0].project.organization.id
 
     # This iteration guarantees that all groups for a project will be queried in the same call
     # and only one page where the groups could be mixed with groups from another project
     # Iterating over the sorted keys guarantees results for tests
-    for proj_id in sorted(group_ids_by_project.keys()):
-        _group_ids = group_ids_by_project[proj_id]
-        # Add them to the list of projects and groups to query
-        proj_ids.append(proj_id)
-        group_ids += _group_ids
-        processed_projects += 1
-        potential_num_elements = len(_group_ids) * BUCKETS_PER_GROUP
-        # This is trying to maximize the number of groups on the first page
-        if (
-            processed_projects < total_projects_count
-            and potential_num_elements < ELEMENTS_PER_SNUBA_PAGE
-        ):
-            continue
+    for organization_id in sorted(group_ids_by_project_by_organization.keys()):
+        group_ids_by_project = group_ids_by_project_by_organization[organization_id]
+        total_projects_count = len(group_ids_by_project)
 
-        # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
-        all_results += _query_with_pagination(
-            organization_id, proj_ids, group_ids, start_date, end_date, category
-        )
-        # We're ready for a new set of projects and ids
-        proj_ids, group_ids = [], []
+        for proj_id in sorted(group_ids_by_project.keys()):
+            _group_ids = group_ids_by_project[proj_id]
+            # Add them to the list of projects and groups to query
+            proj_ids.append(proj_id)
+            group_ids += _group_ids
+            processed_projects += 1
+            potential_num_elements = len(_group_ids) * BUCKETS_PER_GROUP
+            # This is trying to maximize the number of groups on the first page
+            if (
+                processed_projects < total_projects_count
+                and potential_num_elements < ELEMENTS_PER_SNUBA_PAGE
+            ):
+                continue
+
+            # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
+            all_results += _query_with_pagination(
+                organization_id, proj_ids, group_ids, start_date, end_date, category
+            )
+
+            # We're ready for a new set of projects and ids
+            proj_ids, group_ids = [], []
 
     return all_results
 
@@ -150,14 +162,17 @@ def _query_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory],
+    category: GroupCategory | None = None,
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
     all_results = []
     offset = 0
+
     while True:
-        query = _generate_query(project_ids, group_ids, offset, start_date, end_date, category)
+        query = _generate_entity_dataset_query(
+            project_ids, group_ids, offset, start_date, end_date, category
+        )
         request = Request(
             dataset=_issue_category_dataset(category),
             app_id=REFERRER,
@@ -165,25 +180,170 @@ def _query_with_pagination(
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
         )
         results = raw_snql_query(request, referrer=REFERRER)["data"]
+
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
             break
 
+    _query_metrics_with_pagination(
+        organization_id, project_ids, group_ids, start_date, end_date, all_results, category
+    )
     return all_results
 
 
-def _generate_query(
+def _query_metrics_with_pagination(
+    organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
+    all_results: List[GroupsCountResponse],
+    category: GroupCategory | None = None,
+):
+    """
+    Paginates Snuba metric queries for event counts for the
+    given list of project ids and groups ids in a time range.
+
+    Checks if the returned results are equivalent to `all_results`.
+    If not equivalent, it will generate a log.
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    if category == GroupCategory.ERROR and features.has(
+        "organizations:escalating-issues-v2", organization
+    ):
+        metrics_results = []
+        metrics_offset = 0
+
+        while True:
+            # Generate and execute the query to the Generics Metrics Backend
+            metrics_query = _generate_generic_metrics_backend_query(
+                organization_id,
+                project_ids,
+                group_ids,
+                start_date,
+                end_date,
+                metrics_offset,
+                category,
+            )
+            projects = Project.objects.filter(id__in=project_ids)
+            metrics_series_results = get_series(
+                projects=projects,
+                metrics_query=metrics_query,
+                use_case_id=UseCaseID.ESCALATING_ISSUES,
+            )
+
+            metrics_results += transform_to_groups_count_response(metrics_series_results)
+            metrics_offset += ELEMENTS_PER_SNUBA_METRICS_QUERY
+
+            if (
+                not metrics_series_results["groups"]
+                or len(metrics_series_results["groups"]) < ELEMENTS_PER_SNUBA_METRICS_QUERY
+            ):
+                break
+
+        # Log exception if results from the Metrics backend are
+        # not equivalent to the Errors dataset.
+        if not compare_lists(metrics_results, all_results):
+            logger.info(
+                "Generics Metrics Backend query results not the same as Errors dataset query.",
+                extra={"metrics_results": metrics_results, "dataset_results": all_results},
+            )
+
+
+def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
+    """
+    Transforms results from `get_series` metrics query to List[GroupsCountResponse]
+    """
+    result: List[GroupsCountResponse] = []
+
+    for group in data["groups"]:
+        project_id = group["by"]["project_id"]
+        group_id = int(group["by"]["group"])
+        for interval, count in zip(data["intervals"], group["series"]["event_ingested"]):
+            if count > 0:
+                result.append(
+                    {
+                        "project_id": project_id,
+                        "group_id": group_id,
+                        "hourBucket": interval.isoformat(),
+                        "count()": count,
+                    }
+                )
+
+    return result
+
+
+def compare_lists(list1, list2):
+    # Convert each dictionary in the list to a frozenset so it's hashable
+    set1 = set(map(lambda x: frozenset(x.items()), list1))
+    set2 = set(map(lambda x: frozenset(x.items()), list2))
+
+    return set1 == set2
+
+
+def _generate_generic_metrics_backend_query(
+    organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
+    offset: int,
+    category: GroupCategory | None = None,
+):
+    """
+    This function generates a query to fetch the hourly events
+    for a group_id through the Generic Metrics Backend.
+
+    The Generic Metrics Backend only contains data for Errors.
+    """
+
+    # Check if category is for Errors, else raise an exception
+    if category is None or category != GroupCategory.ERROR:
+        raise Exception("Invalid category.")
+
+    select = [
+        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="sum"),
+    ]
+
+    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="group")]
+
+    where = [
+        Condition(
+            lhs=Column(name="tags[group]"),
+            op=Op.IN,
+            rhs=[str(group_id) for group_id in group_ids],
+        )
+    ]
+    return MetricsQuery(
+        org_id=organization_id,
+        project_ids=project_ids,
+        select=select,
+        start=start_date,
+        end=end_date,
+        where=where,
+        granularity=Granularity(HOUR),
+        groupby=groupby,
+        offset=Offset(offset),
+        limit=Limit(ELEMENTS_PER_SNUBA_METRICS_QUERY),
+        include_totals=False,
+    )
+
+
+def _generate_entity_dataset_query(
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     offset: int,
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory],
+    category: GroupCategory | None = None,
 ) -> Query:
+
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
+
     return Query(
         match=Entity(_issue_category_entity(category)),
         select=[
@@ -224,6 +384,19 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
+def _extract_organization_and_project_and_group_ids(
+    groups: Sequence[Group],
+) -> Dict[int, Dict[int, List[int]]]:
+    """Returns an object of organization by project by list of group ids from a list of Group"""
+    group_ids_by_project = _extract_project_and_group_ids(groups)
+    group_ids_by_organization: Dict[int, Dict[int, List[int]]] = defaultdict(dict)
+    for group in groups:
+        group_ids_by_organization[group.project.organization_id].update(
+            {group.project_id: group_ids_by_project[group.project_id]}
+        )
+    return group_ids_by_organization
+
+
 def get_group_hourly_count(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
@@ -260,7 +433,7 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
+def is_escalating(group: Group) -> Tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
@@ -294,11 +467,11 @@ def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedG
     return group_counts
 
 
-def _issue_category_dataset(category: Optional[GroupCategory]) -> Dataset:
+def _issue_category_dataset(category: GroupCategory | None = None) -> Dataset | str:
     return Dataset.Events.value if category == GroupCategory.ERROR else Dataset.IssuePlatform.value
 
 
-def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
+def _issue_category_entity(category: GroupCategory | None = None) -> EntityKey | str:
     return (
         EntityKey.Events.value if category == GroupCategory.ERROR else EntityKey.IssuePlatform.value
     )
@@ -307,16 +480,18 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
-    event: Optional[GroupEvent] = None,
-    snooze_details: Optional[Mapping[str, Any]] = None,
-    activity_data: Optional[Mapping[str, Any]] = None,
+    event: GroupEvent | None = None,
+    snooze_details: Mapping[str, Any] | None = None,
+    activity_data: Mapping[str, Any] | None = None,
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
 
     `activity_data`: Additional activity data, such as escalating forecast
     """
-    data = {"event_id": event.event_id} if event else None
+    data: dict[str, str | Mapping[str, Any]] | None = (
+        {"event_id": event.event_id} if event else None
+    )
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         updated = Group.objects.filter(id=group.id, status=GroupStatus.IGNORED).update(
             status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING

@@ -21,7 +21,7 @@ describe('Adds, deletes, and updates notification actions', function () {
   const notificationActions: NotificationAction[] = [
     {
       id: 2,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: null,
       sentryAppId: null,
       projects: [project.id],
@@ -33,7 +33,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
     {
       id: 3,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: 5,
       sentryAppId: null,
       projects: [project.id],
@@ -45,7 +45,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
     {
       id: 4,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: 2,
       sentryAppId: null,
       projects: [project.id],
@@ -57,7 +57,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
     {
       id: 5,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: 3,
       sentryAppId: null,
       projects: [project.id],

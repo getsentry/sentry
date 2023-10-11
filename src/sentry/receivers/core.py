@@ -11,11 +11,17 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.signals import post_upgrade, project_created
 from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
+from sentry.utils.settings import is_self_hosted
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -39,6 +45,10 @@ def handle_db_failure(func, using=None):
 
 
 def create_default_projects(**kwds):
+    if not in_test_environment() and not is_self_hosted():
+        # No op in production SaaS environments.
+        return
+
     create_default_project(
         # This guards against sentry installs that have SENTRY_PROJECT set to None, so
         # that they don't error after every migration. Specifically for single tenant.

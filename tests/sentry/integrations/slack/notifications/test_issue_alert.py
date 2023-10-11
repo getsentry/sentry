@@ -9,15 +9,11 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    OrganizationIntegration,
-    Rule,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -36,8 +32,11 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -82,7 +81,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert event.group
         assert (
@@ -142,7 +141,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_user(self, mock_func):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 
@@ -192,11 +191,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert "notification_uuid=" in attachment["title_link"]
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -287,9 +286,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachments[0]["title_link"])
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -314,7 +314,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 
@@ -459,9 +459,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachments[0]["title_link"])
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -545,9 +546,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachments[0]["title_link"])
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -629,9 +631,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachments[0]["title_link"])
         assert (
             attachments[0]["footer"]
-            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team|Notification Settings>"
+            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -739,9 +742,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
         assert attachments[0]["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachments[0]["title_link"])
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
         # check that user2 got a notification as well
@@ -752,7 +756,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate

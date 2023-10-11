@@ -1,8 +1,11 @@
 from datetime import datetime
 from unittest import mock
 
+from django.db import router
+
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import OrganizationMemberTeam
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import ensure_aware
@@ -77,7 +80,8 @@ class IssueOccurrenceTest(APITestCase):
 
     def test_no_projects(self, mock_func):
         """Test that we raise a 400 if the user belongs to no project teams and passes the dummyEvent query param"""
-        OrganizationMemberTeam.objects.all().delete()
+        with unguarded_write(router.db_for_write(OrganizationMemberTeam)):
+            OrganizationMemberTeam.objects.all().delete()
         url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)

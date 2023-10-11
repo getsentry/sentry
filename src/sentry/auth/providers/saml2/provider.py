@@ -16,11 +16,13 @@ from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
@@ -28,15 +30,15 @@ ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 def get_provider(organization_slug):
     try:
-        organization = Organization.objects.get(slug=organization_slug)
-    except Organization.DoesNotExist:
+        mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.ACTIVE:
+    if mapping.status != OrganizationStatus.ACTIVE:
         return None
 
     try:
-        provider = AuthProvider.objects.get(organization_id=organization.id).get_provider()
+        provider = AuthProvider.objects.get(organization_id=mapping.organization_id).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
@@ -73,6 +75,7 @@ class SAML2LoginView(AuthView):
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
 # auth_provider_login, but with support for initializing the auth flow.
+@control_silo_view
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, organization_slug):

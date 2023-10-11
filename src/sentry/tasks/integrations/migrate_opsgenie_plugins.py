@@ -2,8 +2,10 @@ import logging
 
 from django.db import router, transaction
 
-from sentry.models import Integration, Project, Rule
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60 * 5,
     max_retries=5,
 )
-@retry(exclude=[Integration.DoesNotExist, OrganizationIntegration.DoesNotExist])
+@retry(exclude=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist))
 def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 

@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt, metrics
 

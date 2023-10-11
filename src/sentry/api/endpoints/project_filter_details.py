@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 
-from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
-from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
 
 
 @extend_schema(tags=["Projects"])
@@ -34,16 +33,8 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             ProjectParams.FILTER_ID,
-            ProjectParams.ACTIVE,
-            ProjectParams.SUB_FILTERS,
         ],
-        request=inline_serializer(
-            name="FilterPutSerializer",
-            fields={
-                "active": serializers.CharField(required=False),
-                "subfilters": serializers.ListField(child=serializers.CharField(required=False)),
-            },
-        ),
+        request=_LegacyBrowserFilterSerializer,
         responses={
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
@@ -55,10 +46,6 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project, filter_id) -> Response:
         """
         Update various inbound data filters for a project.
-
-        Note that the hydration filter and custom inbound
-        filters must be updated using the [Update a
-        Project](https://docs.sentry.io/api/projects/update-a-project/) endpoint.
         """
         for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:

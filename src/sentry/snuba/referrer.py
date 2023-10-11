@@ -123,6 +123,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
+    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
         "api.organization-events-spans-performance-stats"
     )
@@ -321,6 +322,9 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.performance.transactions.statistical-detector-stats"
+    )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
@@ -332,6 +336,7 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
     API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
     API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
     API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
@@ -341,6 +346,21 @@ class Referrer(Enum):
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.profiling.functions.statistical-detector.stats"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
+        "api.profiling.functions.statistical-detector.example"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
+    API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
+    API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTIONS = (
+        "api.profiling.functions.regression.transactions"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
+        "api.profiling.functions.regression.transaction-stats"
+    )
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"

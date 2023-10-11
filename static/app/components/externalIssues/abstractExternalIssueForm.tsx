@@ -51,7 +51,7 @@ const DEBOUNCE_MS = 200;
  */
 export default class AbstractExternalIssueForm<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
   shouldRenderBadRequests = true;
   model = new FormModel();
@@ -295,11 +295,17 @@ export default class AbstractExternalIssueForm<
     throw new Error("Method 'getFormProps()' must be implemented.");
   };
 
+  hasErrorInFields = (): boolean => {
+    // check if we have any form fields with name error and type blank
+    const fields = this.getCleanedFields();
+    return fields.some(field => field.name === 'error' && field.type === 'blank');
+  };
+
   getDefaultFormProps = (): FormProps => {
     return {
       footerClass: 'modal-footer',
       onFieldChange: this.onFieldChange,
-      submitDisabled: this.state.reloading,
+      submitDisabled: this.state.reloading || this.hasErrorInFields(),
       model: this.model,
       // Other form props implemented by child classes.
     };

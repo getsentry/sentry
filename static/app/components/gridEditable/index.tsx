@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, Profiler} from 'react';
+import {Component, createRef, Fragment, Profiler, ReactNode} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -93,6 +93,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
   /**
    * Inject a set of buttons into the top of the grid table.
@@ -101,9 +102,10 @@ type GridEditableProps<DataRow, ColumnKey> = {
    */
   headerButtons?: () => React.ReactNode;
   height?: string | number;
-  isLoading?: boolean;
 
+  isLoading?: boolean;
   scrollable?: boolean;
+
   stickyHeader?: boolean;
 
   /**
@@ -115,7 +117,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * - `columnSortBy` is not used at the moment, however it might be better to
    *   move sorting into Grid for performance
    */
-  title?: string;
+  title?: ReactNode;
 };
 
 type GridEditableState = {
@@ -124,7 +126,7 @@ type GridEditableState = {
 
 class GridEditable<
   DataRow extends {[key: string]: any},
-  ColumnKey extends ObjectKey
+  ColumnKey extends ObjectKey,
 > extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
@@ -412,12 +414,15 @@ class GridEditable<
   }
 
   renderEmptyData() {
+    const {emptyMessage} = this.props;
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <EmptyStateWarning>
-            <p>{t('No results found for your query')}</p>
-          </EmptyStateWarning>
+          {emptyMessage ?? (
+            <EmptyStateWarning>
+              <p>{t('No results found for your query')}</p>
+            </EmptyStateWarning>
+          )}
         </GridBodyCellStatus>
       </GridRow>
     );

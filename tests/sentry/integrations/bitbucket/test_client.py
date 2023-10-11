@@ -1,17 +1,22 @@
 import re
 
 import jwt
+import pytest
 import responses
 from django.test import override_settings
-from freezegun import freeze_time
 from requests import Request
 
 from sentry.integrations.bitbucket.client import BitbucketApiClient, BitbucketAPIPath
+from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import BaseTestCase, TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -40,8 +45,19 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
                 "type": "team",
             },
         )
-        self.install = self.integration.get_installation(self.organization.id)
+        install = self.integration.get_installation(self.organization.id)
+        assert isinstance(install, BitbucketIntegration)
+        self.install = install
         self.bitbucket_client: BitbucketApiClient = self.install.get_client()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="bitbucket",
+                name="sentryuser/newsdiffs",
+                organization_id=self.organization.id,
+                config={"name": "sentryuser/newsdiffs"},
+                integration_id=self.integration.id,
+            )
 
     @freeze_time("2023-01-01 01:01:01")
     def test_authorize_request(self):
@@ -68,6 +84,51 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             "qsh": get_query_hash(uri=path, method=method, query_params=params),
             "sub": self.integration.external_id,
         }
+
+    @responses.activate
+    def test_check_file(self):
+        path = "src/sentry/integrations/bitbucket/client.py"
+        version = "master"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.repo.name}/src/{version}/{path}"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+
+        resp = self.bitbucket_client.check_file(self.repo, path, version)
+        assert isinstance(resp, BaseApiResponse)
+        assert resp.status_code == 200
+
+    @responses.activate
+    def test_check_no_file(self):
+        path = "src/santry/integrations/bitbucket/client.py"
+        version = "master"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.repo.name}/src/{version}/{path}"
+
+        responses.add(method=responses.HEAD, url=url, status=404)
+
+        with pytest.raises(ApiError):
+            self.bitbucket_client.check_file(self.repo, path, version)
+
+    @responses.activate
+    def test_get_stacktrace_link(self):
+        path = "/src/sentry/integrations/bitbucket/client.py"
+        version = "master"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.repo.name}/src/{version}/{path.lstrip('/')}"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
+        assert (
+            source_url
+            == "https://bitbucket.org/sentryuser/newsdiffs/src/master/src/sentry/integrations/bitbucket/client.py"
+        )
 
     @responses.activate
     def test_integration_proxy_is_active(self):

@@ -20,24 +20,22 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
-from sentry.models import (
-    Activity,
-    GroupRelease,
-    Integration,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectOption,
-    Repository,
-    Rule,
-    User,
-    UserEmail,
-    UserOption,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userreport import UserReport
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -54,6 +52,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCas
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
@@ -62,6 +61,8 @@ from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
+
+pytestmark = requires_snuba
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):

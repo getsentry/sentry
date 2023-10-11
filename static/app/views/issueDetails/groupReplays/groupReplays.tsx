@@ -81,7 +81,7 @@ function GroupReplaysTable({
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
-  const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
+  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,

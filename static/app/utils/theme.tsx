@@ -910,6 +910,9 @@ const commonTheme = {
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
+  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
+  barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
+
   demo: {
     headerSize: '70px',
   },

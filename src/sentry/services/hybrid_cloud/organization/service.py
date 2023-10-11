@@ -4,14 +4,15 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, Mapping, Optional, Union, cast
 
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
-from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization.model import (
+    RpcAuditLogEntryActor,
     RpcOrganization,
+    RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -176,7 +177,7 @@ class OrganizationService(RpcService):
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
@@ -234,21 +235,6 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         pass
 
@@ -282,24 +268,24 @@ class OrganizationService(RpcService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
-    ) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByRegionName())
-    @abstractmethod
-    def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
     ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def send_sso_link_emails(
-        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
     ) -> None:
         pass
 

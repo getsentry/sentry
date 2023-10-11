@@ -1,13 +1,12 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError, Project
+from sentry.models.eventerror import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
-from sentry.utils.http import get_origins
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -199,41 +198,19 @@ def _normalize_nonhandled_frame(frame, data):
     return frame
 
 
-def generate_scraping_config(project: Project) -> Dict[str, Any]:
-    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
-    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
-    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
-
-    allowed_origins = []
-    scraping_headers = {}
-    if allow_scraping:
-        allowed_origins = list(get_origins(project))
-
-        token = project.get_option("sentry:token")
-        if token:
-            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
-            scraping_headers[token_header] = token
-
-    return {
-        "enabled": allow_scraping,
-        "headers": scraping_headers,
-        "allowed_origins": allowed_origins,
-    }
+FRAME_FIELDS = ("abs_path", "lineno", "colno", "function")
 
 
-def _normalize_frame(frame: Any) -> dict:
-    frame = dict(frame)
-
-    # Symbolicator will *output* `data`, but never use it from the input
-    frame.pop("data", None)
+def _normalize_frame(raw_frame: Any) -> dict:
+    frame = {}
+    for key in FRAME_FIELDS:
+        if (value := raw_frame.get(key)) is not None:
+            frame[key] = value
 
     return frame
 
 
 def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
-    project = symbolicator.project
-    scraping_config = generate_scraping_config(project)
-
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
@@ -259,7 +236,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        scraping_config=scraping_config,
     )
 
     if not _handle_response_status(data, response):
@@ -267,11 +243,14 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     used_artifact_bundles = response.get("used_artifact_bundles", [])
     if used_artifact_bundles:
-        maybe_renew_artifact_bundles_from_processing(project.id, used_artifact_bundles)
+        maybe_renew_artifact_bundles_from_processing(symbolicator.project.id, used_artifact_bundles)
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
+    scraping_attempts = response.get("scraping_attempts", [])
+    if len(scraping_attempts) > 0:
+        data["scraping_attempts"] = scraping_attempts
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 

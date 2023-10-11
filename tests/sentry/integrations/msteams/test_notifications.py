@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 import responses
 
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
@@ -13,8 +13,11 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 TEST_CARD = {"type": "test_card"}
 

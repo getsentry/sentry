@@ -1,8 +1,7 @@
-from sentry.models import (
-    NotificationSetting,
-    NotificationSettingOption,
-    NotificationSettingProvider,
-)
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -84,12 +83,18 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
+    @with_feature({"organizations:notifications-double-write": False})
     def test_saves_and_returns_values(self):
         data = {
             "deployNotifications": 2,
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
+        # make an org mapping for the user
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
         response = self.get_success_response("me", **data)
 
         assert response.data.get("deployNotifications") == 2

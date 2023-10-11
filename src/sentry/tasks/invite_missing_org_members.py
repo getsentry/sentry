@@ -1,8 +1,15 @@
 import logging
 
 from sentry import features
-from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
+from sentry.api.endpoints.organization_missing_org_members import (
+    FILTERED_CHARACTERS,
+    FILTERED_EMAIL_DOMAINS,
+    _format_external_id,
+    _get_missing_organization_members,
+    _get_shared_email_domain,
+)
 from sentry.constants import ObjectStatus
+from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.missing_members_nudge import MissingMembersNudgeNotification
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -20,6 +27,7 @@ logger = logging.getLogger(__name__)
 def schedule_organizations():
     logger.info("invite_missing_org_members.schedule_organizations")
 
+    # NOTE: currently only for github
     github_org_integrations = integration_service.get_organization_integrations(
         providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -55,6 +63,11 @@ def send_nudge_email(org_id):
         )
         return
 
+    if not OrganizationOption.objects.get_value(
+        organization=organization, key="sentry:github_nudge_invite", default=True
+    ):
+        return
+
     integrations = integration_service.get_integrations(
         organization_id=org_id, providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -77,18 +90,31 @@ def send_nudge_email(org_id):
         )
         return
 
+    shared_domain = _get_shared_email_domain(organization)
+
+    if shared_domain:
+        commit_author_query = commit_author_query.filter(email__endswith=shared_domain)
+    else:
+        for filtered_email in FILTERED_EMAIL_DOMAINS:
+            commit_author_query = commit_author_query.exclude(email__endswith=filtered_email)
+
+    for filtered_character in FILTERED_CHARACTERS:
+        commit_author_query = commit_author_query.exclude(email__icontains=filtered_character)
+
     commit_authors = []
-    for commit_author in commit_author_query:
+    for commit_author in commit_author_query[:3]:
+        formatted_external_id = _format_external_id(commit_author.external_id)
+
         commit_authors.append(
             {
                 "email": commit_author.email,
-                "external_id": commit_author.external_id,
+                "external_id": formatted_external_id,
                 "commit_count": commit_author.commit__count,
             }
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors
+        organization=organization, commit_authors=commit_authors, provider="github"
     )
 
     logger.info(

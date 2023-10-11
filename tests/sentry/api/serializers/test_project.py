@@ -17,15 +17,13 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
-from sentry.models import (
-    Deploy,
-    Environment,
-    EnvironmentProject,
-    Project,
-    Release,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -46,6 +44,13 @@ class ProjectSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team], organization=self.organization)
 
     def test_simple(self):
+        result = serialize(self.project, self.user)
+        assert result["slug"] == self.project.slug
+        assert result["name"] == self.project.name
+        assert result["id"] == str(self.project.id)
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_simple_settings_v2(self):
         result = serialize(self.project, self.user)
         assert result["slug"] == self.project.slug
         assert result["name"] == self.project.name
@@ -690,6 +695,17 @@ class DetailedProjectSerializerTest(TestCase):
         assert "releases" in result["features"]
         assert result["platform"] == self.project.platform
         assert result["latestRelease"] == {"version": self.release.version}
+
+    def test_symbol_sources(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key="sentry:symbol_sources",
+            value='[{"id":"1","name":"hello","password":"password",}]',
+        )
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert "sentry:token" not in result["options"]
+        assert "sentry:symbol_sources" not in result["options"]
 
 
 @region_silo_test(stable=True)
