@@ -16,7 +16,6 @@ import {PaddedContainer} from 'sentry/views/performance/browser/resources';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -61,7 +60,7 @@ function ResourceSummary() {
           />
 
           <Layout.Title>
-            {t('Resources')}
+            {t('Resource Summary')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -69,6 +68,9 @@ function ResourceSummary() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <DescriptionContainer>
+            <h3>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</h3>
+          </DescriptionContainer>
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
@@ -90,9 +92,6 @@ function ResourceSummary() {
               </Block>
             </BlockContainer>
           </HeaderContainer>
-          <DescriptionContainer>
-            <SpanDescription span={spanMetrics} />
-          </DescriptionContainer>
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
         </Layout.Main>
