@@ -126,6 +126,7 @@ class GroupAssigneeManager(BaseManager):
         from sentry.services.hybrid_cloud.user.service import user_service
 
         previous_groupassignee = self.get(group=group)
+        previous_assignee: User | RpcUser | Team | None = None
         if previous_groupassignee.user_id:
             previous_assignee = user_service.get_user(previous_groupassignee.user_id)
         else:
@@ -150,7 +151,10 @@ class GroupAssigneeManager(BaseManager):
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
-            if features.has("organizations:participants-purge", group.organization):
+            if (
+                features.has("organizations:participants-purge", group.organization)
+                and previous_assignee
+            ):
                 if (
                     features.has("organizations:team-workflow-notifications", group.organization)
                     and type(previous_assignee) is Team
