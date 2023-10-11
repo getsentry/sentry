@@ -46,6 +46,7 @@ function useTagFilters({tags}: Options): Return {
     [setFilter]
   );
 
+  // Get from type Record<string, string[]>[] to Record<string, string[]>
   const items = {};
   Object.values(filteredItems).forEach(item => {
     for (const key in item) {

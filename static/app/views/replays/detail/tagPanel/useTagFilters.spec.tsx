@@ -15,18 +15,6 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const tags = TestStubs.ReplayRecord().tags;
 
-// const tags = {
-//   'browser.name': ['Other'],
-//   'device.family': ['Other'],
-//   environment: ['demo'],
-//   'os.name': ['Other'],
-//   platform: ['javascript'],
-//   releases: ['1.0.0', '2.0.0'],
-//   'sdk.name': ['sentry.javascript.browser'],
-//   'sdk.version': ['7.1.1'],
-//   'user.ip': ['127.0.0.1'],
-// };
-
 describe('useTagsFilters', () => {
   beforeEach(() => {
     jest.mocked(browserHistory.push).mockReset();
@@ -55,6 +43,9 @@ describe('useTagsFilters', () => {
     const {result} = reactHooks.renderHook(useTagFilters, {
       initialProps: {tags},
     });
-    expect(Object.keys(result.current.items).length).toEqual(2);
+    expect(result.current.items).toEqual({
+      'browser.name': ['Other'],
+      'sdk.name': ['sentry.javascript.browser'],
+    });
   });
 });
