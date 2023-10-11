@@ -158,7 +158,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         user: int | User | RpcUser | None | AnonymousUser,
         auth: Any,
         entity_id_tag: str | None = None,
-        **tags: Any,
+        **tags,
     ) -> Tuple[User | RpcUser | AnonymousUser, Any]:
         if isinstance(user, int):
             if self._use_rpc_user():
