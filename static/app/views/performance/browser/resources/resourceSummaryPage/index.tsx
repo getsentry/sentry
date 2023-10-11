@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -60,7 +59,7 @@ function ResourceSummary() {
           />
 
           <Layout.Title>
-            {t('Resource Summary')}
+            {spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -68,9 +67,6 @@ function ResourceSummary() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <DescriptionContainer>
-            <h3>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</h3>
-          </DescriptionContainer>
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
@@ -104,13 +100,6 @@ const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-`;
-
-const DescriptionContainer = styled('div')`
-  width: 100%;
-  margin-bottom: ${space(2)};
-  font-size: 1rem;
-  line-height: 1.2;
 `;
 
 export default ResourceSummary;
