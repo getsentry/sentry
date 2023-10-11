@@ -1,3 +1,4 @@
+from copy import deepcopy
 from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema
@@ -19,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
+    SOURCE_SCHEMA,
     InvalidSourcesError,
     backfill_source,
     parse_sources,
@@ -29,7 +31,18 @@ from sentry.models import Project
 from sentry.utils import json
 
 
-@extend_schema(tags=["Projects"])
+def _get_sources_schema_with_optional_id() -> dict:
+    schema = deepcopy(SOURCE_SCHEMA)
+    for schema in schema["oneOf"]:
+        schema["required"].remove("id")
+    return schema
+
+
+# Version of SOURCE_SCHEMA that doesn't require "id". Used as the request schema
+# for PUT and POST.
+SOURCE_SCHEMA_OPTIONAL_ID = _get_sources_schema_with_optional_id()
+
+
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
@@ -48,7 +61,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             ProjectParams.source_id("The ID of the source to look up.", False),
         ],
         responses={
-            # TODO
             200: REDACTED_SOURCES_SCHEMA,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -84,7 +96,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.DELETE_SYMBOL_SOURCES,
+        examples=ProjectExamples.DELETE_SYMBOL_SOURCE,
     )
     def delete(self, request: Request, project: Project) -> Response:
         """
@@ -109,13 +121,13 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=None,
+        request=SOURCE_SCHEMA_OPTIONAL_ID,
         responses={
             201: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=ProjectExamples.ADD_SYMBOL_SOURCES,
+        examples=ProjectExamples.ADD_SYMBOL_SOURCE,
     )
     def post(self, request: Request, project: Project) -> Response:
         """
@@ -152,14 +164,14 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
-        request=None,
+        request=SOURCE_SCHEMA_OPTIONAL_ID,
         responses={
             200: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.UPDATE_SYMBOL_SOURCES,
+        examples=ProjectExamples.UPDATE_SYMBOL_SOURCE,
     )
     def put(self, request: Request, project: Project) -> Response:
         """

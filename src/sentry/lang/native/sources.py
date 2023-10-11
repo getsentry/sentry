@@ -117,12 +117,20 @@ GCS_SOURCE_SCHEMA = {
     "additionalProperties": False,
 }
 
+SOURCE_SCHEMA = {
+    "oneOf": [
+        HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
 SOURCES_SCHEMA = {
     "type": "array",
-    "items": {
-        "oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA, APP_STORE_CONNECT_SCHEMA]
-    },
+    "items": SOURCE_SCHEMA,
 }
+
 
 # Schemas for sources with redacted secrets
 HIDDEN_SECRET_SCHEMA = {
