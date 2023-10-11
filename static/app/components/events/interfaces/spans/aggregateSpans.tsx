@@ -19,6 +19,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+type SpanSamples = [[string, string]];
+
 type AggregateSpanRow = {
   'avg(absolute_offset)': number;
   'avg(duration)': number;
@@ -29,6 +31,7 @@ type AggregateSpanRow = {
   is_segment: number;
   node_fingerprint: string;
   parent_node_fingerprint: string;
+  samples: SpanSamples;
   start_ms: number;
 };
 
@@ -84,6 +87,7 @@ export function AggregateSpans({transaction}: Props) {
       'avg(absolute_offset)': start_timestamp,
       'count()': count,
       'avg(duration)': duration,
+      samples,
       ...rest
     } = span;
     return {
@@ -98,6 +102,7 @@ export function AggregateSpans({transaction}: Props) {
       count,
       total,
       duration,
+      samples,
       frequency: count / total,
       type: 'aggregate',
     };
