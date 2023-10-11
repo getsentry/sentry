@@ -424,7 +424,7 @@ def configure_sdk():
                 s4s_args = args
                 # We want to control whether we want to send metrics at the s4s upstream.
                 if (
-                    not settings.SENTRY_UPSTREAM_METRICS_ENABLED
+                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
                     and method_name == "capture_envelope"
                 ):
                     args_list = list(args)

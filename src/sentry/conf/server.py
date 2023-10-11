@@ -3814,4 +3814,4 @@ SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetr
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
-SENTRY_UPSTREAM_METRICS_ENABLED = False
+SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
