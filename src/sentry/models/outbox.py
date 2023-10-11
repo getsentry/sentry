@@ -466,10 +466,6 @@ class OutboxBase(Model):
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
-    def hash_from(self, attrs: Iterable[str]) -> int:
-        # a single 64 bit result of hashing the given attrs.
-        return mmh3.hash64(".".join(str(v) for v in (getattr(self, attr) for attr in attrs)))[0]
-
     def selected_messages_in_shard(
         self, latest_shard_row: OutboxBase | None = None
     ) -> models.QuerySet:
@@ -524,18 +520,6 @@ class OutboxBase(Model):
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(**kwds)
-
-    @contextlib.contextmanager
-    def with_shard_lock(self, wait=True):
-        using: str = db.router.db_for_write(type(self))
-        with connections[using].cursor() as cursor:
-            try:
-                cursor.execute(
-                    f"SELECT  pg_advisory_lock(id) FROM {self._meta.db_table} WHERE ",
-                )
-                yield
-            finally:
-                pass
 
     def lock_id(self, attrs: Iterable[str]) -> int:
         # 64 bit integer that roughly encodes a unique, serializable lock identifier
