@@ -62,6 +62,11 @@ jobs:
         run: |
           cp tests/apidocs/openapi-derefed.json sentry-api-schema
 
+      - name: Copy publish status into getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          cp src/sentry/apidocs/api_ownership_stats_dont_modify.json sentry-api-schema
+
       - name: Git Commit & Push
         uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
         if: steps.changes.outputs.api_docs == 'true'

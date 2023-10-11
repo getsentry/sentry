@@ -1,4 +1,4 @@
-from sentry.models import ControlTombstone, RegionTombstone
+from sentry.models.tombstone import ControlTombstone, RegionTombstone
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.outbox import outbox_runner

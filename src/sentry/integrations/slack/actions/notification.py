@@ -7,7 +7,7 @@ from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction

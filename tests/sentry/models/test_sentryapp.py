@@ -1,5 +1,6 @@
 from sentry.constants import SentryAppStatus
-from sentry.models import ApiApplication, SentryApp
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

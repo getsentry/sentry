@@ -4,7 +4,8 @@ from unittest.mock import patch
 import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

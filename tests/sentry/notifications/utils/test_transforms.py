@@ -1,5 +1,5 @@
-from sentry.models import NotificationSetting
 from sentry.models.actor import get_actor_id_for_user
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     transform_to_notification_settings_by_scope,

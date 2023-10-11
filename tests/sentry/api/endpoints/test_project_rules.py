@@ -9,8 +9,9 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
+from sentry.models.environment import Environment
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase

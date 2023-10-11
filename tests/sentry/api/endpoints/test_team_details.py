@@ -1,6 +1,9 @@
 from sentry import audit_log
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists

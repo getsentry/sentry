@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -20,6 +20,7 @@ from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
+from sentry.conf.types.sdk_config import SdkConfig
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
@@ -309,13 +310,14 @@ def patch_transport_for_instrumentation(transport, transport_name):
     return transport
 
 
-def configure_sdk():
-    """
-    Setup and initialize the Sentry SDK.
-    """
-    assert sentry_sdk.Hub.main.client is None
+class Dsns(NamedTuple):
+    sentry4sentry: str | None
+    sentry_saas: str | None
+    experimental: str | None
 
-    sdk_options = dict(settings.SENTRY_SDK_CONFIG)
+
+def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
+    sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
@@ -323,21 +325,34 @@ def configure_sdk():
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
 
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
+    dsns = Dsns(
+        sentry4sentry=sdk_options.pop("dsn", None),
+        sentry_saas=sdk_options.pop("relay_dsn", None),
+        experimental=sdk_options.pop("experimental_dsn", None),
+    )
+
+    return sdk_options, dsns
+
+
+def configure_sdk():
+    """
+    Setup and initialize the Sentry SDK.
+    """
+    assert sentry_sdk.Hub.main.client is None
+
+    sdk_options, dsns = _get_sdk_options()
+
     internal_project_key = get_project_key()
 
-    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
-    sentry4sentry_dsn = sdk_options.pop("dsn", None)
-    sentry_saas_dsn = sdk_options.pop("relay_dsn", None)
-    experimental_dsn = sdk_options.pop("experimental_dsn", None)
-
-    if sentry4sentry_dsn:
-        transport = make_transport(get_options(dsn=sentry4sentry_dsn, **sdk_options))
+    if dsns.sentry4sentry:
+        transport = make_transport(get_options(dsn=dsns.sentry4sentry, **sdk_options))
         sentry4sentry_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         sentry4sentry_transport = None
 
-    if sentry_saas_dsn:
-        transport = make_transport(get_options(dsn=sentry_saas_dsn, **sdk_options))
+    if dsns.sentry_saas:
+        transport = make_transport(get_options(dsn=dsns.sentry_saas, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         sentry_saas_transport = None
@@ -347,8 +362,8 @@ def configure_sdk():
     else:
         sentry_saas_transport = None
 
-    if experimental_dsn:
-        transport = make_transport(get_options(dsn=experimental_dsn, **sdk_options))
+    if dsns.experimental:
+        transport = make_transport(get_options(dsn=dsns.experimental, **sdk_options))
         experimental_transport = patch_transport_for_instrumentation(transport, "experimental")
     else:
         experimental_transport = None
@@ -407,15 +422,20 @@ def configure_sdk():
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
                 s4s_args = args
-                if method_name == "capture_envelope":
+                # We want to control whether we want to send metrics at the s4s upstream.
+                if (
+                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                    and method_name == "capture_envelope"
+                ):
                     args_list = list(args)
                     envelope = args_list[0]
-                    # Do not forward metrics to s4s
+                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     safe_items = [x for x in envelope.items if x.data_category != "statsd"]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items
-                        s4s_args = [relay_envelope, *args_list[1:]]
+                        s4s_args = (relay_envelope, *args_list[1:])
+
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
@@ -425,7 +445,7 @@ def configure_sdk():
                     envelope = args_list[0]
                     relay_envelope = copy.copy(envelope)
                     relay_envelope.items = envelope.items.copy()
-                    args = [relay_envelope, *args_list[1:]]
+                    args = (relay_envelope, *args_list[1:])
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
@@ -491,7 +511,7 @@ def configure_sdk():
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
-        dsn=sentry4sentry_dsn,
+        dsn=dsns.sentry4sentry,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
@@ -604,11 +624,14 @@ def get_transaction_name_from_request(request: Request) -> str:
     transaction_name = request.path_info
     try:
         # Note: In spite of the name, the legacy resolver is still what's used in the python SDK
-        transaction_name = LEGACY_RESOLVER.resolve(
+        resolved_transaction_name = LEGACY_RESOLVER.resolve(
             request.path_info, urlconf=getattr(request, "urlconf", None)
         )
     except Exception:
         pass
+    else:
+        if resolved_transaction_name is not None:
+            transaction_name = resolved_transaction_name
 
     return transaction_name
 
@@ -631,7 +654,8 @@ def check_current_scope_transaction(
         transaction_from_request = get_transaction_name_from_request(request)
 
         if (
-            scope._transaction != transaction_from_request
+            scope._transaction is not None
+            and scope._transaction != transaction_from_request
             and scope._transaction_info.get("source") != "custom"
         ):
             return {

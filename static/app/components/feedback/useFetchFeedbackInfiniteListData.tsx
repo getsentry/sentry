@@ -40,7 +40,7 @@ function startDateFromQueryView({start, statsPeriod}: QueryView): Date {
       const msdifference = formatDuration({
         precision: 'ms',
         style: 'count',
-        timespan: [value, unit],
+        duration: [value, unit],
       });
       return moment.utc().subtract(msdifference, 'ms').toDate();
     }
@@ -65,6 +65,8 @@ class InfiniteListLoader {
   public totalHits: undefined | number = undefined;
 
   private isFetching = false;
+  public isFetchingNext = false;
+  public isFetchingPrev = false;
 
   constructor(
     private api: Client,
@@ -172,7 +174,7 @@ class InfiniteListLoader {
     };
   }
 
-  public async fetchNext() {
+  public async fetchNext(perPage: number = PER_PAGE) {
     if (this.hasMore !== true) {
       // Skip the request if we either:
       // - Have not yet got the first results back
@@ -180,28 +182,32 @@ class InfiniteListLoader {
       return;
     }
 
+    this.isFetchingNext = true;
     const result = await this.fetch({
       end: this.minDatetime,
-      perPage: PER_PAGE,
+      perPage,
       sort: '-timestamp',
       start: startDateFromQueryView(this.queryView),
     });
+    this.isFetchingNext = false;
     this.didFetchNext(result);
   }
 
-  public async fetchPrev() {
+  public async fetchPrev(perPage: number = PER_PAGE) {
     if (this.hasPrev !== false) {
       // Skip the request if:
       // - We know there are no more results to fetch
       return;
     }
 
+    this.isFetchingPrev = true;
     const result = await this.fetch({
       end: endDateFromQueryView(this.queryView),
-      perPage: PER_PAGE,
+      perPage,
       sort: 'timestamp',
       start: this.maxDatetime,
     });
+    this.isFetchingPrev = false;
     this.didFetchPrev(result);
   }
 
@@ -224,6 +230,8 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   countLoadedRows: 0,
   getRow: () => undefined,
   isError: false,
+  isFetchingNext: false,
+  isFetchingPrev: false,
   isLoading: false,
   isRowLoaded: () => false,
   loadMoreRows: () => Promise.resolve(),
@@ -233,6 +241,8 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
 };
 
 type State = {
+  isFetchingNext: boolean;
+  isFetchingPrev: boolean;
   items: HydratedFeedbackItem[];
   totalHits: undefined | number;
 };
@@ -251,6 +261,8 @@ export default function useFetchFeedbackInfiniteListData({
   const [state, setState] = useState<State>({
     items: [],
     totalHits: undefined,
+    isFetchingNext: false,
+    isFetchingPrev: false,
   });
 
   useEffect(() => {
@@ -258,9 +270,12 @@ export default function useFetchFeedbackInfiniteListData({
     loaderRef.current = loader;
 
     return loader.onChange(() => {
+      const {totalHits, isFetchingNext, isFetchingPrev} = loader;
       setState({
         items: loader.feedbacks,
-        totalHits: loader.totalHits,
+        totalHits,
+        isFetchingNext,
+        isFetchingPrev,
       });
     });
   }, [api, organization, queryView, initialDate]);
@@ -279,8 +294,8 @@ export default function useFetchFeedbackInfiniteListData({
     [state.items]
   );
 
-  const loadMoreRows = useCallback(({startIndex: _1, stopIndex: _2}: IndexRange) => {
-    return loaderRef.current?.fetchNext() ?? Promise.resolve();
+  const loadMoreRows = useCallback(({startIndex, stopIndex}: IndexRange) => {
+    return loaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve();
   }, []);
 
   const updateFeedback = useCallback(({feedbackId: _}: {feedbackId: string}) => {
@@ -291,15 +306,18 @@ export default function useFetchFeedbackInfiniteListData({
     loadMoreRows({startIndex: 0, stopIndex: PER_PAGE});
   }, [loadMoreRows]);
 
+  const {totalHits, isFetchingNext, isFetchingPrev} = state;
   return {
     countLoadedRows: state.items.length,
     getRow,
     isError: false,
+    isFetchingNext,
+    isFetchingPrev,
     isLoading: false,
     isRowLoaded,
     loadMoreRows,
     queryView,
-    totalHits: state.totalHits,
+    totalHits,
     updateFeedback,
   };
 }

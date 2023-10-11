@@ -1,7 +1,9 @@
 from typing import Optional
 
 from sentry.constants import SentryAppStatus
-from sentry.models import ApiApplication, SentryApp, SentryAppInstallation
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.services.hybrid_cloud.app import (
     RpcApiApplication,
     RpcSentryApp,

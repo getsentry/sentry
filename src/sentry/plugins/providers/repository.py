@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.exceptions import PluginError
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.config import ConfigValidator
 from sentry.signals import repo_linked
 

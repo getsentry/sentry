@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import Integration, Organization, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError

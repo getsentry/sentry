@@ -2,7 +2,7 @@ import base64
 from typing import Dict, List, Tuple
 
 from sentry.api.serializers import Serializer
-from sentry.models import ReleaseArtifactBundle, SourceFileType
+from sentry.models.artifactbundle import ReleaseArtifactBundle, SourceFileType
 
 INVALID_SOURCE_FILE_TYPE = 0
 
