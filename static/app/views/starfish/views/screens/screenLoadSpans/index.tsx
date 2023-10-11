@@ -62,7 +62,6 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -96,7 +95,6 @@ function ScreenLoadSpans() {
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
