@@ -91,7 +91,7 @@
     ]
   },
   "hybridcloud.regioncacheversion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "hybridcloud.regioncacheversion",
     "relocation_scope": "Excluded",
@@ -106,7 +106,7 @@
     ]
   },
   "nodestore.node": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "nodestore.node",
     "relocation_scope": "Excluded",
@@ -177,7 +177,7 @@
     "uniques": []
   },
   "sentry.actor": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "team": {
         "kind": "FlexibleForeignKey",
@@ -206,7 +206,7 @@
     ]
   },
   "sentry.alertrule": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization": {
         "kind": "FlexibleForeignKey",
@@ -237,7 +237,7 @@
     ]
   },
   "sentry.alertruleactivity": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -291,7 +291,7 @@
     ]
   },
   "sentry.alertruletrigger": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -313,7 +313,7 @@
     ]
   },
   "sentry.alertruletriggeraction": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule_trigger": {
         "kind": "FlexibleForeignKey",
@@ -795,7 +795,7 @@
     ]
   },
   "sentry.broadcast": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.broadcast",
     "relocation_scope": "Excluded",
@@ -918,7 +918,7 @@
     ]
   },
   "sentry.controlfile": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controlfile",
     "relocation_scope": "Excluded",
@@ -929,7 +929,7 @@
     "uniques": []
   },
   "sentry.controlfileblob": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controlfileblob",
     "relocation_scope": "Excluded",
@@ -944,7 +944,7 @@
     ]
   },
   "sentry.controlfileblobindex": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -1014,7 +1014,7 @@
     ]
   },
   "sentry.controloutbox": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controloutbox",
     "relocation_scope": "Excluded",
@@ -1025,7 +1025,7 @@
     "uniques": []
   },
   "sentry.controltombstone": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controltombstone",
     "relocation_scope": "Excluded",
@@ -1243,7 +1243,7 @@
     "uniques": []
   },
   "sentry.deletedorganization": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.deletedorganization",
     "relocation_scope": "Excluded",
@@ -1254,7 +1254,7 @@
     "uniques": []
   },
   "sentry.deletedproject": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization_id": {
         "kind": "ImplicitForeignKey",
@@ -1271,7 +1271,7 @@
     "uniques": []
   },
   "sentry.deletedteam": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization_id": {
         "kind": "ImplicitForeignKey",
@@ -1391,7 +1391,7 @@
     ]
   },
   "sentry.docintegration": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.docintegration",
     "relocation_scope": "Excluded",
@@ -1406,7 +1406,7 @@
     ]
   },
   "sentry.docintegrationavatar": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "control_file_id": {
         "kind": "ImplicitForeignKey",
@@ -1738,7 +1738,7 @@
     ]
   },
   "sentry.file": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -1755,7 +1755,7 @@
     "uniques": []
   },
   "sentry.fileblob": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.fileblob",
     "relocation_scope": "Excluded",
@@ -1770,7 +1770,7 @@
     ]
   },
   "sentry.fileblobindex": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -2046,7 +2046,7 @@
     ]
   },
   "sentry.grouphash": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "group": {
         "kind": "FlexibleForeignKey",
@@ -2535,7 +2535,7 @@
     ]
   },
   "sentry.identityprovider": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.identityprovider",
     "relocation_scope": "Excluded",
@@ -2772,7 +2772,7 @@
     ]
   },
   "sentry.integrationfeature": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.integrationfeature",
     "relocation_scope": "Excluded",
@@ -2874,7 +2874,7 @@
     ]
   },
   "sentry.metricskeyindexer": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.metricskeyindexer",
     "relocation_scope": "Excluded",
@@ -3010,7 +3010,7 @@
     "uniques": []
   },
   "sentry.monitorlocation": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.monitorlocation",
     "relocation_scope": "Excluded",
@@ -3102,7 +3102,7 @@
     "uniques": []
   },
   "sentry.notificationsetting": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "target_id": {
         "kind": "HybridCloudForeignKey",
@@ -3137,7 +3137,7 @@
     ]
   },
   "sentry.notificationsettingoption": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "team_id": {
         "kind": "HybridCloudForeignKey",
@@ -3167,7 +3167,7 @@
     ]
   },
   "sentry.notificationsettingprovider": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "team_id": {
         "kind": "HybridCloudForeignKey",
@@ -3854,7 +3854,7 @@
     ]
   },
   "sentry.projectdebugfile": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "file": {
         "kind": "FlexibleForeignKey",
@@ -4301,7 +4301,7 @@
     ]
   },
   "sentry.regionoutbox": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regionoutbox",
     "relocation_scope": "Excluded",
@@ -4312,7 +4312,7 @@
     "uniques": []
   },
   "sentry.regionscheduleddeletion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regionscheduleddeletion",
     "relocation_scope": "Excluded",
@@ -4332,7 +4332,7 @@
     ]
   },
   "sentry.regiontombstone": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regiontombstone",
     "relocation_scope": "Excluded",
@@ -4848,7 +4848,7 @@
     "uniques": []
   },
   "sentry.rulesnooze": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -4889,7 +4889,7 @@
     ]
   },
   "sentry.savedsearch": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization": {
         "kind": "FlexibleForeignKey",
@@ -4911,7 +4911,7 @@
     "uniques": []
   },
   "sentry.scheduleddeletion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.scheduleddeletion",
     "relocation_scope": "Excluded",
@@ -5152,7 +5152,7 @@
     ]
   },
   "sentry.servicehook": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "application_id": {
         "kind": "HybridCloudForeignKey",
@@ -5232,7 +5232,7 @@
     "uniques": []
   },
   "sentry.snubaqueryeventtype": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "snuba_query": {
         "kind": "FlexibleForeignKey",
@@ -5626,7 +5626,7 @@
     "uniques": []
   },
   "sessions.session": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sessions.session",
     "relocation_scope": "Excluded",
@@ -5641,7 +5641,7 @@
     ]
   },
   "sites.site": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sites.site",
     "relocation_scope": "Excluded",
