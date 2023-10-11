@@ -77,7 +77,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            ProjectParams.source_id("The id of the source to delete.", True),
+            ProjectParams.source_id("The ID of the source to delete.", True),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
