@@ -226,7 +226,7 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
-      defaultQuery={query}
+      query={query}
       savedSearchType={SavedSearchType.METRIC}
     />
   );
