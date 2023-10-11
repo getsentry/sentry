@@ -10,7 +10,9 @@ import styled from '@emotion/styled';
 
 import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -25,8 +27,16 @@ const cellMeasurer = {
 };
 
 export default function FeedbackList() {
-  const {getRow, isRowLoaded, loadMoreRows, totalHits, countLoadedRows, queryView} =
-    useInfiniteFeedbackListData();
+  const {
+    countLoadedRows,
+    getRow,
+    isFetchingNext,
+    isFetchingPrev,
+    isRowLoaded,
+    loadMoreRows,
+    queryView,
+    totalHits,
+  } = useInfiniteFeedbackListData();
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
@@ -79,14 +89,18 @@ export default function FeedbackList() {
                 <ReactVirtualizedList
                   deferredMeasurementCache={cache}
                   height={height}
-                  noRowsRenderer={() => (
-                    <NoRowRenderer
-                      unfilteredItems={totalHits === undefined ? [undefined] : []}
-                      clearSearchTerm={clearSearchTerm}
-                    >
-                      {t('No feedback received')}
-                    </NoRowRenderer>
-                  )}
+                  noRowsRenderer={() =>
+                    isFetchingNext || isFetchingPrev ? (
+                      <LoadingIndicator />
+                    ) : (
+                      <NoRowRenderer
+                        unfilteredItems={totalHits === undefined ? [undefined] : []}
+                        clearSearchTerm={clearSearchTerm}
+                      >
+                        {t('No feedback received')}
+                      </NoRowRenderer>
+                    )
+                  }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
@@ -101,6 +115,20 @@ export default function FeedbackList() {
             </AutoSizer>
           )}
         </InfiniteLoader>
+        <FloatingContainer style={{top: '2px'}}>
+          {isFetchingPrev ? (
+            <Tooltip title={t('Loading more feedback...')}>
+              <LoadingIndicator mini />
+            </Tooltip>
+          ) : null}
+        </FloatingContainer>
+        <FloatingContainer style={{bottom: '2px'}}>
+          {isFetchingNext ? (
+            <Tooltip title={t('Loading more feedback...')}>
+              <LoadingIndicator mini />
+            </Tooltip>
+          ) : null}
+        </FloatingContainer>
       </OverflowPanelItem>
     </Fragment>
   );
@@ -112,10 +140,12 @@ const HeaderPanelItem = styled(PanelItem)`
 `;
 
 const OverflowPanelItem = styled(PanelItem)`
+  display: grid;
   overflow: scroll;
-  padding: ${space(0.5)};
-
-  flex-direction: column;
   flex-grow: 1;
-  gap: ${space(1)};
+`;
+
+const FloatingContainer = styled('div')`
+  position: absolute;
+  justify-self: center;
 `;
