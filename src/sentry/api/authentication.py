@@ -142,6 +142,7 @@ class QuietBasicAuthentication(BasicAuthentication):
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             or options.get("hybrid_cloud.authentication.use_authenticated_token")
             >= self._hybrid_cloud_rollout_level
+            or in_test_environment()
         )
 
     def _use_rpc_user(self) -> bool:
