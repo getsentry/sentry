@@ -27,7 +27,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
     validate_sources,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import json
 
 
