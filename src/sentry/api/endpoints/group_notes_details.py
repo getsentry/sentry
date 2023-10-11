@@ -40,7 +40,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note = None
         for n in notes_by_user:
-            if n.id == note_id:
+            if n.id == int(note_id):
                 note = n
                 break
 
