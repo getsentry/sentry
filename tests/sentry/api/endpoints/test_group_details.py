@@ -284,14 +284,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
-            assert response.data["count"] == 16
+            assert response.data["count"] == "16"
 
             url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
-            assert response.data["count"] == 16
+            assert response.data["count"] == "16"
 
 
 @region_silo_test(stable=True)

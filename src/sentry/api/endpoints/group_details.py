@@ -158,9 +158,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return hourly_stats, daily_stats
 
     @staticmethod
-    def __get_group_global_count(group: Group) -> int:
+    def __get_group_global_count(group: Group) -> str:
         fetch_buffered_group_stats(group)
-        return group.times_seen_with_pending
+        return str(group.times_seen_with_pending)
 
     def get(self, request: Request, group) -> Response:
         """
