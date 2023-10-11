@@ -43,22 +43,18 @@ function TraceErrorList({trace, errors, performanceIssues}: TraceErrorListProps)
         )}
         {flatten(
           Object.entries(groupBy(performanceIssues, 'span')).map(
-            ([spanId, spanErrors]) => {
-              return Object.entries(groupBy(spanErrors, 'level')).map(
-                ([level, spanLevelErrors]) => (
-                  <ListItem key={`${spanId}-${level}`}>
-                    {tct('[errors] [link]', {
-                      errors: tn(
-                        '%s performance issue in ',
-                        '%s performance issues in ',
-                        spanLevelErrors.length
-                      ),
-                      link: findSpanById(trace, spanId).op,
-                    })}
-                  </ListItem>
-                )
-              );
-            }
+            ([spanId, spanErrors]) => (
+              <ListItem key={`${spanId}`}>
+                {tct('[errors] [link]', {
+                  errors: tn(
+                    '%s performance issue in ',
+                    '%s performance issues in ',
+                    spanErrors.length
+                  ),
+                  link: findSpanById(trace, spanId).op,
+                })}
+              </ListItem>
+            )
           )
         )}
       </Fragment>
