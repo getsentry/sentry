@@ -176,6 +176,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
   return (
     <FlamegraphZoomView
+      disableGrid
       disableCallOrderSort
       canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}

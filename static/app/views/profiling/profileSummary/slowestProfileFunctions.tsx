@@ -107,7 +107,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   const onSlowestFunctionClick = useCallback(() => {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: `profiling_transaction.suspect_functions_table`,
+      source: `profiling_transaction.slowest_functions_table`,
     });
   }, [organization]);
 
