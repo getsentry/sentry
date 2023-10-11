@@ -25,7 +25,7 @@ from typing import (
 import mmh3
 import sentry_sdk
 from django import db
-from django.db import OperationalError, connections, models, router, transaction
+from django.db import connections, models, router, transaction
 from django.db.models import Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
@@ -48,7 +48,7 @@ from sentry.db.models import (
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints, in_test_assert_no_transaction
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -431,37 +431,18 @@ class OutboxBase(Model):
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        try:
-            with transaction.atomic(using=using, savepoint=False):
-                next_outbox: OutboxBase | None
-                next_outbox = (
-                    cls(**row)
-                    .selected_messages_in_shard()
-                    .order_by("id")
-                    .select_for_update(nowait=True)
-                    .first()
-                )
-                if not next_outbox:
-                    return None
-
-                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
-                # expect all objects to be drained before the next schedule comes around, or else we will run again.
-                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
-                # case of drains, for instance.
-                now = timezone.now()
-                next_outbox.selected_messages_in_shard().update(
-                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-                )
-
-                return next_outbox
-
-        except OperationalError as e:
-            # If concurrent locking is happening on the table, gracefully pass and allow
-            # that work to process.
-            if "LockNotAvailable" in str(e):
+        with transaction.atomic(using=using):
+            next_outbox: OutboxBase | None
+            next_outbox = cls(**row).selected_messages_in_shard().order_by("id").first()
+            if not next_outbox:
                 return None
-            else:
-                raise
+
+            now = timezone.now()
+            next_outbox.selected_messages_in_shard().update(
+                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+            )
+
+            return next_outbox
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -536,10 +517,16 @@ class OutboxBase(Model):
         obtained_lock = True
 
         try:
-            with connections[using].cursor() as cursor:
+            with contextlib.ExitStack() as stack, connections[using].cursor() as cursor:
+                if not flush_all:
+                    stack.enter_context(metrics.timer("outbox.process_shard.acquire_lock"))
                 if flush_all:
                     cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
                     if not cursor.fetchone()[0]:
+                        metrics.incr(
+                            "outbox.process_shard.failed_to_acquire_lock",
+                            tags=dict(scope=OutboxScope(self.shard_scope).name),
+                        )
                         obtained_lock = False
                 else:
                     cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
@@ -792,16 +779,6 @@ class ControlOutbox(ControlOutboxBase):
             ),
             ("region_name", "shard_scope", "shard_identifier", "id"),
         )
-
-
-def outbox_silo_modes() -> List[SiloMode]:
-    cur = SiloMode.get_current_mode()
-    result: List[SiloMode] = []
-    if cur != SiloMode.REGION:
-        result.append(SiloMode.CONTROL)
-    if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
-    return result
 
 
 class OutboxContext(threading.local):
