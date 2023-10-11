@@ -28,6 +28,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         'count()',
         'avg(span.self_time)',
         'spm()',
+        'span.group',
         'resource.render_blocking_status',
       ],
       name: 'Resource module - resource table',
@@ -51,6 +52,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     'avg(span.self_time)': row['avg(span.self_time)'] as number,
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
+    'span.group': row['span.group'].toString(),
     'resource.render_blocking_status': row['resource.render_blocking_status'] as
       | ''
       | 'non-blocking'
