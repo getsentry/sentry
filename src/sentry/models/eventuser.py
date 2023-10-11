@@ -42,7 +42,6 @@ class EventUser(Model):
         unique_together = (("project_id", "ident"), ("project_id", "hash"))
         index_together = (
             ("project_id", "email"),
-            ("project_id", "username"),
             ("project_id", "ip_address"),
         )
 
