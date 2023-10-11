@@ -14,6 +14,9 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const {slug: orgSlug} = useOrganization();
   const queryConditions = [
     `span.op:[${resourceFilters.type || 'resource.script, resource.img'}]`,
+    ...(resourceFilters.transaction
+      ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
   ];
 
   // TODO - we should be using metrics data here
