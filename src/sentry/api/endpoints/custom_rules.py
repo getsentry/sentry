@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, cast
 
+import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
 from rest_framework.permissions import BasePermission
@@ -12,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.event_search import parse_search_query
+from sentry.api.event_search import SearchFilter, SearchKey, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -128,7 +129,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         projects = serializer.validated_data.get("projects")
         period = serializer.validated_data.get("period")
         try:
-            condition = _get_condition(query)
+            condition = get_condition(query)
 
             # the parsing must succeed (it passed validation)
             delta = cast(timedelta, parse_stats_period(period))
@@ -197,7 +198,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             org_rule = True
 
         try:
-            condition = _get_condition(query)
+            condition = get_condition(query)
         except InvalidSearchQuery as e:
             return Response({"query": [str(e)]}, status=400)
         except ValueError as e:
@@ -245,15 +246,26 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def _get_condition(query: Optional[str]) -> RuleCondition:
-    if not query:
-        # True condition when query not specified
-        condition: RuleCondition = {"op": "and", "inner": []}
-    else:
-        tokens = parse_search_query(query)
-        converter = SearchQueryConverter(tokens)
-        condition = converter.convert()
-    return condition
+def get_condition(query: Optional[str]) -> RuleCondition:
+    try:
+        if not query:
+            # True condition when query not specified
+            condition: RuleCondition = {"op": "and", "inner": []}
+        else:
+            tokens = parse_search_query(query)
+            # transform a simple message query into a transaction condition:
+            # "foo environment:development" -> "transaction:foo environment:development"
+            tokens = message_to_transaction_condition(tokens)
+            converter = SearchQueryConverter(tokens)
+            condition = converter.convert()
+        return condition
+    except Exception as ex:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", ex)
+            message = "Could not convert query to custom dynamic sampling rule"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
 
 
 def _clean_project_list(project_ids: List[int]) -> List[int]:
@@ -280,3 +292,28 @@ def _schedule_invalidate_project_configs(organization: Organization, project_ids
                 trigger="dynamic_sampling:custom_rule_upsert",
                 project_id=project_id,
             )
+
+
+def message_to_transaction_condition(tokens: List[SearchFilter]) -> List[SearchFilter]:
+    """
+    Transforms queries containing messages into proper transaction queries
+
+    eg: "foo environment:development" -> "transaction:foo environment:development"
+
+    a string "foo" is parsed into a SearchFilter(key=SearchKey(name="message"), operator="=", value="foo")
+    we need to transform it into a SearchFilter(key=SearchKey(name="transaction"), operator="=", value="foo")
+
+    """
+    new_tokens = []
+    for token in tokens:
+        if token.key.name == "message" and token.operator == "=":
+            # transform the token from message to transaction
+            new_tokens.append(
+                SearchFilter(
+                    key=SearchKey("transaction"), value=token.value, operator=token.operator
+                )
+            )
+        else:
+            # nothing to change append the token as is
+            new_tokens.append(token)
+    return new_tokens
