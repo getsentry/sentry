@@ -338,39 +338,3 @@ const StyledDropdownIcon = styled('span')<{danger?: boolean}>`
     color: ${p => (p.danger ? p.theme.red300 : p.theme.gray300)};
   }
 `;
-
-// {
-//   "default" : null,
-//   "scratchpads" : {
-//     "a34280b394144cd1a4158ad19a3b653e" : {
-//       "name" : "Outbox",
-//       "id" : "a34280b394144cd1a4158ad19a3b653e",
-//       "query" : {
-//         "environment" : "prod",
-//         "statsPeriod" : "8h",
-//         "project" : "1",
-//         "widgets" : "[{\"mri\":\"c:custom\/sentry.outbox.processed@none\",\"query\":\"category:AUTH_IDENTITY_UPDATE !transaction:\\\"<< unparameterized >>\\\"\",\"displayType\":\"line\",\"op\":\"sum\",\"groupBy\":[\"transaction\"],\"sort\":{\"name\":\"sum\",\"order\":\"desc\"}},{\"mri\":\"d:custom\/sentry.outbox.processing_lag@second\",\"query\":\"\",\"displayType\":\"bar\",\"position\":1,\"op\":\"p99\",\"groupBy\":[\"category\"]},{\"mri\":\"c:custom\/sentry.outbox.processed@none\",\"query\":\"category:USER_UPDATE\",\"displayType\":\"line\",\"position\":2,\"op\":\"sum\",\"groupBy\":[\"transaction\"],\"sort\":{\"name\":\"sum\",\"order\":\"desc\"}},{\"mri\":\"\",\"query\":\"\",\"groupBy\":[],\"displayType\":\"line\",\"position\":3}]"
-//       }
-//     },
-//     "a29a4c7895d14848a6588288c4f534bf" : {
-//       "name" : "Deep Dive",
-//       "id" : "a29a4c7895d14848a6588288c4f534bf",
-//       "query" : {
-//         "environment" : "prod",
-//         "statsPeriod" : "24h",
-//         "project" : "1",
-//         "widgets" : "[{\"mri\":\"d:custom\/sentry.event_manager.save@second\",\"query\":\"\",\"displayType\":\"line\",\"sort\":{\"name\":\"name\",\"order\":\"asc\"},\"op\":\"p95\",\"groupBy\":[\"event_type\"]},{\"mri\":\"d:custom\/sentry.view.duration@second\",\"query\":\"\",\"displayType\":\"line\",\"sort\":{\"name\":\"name\",\"order\":\"asc\"},\"position\":1,\"op\":\"avg\",\"groupBy\":[\"release\"]}]"
-//       }
-//     },
-//     "0ac6d8d274954dc6843d9bada1fea3e5" : {
-//       "name" : "Transaction Metrics",
-//       "id" : "0ac6d8d274954dc6843d9bada1fea3e5",
-//       "query" : {
-//         "environment" : "prod",
-//         "statsPeriod" : "12h",
-//         "project" : "11276",
-//         "widgets" : "[{\"mri\":\"d:transactions\/measurements.lcp@millisecond\",\"query\":\"\",\"displayType\":\"bar\",\"op\":\"sum\",\"groupBy\":[\"satisfaction\"]},{\"mri\":\"d:transactions\/measurements.bundle_load@millisecond\",\"query\":\"\",\"displayType\":\"line\",\"position\":1,\"op\":\"count\",\"groupBy\":[\"http.status_code\"],\"sort\":{\"name\":\"sum\",\"order\":\"desc\"}},{\"mri\":\"d:transactions\/measurements.ttfb@millisecond\",\"query\":\"geo.country_code:[IN, US]\",\"displayType\":\"line\",\"position\":2,\"op\":\"p99\",\"groupBy\":[\"geo.country_code\"]},{\"mri\":\"d:transactions\/measurements.bundle_load@millisecond\",\"query\":\"transaction:[\/issues\/:groupId\/, \/stats\/]\",\"displayType\":\"line\",\"position\":3,\"op\":\"p99\",\"groupBy\":[\"transaction\"]}]"
-//       }
-//     }
-//   }
-// }
