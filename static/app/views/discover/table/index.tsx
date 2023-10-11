@@ -1,6 +1,6 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -204,18 +204,6 @@ class Table extends PureComponent<TableProps, TableState> {
       ? parseLinkHeader(pageLinks).previous.results === false
       : false;
 
-    let cursorVal: string | undefined = undefined;
-
-    const onCursorInternal = (
-      cursor: string | undefined,
-      path: string,
-      query: Query,
-      delta: number
-    ): void => {
-      cursorVal = cursor;
-      return onCursor(cursor, path, query, delta);
-    };
-
     return (
       <Container>
         <Measurements>
@@ -240,7 +228,6 @@ class Table extends PureComponent<TableProps, TableState> {
                       measurementKeys={measurementKeys}
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      cursor={cursorVal}
                     />
                   </VisuallyCompleteWithData>
                 )}
@@ -248,7 +235,7 @@ class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} onCursor={onCursorInternal} />
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
       </Container>
     );
   }

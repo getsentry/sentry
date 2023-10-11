@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseCursor} from 'sentry/utils/cursor';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {downloadAsCsv} from '../utils';
 
@@ -29,7 +30,6 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
-  cursor?: string;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
@@ -154,7 +154,9 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 }
 
 function TableActions(props: Props) {
-  const cursorOffset = parseCursor(props.cursor)?.offset ?? 0;
+  const location = useLocation();
+  const cursor = location?.query?.cursor;
+  const cursorOffset = parseCursor(cursor)?.offset ?? 0;
   const numSamples = props.tableData?.data?.length ?? null;
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (

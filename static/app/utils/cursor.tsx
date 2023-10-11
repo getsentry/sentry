@@ -5,9 +5,18 @@ export type CursorInfo = {
 };
 
 /// Converts a cursor string into a Cursor object.
-export function parseCursor(cursor: string | undefined | null): CursorInfo | undefined {
+export function parseCursor(
+  cursor: string | string[] | undefined | null
+): CursorInfo | undefined {
   if (!cursor) {
     return undefined;
+  }
+  if (Array.isArray(cursor)) {
+    if (cursor.length > 0) {
+      cursor = cursor[0];
+    } else {
+      return undefined;
+    }
   }
   const bits = cursor.split(':');
 
