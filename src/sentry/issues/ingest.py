@@ -25,14 +25,13 @@ from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
 )
-# This should probably be configurable per team
-ISSUE_QUOTA = Quota(3600, 60, 5)
+
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +176,13 @@ def save_issue_from_occurrence(
 
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
-                [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
+                [
+                    RequestedQuota(
+                        f"issue-platform-issues:{project.id}:{occurrence.type.slug}",
+                        1,
+                        [occurrence.type.creation_quota],
+                    )
+                ]
             )[0]
 
         if not granted_quota.granted:

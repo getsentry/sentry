@@ -30,11 +30,18 @@ def _fix_for_issue_platform(event_data):
         datetime.datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
 
-    del event_data["feedback"]
-    if event_data.get("dist"):
+    if event_data.get("feedback"):
+        del event_data["feedback"]
+
+    if event_data.get("dist") is not None:
         del event_data["dist"]
-    if event_data.get("user", {}).get("name"):
+    if event_data.get("user", {}).get("name") is not None:
         del event_data["user"]["name"]
+    if event_data.get("user", {}).get("isStaff") is not None:
+        del event_data["user"]["isStaff"]
+
+    if event_data.get("user", {}).get("id") is not None:
+        event_data["user"]["id"] = str(event_data["user"]["id"])
 
 
 def create_feedback_issue(event, project_id):

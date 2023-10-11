@@ -88,6 +88,7 @@ const SectionTitle = styled('h5')`
 const Actions = styled('div')`
   display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const PlatformButton = styled(Button)`

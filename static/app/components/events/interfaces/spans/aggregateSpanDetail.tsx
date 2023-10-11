@@ -6,7 +6,10 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {AggregateEventTransaction} from 'sentry/types/event';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceEvent,
+  TraceErrorOrIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -17,7 +20,7 @@ type Props = {
   event: Readonly<AggregateEventTransaction>;
   isRoot: boolean;
   organization: Organization;
-  relatedErrors: TraceError[] | null;
+  relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: AggregateSpanType;
