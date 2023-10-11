@@ -25,7 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {CronsLandingPanel, OldCronsLandingPanel} from './components/cronsLandingPanel';
+import {CronsLandingPanel} from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
@@ -57,13 +57,6 @@ export default function Monitors() {
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
-
-  const shouldShowNewOnboarding = organization.features.includes('crons-new-onboarding');
-  const onboardingComponent = shouldShowNewOnboarding ? (
-    <CronsLandingPanel />
-  ) : (
-    <OldCronsLandingPanel />
-  );
 
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
@@ -111,7 +104,7 @@ export default function Monitors() {
                 {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
               </Fragment>
             ) : (
-              onboardingComponent
+              <CronsLandingPanel />
             )}
           </Layout.Main>
         </Layout.Body>
