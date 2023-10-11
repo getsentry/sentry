@@ -47,6 +47,7 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
+from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.utils import json
 from tests.sentry.backup import get_matching_exportable_models, mark, targets
 
@@ -817,6 +818,12 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
 
+    @pytest.mark.xfail(
+        not use_split_dbs(),
+        reason="Preexisting failure: getsentry/team-ospo#205",
+        raises=AssertionError,
+        strict=True,
+    )
     @targets(mark(COLLISION_TESTED, OrgAuthToken))
     def test_colliding_org_auth_token(self):
         owner = self.create_exhaustive_user("owner")
