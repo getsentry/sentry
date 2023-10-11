@@ -425,10 +425,8 @@ class GroupManager(BaseManager):
 
         modified_groups_list = []
         with transaction.atomic(router.db_for_write(Group)):
-            selected_groups = (
-                Group.objects.filter(id__in=[g.id for g in groups])
-                .exclude(status=status, substatus=substatus)
-                .select_for_update()
+            selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
+                status=status, substatus=substatus
             )
 
             for group in selected_groups:
