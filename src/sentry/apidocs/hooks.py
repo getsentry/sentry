@@ -243,16 +243,14 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                         # Ensure body parameters have a description. Our API docs page doesn't
                         # display body params without a description, so it's easy to miss them.
                         # We should be explicitly excluding them as better practice however.
-                        # if "description" not in param_data:
-                        #     raise SentryApiBuildError(
-                        #         f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
-                        #         You must explicitly exclude this field by decorating the request serializer with
-                        #         @extend_schema_serializer(exclude_fields=[{body_param}]) or adding a help_text field
-                        #         to the body param in your inline_serializer.
-                        #         """
-                        #     )
-                        if "Provision a New Team" in endpoint_name:
-                            print(body_param, param_data)
+                        if "description" not in param_data:
+                            raise SentryApiBuildError(
+                                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
+                                You must explicitly exclude this field by decorating the request serializer with
+                                @extend_schema_serializer(exclude_fields=[{body_param}]) or adding a help_text field
+                                to the body param in your inline_serializer.
+                                """
+                            )
 
                     # Required params are stored in a list and not in the param itself
                     required = set(schema.get("required", []))
