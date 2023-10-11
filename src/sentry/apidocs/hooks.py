@@ -239,21 +239,21 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                     # Dereference schema if needed
                     schema = dereference_schema(schema, schema_components)
 
-                    skip = {"Provision a New Team", "Update a Team's"}
-
                     for body_param, param_data in schema["properties"].items():
-                        # Ensure body parameters have a description. Our API docs page doesn't
+                        # Ensure body parameters have a description. Our API docs don't
                         # display body params without a description, so it's easy to miss them.
-                        # We should be explicitly excluding them as better practice however.
-                        if "description" not in param_data and not any(
-                            title in endpoint_name for title in skip
-                        ):
+                        # We should be explicitly excluding them as better
+                        # practice however.
+
+                        # There is an edge case where a body param might be
+                        # reference that we should ignore for now
+                        if "description" not in param_data and "$ref" not in param_data:
                             raise SentryApiBuildError(
-                                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
-                                You must explicitly exclude this field by decorating the request serializer with
-                                @extend_schema_serializer(exclude_fields=[{body_param}]) or adding a help_text field
-                                to the body param in your inline_serializer.
-                                """
+                                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
+                            1. Add a 'help_text' kwarg to the serializer field
+                            2. Remove the field if you're using an inline_serializer
+                            3. For a DRF serializer, you must explicitly exclude this field by decorating the request serializer with
+                            @extend_schema_serializer(exclude_fields=[{body_param}])."""
                             )
 
                     # Required params are stored in a list and not in the param itself
