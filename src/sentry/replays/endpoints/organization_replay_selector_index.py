@@ -6,7 +6,19 @@ from typing import Any, List, Optional, Union
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Granularity,
+    Identifier,
+    Lambda,
+    Limit,
+    Offset,
+    Op,
+    Query,
+)
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
@@ -142,7 +154,17 @@ def query_selector_dataset(
                 Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
-                Column("click_class"),
+                Function(
+                    "arrayFilter",
+                    parameters=[
+                        Lambda(
+                            ["v"],
+                            Function("notEquals", parameters=[Identifier("v"), ""]),
+                        ),
+                        Column("click_class"),
+                    ],
+                    alias="click_class_filtered",
+                ),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -163,7 +185,7 @@ def query_selector_dataset(
                 Column("project_id"),
                 Column("click_tag"),
                 Column("click_id"),
-                Column("click_class"),
+                Column("click_class_filtered"),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -186,8 +208,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
 
         if row["click_id"]:
             selector = selector + f"#{row['click_id']}"
-        if row["click_class"]:
-            selector = selector + "." + ".".join(row["click_class"])
+        if row["click_class_filtered"]:
+            selector = selector + "." + ".".join(row["click_class_filtered"])
 
         if row["click_role"]:
             selector = selector + f'[role="{row["click_role"]}"]'
@@ -210,7 +232,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
             "element": {
                 "alt": row["click_alt"],
                 "aria_label": row["click_aria_label"],
-                "class": row["click_class"],
+                "class": row["click_class_filtered"],
                 "id": row["click_id"],
                 "project_id": row["project_id"],
                 "role": row["click_role"],
