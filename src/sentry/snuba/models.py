@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from django.db import models
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
@@ -26,6 +26,7 @@ query_aggregation_to_snuba = {
 @region_silo_only_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
+    __relocation_dependencies__ = {"sentry.Actor", "sentry.Organization", "sentry.Project"}
 
     class Type(Enum):
         ERROR = 0
@@ -49,6 +50,23 @@ class SnubaQuery(Model):
     @property
     def event_types(self):
         return [type.event_type for type in self.snubaqueryeventtype_set.all()]
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        from sentry.incidents.models import AlertRule
+        from sentry.models.actor import Actor
+        from sentry.models.organization import Organization
+        from sentry.models.project import Project
+
+        from_alert_rule = AlertRule.objects.filter(
+            models.Q(owner_id__in=pk_map.get_pks(get_model_name(Actor)))
+            | models.Q(organization_id__in=pk_map.get_pks(get_model_name(Organization)))
+        ).values_list("snuba_query_id", flat=True)
+        from_query_subscription = QuerySubscription.objects.filter(
+            project_id__in=pk_map.get_pks(get_model_name(Project))
+        ).values_list("snuba_query_id", flat=True)
+
+        return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
 
 
 @region_silo_only_model

@@ -252,15 +252,9 @@ class FilteringTests(ExportTestCase):
                 filter_by={},
             )
 
-            assert self.count(data, Organization) == 0
-            assert self.count(data, OrgAuthToken) == 0
+            assert len(data) == 0
 
-            assert self.count(data, User) == 0
-            assert self.count(data, UserIP) == 0
-            assert self.count(data, UserEmail) == 0
-            assert self.count(data, Email) == 0
-
-    def test_export_only_keep_admin_users_in_config_scope(self):
+    def test_export_keep_only_admin_users_in_config_scope(self):
         self.create_exhaustive_user("regular")
         self.create_exhaustive_user("admin", is_admin=True)
         self.create_exhaustive_user("staff", is_staff=True)
@@ -273,6 +267,10 @@ class FilteringTests(ExportTestCase):
             )
 
             assert self.count(data, User) == 3
+            assert not self.exists(data, User, "username", "regular")
+            assert self.exists(data, User, "username", "admin")
+            assert self.exists(data, User, "username", "staff")
+            assert self.exists(data, User, "username", "superuser")
             assert self.count(data, UserRole) == 1
             assert self.count(data, UserRoleUser) == 1
             assert self.count(data, UserPermission) == 1

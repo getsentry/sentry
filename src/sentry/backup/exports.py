@@ -54,11 +54,9 @@ def _export(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.email import Email
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.user import User
-    from sentry.models.useremail import UserEmail
 
     allowed_relocation_scopes = scope.value
     pk_map = PrimaryKeyMap()
@@ -67,31 +65,26 @@ def _export(
     filters = []
     if filter_by is not None:
         filters.append(filter_by)
-        user_pks = []
-
         if filter_by.model == Organization:
-            org_pks = [o.pk for o in Organization.objects.filter(slug__in=filter_by.values)]
-            user_pks = [
-                o.user_id
-                for o in OrganizationMember.objects.filter(organization_id__in=set(org_pks))
-            ]
+            if filter_by.field not in {"pk", "id", "slug"}:
+                raise ValueError(
+                    "Filter arguments must only apply to `Organization`'s `slug` field"
+                )
+
+            org_pks = set(
+                Organization.objects.filter(slug__in=filter_by.values).values_list("id", flat=True)
+            )
+            user_pks = set(
+                OrganizationMember.objects.filter(organization_id__in=org_pks).values_list(
+                    "user_id", flat=True
+                )
+            )
             filters.append(Filter(User, "pk", set(user_pks)))
         elif filter_by.model == User:
-            if filter_by.field == "pk":
-                user_pks = [u.pk for u in User.objects.filter(id__in=filter_by.values)]
-            elif filter_by.field == "username":
-                user_pks = [u.pk for u in User.objects.filter(username__in=filter_by.values)]
-            else:
-                raise ValueError(
-                    "Filter arguments must only apply to `User`'s `pk`' or `username` fields"
-                )
+            if filter_by.field not in {"pk", "id", "username"}:
+                raise ValueError("Filter arguments must only apply to `User`'s `username` field")
         else:
             raise ValueError("Filter arguments must only apply to `Organization` or `User` models")
-
-        # `Sentry.Email` models don't have any explicit dependencies on `Sentry.User`, so we need to
-        # find them manually via `UserEmail`.
-        emails = [ue.email for ue in UserEmail.objects.filter(user__in=user_pks)]
-        filters.append(Filter(Email, "email", set(emails)))
 
     def filter_objects(queryset_iterator):
         # Intercept each value from the queryset iterator, ensure that it has the correct relocation
@@ -128,17 +121,12 @@ def _export(
 
     def yield_objects():
         from sentry.db.models.base import BaseModel
-        from sentry.models.team import Team
-
-        deps = dependencies()
 
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
             if not issubclass(model, BaseModel):
                 continue
 
-            model_name = get_model_name(model)
-            model_relations = deps[model_name]
             possible_relocation_scopes = model.get_possible_relocation_scopes()
             includable = possible_relocation_scopes & allowed_relocation_scopes
             if not includable or model._meta.proxy:
@@ -155,27 +143,7 @@ def _export(
                     if f.model == model:
                         query[f.field + "__in"] = f.values
                 q &= Q(**query)
-
-                # TODO: actor refactor. Remove this conditional. For now, we do no filtering on
-                # teams.
-                if model_name != get_model_name(Team):
-                    # Create a filter for each possible FK reference to constrain the amount of data
-                    # being sent over from the database. We only want models where every FK field
-                    # references into a model whose PK we've already exported (or `NULL`, if the FK
-                    # field is nullable).
-                    for field_name, foreign_field in model_relations.foreign_keys.items():
-                        foreign_field_model_name = get_model_name(foreign_field.model)
-                        matched_fks = set(pk_map.get_pks(foreign_field_model_name))
-                        matched_fks_query = dict()
-                        if len(matched_fks) > 0:
-                            matched_fks_query[field_name + "__in"] = matched_fks
-
-                        if foreign_field.nullable:
-                            match_on_null_query = dict()
-                            match_on_null_query[field_name + "__isnull"] = True
-                            q &= Q(**matched_fks_query) | Q(**match_on_null_query)
-                        else:
-                            q &= Q(**matched_fks_query)
+                q = model.query_for_relocation_export(q, pk_map)
 
             pk_name = model._meta.pk.name  # type: ignore
             queryset = model._base_manager.filter(q).order_by(pk_name)
