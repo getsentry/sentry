@@ -132,7 +132,6 @@ test-python-ci: create-db
 		tests/relay_integration \
 		tests/sentry \
 		tests/sentry_plugins \
-		tests/symbolicator \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
