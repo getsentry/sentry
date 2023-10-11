@@ -17,24 +17,22 @@ from typing import (
 from django.db.models import Q
 
 from sentry import features
-from sentry.models import (
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupSubscription,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
     should_use_notifications_v2,
@@ -586,11 +584,12 @@ def get_recipients_by_provider(
 
     # First evaluate the teams.
     setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
-    controller = None
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
     if should_use_notifications_v2(project.organization):
+        # get by team
         controller = NotificationController(
-            recipients=users,
+            recipients=teams,
             organization_id=project.organization_id,
             project_ids=[project.id],
             type=setting_type,
@@ -616,13 +615,12 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        if not controller:
-            controller = NotificationController(
-                recipients=users,
-                organization_id=project.organization_id,
-                project_ids=[project.id],
-                type=setting_type,
-            )
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
         users_by_provider = controller.get_notification_recipients(
             type=setting_type, actor_type=ActorType.USER
         )

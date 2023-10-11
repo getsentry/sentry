@@ -18,8 +18,9 @@ from sentry.utils.hashlib import md5_text
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
     from sentry.models.apitoken import ApiToken
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
@@ -73,7 +74,7 @@ def get_rate_limit_key(
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.system import is_system_auth
-    from sentry.models import ApiKey
+    from sentry.models.apikey import ApiKey
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
@@ -120,7 +121,7 @@ def get_rate_limit_key(
 
 
 def get_organization_id_from_token(token_id: int) -> Any:
-    from sentry.models import SentryAppInstallation
+    from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
 

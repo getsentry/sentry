@@ -65,7 +65,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {
   QuickTraceEvent,
-  TraceError,
+  TraceErrorOrIssue,
   TraceFull,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
@@ -139,6 +139,7 @@ export type SpanBarProps = {
   getCurrentLeftPos: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
+  isSpanInEmbeddedTree: boolean;
   listRef: React.RefObject<ReactVirtualizedList>;
   numOfSpanChildren: number;
   numOfSpans: number;
@@ -306,7 +307,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     transactions,
     errors,
   }: {
-    errors: TraceError[] | null;
+    errors: TraceErrorOrIssue[] | null;
     isVisible: boolean;
     transactions: QuickTraceEvent[] | null;
   }) {
@@ -565,7 +566,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle(errors: TraceError[] | null) {
+  renderTitle(errors: TraceErrorOrIssue[] | null) {
     const {
       span,
       spanBarType,
@@ -880,12 +881,14 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  getRelatedErrors(quickTrace: QuickTraceContextChildrenProps): TraceError[] | null {
+  getRelatedErrors(
+    quickTrace: QuickTraceContextChildrenProps
+  ): TraceErrorOrIssue[] | null {
     if (!quickTrace) {
       return null;
     }
 
-    const {span} = this.props;
+    const {span, isSpanInEmbeddedTree} = this.props;
     const {currentEvent} = quickTrace;
 
     if (
@@ -896,7 +899,16 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    return currentEvent.errors.filter(error => error.span === span.span_id);
+    const performanceIssues = currentEvent.performance_issues.filter(
+      issue =>
+        issue.span.some(id => id === span.span_id) ||
+        issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+    );
+
+    return [
+      ...currentEvent.errors.filter(error => error.span === span.span_id),
+      ...(isSpanInEmbeddedTree ? [] : performanceIssues), // Spans can be shown when embedded in performance issues
+    ];
   }
 
   getChildTransactions(
@@ -916,7 +928,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return trace.filter(({parent_span_id}) => parent_span_id === span.span_id);
   }
 
-  renderErrorBadge(errors: TraceError[] | null): React.ReactNode {
+  renderErrorBadge(errors: TraceErrorOrIssue[] | null): React.ReactNode {
     return errors?.length ? <ErrorBadge /> : null;
   }
 
@@ -1017,7 +1029,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
-    errors: TraceError[] | null;
+    errors: TraceErrorOrIssue[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
@@ -1126,6 +1138,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <Fragment>
+        {subSpans}
         <RowRectangle
           spanBarType={spanBarType}
           style={{
@@ -1144,7 +1157,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             {this.renderWarningText()}
           </DurationPill>
         </RowRectangle>
-        {subSpans}
       </Fragment>
     );
   }

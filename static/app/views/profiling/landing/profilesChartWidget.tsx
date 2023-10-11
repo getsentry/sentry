@@ -41,6 +41,7 @@ export function ProfilesChartWidget({
   const theme = useTheme();
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query: userQuery,
     referrer,
     yAxes: SERIES_ORDER,
@@ -53,9 +54,9 @@ export function ProfilesChartWidget({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    return profileStats.data[0].data
+    return profileStats.data.data
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');

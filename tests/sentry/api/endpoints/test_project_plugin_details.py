@@ -1,6 +1,7 @@
 from unittest import mock
 
-from sentry.models import AuditLogEntry, ProjectOption
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.options.project_option import ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.silo import SiloMode

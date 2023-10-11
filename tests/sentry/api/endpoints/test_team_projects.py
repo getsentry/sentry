@@ -1,5 +1,6 @@
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature

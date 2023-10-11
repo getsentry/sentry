@@ -13,16 +13,14 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationOption,
-    User,
-    UserOption,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,

@@ -11,7 +11,7 @@ from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
 
 
 class OrganizationOptionManager(OptionManager["OrganizationOption"]):

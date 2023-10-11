@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
 
 
 @register(ProjectDebugFile)

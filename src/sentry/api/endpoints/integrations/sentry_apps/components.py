@@ -8,7 +8,8 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,

@@ -11,12 +11,13 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, TypeVar, overload
 from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.role_dict import RoleDict
+from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -316,8 +317,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
-    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
-    # "csp.middleware.CSPMiddleware",
+    "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -1429,6 +1429,8 @@ SENTRY_FEATURES = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable participants purge
+    "organizations:participants-purge": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1852,7 +1854,7 @@ SENTRY_LOGIN_URL = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
-SENTRY_PROJECT_KEY = None
+SENTRY_PROJECT_KEY: int | None = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
@@ -1908,9 +1910,6 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 0
-
-# upsampling multiplier that we'll increase in steps till we're at 100% throughout
-SENTRY_MULTIPLIER_APM_SAMPLING = 1
 
 # ----
 # end APM config
@@ -2879,7 +2878,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 
-SENTRY_SDK_CONFIG = {
+SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
@@ -2903,7 +2902,7 @@ SENTRY_PROFILES_SAMPLE_RATE = 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
 # specific, and each have their own pros/cons. See the sdk for more details.
-SENTRY_PROFILER_MODE = "sleep"
+SENTRY_PROFILER_MODE: Final = "sleep"
 
 # To have finer control over which process will have profiling enabled, this
 # environment variable will be required to enable profiling.
@@ -2922,7 +2921,7 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 #    scope.set_tag('organization.cool', '1')
 #
 # SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
-SENTRY_ORGANIZATION_CONTEXT_HELPER = None
+SENTRY_ORGANIZATION_CONTEXT_HELPER: Callable[..., object] | None = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()
@@ -3367,6 +3366,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "sentry",
     "social_auth",
     "feedback",
+    "hybridcloud",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3685,7 +3685,7 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 #
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
-SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
 
 # Show banners on the login page that are defined in layout.html
 SHOW_LOGIN_BANNER = False
@@ -3712,7 +3712,7 @@ SHOW_LOGIN_BANNER = False
 #       "bootstrap.servers": "kafka2:9092",
 #   },
 # }
-SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
 # decorator.
@@ -3736,7 +3736,7 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
-ADDITIONAL_BULK_QUERY_DELETES: list[Tuple[str, str, str | None]] = []
+ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000
@@ -3809,3 +3809,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
+
+# Controls whether the SDK will send the metrics upstream to the S4S transport.
+SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
