@@ -148,7 +148,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 500,
+                limit=ITERATOR_CHUNK * 250,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -236,7 +236,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 500,
+                limit=ITERATOR_CHUNK * 250,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -324,7 +324,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 500,
+                limit=ITERATOR_CHUNK * 250,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
