@@ -1,9 +1,12 @@
 from datetime import datetime
 
+import pytest
 from django.utils import timezone
 
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test(stable=True)
