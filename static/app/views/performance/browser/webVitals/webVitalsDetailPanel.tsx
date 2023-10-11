@@ -13,6 +13,8 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
@@ -122,6 +124,15 @@ export function WebVitalsDetailPanel({
     },
   ];
 
+  const showPoorMarkLine = webVitalData[0].data?.some(
+    ({value}) => value > PERFORMANCE_SCORE_MEDIANS[webVital ?? '']
+  );
+  const showMehMarkLine = webVitalData[0].data?.some(
+    ({value}) => value >= PERFORMANCE_SCORE_P90S[webVital ?? '']
+  );
+  const showGoodMarkLine = webVitalData[0].data?.every(
+    ({value}) => value < PERFORMANCE_SCORE_P90S[webVital ?? '']
+  );
   const goodMarkArea = MarkArea({
     silent: true,
     itemStyle: {
@@ -183,11 +194,18 @@ export function WebVitalsDetailPanel({
       position: 'insideEndBottom',
       color: theme.green300,
     },
-    data: [
-      {
-        yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-      },
-    ],
+    data: showGoodMarkLine
+      ? [
+          [
+            {xAxis: 'min', y: 10},
+            {xAxis: 'max', y: 10},
+          ],
+        ]
+      : [
+          {
+            yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
+          },
+        ],
   });
   const mehMarkLine = MarkLine({
     silent: true,
@@ -199,10 +217,35 @@ export function WebVitalsDetailPanel({
       position: 'insideEndBottom',
       color: theme.yellow300,
     },
+    data:
+      showMehMarkLine && !showPoorMarkLine
+        ? [
+            [
+              {xAxis: 'min', y: 10},
+              {xAxis: 'max', y: 10},
+            ],
+          ]
+        : [
+            {
+              yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
+            },
+          ],
+  });
+  const poorMarkLine = MarkLine({
+    silent: true,
+    lineStyle: {
+      color: theme.red300,
+    },
+    label: {
+      formatter: () => 'Poor',
+      position: 'insideEndBottom',
+      color: theme.red300,
+    },
     data: [
-      {
-        yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-      },
+      [
+        {xAxis: 'min', y: 10},
+        {xAxis: 'max', y: 10},
+      ],
     ],
   });
 
@@ -241,6 +284,15 @@ export function WebVitalsDetailPanel({
     data: [],
   });
 
+  if (showPoorMarkLine) {
+    webVitalData.push({
+      seriesName: '',
+      type: 'line',
+      markLine: poorMarkLine,
+      data: [],
+    });
+  }
+
   const detailKey = webVital;
 
   const renderHeadCell = (col: Column) => {
@@ -252,6 +304,17 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+    }
+    if (col.key === 'opportunity') {
+      return (
+        <Tooltip
+          title={t(
+            'The biggest opportunities to improve your cumulative performance score.'
+          )}
+        >
+          <OpportunityHeader>{col.name}</OpportunityHeader>
+        </Tooltip>
+      );
     }
     return <AlignRight>{col.name}</AlignRight>;
   };
@@ -383,4 +446,8 @@ const ChartContainer = styled('div')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const OpportunityHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
 `;

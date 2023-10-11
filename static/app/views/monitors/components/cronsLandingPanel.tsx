@@ -2,11 +2,7 @@ import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -21,7 +17,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import {Monitor} from 'sentry/views/monitors/types';
 
-import {NewMonitorButton} from './newMonitorButton';
 import {
   CRON_SDK_PLATFORMS,
   PlatformPickerPanel,
@@ -212,27 +207,4 @@ const GuideContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding-top: ${space(2)};
-`;
-
-export function OldCronsLandingPanel() {
-  return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
-      <p>
-        {t(
-          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-        )}
-      </p>
-      <OnboardingActions gap={1}>
-        <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-        <LinkButton href="https://docs.sentry.io/product/crons" external>
-          {t('Read docs')}
-        </LinkButton>
-      </OnboardingActions>
-    </OnboardingPanel>
-  );
-}
-
-const OnboardingActions = styled(ButtonBar)`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
