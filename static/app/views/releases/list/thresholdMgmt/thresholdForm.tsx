@@ -38,6 +38,7 @@ export default function ThresholdForm({
   useEffect(() => {
     if (propFormData) {
       setFormOpen(true);
+      // initialize form data
       setFormData({
         project:
           propFormData.project || selectedProjects.length === 1
@@ -45,6 +46,9 @@ export default function ThresholdForm({
             : '',
         environment:
           propFormData.environment || selectedEnvs.length === 1 ? selectedEnvs[0] : '',
+        windowUnit: propFormData.windowUnit || 'min',
+        windowVal: propFormData.windowVal || 0,
+        thresholds: propFormData.thresholds || [],
       });
     } else {
       setFormOpen(false);
@@ -74,7 +78,7 @@ export default function ThresholdForm({
   };
 
   const updateForm = (key, value) => {
-    const data = formData;
+    const data = {...formData};
     data[key] = value;
     setFormData(data);
   };
@@ -120,21 +124,21 @@ export default function ThresholdForm({
           />
         </Header>
       </FormSection>
-      <div>Project: {formData && JSON.stringify(formData.project)}</div>
-      <div>Environment: {formData && JSON.stringify(formData.environment)}</div>
       {formOpen && (
         <Fragment>
           <FormSection>
             <Title>Project & Environment Select</Title>
-            <div>
-              <CompactSelect
+            <Fullrow>
+              <StyledCompactSelect
                 position="bottom-end"
                 onChange={selectedOption => updateForm('project', selectedOption.value)}
                 value={formData.project}
                 options={projectSelectOptions}
                 disabled={selectedProjects.length === 1}
               />
-              <CompactSelect
+            </Fullrow>
+            <Fullrow>
+              <StyledCompactSelect
                 position="bottom-end"
                 onChange={selectedOption =>
                   updateForm('environment', selectedOption.value)
@@ -142,13 +146,55 @@ export default function ThresholdForm({
                 value={formData.environment}
                 options={envSelectOptions}
               />
-            </div>
+            </Fullrow>
+            <div />
           </FormSection>
           <FormSection>
             <Title>Time Window</Title>
+            <SplitRow>
+              <StyledInput
+                value={formData.windowVal}
+                type="number"
+                onChange={e => updateForm('windowVal', parseInt(e.target.value, 10))}
+              />
+              <StyledCompactSelect
+                position="bottom-end"
+                onChange={selectedOption =>
+                  updateForm('windowUnit', selectedOption.value)
+                }
+                value={formData.windowUnit}
+                defaultValue="min"
+                options={[
+                  {
+                    value: 'min',
+                    textValue: 'minutes',
+                    label: 'minutes',
+                  },
+                  {
+                    value: 'hrs',
+                    textValue: 'hours',
+                    label: 'hours',
+                  },
+                  {
+                    value: 'days',
+                    textValue: 'days',
+                    label: 'days',
+                  },
+                ]}
+              />
+            </SplitRow>
           </FormSection>
           <FormSection>
             <Title>Set Threshold</Title>
+            <div>iterate through threshold types</div>
+            {formData.thresholds &&
+              !!formData.thresholds.length &&
+              formData.thresholds.map((threshold, idx) => (
+                <div key={`${threshold}-${idx}`}>
+                  {threshold.type} : {threshold.value}
+                </div>
+              ))}
+            {!(formData.thresholds || []).length && <div>foobar</div>}
           </FormSection>
         </Fragment>
       )}
@@ -179,4 +225,37 @@ const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 600;
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 100%;
+  > button {
+    width: 100%;
+  }
+`;
+
+const StyledInput = styled('input')`
+  line-height: 1.4;
+  font-size: ${p => p.theme.fontSizeMedium};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => 'solid ' + p.theme.border};
+  padding: ${space(1)} ${space(2)};
+
+  ::-webkit-outer-spin-button,
+  ::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+  }
+`;
+
+const Fullrow = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: ${space(1)} 0;
+`;
+
+const SplitRow = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: ${space(1)};
+  padding: ${space(1)} 0;
 `;
