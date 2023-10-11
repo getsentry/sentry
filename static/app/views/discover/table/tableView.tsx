@@ -66,6 +66,7 @@ import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
 
 export type TableViewProps = {
+  cursor: string | undefined;
   error: string | null;
   eventView: EventView;
   isFirstPage: boolean;
@@ -591,6 +592,7 @@ function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
+        cursor={props.cursor}
       />
     );
   }

@@ -12,12 +12,14 @@ import {IconDownload, IconStack, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseCursor} from 'sentry/utils/cursor';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {downloadAsCsv} from '../utils';
 
 type Props = {
+  cursor: string | undefined;
   error: string | null;
   eventView: EventView;
   isLoading: boolean;
@@ -152,12 +154,15 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 }
 
 function TableActions(props: Props) {
+  const cursorOffset = parseCursor(props.cursor)?.offset ?? 0;
+  const numSamples = props.tableData?.data?.length ?? null;
+  const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (
     <Fragment>
       <InvestigationRuleCreation
         {...props}
         buttonProps={{size: 'sm'}}
-        numSamples={props.tableData?.data?.length}
+        numSamples={totalNumSamples}
         key="investigationRuleCreation"
       />
       <FeatureWrapper {...props} key="edit">
