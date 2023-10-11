@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,18 +20,15 @@ export default function useFetchThresholdsListData({
 }: HookProps) {
   const organization = useOrganization();
 
-  const requestQuery = useMemo(() => {
-    const query: ThresholdQuery = {};
-    if (selectedProjects.length) {
-      query.project = selectedProjects;
-    } else {
-      query.project = [-1];
-    }
-    if (selectedEnvs.length) {
-      query.environment = selectedEnvs;
-    }
-    return query;
-  }, [selectedProjects, selectedEnvs]);
+  const query: ThresholdQuery = {};
+  if (selectedProjects.length) {
+    query.project = selectedProjects;
+  } else {
+    query.project = [-1];
+  }
+  if (selectedEnvs.length) {
+    query.environment = selectedEnvs;
+  }
 
   const {
     data: thresholds,
@@ -43,7 +38,7 @@ export default function useFetchThresholdsListData({
     [
       `/organizations/${organization.id}/releases/thresholds/`,
       {
-        query: requestQuery,
+        query,
       },
     ],
     {staleTime: 0}
