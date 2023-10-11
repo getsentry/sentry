@@ -82,7 +82,66 @@ class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     schemas = serializers.ListField(child=serializers.CharField(), required=True)
 
     Operations = serializers.ListField(
-        child=SCIMTeamPatchOperationSerializer(), required=True, source="operations"
+        child=SCIMTeamPatchOperationSerializer(),
+        required=True,
+        source="operations",
+        help_text="""The list of operations to perform. Valid operations are:
+* Renaming a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "value": {
+            "id": 23,
+            "displayName": "newName"
+        }
+    }]
+}
+```
+* Adding a member to a team:
+```json
+{
+    "Operations": [{
+        "op": "add",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample@example.com"
+            }
+        ]
+    }]
+}
+```
+* Removing a member from a team:
+```json
+{
+    "Operations": [{
+        "op": "remove",
+        "path": "members[value eq \"23\"]"
+    }]
+}
+```
+* Replacing an entire member set of a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample2@sentry.io"
+            },
+            {
+                "value": 24,
+                "display": "testexample3@sentry.io"
+            }
+        ]
+    }]
+}
+```
+""",
     )
 
 
@@ -354,63 +413,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     )
     def patch(self, request: Request, organization, team):
         """
-        Update a team's attributes with a SCIM Group PATCH Request. Valid operations are:
-
-        * Renaming a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "value": {
-                    "id": 23,
-                    "displayName": "newName"
-                }
-            }]
-        }
-        ```
-        * Adding a member to a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "add",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample@example.com"
-                    }
-                ]
-            }]
-        }
-        ```
-        * Removing a member from a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "remove",
-                "path": "members[value eq \"23\"]"
-            }]
-        }
-        ```
-        * Replacing an entire member set of a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample2@sentry.io"
-                    },
-                    {
-                        "value": 24,
-                        "display": "testexample3@sentry.io"
-                    }
-                ]
-            }]
-        }
-        ```
+        Update a team's attributes with a SCIM Group PATCH Request.
         """
 
         serializer = SCIMTeamPatchRequestSerializer(data=request.data)
