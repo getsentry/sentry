@@ -13,8 +13,12 @@ const ThresholdsListDataContext = createContext<
   ReturnType<typeof useFetchThresholdsListData>
 >(EMPTY_THRESHOLDS_LIST_DATA);
 
-export function ThresholdsDataContext({children, ...listDataParams}: ProviderProps) {
-  const contextValue = useFetchThresholdsListData(listDataParams);
+export function ThresholdsDataContext({
+  children,
+  selectedEnvs,
+  selectedProjects,
+}: ProviderProps) {
+  const contextValue = useFetchThresholdsListData({selectedEnvs, selectedProjects});
 
   return (
     <ThresholdsListDataContext.Provider value={contextValue}>
