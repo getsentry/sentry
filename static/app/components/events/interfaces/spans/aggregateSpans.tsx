@@ -19,7 +19,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type SpanSamples = [[string, string]];
+type SpanSamples = Array<[string, string]>;
 
 type AggregateSpanRow = {
   'avg(absolute_offset)': number;
