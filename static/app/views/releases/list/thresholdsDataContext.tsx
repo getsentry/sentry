@@ -1,12 +1,9 @@
 import {createContext, ReactNode, useContext} from 'react';
 
-import useFetchThresholdsListData, {HookProps} from '../utils/useFetchThresholdsListData';
-
-export const EMPTY_THRESHOLDS_LIST_DATA: ReturnType<typeof useFetchThresholdsListData> = {
-  isError: false,
-  isLoading: false,
-  thresholds: [],
-};
+import useFetchThresholdsListData, {
+  EMPTY_THRESHOLDS_LIST_DATA,
+  HookProps,
+} from '../utils/useFetchThresholdsListData';
 
 interface ProviderProps extends HookProps {
   children: ReactNode;
