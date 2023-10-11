@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -60,6 +60,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
+        "samples": Set[Tuple[Optional[str], str]],
     },
 )
 
@@ -69,6 +70,7 @@ NULL_GROUP = "00"
 class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
+        self.current_transaction: Optional[str] = None
 
     def fingerprint_nodes(
         self,
@@ -140,7 +142,10 @@ class BaseAggregateSpans:
                 else node["avg(relative_offset)"]
             )
             node["count()"] += 1
+            if len(node["samples"]) < 5:
+                node["samples"].add((self.current_transaction, span_tree["span_id"]))
         else:
+            sample = {(self.current_transaction, span_tree["span_id"])}
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
@@ -159,6 +164,7 @@ class BaseAggregateSpans:
                 if parent_node
                 else start_timestamp - parent_timestamp,
                 "count()": 1,
+                "samples": sample,
             }
 
         # Handles sibling spans that have the same group
@@ -184,6 +190,7 @@ class AggregateIndexedSpans(BaseAggregateSpans):
             root_span_id = None
             spans = event["spans"]
 
+            self.current_transaction = event["transaction_id"]
             for span_ in spans:
                 span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
@@ -225,6 +232,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
             event = event_.data.data
             span_tree = {}
 
+            self.current_transaction = event["event_id"]
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,

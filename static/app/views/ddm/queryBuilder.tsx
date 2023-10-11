@@ -5,6 +5,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
+import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
@@ -22,11 +23,11 @@ import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricWidgetProps} from 'sentry/views/ddm/metricWidget';
+import {MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 type QueryBuilderProps = {
   displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
-  metricsQuery: MetricsQuery;
+  metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
   onChange: (data: Partial<MetricWidgetProps>) => void;
   projects: number[];
   powerUserMode?: boolean;
@@ -117,6 +118,12 @@ export function QueryBuilder({
             options={tags.map(tag => ({
               label: tag.key,
               value: tag.key,
+              trailingItems: (
+                <Fragment>
+                  {tag.key === 'release' && <IconReleases size="xs" />}
+                  {tag.key === 'transaction' && <IconLightning size="xs" />}
+                </Fragment>
+              ),
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}

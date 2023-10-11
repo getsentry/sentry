@@ -383,8 +383,8 @@ class FlatFileIndexTest(FlatFileTestCase):
             }
         )
 
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            debug_ids = bundle_archive.get_all_debug_ids()
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            debug_ids = list({debug_id for debug_id, _ty in archive.get_all_debug_ids()})
 
         flat_file_index = FlatFileIndex()
         bundle_meta = BundleMeta(
@@ -493,8 +493,8 @@ class FlatFileIndexTest(FlatFileTestCase):
             }
         )
 
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            debug_ids = bundle_archive.get_all_debug_ids()
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            debug_ids = list({debug_id for debug_id, _ty in archive.get_all_debug_ids()})
 
         flat_file_index = FlatFileIndex()
         flat_file_index.from_json(json.dumps(existing_json_index))

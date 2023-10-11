@@ -920,4 +920,4 @@ transactionMetrics:
   customMeasurements:
     limit: 10
   extractCustomTags: []
-  version: 2
+  version: 3

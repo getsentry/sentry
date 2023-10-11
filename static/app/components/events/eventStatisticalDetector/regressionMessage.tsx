@@ -94,7 +94,7 @@ function EventStatisticalDetectorRegressedFunctionMessage({
           'There was [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
           {
             change: defined(percentageChange)
-              ? t('a %s increase', formatPercentage(percentageChange))
+              ? t('a %s increase', formatPercentage(percentageChange - 1))
               : t('an increase'),
             before: (
               <PerformanceDuration nanoseconds={evidenceData?.aggregateRange1 ?? 0} />

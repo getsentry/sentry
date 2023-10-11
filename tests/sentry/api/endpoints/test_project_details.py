@@ -849,11 +849,15 @@ class ProjectUpdateTest(APITestCase):
         assert b"storeCrashReports" in resp.content
 
     def test_react_hydration_errors(self):
-        value = False
-        options = {"filters:react-hydration-errors": value}
+        options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
-        assert self.project.get_option("filters:react-hydration-errors") == value
-        assert resp.data["options"]["filters:react-hydration-errors"] == value
+        assert self.project.get_option("filters:react-hydration-errors") == "0"
+        assert resp.data["options"]["filters:react-hydration-errors"] is False
+
+        options = {"filters:react-hydration-errors": True}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:react-hydration-errors") == "1"
+        assert resp.data["options"]["filters:react-hydration-errors"] is True
 
     def test_chunk_load_error(self):
         options = {"filters:chunk-load-error": False}
