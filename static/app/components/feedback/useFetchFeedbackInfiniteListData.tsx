@@ -99,7 +99,7 @@ class InfiniteListLoader {
     return feedbacks;
   }
 
-  setFeedback = (feedbackId: string, feedback: undefined | HydratedFeedbackItem) => {
+  setFeedback(feedbackId: string, feedback: undefined | HydratedFeedbackItem) {
     const old = this.feedbacks.find(fb => fb?.feedback_id === feedbackId);
     if (old) {
       if (!feedback) {
@@ -108,7 +108,7 @@ class InfiniteListLoader {
         this.timestampToFeedback.set(old.timestamp.getTime(), feedback);
       }
     }
-  };
+  }
 
   onChange(handler: () => void): Unsubscribe {
     this.dispatch.addEventListener('change', handler);
@@ -279,27 +279,24 @@ export default function useFetchFeedbackInfiniteListData({
   }, [api, organization, queryView, initialDate]);
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => {
-      return state.items[index] ?? undefined;
-    },
+    ({index}: Index): HydratedFeedbackItem | undefined => state.items[index] ?? undefined,
     [state.items]
   );
 
   const isRowLoaded = useCallback(
-    ({index}: Index) => {
-      return state.items[index] !== undefined;
-    },
+    ({index}: Index) => state.items[index] !== undefined,
     [state.items]
   );
 
-  const loadMoreRows = useCallback(({startIndex: _1, stopIndex: _2}: IndexRange) => {
-    return loaderRef.current?.fetchNext() ?? Promise.resolve();
-  }, []);
+  const loadMoreRows = useCallback(
+    ({startIndex: _1, stopIndex: _2}: IndexRange) =>
+      loaderRef.current?.fetchNext() ?? Promise.resolve(),
+    []
+  );
 
   const setFeedback = useCallback(
-    (feedbackId: string, feedback: undefined | HydratedFeedbackItem) => {
-      return loaderRef.current?.setFeedback(feedbackId, feedback);
-    },
+    (feedbackId: string, feedback: undefined | HydratedFeedbackItem) =>
+      loaderRef.current?.setFeedback(feedbackId, feedback),
     []
   );
 
