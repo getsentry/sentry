@@ -89,14 +89,27 @@ class InfiniteListLoader {
   }
 
   get feedbacks() {
-    const feedbacks: HydratedFeedbackItem[] = [];
     const initialDateTime = this.initialDate.getTime();
-    for (const [timestamp, feedback] of this.timestampToFeedback.entries()) {
-      if (timestamp < initialDateTime) {
-        feedbacks.push(feedback);
+    const timestamps = Array.from(this.timestampToFeedback.keys())
+      .filter(timestamp => timestamp < initialDateTime)
+      .sort()
+      .reverse();
+
+    const feedbacks = timestamps.map(timestamp =>
+      this.timestampToFeedback.get(timestamp)
+    );
+    return feedbacks;
+  }
+
+  setFeedback(feedbackId: string, feedback: undefined | HydratedFeedbackItem) {
+    const old = this.feedbacks.find(fb => fb?.feedback_id === feedbackId);
+    if (old) {
+      if (!feedback) {
+        this.timestampToFeedback.delete(old.timestamp.getTime());
+      } else {
+        this.timestampToFeedback.set(old.timestamp.getTime(), feedback);
       }
     }
-    return feedbacks;
   }
 
   onChange(handler: () => void): Unsubscribe {
@@ -236,14 +249,14 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   isRowLoaded: () => false,
   loadMoreRows: () => Promise.resolve(),
   queryView: EMPTY_QUERY_VIEW,
+  setFeedback: () => undefined,
   totalHits: 0,
-  updateFeedback: () => undefined,
 };
 
 type State = {
   isFetchingNext: boolean;
   isFetchingPrev: boolean;
-  items: HydratedFeedbackItem[];
+  items: (HydratedFeedbackItem | undefined)[];
   totalHits: undefined | number;
 };
 
@@ -281,26 +294,26 @@ export default function useFetchFeedbackInfiniteListData({
   }, [api, organization, queryView, initialDate]);
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => {
-      return state.items[index] ?? undefined;
-    },
+    ({index}: Index): HydratedFeedbackItem | undefined => state.items[index] ?? undefined,
     [state.items]
   );
 
   const isRowLoaded = useCallback(
-    ({index}: Index) => {
-      return state.items[index] !== undefined;
-    },
+    ({index}: Index) => state.items[index] !== undefined,
     [state.items]
   );
 
-  const loadMoreRows = useCallback(({startIndex, stopIndex}: IndexRange) => {
-    return loaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve();
-  }, []);
+  const loadMoreRows = useCallback(
+    ({startIndex, stopIndex}: IndexRange) =>
+      loaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve(),
+    []
+  );
 
-  const updateFeedback = useCallback(({feedbackId: _}: {feedbackId: string}) => {
-    // TODO
-  }, []);
+  const setFeedback = useCallback(
+    (feedbackId: string, feedback: undefined | HydratedFeedbackItem) =>
+      loaderRef.current?.setFeedback(feedbackId, feedback),
+    []
+  );
 
   useEffect(() => {
     loadMoreRows({startIndex: 0, stopIndex: PER_PAGE});
@@ -317,7 +330,7 @@ export default function useFetchFeedbackInfiniteListData({
     isRowLoaded,
     loadMoreRows,
     queryView,
+    setFeedback,
     totalHits,
-    updateFeedback,
   };
 }

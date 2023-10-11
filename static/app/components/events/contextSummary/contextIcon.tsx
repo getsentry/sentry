@@ -52,6 +52,7 @@ const LOGO_MAPPING = {
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,
+  'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,

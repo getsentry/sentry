@@ -1911,9 +1911,6 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 0
 
-# upsampling multiplier that we'll increase in steps till we're at 100% throughout
-SENTRY_MULTIPLIER_APM_SAMPLING = 1
-
 # ----
 # end APM config
 # ----
@@ -3812,3 +3809,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
+
+# Controls whether the SDK will send the metrics upstream to the S4S transport.
+SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
