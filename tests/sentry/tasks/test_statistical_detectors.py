@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI

@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils import json
 
 from .events import PullRequestEventWebhook, PushEventWebhook

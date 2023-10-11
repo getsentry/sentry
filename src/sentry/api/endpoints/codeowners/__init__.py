@@ -9,7 +9,9 @@ from rest_framework.request import Request
 from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
 from sentry.utils.codeowners import MAX_RAW_LENGTH

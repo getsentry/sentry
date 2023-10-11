@@ -7,7 +7,9 @@ import responses
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models import Integration, PullRequest, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_commit_shape

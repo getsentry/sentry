@@ -6,7 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventUser
+from sentry.models.eventuser import EventUser
 
 
 @region_silo_endpoint

@@ -13,7 +13,9 @@ from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,

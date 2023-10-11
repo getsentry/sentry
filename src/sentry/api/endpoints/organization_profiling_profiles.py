@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 # from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
     get_profile_ids,
     get_profile_ids_for_span_op,
@@ -77,14 +77,11 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         span_group = request.query_params.get("spans.group", None)
         span_op = request.query_params.get("spans.op", None)
         if span_group is not None:
-            backend = request.query_params.get("backend", "indexed_spans")
             profile_ids = get_profile_ids_with_spans(
                 organization.id,
                 project_ids[0],
                 params,
                 span_group,
-                backend,
-                request.query_params.get("query", None),
             )
         elif span_op is not None and has_starfish:
             backend = "indexed_spans"

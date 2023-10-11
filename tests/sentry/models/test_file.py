@@ -8,7 +8,9 @@ from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.utils import timezone
 
-from sentry.models import File, FileBlob, FileBlobIndex
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

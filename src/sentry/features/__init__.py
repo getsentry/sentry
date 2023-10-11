@@ -1,3 +1,5 @@
+from sentry.features.permanent import register_permanent_features
+
 from .base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
@@ -52,6 +54,8 @@ from .manager import *  # NOQA
 
 default_manager = FeatureManager()  # NOQA
 
+register_permanent_features(default_manager)
+
 # No formatting so that we can keep them as single lines
 # fmt: off
 
@@ -67,7 +71,6 @@ default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeatur
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crons-new-onboarding", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -124,6 +127,7 @@ default_manager.add("organizations:noisy-alert-warning", OrganizationFeature, Fe
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:participants-purge", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-change-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -162,7 +166,6 @@ default_manager.add("organizations:performance-slow-db-issue", OrganizationFeatu
 default_manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-database-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:profiling-view", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-beta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -184,8 +187,8 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Fe
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:session-replay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-count-query-optimize", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -211,7 +214,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature, Feature
 default_manager.add("organizations:sentry-pride-logo-footer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:team-project-creation-all', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:team-project-creation-all-allowlist', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:team-roles", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:team-workflow-notifications", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -222,58 +224,19 @@ default_manager.add("organizations:user-feedback-ingest", OrganizationFeature, F
 default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-# NOTE: Don't add features down here! Add them to their specific group and sort
-#       them alphabetically! The order features are registered is not important.
-
-# Organization Features that are part of sentry.io subscription plans
-# Features here should ideally be enabled sentry/conf/server.py so that
-# self-hosted and single-tenant are aligned with sentry.io. Features here should
-# also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
-# behaves correctly.
-default_manager.add("organizations:advanced-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:change-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add('organizations:commit-context', OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:custom-symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:dashboards-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:data-forwarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:discover-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:discover-query", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:dynamic-sampling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-gh-invite", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:event-attachments", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:global-views", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:getting-started-doc-with-product-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:incidents", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-alert-rule", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-codeowners", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-enterprise-alert-rule", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-enterprise-incident-management", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-event-hooks", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-incident-management", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-issue-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-issue-sync", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:open-ai-suggestion", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:performance-view", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:sso-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:sso-saml2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:team-insights", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:derive-code-mappings", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:codecov-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -283,24 +246,19 @@ default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", Organi
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notifications-double-write", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:custom-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+# NOTE: Don't add features down here! Add them to their specific group and sort
+#       them alphabetically! The order features are registered is not important.
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:custom-inbound-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:data-forwarding", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:discard-groups", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:rate-limits", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:servicehooks", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)

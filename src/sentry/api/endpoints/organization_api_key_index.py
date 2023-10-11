@@ -10,7 +10,7 @@ from sentry.api.bases.organization import (
     OrganizationAdminPermission,
 )
 from sentry.api.serializers import serialize
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 

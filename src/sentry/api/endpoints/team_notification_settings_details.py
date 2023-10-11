@@ -8,7 +8,8 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models import NotificationSetting, Team
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.team import Team
 
 
 @region_silo_endpoint

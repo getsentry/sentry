@@ -45,7 +45,10 @@ from sentry.issues.search import (
     get_search_strategies,
     group_categories_from,
 )
-from sentry.models import Environment, Group, Organization, Project
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import SupportedConditions, validate_cdc_search_filters
 from sentry.snuba.dataset import Dataset

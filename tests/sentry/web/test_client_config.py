@@ -14,7 +14,9 @@ from sentry import options
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import AuthIdentity, AuthProvider, Organization
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories

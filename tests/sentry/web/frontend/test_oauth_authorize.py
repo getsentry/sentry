@@ -1,7 +1,10 @@
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

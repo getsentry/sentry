@@ -40,16 +40,16 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = uuid.uuid4().hex
+        replay_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay_id))
         self.store_replays(
             mock_replay_click(
                 seq2_timestamp,
                 project.id,
-                replay1_id,
+                replay_id,
                 node_id=1,
                 tag="div",
                 id="myid",
@@ -68,11 +68,11 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             mock_replay_click(
                 seq2_timestamp,
                 project.id,
-                replay1_id,
+                replay_id,
                 node_id=1,
                 tag="div",
                 id="myid",
-                class_=["class1", "class2"],
+                class_=["class1", "class2", ""],
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -107,3 +107,64 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["tag"] == "div"
             assert response_data["data"][0]["element"]["testid"] == "1"
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
+
+    def test_get_replays_filter_clicks(self):
+        """Test replays conform to the interchange format."""
+        replay_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                self.project.id,
+                replay_id,
+                node_id=1,
+                tag="div",
+                id="id1",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+                is_dead=True,
+                is_rage=False,
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                self.project.id,
+                replay_id,
+                node_id=1,
+                tag="div",
+                id="id1",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+                is_dead=True,
+                is_rage=True,
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = ["count_dead_clicks:2", "count_rage_clicks:1"]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            queries = ["count_dead_clicks:1", "count_rage_clicks:2"]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
