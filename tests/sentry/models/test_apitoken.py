@@ -4,9 +4,9 @@ from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.models import SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -49,12 +49,10 @@ class ApiTokenTest(TestCase):
     def test_organization_id_for_non_internal(self):
         install = self.create_sentry_app_installation()
         token = install.api_token
+        org_id = token.organization_id
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id
-                == token.organization_id
-            )
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
 
         with outbox_runner():
             install.delete()

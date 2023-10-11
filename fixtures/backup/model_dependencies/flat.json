@@ -11,6 +11,7 @@
   "hybridcloud.apitokenreplica": [
     "sentry.apiapplication",
     "sentry.apitoken",
+    "sentry.organization",
     "sentry.user"
   ],
   "hybridcloud.organizationslugreservationreplica": [
