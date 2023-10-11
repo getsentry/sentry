@@ -12,7 +12,9 @@ import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
@@ -48,7 +50,10 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const deps = useMemo(() => [frames], [frames]);
+  const filterProps = useBreadcrumbFilters({frames: frames || []});
+  const {items} = filterProps;
+
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -66,7 +71,7 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (frames || [])[index];
+    const item = (items || [])[index];
 
     return (
       <CellMeasurer
@@ -94,6 +99,7 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
+      <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer>
         {frames ? (
           <AutoSizer onResize={updateList}>
@@ -102,13 +108,13 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
                 deferredMeasurementCache={cache}
                 height={height}
                 noRowsRenderer={() => (
-                  <NoRowRenderer unfilteredItems={frames} clearSearchTerm={() => {}}>
+                  <NoRowRenderer unfilteredItems={items} clearSearchTerm={() => {}}>
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}
                 overscanRowCount={5}
                 ref={listRef}
-                rowCount={frames.length}
+                rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
