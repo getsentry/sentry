@@ -65,6 +65,8 @@ class InfiniteListLoader {
   public totalHits: undefined | number = undefined;
 
   private isFetching = false;
+  public isFetchingNext = false;
+  public isFetchingPrev = false;
 
   constructor(
     private api: Client,
@@ -87,14 +89,27 @@ class InfiniteListLoader {
   }
 
   get feedbacks() {
-    const feedbacks: HydratedFeedbackItem[] = [];
     const initialDateTime = this.initialDate.getTime();
-    for (const [timestamp, feedback] of this.timestampToFeedback.entries()) {
-      if (timestamp < initialDateTime) {
-        feedbacks.push(feedback);
+    const timestamps = Array.from(this.timestampToFeedback.keys())
+      .filter(timestamp => timestamp < initialDateTime)
+      .sort()
+      .reverse();
+
+    const feedbacks = timestamps.map(timestamp =>
+      this.timestampToFeedback.get(timestamp)
+    );
+    return feedbacks;
+  }
+
+  setFeedback(feedbackId: string, feedback: undefined | HydratedFeedbackItem) {
+    const old = this.feedbacks.find(fb => fb?.feedback_id === feedbackId);
+    if (old) {
+      if (!feedback) {
+        this.timestampToFeedback.delete(old.timestamp.getTime());
+      } else {
+        this.timestampToFeedback.set(old.timestamp.getTime(), feedback);
       }
     }
-    return feedbacks;
   }
 
   onChange(handler: () => void): Unsubscribe {
@@ -180,12 +195,14 @@ class InfiniteListLoader {
       return;
     }
 
+    this.isFetchingNext = true;
     const result = await this.fetch({
       end: this.minDatetime,
       perPage,
       sort: '-timestamp',
       start: startDateFromQueryView(this.queryView),
     });
+    this.isFetchingNext = false;
     this.didFetchNext(result);
   }
 
@@ -196,12 +213,14 @@ class InfiniteListLoader {
       return;
     }
 
+    this.isFetchingPrev = true;
     const result = await this.fetch({
       end: endDateFromQueryView(this.queryView),
       perPage,
       sort: 'timestamp',
       start: this.maxDatetime,
     });
+    this.isFetchingPrev = false;
     this.didFetchPrev(result);
   }
 
@@ -224,16 +243,20 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   countLoadedRows: 0,
   getRow: () => undefined,
   isError: false,
+  isFetchingNext: false,
+  isFetchingPrev: false,
   isLoading: false,
   isRowLoaded: () => false,
   loadMoreRows: () => Promise.resolve(),
   queryView: EMPTY_QUERY_VIEW,
+  setFeedback: () => undefined,
   totalHits: 0,
-  updateFeedback: () => undefined,
 };
 
 type State = {
-  items: HydratedFeedbackItem[];
+  isFetchingNext: boolean;
+  isFetchingPrev: boolean;
+  items: (HydratedFeedbackItem | undefined)[];
   totalHits: undefined | number;
 };
 
@@ -251,6 +274,8 @@ export default function useFetchFeedbackInfiniteListData({
   const [state, setState] = useState<State>({
     items: [],
     totalHits: undefined,
+    isFetchingNext: false,
+    isFetchingPrev: false,
   });
 
   useEffect(() => {
@@ -258,48 +283,54 @@ export default function useFetchFeedbackInfiniteListData({
     loaderRef.current = loader;
 
     return loader.onChange(() => {
+      const {totalHits, isFetchingNext, isFetchingPrev} = loader;
       setState({
         items: loader.feedbacks,
-        totalHits: loader.totalHits,
+        totalHits,
+        isFetchingNext,
+        isFetchingPrev,
       });
     });
   }, [api, organization, queryView, initialDate]);
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => {
-      return state.items[index] ?? undefined;
-    },
+    ({index}: Index): HydratedFeedbackItem | undefined => state.items[index] ?? undefined,
     [state.items]
   );
 
   const isRowLoaded = useCallback(
-    ({index}: Index) => {
-      return state.items[index] !== undefined;
-    },
+    ({index}: Index) => state.items[index] !== undefined,
     [state.items]
   );
 
-  const loadMoreRows = useCallback(({startIndex, stopIndex}: IndexRange) => {
-    return loaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve();
-  }, []);
+  const loadMoreRows = useCallback(
+    ({startIndex, stopIndex}: IndexRange) =>
+      loaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve(),
+    []
+  );
 
-  const updateFeedback = useCallback(({feedbackId: _}: {feedbackId: string}) => {
-    // TODO
-  }, []);
+  const setFeedback = useCallback(
+    (feedbackId: string, feedback: undefined | HydratedFeedbackItem) =>
+      loaderRef.current?.setFeedback(feedbackId, feedback),
+    []
+  );
 
   useEffect(() => {
     loadMoreRows({startIndex: 0, stopIndex: PER_PAGE});
   }, [loadMoreRows]);
 
+  const {totalHits, isFetchingNext, isFetchingPrev} = state;
   return {
     countLoadedRows: state.items.length,
     getRow,
     isError: false,
+    isFetchingNext,
+    isFetchingPrev,
     isLoading: false,
     isRowLoaded,
     loadMoreRows,
     queryView,
-    totalHits: state.totalHits,
-    updateFeedback,
+    setFeedback,
+    totalHits,
   };
 }

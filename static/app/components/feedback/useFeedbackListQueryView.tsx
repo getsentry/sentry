@@ -7,7 +7,7 @@ export default function useFeedbackListQueryView({
 }: {
   queryReferrer: string;
 }): QueryView {
-  return useLocationQuery<QueryView>({
+  return useLocationQuery({
     fields: {
       queryReferrer,
       end: decodeScalar,

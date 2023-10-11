@@ -611,10 +611,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:

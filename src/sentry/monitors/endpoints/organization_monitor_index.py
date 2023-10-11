@@ -89,7 +89,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Lists monitors, including nested monitor enviroments. May be filtered to a project or environment.
+        Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -104,6 +104,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
