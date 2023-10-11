@@ -116,8 +116,28 @@ class DiscordRequest:
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
 
+        logger.info(
+            "discord.authorize.request",
+            extra={
+                "public_key": public_key,
+                "signature": signature,
+                "timestamp": timestamp,
+                "body": body,
+            },
+        )
+
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
+        else:
+            logger.info(
+                "discord.verify.signature.failure",
+                extra={
+                    "public_key": public_key,
+                    "signature": signature,
+                    "timestamp": timestamp,
+                    "body": body,
+                },
+            )
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
