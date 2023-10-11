@@ -46,10 +46,10 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
 
     trigger_type = serializers.CharField(
-        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`"""
+        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`."""
     )
     service_type = serializers.CharField(
-        help_text="Service that is used for sending the notification\n"
+        help_text="Service that is used for sending the notification.\n"
         + """- `email`\n"""
         + """- `slack`\n"""
         + """- `sentry_notification`\n"""
@@ -80,7 +80,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         required=False,
     )
     projects = serializers.ListField(
-        help_text="""List of projects slugs that the Notification Action is created for""",
+        help_text="""List of projects slugs that the Notification Action is created for.""",
         child=ProjectField(scope="project:read"),
         required=False,
     )
