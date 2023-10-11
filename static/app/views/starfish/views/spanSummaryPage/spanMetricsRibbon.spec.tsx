@@ -18,6 +18,5 @@ describe('SpanMetricsRibbon', function () {
     expect(screen.getByText('17.8/min')).toBeInTheDocument();
     expect(screen.getByText('127.10ms')).toBeInTheDocument();
     expect(screen.getByText('19.54min')).toBeInTheDocument();
-    expect(screen.getByText(/0.2%/)).toBeInTheDocument();
   });
 });

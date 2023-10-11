@@ -116,6 +116,11 @@ const ALL_FIELDS = [
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+  'last_seen()',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -128,7 +133,15 @@ export function getProfilesTableFields(platform: Project['platform']) {
   return DEFAULT_FIELDS;
 }
 
-const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
+const MOBILE_FIELDS: ProfilingFieldType[] = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'device.arch',
+  'transaction.duration',
+];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
   'profile.id',
   'timestamp',

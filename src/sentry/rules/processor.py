@@ -22,7 +22,9 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models.environment import Environment
+from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.conditions.base import EventCondition

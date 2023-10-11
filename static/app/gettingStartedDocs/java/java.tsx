@@ -5,10 +5,8 @@ import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  PlatformOption,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -241,10 +239,10 @@ sentry {
     additionalInfo: (
       <p>
         {tct(
-          'To upload your source code to Sentry so it can be shown in stack traces, please refer to [link:Manually Uploading Source Context].',
+          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
             ),
           }
         )}

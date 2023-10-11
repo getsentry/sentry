@@ -5,7 +5,7 @@ from sentry_sdk import capture_exception
 
 from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 
 
 def fix(data):

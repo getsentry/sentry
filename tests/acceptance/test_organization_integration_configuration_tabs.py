@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 

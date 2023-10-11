@@ -2,7 +2,9 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Deploy, Group, GroupRelease, GroupStatus
+from sentry.models.deploy import Deploy
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouprelease import GroupRelease
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions.resolved_in_active_release import (

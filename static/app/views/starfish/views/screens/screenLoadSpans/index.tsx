@@ -15,30 +15,35 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getTransactionName} from 'sentry/views/performance/utils';
+import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
-import {
-  getPrimaryRelease,
-  getSecondaryRelease,
-} from 'sentry/views/starfish/views/mobileServiceView/utils';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+
+type Query = {
+  primaryRelease: string;
+  project: string;
+  secondaryRelease: string;
+  spanGroup: string;
+  transaction: string;
+  [QueryParameterNames.SPANS_SORT]: string;
+  spanDescription?: string;
+};
 
 function ScreenLoadSpans() {
-  const location = useLocation();
+  const location = useLocation<Query>();
   const organization = useOrganization();
-  const transactionName = getTransactionName(location);
-  const primaryRelease = getPrimaryRelease(location);
-  const secondaryRelease = getSecondaryRelease(location);
   const routingContext = useRoutingContext();
+  const router = useRouter();
 
   const screenLoadModule: LocationDescriptor = {
     pathname: `${routingContext.baseURL}/pageload/`,
     query: {
-      ...omit(location.query, QueryParameterNames.SPANS_SORT),
+      ...omit(location.query, [QueryParameterNames.SPANS_SORT, 'transaction']),
     },
   };
 
@@ -53,6 +58,14 @@ function ScreenLoadSpans() {
       label: t('Screen Load'),
     },
   ];
+
+  const {
+    spanGroup,
+    primaryRelease,
+    secondaryRelease,
+    transaction: transactionName,
+    spanDescription,
+  } = location.query;
 
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
@@ -85,6 +98,23 @@ function ScreenLoadSpans() {
                 primaryRelease={primaryRelease}
                 secondaryRelease={secondaryRelease}
               />
+              {spanGroup && (
+                <SampleList
+                  groupId={spanGroup}
+                  transactionName={transactionName}
+                  spanDescription={spanDescription}
+                  onClose={() => {
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: omit(
+                        router.location.query,
+                        'spanGroup',
+                        'transactionMethod'
+                      ),
+                    });
+                  }}
+                />
+              )}
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

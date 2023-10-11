@@ -17,7 +17,8 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
 

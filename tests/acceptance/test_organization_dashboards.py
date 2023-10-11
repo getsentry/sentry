@@ -12,8 +12,8 @@ from fixtures.page_objects.dashboard_detail import (
     WIDGET_TITLE_FIELD,
     DashboardDetailPage,
 )
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,

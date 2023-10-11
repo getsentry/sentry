@@ -10,10 +10,13 @@ import sentry_sdk
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
+from sentry.ratelimits.sliding_windows import Quota
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
 
 
 class GroupCategory(Enum):
@@ -116,6 +119,8 @@ class GroupType:
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
+
+    creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -324,7 +329,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
 class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1017
     slug = "performance_duration_regression"
-    description = "Exp Transaction Duration Regression"
+    description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
@@ -413,7 +418,7 @@ class ProfileFrameDropType(GroupType):
 class ProfileFunctionRegressionExperimentalType(GroupType):
     type_id = 2010
     slug = "profile_function_regression_exp"
-    description = "Function Duration Regression"
+    description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
 
 

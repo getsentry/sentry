@@ -39,27 +39,28 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    EnvironmentProject,
-    OrganizationMemberTeam,
-    Project,
-    ProjectAvatar,
-    ProjectBookmark,
-    ProjectOption,
-    ProjectPlatform,
-    Release,
-    Team,
-    User,
-    UserReport,
-)
-from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.avatars.project_avatar import ProjectAvatar
+from sentry.models.environment import EnvironmentProject
+from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -215,7 +216,11 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
-        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+        # why the value true is determined by either "1" or True.
+        "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
+        in ("1", True),
         "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
@@ -318,7 +323,7 @@ class ProjectSerializer(Serializer):
                     subscriptions = notifications_service.get_subscriptions_for_projects(
                         user_id=user.id,
                         project_ids=project_ids,
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                        type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
