@@ -80,11 +80,7 @@ class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @with_feature("organizations:customer-domains")
     def test_simple_customer_domains(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             latest_event_time = time()
             older_event_time = latest_event_time - 300
 
