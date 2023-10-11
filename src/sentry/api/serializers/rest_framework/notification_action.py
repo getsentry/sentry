@@ -29,14 +29,14 @@ INTEGRATION_SERVICES = {
 
 
 class NotificationActionInputData(TypedDict):
-    integration_id: int
-    sentry_app_id: int
-    projects: List[Project]
-    service_type: int
     trigger_type: int
-    target_type: int
+    service_type: int
+    integration_id: int
     target_identifier: str
     target_display: str
+    projects: List[Project]
+    sentry_app_id: int
+    target_type: int
 
 
 @extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
