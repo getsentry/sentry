@@ -17,9 +17,7 @@ export const useResourcePagesQuery = () => {
 
   const fields = ['transaction', 'avg(span.self_time)']; // TODO: this query fails without avg(span.self_time)
 
-  const queryConditions = [
-    `span.op:[${resourceFilters.type || 'resource.script, resource.img'}]`,
-  ]; // TODO: We will need to consider other ops
+  const queryConditions = [`span.op:${resourceFilters.type || 'resource.*'}`]; // TODO: We will need to consider other ops
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -34,6 +32,7 @@ export const useResourcePagesQuery = () => {
 
   const result = useDiscoverQuery({
     eventView,
+    referrer: 'api.performance.browser.resources.page-selector',
     location,
     orgSlug,
     limit: 100,
