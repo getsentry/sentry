@@ -17,21 +17,21 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 function ProjectSecurityHeaders() {
   const organization = useOrganization();
-  const router = useRouter();
+  const routes = useRoutes();
+  const params = useParams();
   const {projectId} = useParams();
 
   const {
     data: keyList,
     isLoading,
-    error,
+    isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
     staleTime: 0,
@@ -41,78 +41,79 @@ function ProjectSecurityHeaders() {
     () => [
       {
         name: 'Content Security Policy (CSP)',
-        url: recreateRoute('csp/', router),
+        url: recreateRoute('csp/', {routes, params}),
       },
       {
         name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', router),
+        url: recreateRoute('expect-ct/', {routes, params}),
       },
       {
         name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', router),
+        url: recreateRoute('hpkp/', {routes, params}),
       },
     ],
-    [router]
+    [routes, params]
   );
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (error) {
+  if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
 
   return (
-    <SentryDocumentTitle title={routeTitleGen(t('Security Headers'), projectId, false)}>
-      <div>
-        <SettingsPageHeader title={t('Security Header Reports')} />
+    <div>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Security Headers'), projectId, false)}
+      />
+      <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
+      <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
 
-        <Panel>
-          <PanelHeader>{t('Additional Configuration')}</PanelHeader>
-          <PanelBody withPadding>
-            <TextBlock style={{marginBottom: 20}}>
-              {tct(
-                'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
-                {
-                  key_param: <code>sentry_key</code>,
-                }
-              )}
-            </TextBlock>
-            <KeyValueTable>
-              <KeyValueTableRow
-                keyName="sentry_environment"
-                value={t('The environment name (e.g. production).')}
-              />
-              <KeyValueTableRow
-                keyName="sentry_release"
-                value={t('The version of the application.')}
-              />
-            </KeyValueTable>
-          </PanelBody>
-        </Panel>
+      <Panel>
+        <PanelHeader>{t('Additional Configuration')}</PanelHeader>
+        <PanelBody withPadding>
+          <TextBlock style={{marginBottom: 20}}>
+            {tct(
+              'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
+              {
+                key_param: <code>sentry_key</code>,
+              }
+            )}
+          </TextBlock>
+          <KeyValueTable>
+            <KeyValueTableRow
+              keyName="sentry_environment"
+              value={t('The environment name (e.g. production).')}
+            />
+            <KeyValueTableRow
+              keyName="sentry_release"
+              value={t('The version of the application.')}
+            />
+          </KeyValueTable>
+        </PanelBody>
+      </Panel>
 
-        <Panel>
-          <PanelHeader>{t('Supported Formats')}</PanelHeader>
-          <PanelBody>
-            {reports.map(({name, url}) => (
-              <ReportItem key={url}>
-                <HeaderName>{name}</HeaderName>
-                <LinkButton to={url} priority="primary">
-                  {t('Instructions')}
-                </LinkButton>
-              </ReportItem>
-            ))}
-          </PanelBody>
-        </Panel>
-      </div>
-    </SentryDocumentTitle>
+      <Panel>
+        <PanelHeader>{t('Supported Formats')}</PanelHeader>
+        <PanelBody>
+          {reports.map(({name, url}) => (
+            <ReportItem key={url}>
+              <HeaderName>{name}</HeaderName>
+              <LinkButton to={url} priority="primary">
+                {t('Instructions')}
+              </LinkButton>
+            </ReportItem>
+          ))}
+        </PanelBody>
+      </Panel>
+    </div>
   );
 }
 
-export default withOrganization(ProjectSecurityHeaders);
+export default ProjectSecurityHeaders;
 
 const ReportItem = styled(PanelItem)`
   align-items: center;
