@@ -191,6 +191,10 @@ export function useMetricsDataZoom(props: MetricsQuery) {
     const startIndex = metricsData.intervals.findIndex(interval => interval >= start) - 1;
     const endIndex = metricsData.intervals.findIndex(interval => interval >= end);
 
+    if (startIndex === -1 || endIndex === -1) {
+      return metricsData;
+    }
+
     return {
       ...metricsData,
       intervals: metricsData.intervals.slice(startIndex, endIndex),
