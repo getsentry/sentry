@@ -332,7 +332,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert "ensure third-party app access via OAuth is enabled" in str(err)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()
