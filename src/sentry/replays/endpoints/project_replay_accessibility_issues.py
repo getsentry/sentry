@@ -22,7 +22,7 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 @region_silo_endpoint
 class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
