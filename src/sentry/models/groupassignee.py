@@ -35,6 +35,36 @@ logger = logging.getLogger(__name__)
 
 
 class GroupAssigneeManager(BaseManager):
+    def get_assigned_to_data(
+        self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
+    ) -> Dict[str, str]:
+        data = {
+            "assignee": str(assigned_to.id),
+            "assigneeEmail": getattr(assigned_to, "email", None),
+            "assigneeType": assignee_type,
+        }
+        if extra:
+            data.update(extra)
+
+        return data
+
+    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple(str, str, str) | None:
+        from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user import RpcUser
+
+        if isinstance(assigned_to, RpcUser):
+            assignee_type = "user"
+            assignee_type_attr = "user_id"
+            other_type = "team"
+        elif isinstance(assigned_to, Team):
+            assignee_type = "team"
+            assignee_type_attr = "team_id"
+            other_type = "user_id"
+        else:
+            raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
+
+        return (assignee_type, assignee_type_attr, other_type)
+
     def assign(
         self,
         group: Group,
@@ -48,23 +78,13 @@ class GroupAssigneeManager(BaseManager):
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
-        from sentry.models.team import Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
         assigned_to_id = assigned_to.id
-        if assigned_to.class_name() == "User":
-            assignee_type = "user"
-            assignee_type_attr = "user_id"
-            other_type = "team"
-        elif isinstance(assigned_to, Team):
-            assignee_type = "team"
-            assignee_type_attr = "team_id"
-            other_type = "user_id"
-        else:
-            raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
+        assignee_type, assignee_type_attr, other_type = self.get_assignee_data(assigned_to)
 
         now = timezone.now()
         assignee, created = self.get_or_create(
@@ -93,13 +113,8 @@ class GroupAssigneeManager(BaseManager):
                 ),
                 router.db_for_write(GroupAssignee),
             )
-            data = {
-                "assignee": str(assigned_to.id),
-                "assigneeEmail": getattr(assigned_to, "email", None),
-                "assigneeType": assignee_type,
-            }
-            if extra:
-                data.update(extra)
+            data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
+
             Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
@@ -117,7 +132,13 @@ class GroupAssigneeManager(BaseManager):
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
-    def deassign(self, group: Group, acting_user: User | RpcUser | None = None) -> None:
+    def deassign(
+        self,
+        group: Group,
+        acting_user: User | RpcUser | None = None,
+        assigned_to: Team | RpcUser | None = None,
+        extra: Dict[str, str] | None = None,
+    ) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
@@ -140,7 +161,17 @@ class GroupAssigneeManager(BaseManager):
         self.filter(group=group).delete()
 
         if affected > 0:
-            Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
+            if features.has("organizations:participants-purge", group.organization) and assigned_to:
+                assignee_type, _, _ = self.get_assignee_data(assigned_to)
+                data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
+                Activity.objects.create_group_activity(
+                    group, ActivityType.ASSIGNED, user=acting_user, data=data
+                )
+            else:
+                Activity.objects.create_group_activity(
+                    group, ActivityType.UNASSIGNED, user=acting_user
+                )
+
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
             # Clear ownership cache for the deassigned group

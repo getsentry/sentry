@@ -153,8 +153,8 @@ class AssignedNotificationAPITest(APITestCase):
         html_msg = f"{self.group.qualified_short_id}</a> to themselves</p>"
         self.validate_email(mail.outbox, 0, user1.email, txt_msg, html_msg)
 
-        txt_msg = f"{user1.email} unassigned {self.group.qualified_short_id}"
-        html_msg = f"{user1.email}</strong> unassigned "
+        txt_msg = f"{user1.email} assigned {self.group.qualified_short_id} to {user2.email}"
+        html_msg = f"{self.group.qualified_short_id}</a> to {user2.email}"
         self.validate_email(mail.outbox, 1, user1.email, txt_msg, html_msg)
 
         txt_msg = f"assigned {self.group.qualified_short_id} to {user2.email}"
@@ -165,7 +165,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, self.group, self.project, index=0)
         self.validate_slack_message(msg, self.group, self.project, index=1)
 
-        msg = f"Issue unassigned by {user1.get_display_name()}"
+        msg = f"Issue assigned to {user2.get_display_name()} by {user1.get_display_name()}"
         self.validate_slack_message(msg, self.group, self.project, index=2)
         self.validate_slack_message(msg, self.group, self.project, index=3)
 
@@ -239,8 +239,8 @@ class AssignedNotificationAPITest(APITestCase):
         html_msg = f"{group.qualified_short_id}</a> to the {team1.slug} team</p>"
         self.validate_email(mail.outbox, 0, user2.email, txt_msg, html_msg)
 
-        txt_msg = f"{user1.email} unassigned {group.qualified_short_id}"
-        html_msg = f"{user1.email}</strong> unassigned "
+        txt_msg = f"{user1.email} assigned {group.qualified_short_id} to the {team2.slug} team"
+        html_msg = f"{user1.email}</strong> assigned"
         self.validate_email(mail.outbox, 2, user2.email, txt_msg, html_msg)
 
         txt_msg = f"assigned {group.qualified_short_id} to the {team2.slug} team"
@@ -256,10 +256,10 @@ class AssignedNotificationAPITest(APITestCase):
         msg = f"Issue assigned to the {team1.slug} team by {user1.email}"
         self.validate_slack_message(msg, group, project, index=4)
 
-        msg = f"Issue unassigned by {user1.get_display_name()}"
+        msg = f"Issue assigned to the {team2.slug} team by {user1.email}"
         self.validate_slack_message(msg, group, project, index=6)
 
-        msg = f"Issue unassigned by {user1.get_display_name()}"
+        msg = f"Issue assigned to the {team2.slug} team by {user1.email}"
         self.validate_slack_message(msg, group, project, index=8)
 
         msg = f"Issue assigned to the {team2.slug} team by {user1.email}"

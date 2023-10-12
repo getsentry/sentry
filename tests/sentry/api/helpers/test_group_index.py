@@ -547,11 +547,28 @@ class TestHandleAssignedTo(TestCase):
 
     @patch("sentry.analytics.record")
     def test_unassign(self, mock_record: Mock) -> None:
+
+        # assign
+        handle_assigned_to(
+            ActorTuple.from_actor_identifier(self.user.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+        # unassign
         assigned_to = handle_assigned_to(
             None, None, None, self.group_list, self.project_lookup, self.user
         )
 
         assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
 
         assert assigned_to is None
         mock_record.assert_called_with(
@@ -584,9 +601,10 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
+        with self.feature("organizations:participants-purge"):
+            assigned_to = handle_assigned_to(
+                None, None, None, self.group_list, self.project_lookup, self.user
+            )
 
         assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(
