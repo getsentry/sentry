@@ -28,7 +28,7 @@ export type HydratedA11yIssue = Overwrite<
      */
     offsetMs: number;
     /**
-     * The Date when the breadcrumb happened
+     * The Date when the a11yIssue happened
      */
     timestamp: Date;
     /**
@@ -38,15 +38,12 @@ export type HydratedA11yIssue = Overwrite<
   }
 >;
 
-export default function hydrateA11yIssue(
-  raw: A11yIssue,
-  startTimestampMs: number
-): HydratedA11yIssue {
+export default function hydrateA11yIssue(raw: A11yIssue): HydratedA11yIssue {
   const timestamp = new Date(raw.timestamp);
   return {
     ...raw,
     offsetMs: 0,
     timestamp,
-    timestampMs: Math.abs(timestamp.getTime() - startTimestampMs),
+    timestampMs: timestamp.getTime(),
   };
 }

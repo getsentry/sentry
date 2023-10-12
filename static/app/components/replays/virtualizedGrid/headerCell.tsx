@@ -4,31 +4,19 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconInfo} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {BreadcrumbFrame, SpanFrame} from 'sentry/utils/replays/types';
 
-interface SortCrumbs {
+type BaseRecord = Record<string, unknown>;
+interface SortConfig<RecordType extends BaseRecord> {
   asc: boolean;
-  by: keyof Crumb | string;
-  getValue: (row: Crumb) => any;
+  by: keyof RecordType | string;
+  getValue: (row: RecordType) => any;
 }
 
-interface SortBreadcrumbFrame {
-  asc: boolean;
-  by: keyof BreadcrumbFrame | string;
-  getValue: (row: BreadcrumbFrame) => any;
-}
-interface SortSpanFrame {
-  asc: boolean;
-  by: keyof SpanFrame | string;
-  getValue: (row: SpanFrame) => any;
-}
-
-type Props = {
+type Props<SortableRecord extends BaseRecord> = {
   field: string;
   handleSort: (fieldName: string) => void;
   label: ReactNode;
-  sortConfig: SortCrumbs | SortBreadcrumbFrame | SortSpanFrame;
+  sortConfig: SortConfig<SortableRecord>;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
 };
@@ -41,8 +29,11 @@ function CatchClicks({children}: {children: ReactNode}) {
   return <div onClick={e => e.stopPropagation()}>{children}</div>;
 }
 
-const HeaderCell = forwardRef<HTMLButtonElement, Props>(
-  ({field, handleSort, label, sortConfig, style, tooltipTitle}: Props, ref) => (
+function HeaderCell(
+  {field, handleSort, label, sortConfig, style, tooltipTitle}: Props<BaseRecord>,
+  ref
+) {
+  return (
     <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
       {label}
       {tooltipTitle ? (
@@ -57,8 +48,8 @@ const HeaderCell = forwardRef<HTMLButtonElement, Props>(
         style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
       />
     </HeaderButton>
-  )
-);
+  );
+}
 
 const HeaderButton = styled('button')`
   border: 0;
@@ -84,4 +75,8 @@ const HeaderButton = styled('button')`
   }
 `;
 
-export default HeaderCell;
+export default forwardRef<HTMLButtonElement, Props<BaseRecord>>(HeaderCell) as <
+  T extends BaseRecord,
+>(
+  props: Props<T> & {ref?: React.ForwardedRef<HTMLButtonElement>}
+) => ReturnType<typeof HeaderCell>;
