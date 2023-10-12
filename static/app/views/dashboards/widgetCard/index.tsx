@@ -39,7 +39,6 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
-import ThresholdsHoverWrapper from '../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -319,16 +318,10 @@ class WidgetCard extends Component<Props, State> {
                       {widget.thresholds &&
                         hasThresholdMaxValue(widget.thresholds) &&
                         this.state.tableData &&
-                        organization.features.includes('dashboard-widget-indicators') && (
-                          <ThresholdsHoverWrapper
-                            thresholds={widget.thresholds}
-                            tableData={this.state.tableData}
-                          >
-                            {getColoredWidgetIndicator(
-                              widget.thresholds,
-                              this.state.tableData
-                            )}
-                          </ThresholdsHoverWrapper>
+                        organization.features.includes('dashboard-widget-indicators') &&
+                        getColoredWidgetIndicator(
+                          widget.thresholds,
+                          this.state.tableData
                         )}
                     </WidgetTitleRow>
                     {widget.description && (
