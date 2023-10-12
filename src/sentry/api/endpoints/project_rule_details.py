@@ -26,6 +26,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
+from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
+from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
@@ -154,8 +156,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
 
-            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of the selected choice and not save all the choices.
-            if action.get("id") == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
+            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
+            #                  the selected choice and not save all the choices.
+            if action.get("id") in (JiraCreateTicketAction.id, JiraServerCreateTicketAction.id):
                 for field in action.get("dynamic_form_fields", []):
                     if field.get("choices"):
                         field["choices"] = [
