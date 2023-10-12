@@ -9,4 +9,4 @@ MAX_TIMEOUT = 40_320
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 # maximum value for incident + recovery thresholds to be set
-MAX_THRESHOLD = 10
+MAX_THRESHOLD = 120
