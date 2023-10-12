@@ -132,9 +132,16 @@ def handle_replication(
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+        organization: Optional[Organization] = None
+        if api_token.organization_id is not None:
+            try:
+                organization = Organization.objects.get(id=api_token.organization_id)
+            except Organization.DoesNotExist:
+                return
+
         destination = ApiTokenReplica(
             application_id=api_token.application_id,  # type: ignore
-            organization_id=api_token.organization_id,
+            organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
             expires_at=api_token.expires_at,
@@ -148,8 +155,13 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(ApiToken, destination)
 
     def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+        try:
+            organization = Organization.objects.get(id=token.organization_id)
+        except Organization.DoesNotExist:
+            return
+
         destination = OrgAuthTokenReplica(
-            organization_id=token.organization_id,
+            organization=organization,
             orgauthtoken_id=token.id,
             token_hashed=token.token_hashed,
             name=token.name,

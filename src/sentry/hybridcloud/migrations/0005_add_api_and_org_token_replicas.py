@@ -72,9 +72,9 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "organization_id",
-                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, null=True, on_delete="SET_NULL"
+                    "organization",
+                    sentry.db.models.fields.FlexibleForeignKey(
+                        "sentry.Organization", db_index=True, null=True, on_delete=models.SET_NULL
                     ),
                 ),
                 ("application_is_active", models.BooleanField(default=False)),
