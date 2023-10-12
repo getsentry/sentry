@@ -5,7 +5,6 @@ import logging
 import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
-from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -161,7 +160,7 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                 },
             )
             span = sentry_sdk.get_current_span()
-            if not (isinstance(span, Span)):
+            if span is None:
                 raise TypeError("No span is currently active right now")
             span.set_status("unknown_error")
             logger.exception(e)
