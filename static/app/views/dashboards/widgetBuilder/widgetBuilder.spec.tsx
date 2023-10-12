@@ -16,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {
@@ -73,6 +74,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(organization.projects);
 
   render(
     <WidgetBuilder
@@ -1068,7 +1071,7 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
-    expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+    expect(screen.getByTestId('page-filter-project-selector')).toBeDisabled();
     expect(mockReleases).toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();

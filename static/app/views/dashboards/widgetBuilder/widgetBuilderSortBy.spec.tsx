@@ -7,6 +7,7 @@ import {Tags} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {
   DashboardDetails,
@@ -62,6 +63,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(organization.projects);
 
   render(
     <WidgetBuilder
