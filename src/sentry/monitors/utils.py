@@ -21,8 +21,6 @@ from .models import CheckInStatus, Monitor, MonitorCheckIn
 
 def signal_first_checkin(project: Project, monitor: Monitor):
     if not project.flags.has_cron_checkins:
-        # Backfill users that already have cron monitors
-        signal_first_monitor_created(project, None, False)
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
