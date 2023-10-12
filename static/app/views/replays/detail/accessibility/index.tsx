@@ -62,8 +62,7 @@ function AccessibilityList() {
   // `undefined` which then gets set into the hook and doesn't update.
   const initialSize = Math.max(150, window.innerHeight * 0.4);
 
-  // eslint-disable-next-line
-  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
+  const {size: containerSize} = useResizableDrawer({
     direction: 'up',
     initialSize,
     min: 0,
