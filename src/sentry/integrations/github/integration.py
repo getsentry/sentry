@@ -372,9 +372,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
-                "sender_login": state["sender"]["login"],
             },
         }
+
+        if state.get("sender_login"):
+            integration["metadata"]["sender_login"] = state["sender_login"]
 
         if state.get("reinstall_id"):
             integration["reinstall_id"] = state["reinstall_id"]
@@ -462,5 +464,9 @@ class GitHubInstallationRedirect(PipelineView):
                     },
                     request=request,
                 )
+            else:
+                # OrganizationIntegration does not exist, but Integration does exist.
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
 
         return self.redirect(self.get_app_url())
