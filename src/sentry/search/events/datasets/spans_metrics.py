@@ -271,6 +271,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "avg",
+                    optional_args=[
+                        fields.with_default(
+                            "http.response_content_length",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    is_percentile=True,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "time_spent_percentage",
                     optional_args=[
                         fields.with_default(
