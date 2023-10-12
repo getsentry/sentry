@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
 import requests
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +20,8 @@ from sentry.replays.lib.storage import make_filename
 from sentry.replays.usecases.reader import fetch_direct_storage_segments_meta
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
+
+logger = logging.getLogger()
 
 
 @region_silo_endpoint
@@ -74,7 +78,11 @@ class ReplayAccessibilityPaginator:
 
 
 def request_accessibility_issues(filenames: list[str]) -> Any:
-    return requests.post(
-        "/api/0/analyze/accessibility",
-        json={"data": {"filenames": filenames}},
-    ).json()
+    try:
+        return requests.post(
+            "/api/0/analyze/accessibility",
+            json={"data": {"filenames": filenames}},
+        ).json()
+    except Exception:
+        logger.exception("replay accessibility analysis failed")
+        raise ParseError("Could not analyze accessibility issues at this time.")
