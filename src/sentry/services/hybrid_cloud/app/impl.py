@@ -37,7 +37,6 @@ from sentry.services.hybrid_cloud.filter_query import (
     OpaqueSerializedResponse,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.utils import json
 
 
 class DatabaseBackedAppService(AppService):
@@ -252,18 +251,10 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app_installation(installation=installation, app=sentry_app)
 
     def prepare_sentry_app_components(
-        self,
-        *,
-        installation_id: int,
-        component_type: str,
-        project_slug: Optional[str] = None,
-        values_json: Optional[str] = None,
+        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
     ) -> Optional[RpcSentryAppComponent]:
         from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 
         installation = SentryAppInstallation.objects.get(id=installation_id)
-        values = json.loads(values_json) if values_json else None
-        component = prepare_sentry_app_components(
-            installation, component_type, project_slug, values
-        )
+        component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None

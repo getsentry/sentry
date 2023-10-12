@@ -143,12 +143,7 @@ class AppService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def prepare_sentry_app_components(
-        self,
-        *,
-        installation_id: int,
-        component_type: str,
-        project_slug: Optional[str] = None,
-        values_json: Optional[str] = None,
+        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
     ) -> Optional[RpcSentryAppComponent]:
         pass
 
