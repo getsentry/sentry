@@ -43,9 +43,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'timestamp',
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"*${transaction}*" ${
-        query ? query : ''
-      }`,
+      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
       orderby: mapWebVitalToOrderBy(orderBy),
       version: 2,
     },

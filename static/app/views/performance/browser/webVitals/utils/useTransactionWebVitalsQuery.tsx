@@ -34,8 +34,7 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' +
-        (transaction ? ` transaction:"*${transaction}*"` : ''),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       orderby: mapWebVitalToOrderBy(orderBy),
       version: 2,
     },

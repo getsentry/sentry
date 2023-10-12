@@ -29,8 +29,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' +
-        (transaction ? ` transaction:"*${transaction}*"` : ''),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
