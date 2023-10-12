@@ -25,7 +25,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {CronsLandingPanel} from './components/cronsLandingPanel';
+import {
+  CronsLandingPanel,
+  isValidGuide,
+  isValidPlatform,
+} from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
@@ -34,6 +38,8 @@ import {makeMonitorListQueryKey} from './utils';
 export default function Monitors() {
   const organization = useOrganization();
   const router = useRouter();
+  const platform = decodeScalar(router.location.query?.platform) ?? null;
+  const guide = decodeScalar(router.location.query?.guide);
 
   const queryKey = makeMonitorListQueryKey(organization, router.location);
 
@@ -58,6 +64,9 @@ export default function Monitors() {
     });
   };
 
+  // Only show the add monitor button if there is no currently displayed guide
+  const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
+
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
       <Layout.Page>
@@ -77,9 +86,11 @@ export default function Monitors() {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <CronsFeedbackButton />
-              <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
-                {t('Add Monitor')}
-              </NewMonitorButton>
+              {showAddMonitor && (
+                <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
+                  {t('Add Monitor')}
+                </NewMonitorButton>
+              )}
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
