@@ -32,6 +32,7 @@ describe('getAppKnownDataDetails', function () {
       {subject: 'Build Name', value: ''},
       {subject: 'Version', value: '7.1.3'},
       {subject: 'App Build', value: '1'},
+      {subject: 'In Foreground', value: false},
     ]);
   });
 });
