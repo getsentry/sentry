@@ -29,6 +29,10 @@ EXPECTED = {
     "scopes": [
         "event:read",
         "project:read",
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
     ],
     "webhookUrl": "https://example.com",
 }
@@ -122,7 +126,14 @@ class SentryAppsTest(APITestCase):
             "organization": self.organization.slug,
             "redirectUrl": "",
             "schema": None,
-            "scopes": ("project:read", "event:read"),
+            "scopes": (
+                "project:read",
+                "event:read",
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+            ),
             "verifyInstall": True,
             "webhookUrl": "https://example.com",
             **kwargs,
@@ -371,7 +382,13 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_creates_sentry_app(self):
         response = self.get_success_response(**self.get_data())
-        assert EXPECTED.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in EXPECTED.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     def test_non_unique_app_slug_fails(self):
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
@@ -446,7 +463,13 @@ class PostSentryAppsTest(SentryAppsTest):
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
         response = self.get_success_response(**data)
-        assert expected.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in expected.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     @patch("sentry.analytics.record")
     def test_wrong_schema_format(self, record):
@@ -498,7 +521,13 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_can_create_with_error_created_hook_with_flag(self):
         expected = {**EXPECTED, "events": ["error"]}
         response = self.get_success_response(**self.get_data(events=("error",)))
-        assert expected.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in expected.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     def test_cannot_create_with_error_created_hook_without_flag(self):
         with Feature({"organizations:integrations-event-hooks": False}):
