@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -12,6 +12,9 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
 import StyledIdBadge from '../../components/styledIdBadge';
+import {parseSeconds} from '../../utils';
+import {Threshold} from '../../utils/types';
+import useFetchThresholdsListData from '../../utils/useFetchThresholdsListData';
 
 type Props = {
   allEnvs: string[];
@@ -20,6 +23,14 @@ type Props = {
   formData?: {[key: string]: any};
   onClose?: () => void;
   onOpen?: () => void;
+};
+
+type FormData = {
+  environment?: string;
+  project?: string;
+  thresholds?: Threshold[];
+  windowUnit?: string;
+  windowVal?: number;
 };
 
 export default function ThresholdForm({
@@ -31,29 +42,48 @@ export default function ThresholdForm({
   onOpen,
 }: Props) {
   const [formOpen, setFormOpen] = useState<boolean>(false);
-  const [formData, setFormData] = useState<{[key: string]: any}>({});
+  const [formData, setFormData] = useState<FormData>({});
   const escapeKeyPressed = useKeyPress('Escape');
+  // TODO: refetch all thresholds on form update?
+  const {data: thresholds = []} = useFetchThresholdsListData({
+    selectedProjectIds: selectedProjects.map(p => parseInt(p.id, 10)),
+  });
+
+  const getSelectedThresholds = (projectId: string, environment: string) =>
+    thresholds.filter(
+      threshold =>
+        threshold.project.id === projectId && threshold.environment.name === environment
+    );
+
+  const getSelectedThresholdsCB = useCallback(getSelectedThresholds, [thresholds]);
 
   // Any time the key prop changes (due to user interaction), we want to open the panel
   useEffect(() => {
     if (propFormData) {
       setFormOpen(true);
       // initialize form data
+
+      const project =
+        propFormData.project || selectedProjects.length === 1
+          ? selectedProjects[0].id
+          : '';
+      const environment =
+        propFormData.environment || selectedEnvs.length === 1 ? selectedEnvs[0] : '';
+      const selectedThresholds = getSelectedThresholdsCB(project, environment);
+      const [unit, val] = selectedThresholds.length
+        ? parseSeconds(selectedThresholds[0].window_in_seconds)
+        : ['min', 0];
       setFormData({
-        project:
-          propFormData.project || selectedProjects.length === 1
-            ? selectedProjects[0].id
-            : '',
-        environment:
-          propFormData.environment || selectedEnvs.length === 1 ? selectedEnvs[0] : '',
-        windowUnit: propFormData.windowUnit || 'min',
-        windowVal: propFormData.windowVal || 0,
+        project,
+        environment,
+        windowUnit: propFormData.windowUnit || unit,
+        windowVal: propFormData.windowVal || val,
         thresholds: propFormData.thresholds || [],
       });
     } else {
       setFormOpen(false);
     }
-  }, [propFormData, selectedEnvs, selectedProjects]);
+  }, [propFormData, selectedEnvs, selectedProjects, getSelectedThresholdsCB]);
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
@@ -79,6 +109,26 @@ export default function ThresholdForm({
 
   const updateForm = (key, value) => {
     const data = {...formData};
+    let selectedProject;
+    let selectedEnvironment;
+    if (key === 'project') {
+      selectedProject = value;
+      selectedEnvironment = formData.environment;
+    } else if (key === 'environment') {
+      selectedProject = formData.project;
+      selectedEnvironment = value;
+    }
+    if (selectedProject && selectedEnvironment) {
+      const selectedThresholds = getSelectedThresholds(
+        selectedProject,
+        selectedEnvironment
+      );
+      const [unit, val] = selectedThresholds.length
+        ? parseSeconds(selectedThresholds[0].window_in_seconds)
+        : ['min', 0];
+      data.windowVal = val;
+      data.windowUnit = unit;
+    }
     data[key] = value;
     setFormData(data);
   };
@@ -166,6 +216,11 @@ export default function ThresholdForm({
                 defaultValue="min"
                 options={[
                   {
+                    value: 'sec',
+                    textValue: 'seconds',
+                    label: 'seconds',
+                  },
+                  {
                     value: 'min',
                     textValue: 'minutes',
                     label: 'minutes',
@@ -191,10 +246,19 @@ export default function ThresholdForm({
               !!formData.thresholds.length &&
               formData.thresholds.map((threshold, idx) => (
                 <div key={`${threshold}-${idx}`}>
-                  {threshold.type} : {threshold.value}
+                  {threshold.threshold_type} : {threshold.value}
                 </div>
               ))}
             {!(formData.thresholds || []).length && <div>foobar</div>}
+            {formData &&
+              JSON.stringify(
+                getSelectedThresholds(formData.project || '', formData.environment || '')
+              )}
+            Length:{' '}
+            {
+              getSelectedThresholds(formData.project || '', formData.environment || '')
+                .length
+            }
           </FormSection>
         </Fragment>
       )}

@@ -288,3 +288,23 @@ export function forHumans(seconds) {
   }
   return returntext.trim();
 }
+
+const secondDerivatives = {
+  sec: 1,
+  min: 60,
+  hrs: 60 * 60,
+  days: 60 * 60 * 24,
+};
+export function parseSeconds(seconds: number): [string, number] {
+  let largestDenominator = seconds;
+  let largestDenKey = 'sec';
+  Object.keys(secondDerivatives).forEach(key => {
+    const val = secondDerivatives[key];
+    const remainder = seconds % val;
+    if (!remainder && secondDerivatives[key] > secondDerivatives[largestDenKey]) {
+      largestDenKey = key;
+      largestDenominator = seconds / val;
+    }
+  });
+  return [largestDenKey, largestDenominator];
+}
