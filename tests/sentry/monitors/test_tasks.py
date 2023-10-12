@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
+from typing import MutableMapping
 from unittest import mock
 
 import msgpack
 import pytest
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from confluent_kafka.admin import PartitionMetadata
 from django.test import override_settings
 from django.utils import timezone
 
@@ -919,17 +922,27 @@ class MonitorTaskCheckTimeoutTest(TestCase):
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.tasks._checkin_producer")
 def test_clock_pulse(checkin_producer_mock):
-    clock_pulse()
+    partition_count = 2
 
-    assert checkin_producer_mock.produce.call_count == 1
-    assert checkin_producer_mock.produce.mock_calls[0] == mock.call(
-        mock.ANY,
-        KafkaPayload(
-            None,
-            msgpack.packb({"message_type": "clock_pulse"}),
-            [],
-        ),
-    )
+    mock_partitions: MutableMapping[int, PartitionMetadata] = {}
+    for idx in range(partition_count):
+        mock_partitions[idx] = PartitionMetadata()
+        mock_partitions[idx].id = idx
+
+    with mock.patch("sentry.monitors.tasks._get_partitions", lambda: mock_partitions):
+        clock_pulse()
+
+    # One clock pulse per partition
+    assert checkin_producer_mock.produce.call_count == len(mock_partitions.items())
+    for idx in range(partition_count):
+        assert checkin_producer_mock.produce.mock_calls[idx] == mock.call(
+            Partition(Topic("monitors-test-topic"), idx),
+            KafkaPayload(
+                None,
+                msgpack.packb({"message_type": "clock_pulse"}),
+                [],
+            ),
+        )
 
 
 @mock.patch("sentry.monitors.tasks._dispatch_tasks")

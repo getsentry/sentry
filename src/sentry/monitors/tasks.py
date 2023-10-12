@@ -1,10 +1,13 @@
 import logging
 from datetime import datetime
+from functools import lru_cache
+from typing import Mapping
 
 import msgpack
 import sentry_sdk
-from arroyo import Topic
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from django.utils import timezone
 
@@ -16,7 +19,11 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import (
+    get_kafka_admin_cluster_options,
+    get_kafka_producer_cluster_options,
+    get_topic_definition,
+)
 
 from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
@@ -38,7 +45,7 @@ CHECKINS_LIMIT = 10_000
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
 
-def _get_monitor_checkin_producer() -> KafkaProducer:
+def _get_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
@@ -46,7 +53,21 @@ def _get_monitor_checkin_producer() -> KafkaProducer:
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
-_checkin_producer = SingletonProducer(_get_monitor_checkin_producer)
+_checkin_producer = SingletonProducer(_get_producer)
+
+
+@lru_cache(maxsize=None)
+def _get_partitions() -> Mapping[int, PartitionMetadata]:
+    topic = settings.KAFKA_INGEST_MONITORS
+    cluster_name = get_topic_definition(topic)["cluster"]
+
+    conf = get_kafka_admin_cluster_options(cluster_name)
+    admin_client = AdminClient(conf)
+    result = admin_client.list_topics(topic)
+    topic_metadata = result.topics.get(topic)
+
+    assert topic_metadata
+    return topic_metadata.partitions
 
 
 def _dispatch_tasks(ts: datetime):
@@ -130,9 +151,9 @@ def try_monitor_tasks_trigger(ts: datetime):
 @instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
 def clock_pulse(current_datetime=None):
     """
-    This task is run once a minute when to produce a 'clock pulse' into the
+    This task is run once a minute when to produce 'clock pulses' into the
     monitor ingest topic. This is to ensure there is always a message in the
-    topic that can drive the clock which dispatches the monitor tasks.
+    topic that can drive all partition clocks, which dispatch monitor tasks.
     """
     if current_datetime is None:
         current_datetime = timezone.now()
@@ -146,9 +167,14 @@ def clock_pulse(current_datetime=None):
         "message_type": "clock_pulse",
     }
 
-    # Produce the pulse into the topic
     payload = KafkaPayload(None, msgpack.packb(message), [])
-    _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
+
+    # We create a clock-pulse (heart-beat) for EACH available partition in the
+    # topic. This is a requirement to ensure that none of the partitions stall,
+    # since the global clock is tied to the slowest partition.
+    for partition in _get_partitions().values():
+        dest = Partition(Topic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        _checkin_producer.produce(dest, payload)
 
 
 @instrumented_task(
