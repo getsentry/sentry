@@ -20,6 +20,8 @@ from typing import (
 )
 from urllib.request import Request
 
+from rest_framework.exceptions import NotFound
+
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
 from sentry.models.identity import Identity
@@ -333,7 +335,7 @@ class IntegrationInstallation:
     def organization(self) -> RpcOrganization:
         organization = organization_service.get(id=self.organization_id)
         if organization is None:
-            raise Exception("organization_id not found")
+            raise NotFound("organization_id not found")
         return organization
 
     def get_organization_config(self) -> Sequence[Any]:
