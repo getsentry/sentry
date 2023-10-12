@@ -227,7 +227,8 @@
                 "description": "In case this API call is invoked with a user context this allows changing of the bookmark flag."
               },
               "isSubscribed": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows the user to subscribe to workflow notications for this issue."
               },
               "isPublic": {
                 "type": "boolean",
