@@ -488,18 +488,18 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const requestHeaders = new Headers(this.headers);
+    const headers = new Headers(this.headers);
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
     if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
-      requestHeaders.set('X-CSRFToken', getCsrfToken());
+      headers.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
       method,
       body,
-      headers: requestHeaders,
+      headers,
       credentials: this.credentials,
       signal: aborter?.signal,
     });
@@ -535,8 +535,6 @@ export class Client {
 
           const responseContentType = response.headers.get('content-type');
           const isResponseJSON = responseContentType?.includes('json');
-          const wasExpectingJson =
-            requestHeaders.get('Content-Type') === 'application/json';
 
           const isStatus3XX = status >= 300 && status < 400;
           if (status !== 204 && !isStatus3XX) {
@@ -552,16 +550,6 @@ export class Client {
                 // this should be an error.
                 ok = false;
                 errorReason = 'JSON parse error';
-              } else if (
-                // Empty responses from POST 201 requests are valid
-                responseText?.length > 0 &&
-                wasExpectingJson &&
-                error instanceof SyntaxError
-              ) {
-                // Was expecting json but was returned something else. Possibly HTML.
-                // Ideally this would not be a 200, but we should reject the promise
-                ok = false;
-                errorReason = 'JSON parse error. Possibly returned HTML';
               }
             }
           }
