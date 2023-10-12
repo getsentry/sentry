@@ -381,7 +381,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if user and hasattr(user, "is_active") and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
-        if not application_is_inactive:
+        if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
         return self.transform_auth(
