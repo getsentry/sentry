@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SharedGroupDetailsTest(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
@@ -57,9 +57,9 @@ class SharedGroupDetailsTest(TestCase):
 
     def test_get_no_subdomain(self):
         share = self.share_group()
-        response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
+        response = self.client.get(f"/share/issue/{share.uuid}/")
         assert response.status_code == 200
-        self.assert_group_metadata_absent(response)
+        self.assert_group_metadata_present(response)
 
     def test_get_success(self):
         share = self.share_group()
