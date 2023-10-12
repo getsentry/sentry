@@ -71,7 +71,6 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
-import ThresholdsHoverWrapper from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -1012,16 +1011,8 @@ function WidgetViewerModal(props: Props) {
                         <h3>{widget.title}</h3>
                         {widget.thresholds &&
                           tableData &&
-                          organization.features.includes(
-                            'dashboard-widget-indicators'
-                          ) && (
-                            <ThresholdsHoverWrapper
-                              thresholds={widget.thresholds}
-                              tableData={tableData}
-                            >
-                              {getColoredWidgetIndicator(widget.thresholds, tableData)}
-                            </ThresholdsHoverWrapper>
-                          )}
+                          organization.features.includes('dashboard-widget-indicators') &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
                         <WidgetDescription>{widget.description}</WidgetDescription>

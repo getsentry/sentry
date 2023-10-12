@@ -54,6 +54,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
+import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {
   ThresholdMaxKeys,
   ThresholdsConfig,
@@ -157,14 +158,6 @@ export function getColoredWidgetIndicator(
   const {max_values} = thresholds;
 
   let color = theme.red300;
-  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
-  const normalizedGreenMax =
-    thresholds.unit && greenMax
-      ? normalizeUnit(greenMax, thresholds.unit, dataType)
-      : greenMax;
-  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
-    color = theme.green300;
-  }
 
   const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
   const normalizedYellowMax =
@@ -175,7 +168,20 @@ export function getColoredWidgetIndicator(
     color = theme.yellow300;
   }
 
-  return <CircleIndicator color={color} size={12} />;
+  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
+  const normalizedGreenMax =
+    thresholds.unit && greenMax
+      ? normalizeUnit(greenMax, thresholds.unit, dataType)
+      : greenMax;
+  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
+    color = theme.green300;
+  }
+
+  return (
+    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
+      <CircleIndicator color={color} size={12} />
+    </ThresholdsHoverWrapper>
+  );
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
