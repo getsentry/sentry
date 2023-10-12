@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import {
   ButtonWrapper,
   Cell,
+  CodeHighlightCell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -121,7 +122,9 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{a11yIssue.elements?.[0].element ?? EMPTY_CELL}</Text>
+          <CodeHighlightCell language="html" hideCopyButton>
+            {a11yIssue.elements?.[0].element ?? EMPTY_CELL}
+          </CodeHighlightCell>
         </Cell>
       ),
       () => (

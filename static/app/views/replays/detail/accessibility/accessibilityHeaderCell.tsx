@@ -26,7 +26,7 @@ const COLUMNS: {
     field: 'id',
     label: t('Type'),
   },
-  {field: 'element', label: t('Path')},
+  {field: 'element', label: t('Element')},
 
   {field: 'timestampMs', label: t('Timestamp')},
 ];
