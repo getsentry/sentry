@@ -28,7 +28,7 @@ export function A11yData(startTimestampMs: number) {
                 'Element\'s default semantics were not overridden with role="none" or role="presentation"',
             },
           ],
-          element: '<button class="svelte-19ke1iv">',
+          element: '<button class="primary svelte-19ke1iv">',
           target: ['button:nth-child(1)'],
         },
       ],

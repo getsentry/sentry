@@ -10,13 +10,13 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useMockA11yData from 'sentry/utils/replays/hooks/useMockA11yData';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
-// import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
+import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
 import AccessibilityHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/accessibility/accessibilityHeaderCell';
 import AccessibilityTableCell from 'sentry/views/replays/detail/accessibility/accessibilityTableCell';
 // import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
-// import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
+import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
@@ -42,13 +42,16 @@ function AccessibilityList() {
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
-  const filteredItems = accessibilityData || [];
-  const clearSearchTerm = () => {};
+  const filterProps = useAccessibilityFilters({
+    accessibilityData: accessibilityData || [],
+  });
+  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortAccessibility({items: filteredItems});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
-  const deps = useMemo(() => [items], [items]);
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer,
@@ -69,7 +72,7 @@ function AccessibilityList() {
     onResize: () => {},
   });
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
+    'a_detail_row',
     ''
   );
   const detailDataIndex = getDetailRow();
@@ -145,7 +148,7 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      {/* <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} /> */}
+      <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
       <AccessibilityTable
         ref={containerRef}
         data-test-id="replay-details-accessibility-tab"
