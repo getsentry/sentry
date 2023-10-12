@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import operator
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from django.conf import settings
@@ -552,6 +552,14 @@ class SubscriptionProcessor:
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
+
+            # If an incident was created for this rule within the last 10 minutes, don't make another one
+            last_incident: Incident | None = (
+                Incident.objects.filter(alert_rule=self.alert_rule).order_by("-date_added").first()
+            )
+            if last_incident and (timezone.now - last_incident.date_added).minutes <= 10:
+                return None
+
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
