@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import urllib3.exceptions
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
@@ -903,6 +904,12 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
 
+    @pytest.mark.xfail(
+        not use_split_dbs(),
+        reason="Preexisting failure: getsentry/team-ospo#206",
+        raises=urllib3.exceptions.MaxRetryError,
+        strict=True,
+    )
     @targets(mark(COLLISION_TESTED, QuerySubscription))
     def test_colliding_query_subscription(self):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
