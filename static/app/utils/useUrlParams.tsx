@@ -5,7 +5,7 @@ function useUrlParams(
   defaultKey: string,
   defaultValue: string
 ): {
-  getParamValue: () => string | undefined;
+  getParamValue: () => string;
   setParamValue: (value: string) => void;
 };
 function useUrlParams(defaultKey: string): {
