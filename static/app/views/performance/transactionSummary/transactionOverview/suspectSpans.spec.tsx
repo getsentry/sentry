@@ -16,7 +16,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
-  const features = ['performance-view', 'performance-suspect-spans-view'];
+  const features = ['performance-view'];
   const organization = Organization({
     features,
     projects: [TestStubs.Project()],
