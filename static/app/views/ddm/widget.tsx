@@ -267,7 +267,6 @@ function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegen
     .map((item, i) => ({
       seriesName: item.name,
       unit,
-      smooth: true,
       color: colorFn(colors[i])
         .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
         .string(),
