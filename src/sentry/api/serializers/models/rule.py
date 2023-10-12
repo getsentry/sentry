@@ -245,8 +245,7 @@ class RuleSerializer(Serializer):
             else:
                 creator = user_service.get_user(snooze.get("owner_id"))
                 if creator:
-                    creator_name = creator.get_display_name()
-                    created_by = creator_name
+                    created_by = creator.get_display_name()
 
             if created_by is not None:
                 d["snoozeCreatedBy"] = created_by
