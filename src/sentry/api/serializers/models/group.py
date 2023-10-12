@@ -289,9 +289,7 @@ class GroupSerializerBase(Serializer, ABC):
         ):
             merge_list_dictionaries(annotations_by_group_id, annotations_by_group)
 
-        snuba_stats = {}
-        if not self._collapse("unhandled"):
-            snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         result = {}
         for item in item_list:
@@ -327,7 +325,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "share_id": share_ids.get(item.id),
                 "authorized": authorized,
             }
-            if not self._collapse("unhandled"):
+            if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             if seen_stats:
@@ -495,6 +493,8 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
     ):
+        if self._collapse("unhandled"):
+            return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
 
