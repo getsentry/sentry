@@ -62,11 +62,13 @@ function AccordionItem({
       <ButtonLeftListItemContainer>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
+          aria-label={isExpanded ? t('Collapse') : t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
           borderless
-          onClick={() => setExpandedIndex(index)}
+          onClick={() => {
+            isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index);
+          }}
         />
         {children}
       </ButtonLeftListItemContainer>
@@ -80,6 +82,7 @@ function AccordionItem({
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
+          disabled={isExpanded}
           size="zero"
           borderless
           onClick={() => setExpandedIndex(index)}
