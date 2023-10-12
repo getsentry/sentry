@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import DeleteButton from 'sentry/components/feedback/feedbackItem/deleteButton';
@@ -15,7 +15,6 @@ import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,15 +34,14 @@ export default function FeedbackItem({feedbackItem}: Props) {
   if (!project) {
     return null;
   }
-  const platform = project?.platform;
   const slug = project?.slug;
 
   return (
     <Fragment>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
-          <LeftHeaderContainer>
-            <Flex gap={space(1)} align="center">
+          <Flex column>
+            <Flex align="center" gap={space(0.5)}>
               <FeedbackItemUsername feedbackItem={feedbackItem} />
               {feedbackItem.contact_email ? (
                 <CopyToClipboardButton
@@ -53,11 +51,10 @@ export default function FeedbackItem({feedbackItem}: Props) {
                 />
               ) : null}
             </Flex>
-            <ProjInfoContainer>
-              <PlatformIcon size={16} platform={platform ?? 'default'} />
-              <TextOverflow>{slug}</TextOverflow>
-            </ProjInfoContainer>
-          </LeftHeaderContainer>
+            <Flex align="center" gap={space(0.5)}>
+              <ProjectAvatar project={project} size={12} /> {slug}
+            </Flex>
+          </Flex>
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
               <FeedbackViewers feedbackItem={feedbackItem} />
@@ -148,16 +145,4 @@ const Blockquote = styled('blockquote')`
     padding: 0;
     word-break: break-word;
   }
-`;
-
-const ProjInfoContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  align-items: center;
-`;
-
-const LeftHeaderContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
 `;

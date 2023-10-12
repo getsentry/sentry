@@ -1,8 +1,8 @@
 import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -60,7 +60,6 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
       // TODO[feedback]: Guard against invalid test data that has no valid project.
       return null;
     }
-    const platform = project?.platform;
     const slug = project?.slug;
 
     return (
@@ -102,10 +101,9 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
           <TextOverflow>{feedbackItem.message}</TextOverflow>
         </div>
         <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
-          <ProjInfoContainer>
-            <PlatformIcon size={16} platform={platform ?? 'default'} />
-            <TextOverflow>{slug}</TextOverflow>
-          </ProjInfoContainer>
+          <Flex align="center" gap={space(0.5)}>
+            <ProjectAvatar project={project} size={12} /> {slug}
+          </Flex>
           {feedbackItem.replay_id ? <ReplayBadge /> : null}
         </Flex>
       </Wrapper>
@@ -137,8 +135,4 @@ const Wrapper = styled(Link)`
   place-items: stretch;
 `;
 
-const ProjInfoContainer = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
 export default FeedbackListItem;
