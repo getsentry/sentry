@@ -249,7 +249,7 @@ class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
-        help_text="One of [active, disabled]. Disabled monitors do not generate events or notifications.",
+        help_text="Status of the monitor. Disabled monitors do not generate events or notifications.",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
