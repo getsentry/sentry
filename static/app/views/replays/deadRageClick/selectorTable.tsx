@@ -246,21 +246,21 @@ export function SelectorLink({
 
   return (
     <StyledTextOverflow>
-      <Link
-        to={{
-          pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-          query: {
-            ...location.query,
-            query: selectorQuery,
-            cursor: undefined,
-            project: projectId,
-          },
-        }}
-      >
-        <WiderHovercard position="right" body={hovercardContent}>
+      <WiderHovercard position="right" body={hovercardContent}>
+        <Link
+          to={{
+            pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+            query: {
+              ...location.query,
+              query: selectorQuery,
+              cursor: undefined,
+              project: projectId,
+            },
+          }}
+        >
           <TextOverflow>{value}</TextOverflow>
-        </WiderHovercard>
-      </Link>
+        </Link>
+      </WiderHovercard>
     </StyledTextOverflow>
   );
 }
