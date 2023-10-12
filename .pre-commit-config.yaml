@@ -1,4 +1,4 @@
-default_install_hook_types: ["pre-push"]
+default_install_hook_types: ["pre-commit", "pre-push"]
 
 exclude: >
     (?x)(
