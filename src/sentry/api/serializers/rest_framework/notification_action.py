@@ -28,6 +28,7 @@ INTEGRATION_SERVICES = {
 }
 
 
+# Note the ordering of fields affects the Spike Protection API Documentation
 class NotificationActionInputData(TypedDict):
     trigger_type: int
     service_type: int
