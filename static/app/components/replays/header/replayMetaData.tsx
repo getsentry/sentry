@@ -1,13 +1,16 @@
-import {Fragment} from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCursorArrow} from 'sentry/icons';
+import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import EventView from 'sentry/utils/discover/eventView';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -16,15 +19,32 @@ type Props = {
 };
 
 function ReplayMetaData({replayErrors, replayRecord}: Props) {
+  const location = useLocation();
+  const routes = useRoutes();
+  const referrer = getRouteStringFromRoutes(routes);
+  const eventView = EventView.fromLocation(location);
+
+  const domEventsTab = {
+    ...location,
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'dom',
+      f_d_type: 'ui.slowClickDetected',
+    },
+  };
+
   return (
     <KeyMetrics>
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
-          <ClickCount color="yellow300">
-            <IconCursorArrow size="sm" />
-            {replayRecord.count_dead_clicks}
-          </ClickCount>
+          <Link to={domEventsTab}>
+            <ClickCount color="yellow300">
+              <IconCursorArrow size="sm" />
+              {replayRecord.count_dead_clicks}
+            </ClickCount>
+          </Link>
         ) : (
           <Count>0</Count>
         )}
@@ -33,26 +53,17 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
-          <ClickCount color="red300">
-            <IconCursorArrow size="sm" />
-            {replayRecord.count_rage_clicks}
-          </ClickCount>
+          <Link to={domEventsTab} color="red300">
+            <ClickCount color="red300">
+              <IconCursorArrow size="sm" />
+              {replayRecord.count_rage_clicks}
+            </ClickCount>
+          </Link>
         ) : (
           <Count>0</Count>
         )}
       </KeyMetricData>
 
-      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord ? (
-          <Fragment>
-            <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} unitStyle="regular" />
-          </Fragment>
-        ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
-        )}
-      </KeyMetricData>
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (

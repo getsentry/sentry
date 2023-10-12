@@ -22,13 +22,13 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   spanDescription?: string;
+  transactionMethod?: string;
 };
 
 function DurationChart({
@@ -66,13 +66,21 @@ function DurationChart({
         };
   };
 
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
   const {
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );

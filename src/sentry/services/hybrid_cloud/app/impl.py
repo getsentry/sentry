@@ -7,14 +7,14 @@ from django.db.models import QuerySet
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.mediators import alert_rule_actions
-from sentry.models import (
-    SentryApp,
-    SentryAppComponent,
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
-    SentryAppInstallationToken,
-    User,
+    prepare_sentry_app_components,
 )
-from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app import (
     AppService,
@@ -28,6 +28,7 @@ from sentry.services.hybrid_cloud.app import (
 )
 from sentry.services.hybrid_cloud.app.serial import (
     serialize_sentry_app,
+    serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -55,12 +56,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         return [
-            RpcSentryAppComponent(
-                uuid=str(c.uuid),
-                sentry_app_id=c.sentry_app_id,
-                type=c.type,
-                app_schema=c.schema,
-            )
+            serialize_sentry_app_component(c)
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
 
@@ -253,3 +249,12 @@ class DatabaseBackedAppService(AppService):
             installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
 
         return serialize_sentry_app_installation(installation=installation, app=sentry_app)
+
+    def prepare_sentry_app_components(
+        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
+    ) -> Optional[RpcSentryAppComponent]:
+        from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+
+        installation = SentryAppInstallation.objects.get(id=installation_id)
+        component = prepare_sentry_app_components(installation, component_type, project_slug)
+        return serialize_sentry_app_component(component) if component else None

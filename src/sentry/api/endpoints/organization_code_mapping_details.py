@@ -11,7 +11,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
-from sentry.models import RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from .organization_code_mappings import (

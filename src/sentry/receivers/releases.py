@@ -8,27 +8,22 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models import (
-    Activity,
-    Commit,
-    Group,
-    GroupAssignee,
-    GroupInboxRemoveAction,
-    GroupLink,
-    GroupStatus,
-    GroupSubscription,
-    Project,
-    PullRequest,
-    Release,
-    ReleaseProject,
-    Repository,
-    remove_group_from_inbox,
-)
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     record_group_history,
     record_group_history_from_activity_type,
 )
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service

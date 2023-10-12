@@ -36,7 +36,9 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.group'
-  | 'project.id';
+  | 'project.id'
+  | 'transaction'
+  | 'transaction.method';
 
 export type SpanStringArrayFields = 'span.domain';
 
@@ -57,8 +59,10 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
-} & {
-  'time_spent_percentage(local)': number;
+};
+
+export type MetricsFilters = {
+  [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
 
 export type MetricsProperty = keyof MetricsResponse;

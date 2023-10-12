@@ -1,4 +1,4 @@
-from sentry.models import OrganizationMemberTeam
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import team_roles
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature

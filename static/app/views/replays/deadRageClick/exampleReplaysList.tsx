@@ -16,9 +16,11 @@ export default function ExampleReplaysList({
   location,
   clickType,
   selectorQuery,
+  projectId,
 }: {
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
   location: Location;
+  projectId: number;
   selectorQuery: string;
 }) {
   const organization = useOrganization();
@@ -51,15 +53,14 @@ export default function ExampleReplaysList({
             'finished_at',
             'is_archived',
             'started_at',
-            'urls',
           ],
-          projects: [],
+          projects: [projectId],
           query: selectorQuery,
           orderby: `-${clickType}`,
         },
         emptyLocation
       ),
-    [emptyLocation, selectorQuery, clickType]
+    [emptyLocation, selectorQuery, clickType, projectId]
   );
 
   const {replays, isFetching, fetchError} = useReplayList({
@@ -91,7 +92,6 @@ export default function ExampleReplaysList({
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              showUrl={false}
               referrer_table="selector-widget"
               isWidget
             />

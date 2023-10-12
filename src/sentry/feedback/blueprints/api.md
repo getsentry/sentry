@@ -262,8 +262,9 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | environment                | optional[string] | -                                     |
 | event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
-| feedback.contact_email     | string           | -                                     |
+| feedback.contact_email     | optional[string] | -                                     |
 | feedback.message           | string           | -                                     |
+| feedback.name              | optional[string] | -                                     |
 | feedback.replay_id         | optional[string] | -                                     |
 | feedback.url               | string           | -                                     |
 | platform                   | string           | -                                     |
@@ -310,7 +311,7 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
     "tags": {
       "key": "value"
     },
-    "timestamp": 146990235.23,
+    "timestamp": "2023-08-31T14:10:34.954048",
     "user": {
       "email": "username@example.com",
       "id": "123",

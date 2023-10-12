@@ -5,8 +5,11 @@ from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
-from sentry.models import Activity, Commit, OrganizationMember, Project
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,

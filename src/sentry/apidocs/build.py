@@ -122,4 +122,24 @@ OPENAPI_TAGS = [
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
         },
     },
+    {
+        "name": "Alerts",
+        "x-sidebar-name": "Alerts & Notifications",
+        "description": "Endpoints for Alerts and Notifications",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
+        "name": "Integrations",
+        "x-sidebar-name": "Integrations",
+        "description": "Endpoints for Integrations",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
 ]

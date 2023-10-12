@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sentry import options
-from sentry.models import Project, ProjectOption, UserOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.project import RpcProject, project_service
 
 __all__ = ("set_option", "get_option", "unset_option")

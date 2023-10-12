@@ -11,7 +11,6 @@ from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import SentryApp
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
@@ -149,11 +148,7 @@ class NotifyEventServiceAction(EventAction):
             return
 
         plugin = None
-        app = None
-        try:
-            app = SentryApp.objects.get(slug=service)
-        except SentryApp.DoesNotExist:
-            pass
+        app = app_service.get_sentry_app_by_slug(slug=service)
 
         if app:
             kwargs = {"sentry_app": app}

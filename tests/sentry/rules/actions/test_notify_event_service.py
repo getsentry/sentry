@@ -3,15 +3,16 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
+from sentry.silo import SiloMode
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class NotifyEventServiceActionTest(RuleTestCase):
     rule_cls = NotifyEventServiceAction
 
@@ -85,7 +86,8 @@ class NotifyEventServiceActionTest(RuleTestCase):
         assert len(results) == 1
 
         self.install.date_deleted = timezone.now()
-        self.install.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.install.save()
 
         results = rule.get_services()
         assert len(results) == 0

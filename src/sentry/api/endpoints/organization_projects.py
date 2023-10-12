@@ -1,7 +1,8 @@
-from typing import List
+from typing import Any, List
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,10 +20,25 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project, Team
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+
+DATASETS = {
+    "": discover,  # in case they pass an empty query string fall back on default
+    "discover": discover,
+    "metricsEnhanced": metrics_enhanced_performance,
+    "metrics": metrics_performance,
+}
+
+
+def get_dataset(dataset_label: str) -> Any:
+    if dataset_label not in DATASETS:
+        raise ParseError(detail=f"dataset must be one of: {', '.join(DATASETS.keys())}")
+    return DATASETS[dataset_label]
 
 
 @extend_schema(tags=["Organizations"])
@@ -60,6 +76,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         elif not stats_period:
             # disable stats
             stats_period = None
+
+        datasetName = request.GET.get("dataset", "discover")
+        dataset = get_dataset(datasetName)
 
         if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
@@ -121,7 +140,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
             return Response(
-                serialize(list(queryset), request.user, ProjectSummarySerializer(collapse=collapse))
+                serialize(
+                    list(queryset),
+                    request.user,
+                    ProjectSummarySerializer(collapse=collapse, dataset=dataset),
+                )
             )
         else:
             expand = set()
@@ -142,6 +165,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     expand=expand,
                     expand_context=expand_context,
                     collapse=collapse,
+                    dataset=dataset,
                 )
                 return serialize(result, request.user, serializer)
 

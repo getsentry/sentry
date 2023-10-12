@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, TypedDict
 
 from django.db import router, transaction
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -27,32 +28,73 @@ INTEGRATION_SERVICES = {
 }
 
 
+# Note the ordering of fields affects the Spike Protection API Documentation
 class NotificationActionInputData(TypedDict):
-    integration_id: int
-    sentry_app_id: int
-    projects: List[Project]
-    service_type: int
     trigger_type: int
-    target_type: int
+    service_type: int
+    integration_id: int
     target_identifier: str
     target_display: str
+    projects: List[Project]
+    sentry_app_id: int
+    target_type: int
 
 
+@extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
-    integration_id = serializers.IntegerField(required=False)
-    sentry_app_id = serializers.IntegerField(required=False)
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    trigger_type = serializers.CharField(
+        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`."""
+    )
+    service_type = serializers.CharField(
+        help_text="Service that is used for sending the notification.\n"
+        + """- `email`\n"""
+        + """- `slack`\n"""
+        + """- `sentry_notification`\n"""
+        + """- `pagerduty`\n"""
+        + """- `opsgenie`\n"""
+    )
+    integration_id = serializers.IntegerField(
+        help_text="""ID of the integration used as the notification service. See
+[List Integrations](https://docs.sentry.io/api/integrations/list-an-organizations-available-integrations/)
+to retrieve a full list of integrations.
 
-    service_type = serializers.CharField()
-    target_type = serializers.CharField()
-    trigger_type = serializers.CharField()
+Required if **service_type** is `slack`, `pagerduty` or `opsgenie`.
+""",
+        required=False,
+    )
+    target_identifier = serializers.CharField(
+        help_text="""ID of the notification target, like a Slack channel ID.
 
-    target_identifier = serializers.CharField(required=False)
-    target_display = serializers.CharField(required=False)
+Required if **service_type** is `slack` or `opsgenie`.
+""",
+        required=False,
+    )
+    target_display = serializers.CharField(
+        help_text="""Name of the notification target, like a Slack channel name.
+
+Required if **service_type** is `slack` or `opsgenie`.
+""",
+        required=False,
+    )
+    projects = serializers.ListField(
+        help_text="""List of projects slugs that the Notification Action is created for.""",
+        child=ProjectField(scope="project:read"),
+        required=False,
+    )
+    # Optional and not needed for spike protection so not documenting
+    # TODO: Include in documentation when any notification action works with sentry_app_id
+    sentry_app_id = serializers.IntegerField(
+        required=False,
+    )
+    # TODO: Include in documentation when any notification action works with anything other than "specific"
+    target_type = serializers.CharField(
+        required=False,
+        default="specific",
+    )
 
     def validate_integration_id(self, integration_id: int) -> int:
         organization_integration = integration_service.get_organization_integration(
@@ -199,7 +241,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if timed_out:
             raise serializers.ValidationError(
                 {
-                    "target_identifier": "Please provide a slack channel id, we encountered an error while earching for it via the channel name."
+                    "target_identifier": "Please provide a slack channel id, we encountered an error while searching for it via the channel name."
                 }
             )
         data["target_identifier"] = channel_id
@@ -235,6 +277,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
                 integration_id=self.integration.id,
+                guild_name=self.integration.name,
             )
         except Exception as e:
             raise serializers.ValidationError({"target_identifier": str(e)})

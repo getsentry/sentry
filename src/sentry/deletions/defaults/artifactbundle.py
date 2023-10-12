@@ -3,7 +3,7 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class ArtifactBundleDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (
+        from sentry.models.artifactbundle import (
             DebugIdArtifactBundle,
             ProjectArtifactBundle,
             ReleaseArtifactBundle,

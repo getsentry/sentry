@@ -27,13 +27,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -69,9 +66,9 @@ Configures the team role of the member. The two roles are:
 ```
 """
 
-# Required to explictly define roles w/ descriptions because OrganizationMemberSerializer
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
 # has the wrong descriptions, includes deprecated admin, and excludes billing
-_role_choices = [
+ROLE_CHOICES = [
     ("billing", "Can manage payment and compliance details."),
     (
         "member",
@@ -175,7 +172,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             fields={
                 "orgRole": serializers.ChoiceField(
                     help_text="The organization role of the member. The options are:",
-                    choices=_role_choices,
+                    choices=ROLE_CHOICES,
                     required=False,
                 ),
                 "teamRoles": serializers.ListField(
@@ -418,12 +415,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         proj_list = list(
             Project.objects.filter(organization=organization).values_list("id", flat=True)
         )
-        uos = [
-            uo
-            for uo in user_option_service.get_many(
+
+        if member.user_id is None:
+            uos = ()
+        else:
+            uos = user_option_service.get_many(
                 filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
             )
-        ]
 
         with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the

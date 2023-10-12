@@ -8,16 +8,13 @@ from sentry_sdk import set_tag
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import (
-    Deploy,
-    LatestRepoReleaseEnvironment,
-    Organization,
-    Release,
-    ReleaseCommitError,
-    ReleaseHeadCommit,
-    Repository,
-    User,
-)
+from sentry.models.deploy import Deploy
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.organization import Organization
+from sentry.models.release import Release, ReleaseCommitError
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.plugins.base import bindings
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -162,7 +159,9 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
                     "start_sha": start_sha,
                 },
             )
-            span = sentry_sdk.Hub.current.scope.span
+            span = sentry_sdk.get_current_span()
+            if span is None:
+                raise TypeError("No span is currently active right now")
             span.set_status("unknown_error")
             logger.exception(e)
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
@@ -257,15 +256,16 @@ def is_integration_provider(provider):
 
 
 def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
-    emails = []
+    emails: list[str] = []
     if not user:
         return []
     if user.is_sentry_app:
         organization = Organization.objects.get(id=orgId)
         members = organization.get_members_with_org_roles(roles=["owner"])
         user_ids = [m.user_id for m in members if m.user_id]
-        emails = {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
-        emails = list(emails)
+        emails = list(
+            {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
+        )
     else:
         emails = [user.email]
 

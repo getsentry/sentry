@@ -34,27 +34,24 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    Commit,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupEnvironment,
-    GroupLink,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    Team,
-    User,
-)
 from sentry.models.apitoken import is_api_token_auth
+from sentry.models.commit import Commit
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -63,7 +60,11 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
+from sentry.notifications.types import (
+    GroupSubscriptionStatus,
+    NotificationSettingEnum,
+    NotificationSettingTypes,
+)
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -580,11 +581,11 @@ class GroupSerializerBase(Serializer, ABC):
         project_ids = list(groups_by_project.keys())
         if should_use_notifications_v2(groups[0].project.organization):
             enabled_settings = notifications_service.get_subscriptions_for_projects(
-                user_id=user.id,
-                project_ids=project_ids,
-                type=NotificationSettingEnum.WORKFLOW,
+                user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
             )
-            query_groups = {group for group in groups if (enabled_settings[group.project_id][1])}
+            query_groups = {
+                group for group in groups if (not enabled_settings[group.project_id][2])
+            }
             subscriptions_by_group_id: dict[int, GroupSubscription] = {
                 subscription.group_id: subscription
                 for subscription in GroupSubscription.objects.filter(
@@ -595,18 +596,23 @@ class GroupSerializerBase(Serializer, ABC):
 
             results = {}
             for project_id, group_set in groups_by_project.items():
-                (disabled_settings, has_enabled_settings) = enabled_settings[project_id]
+                s = enabled_settings[project_id]
+                subscription_status = GroupSubscriptionStatus(
+                    is_disabled=s[0],
+                    is_active=s[1],
+                    has_only_inactive_subscriptions=s[2],
+                )
                 for group in group_set:
                     subscription = subscriptions_by_group_id.get(group.id)
                     if subscription:
                         # Having a GroupSubscription overrides NotificationSettings.
                         results[group.id] = (False, subscription.is_active, subscription)
-                    elif disabled_settings:
+                    elif subscription_status.is_disabled:
                         # The user has disabled notifications in all cases.
                         results[group.id] = (True, False, None)
                     else:
                         # Since there is no subscription, it is only active if the value is ALWAYS.
-                        results[group.id] = (False, has_enabled_settings, None)
+                        results[group.id] = (False, subscription_status.is_active, None)
 
             return results
 
@@ -670,7 +676,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models import PlatformExternalIssue
+        from sentry.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (

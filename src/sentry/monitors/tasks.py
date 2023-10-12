@@ -1,10 +1,13 @@
 import logging
 from datetime import datetime
+from functools import lru_cache
+from typing import Mapping
 
 import msgpack
 import sentry_sdk
-from arroyo import Topic
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from django.utils import timezone
 
@@ -16,7 +19,11 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import (
+    get_kafka_admin_cluster_options,
+    get_kafka_producer_cluster_options,
+    get_topic_definition,
+)
 
 from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
@@ -37,8 +44,11 @@ CHECKINS_LIMIT = 10_000
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
+# This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
+MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 
-def _get_monitor_checkin_producer() -> KafkaProducer:
+
+def _get_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
@@ -46,7 +56,21 @@ def _get_monitor_checkin_producer() -> KafkaProducer:
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
-_checkin_producer = SingletonProducer(_get_monitor_checkin_producer)
+_checkin_producer = SingletonProducer(_get_producer)
+
+
+@lru_cache(maxsize=None)
+def _get_partitions() -> Mapping[int, PartitionMetadata]:
+    topic = settings.KAFKA_INGEST_MONITORS
+    cluster_name = get_topic_definition(topic)["cluster"]
+
+    conf = get_kafka_admin_cluster_options(cluster_name)
+    admin_client = AdminClient(conf)
+    result = admin_client.list_topics(topic)
+    topic_metadata = result.topics.get(topic)
+
+    assert topic_metadata
+    return topic_metadata.partitions
 
 
 def _dispatch_tasks(ts: datetime):
@@ -69,9 +93,13 @@ def _dispatch_tasks(ts: datetime):
     check_timeout.delay(current_datetime=ts)
 
 
-def try_monitor_tasks_trigger(ts: datetime):
+def try_monitor_tasks_trigger(ts: datetime, partition: int):
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
+
+    We keep a reference to the most recent timestamp for each partition and use
+    the slowest partition as our reference time. This ensures all partitions
+    have been synchronized before ticking our clock.
 
     This function is called by our consumer processor
     """
@@ -81,6 +109,30 @@ def try_monitor_tasks_trigger(ts: datetime):
     # should have their timestamp clamped to the minute.
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
+
+    # Store the current clock value for this partition.
+    redis_client.zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={f"part-{partition}": reference_ts},
+    )
+
+    # Find the slowest partition from our sorted set of partitions, where the
+    # clock is the score.
+    slowest_partitions = redis_client.zrange(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        withscores=True,
+        start=0,
+        end=0,
+    )
+
+    # the first tuple is the slowest (part-<id>, score), the score is the
+    # timestamp. Use `int()` to keep the timestamp (score) as an int
+    slowest_part_ts = int(slowest_partitions[0][1])
+
+    # TODO(epurkhiser): The `slowest_part_ts` is going to become the
+    # reference_ts for the rest of this function. But we don't want to flip
+    # this over quite yet since we want to make sure this is working as
+    # expected.
 
     precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
     if precheck_last_ts is not None:
@@ -110,6 +162,15 @@ def try_monitor_tasks_trigger(ts: datetime):
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp() - reference_ts
 
+    # TODO(epurkhiser): For now we will just log the slowest partition
+    # timestamp and in production we can validate the value moves forward
+    # correctly. It's likely this will be a minute behind the actual
+    # reference_ts since there will always be a sloest partition
+    logger.info(
+        "monitors.consumer.clock_tick_slowest_partition",
+        extra={"slowest_part_ts": slowest_part_ts},
+    )
+
     logger.info(
         "monitors.consumer.clock_tick",
         extra={"reference_datetime": str(reference_datetime)},
@@ -130,25 +191,31 @@ def try_monitor_tasks_trigger(ts: datetime):
 @instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
 def clock_pulse(current_datetime=None):
     """
-    This task is run once a minute when to produce a 'clock pulse' into the
+    This task is run once a minute when to produce 'clock pulses' into the
     monitor ingest topic. This is to ensure there is always a message in the
-    topic that can drive the clock which dispatches the monitor tasks.
+    topic that can drive all partition clocks, which dispatch monitor tasks.
     """
     if current_datetime is None:
         current_datetime = timezone.now()
 
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
-        try_monitor_tasks_trigger(current_datetime)
+        for partition in _get_partitions().values():
+            try_monitor_tasks_trigger(current_datetime, partition.id)
         return
 
     message: ClockPulseMessage = {
         "message_type": "clock_pulse",
     }
 
-    # Produce the pulse into the topic
     payload = KafkaPayload(None, msgpack.packb(message), [])
-    _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
+
+    # We create a clock-pulse (heart-beat) for EACH available partition in the
+    # topic. This is a requirement to ensure that none of the partitions stall,
+    # since the global clock is tied to the slowest partition.
+    for partition in _get_partitions().values():
+        dest = Partition(Topic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        _checkin_producer.produce(dest, payload)
 
 
 @instrumented_task(
@@ -284,8 +351,15 @@ def check_timeout(current_datetime: datetime):
 def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
-    checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)
+    checkin = (
+        MonitorCheckIn.objects.select_related("monitor_environment")
+        .select_related("monitor_environment__monitor")
+        .get(id=checkin_id)
+    )
+
     monitor_environment = checkin.monitor_environment
+    monitor = monitor_environment.monitor
+
     logger.info(
         "monitor_environment.checkin-timeout",
         extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
@@ -302,6 +376,17 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
-        # TODO(epurkhiser): We should not be using timezone.now here, but need
-        # to verify what actually makes sense.
-        mark_failed(checkin, ts=timezone.now())
+        # Similar to mark_missed we compute when the most recent check-in should
+        # have happened to use as our reference time for mark_failed.
+        #
+        # XXX(epurkhiser): For ScheduleType.INTERVAL this MAY compute an
+        # incorrect next_checkin from what the actual user task might expect,
+        # since we don't know the behavior of the users task scheduling in the
+        # scenario that it 1) doesn't complete, or 2) runs for longer than
+        # their configured time-out time.
+        #
+        # See `test_timeout_using_interval`
+        start_ts = checkin.date_added.replace(tzinfo=None)
+        most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+
+        mark_failed(checkin, ts=most_recent_expected_ts)

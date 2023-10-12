@@ -7,9 +7,10 @@ from django.db.models import Q, QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.models import NotificationSetting, User
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
@@ -17,7 +18,6 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -224,7 +224,10 @@ class DatabaseBackedNotificationsService(NotificationsService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        """
+        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
+        """
         user = user_service.get_user(user_id)
         if not user:
             return {}
@@ -234,9 +237,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project_ids=project_ids,
             type=type,
         )
-        return controller.get_subscriptions_status_for_projects(
-            user=user, project_ids=project_ids, type=type
-        )
+        return {
+            project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
+            for project, s in controller.get_subscriptions_status_for_projects(
+                user=user, project_ids=project_ids, type=type
+            ).items()
+        }
 
     def get_participants(
         self,
@@ -245,7 +251,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: Optional[List[int]],
         organization_id: Optional[int],
         type: NotificationSettingEnum,
-    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+    ) -> MutableMapping[
+        int, MutableMapping[int, str]
+    ]:  # { actor_id : { provider_str: value_str } }
         controller = NotificationController(
             recipients=recipients,
             project_ids=project_ids,
@@ -253,7 +261,10 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         participants = controller.get_participants()
-        return {actor.id: providers for actor, providers in participants.items()}
+        return {
+            actor.id: {provider.value: value.value for provider, value in providers.items()}
+            for actor, providers in participants.items()
+        }
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

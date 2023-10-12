@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +12,7 @@ from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.incidents.endpoints.organization_alert_rule_index import AlertRuleIndexMixin
 from sentry.incidents.models import AlertRule
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.snuba.dataset import Dataset
 
 

@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
