@@ -140,6 +140,8 @@ class AppService(RpcService):
     ) -> RpcSentryAppInstallation:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
     def prepare_sentry_app_components(
         self,
         *,
