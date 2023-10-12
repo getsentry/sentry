@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
 ITERATOR_CHUNK = 500
+CHILD_TASK_COUNT = 250
 
 
 def log_error_if_queue_has_items(func):
@@ -148,7 +149,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 250,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -236,7 +237,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 250,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -324,7 +325,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 250,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
