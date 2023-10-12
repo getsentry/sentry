@@ -53,7 +53,6 @@ export default function ExampleReplaysList({
             'finished_at',
             'is_archived',
             'started_at',
-            'urls',
           ],
           projects: [projectId],
           query: selectorQuery,
