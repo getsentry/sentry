@@ -95,6 +95,10 @@ class DiscordRequest:
             data["integration_id"] = self.integration.id
         if self.user_id:
             data["discord_user_id"] = self.user_id
+        if self.user:
+            data["user"] = self.user.email
+        if self._identity:
+            data["has_identity"] = True
         if self.has_identity():
             data["identity"] = self.get_identity_str()
         if self.is_command():
@@ -135,6 +139,7 @@ class DiscordRequest:
 
     def get_identity(self) -> RpcIdentity | None:
         if not self._identity:
+            self._info("discord.validate.identity.no.identity")
             provider = identity_service.get_provider(
                 provider_type="discord", provider_ext_id=self.guild_id
             )
@@ -147,6 +152,8 @@ class DiscordRequest:
                 if provider
                 else None
             )
+            if not self._identity:
+                self._info("discord.validate.identity.get.identity.fail")
         self._info("discord.validate.identity")
 
         return self._identity
