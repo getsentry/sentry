@@ -64,21 +64,21 @@ export function PageSamplePerformanceTable({transaction}: Props) {
 
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 4,
+      limit: 3,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 4,
+      limit: 3,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 4,
+      limit: 3,
       transaction,
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
     });
