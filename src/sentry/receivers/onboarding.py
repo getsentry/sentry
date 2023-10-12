@@ -268,7 +268,7 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
         )
 
 
-@cron_monitor_created.connected(weak=False)
+@cron_monitor_created.connect(weak=False)
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
         user_id=user.id if user else project.organization.default_owner_id,

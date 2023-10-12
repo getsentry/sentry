@@ -199,6 +199,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             project_id=self.project.id,
             from_upsert=False,
         )
+        mock_record.assert_called_with(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
 
     def test_slug(self):
         data = {
