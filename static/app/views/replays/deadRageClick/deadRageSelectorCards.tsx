@@ -130,6 +130,7 @@ function AccordionWidget({
         <LeftAlignedContentContainer>
           <Accordion
             buttonOnLeft
+            collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
