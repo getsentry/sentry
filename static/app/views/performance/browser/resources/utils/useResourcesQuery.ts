@@ -54,7 +54,10 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
     'span.group': row['span.group'].toString(),
-    'resource.render_blocking_status': row['resource.render_blocking_status'] as string,
+    'resource.render_blocking_status': row['resource.render_blocking_status'] as
+      | ''
+      | 'non-blocking'
+      | 'blocking',
   }));
 
   return {...result, data: data || []};

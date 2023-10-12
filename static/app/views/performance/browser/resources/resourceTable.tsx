@@ -25,7 +25,7 @@ type Row = {
   'resource.render_blocking_status': string;
   'span.description': string;
   'span.group': string;
-  'span.op': `resource.${string}`;
+  'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
 };
 
@@ -98,6 +98,9 @@ function ResourceTable({sort}: Props) {
         'resource.script': t('Javascript'),
         'resource.img': t('Image'),
         'resource.iframe': t('Javascript (iframe)'),
+        'resource.css': t('Stylesheet'),
+        'resource.video': t('Video'),
+        'resource.audio': t('Audio'),
       };
       const opName = opNameMap[row[key]] || row[key];
       return <span>{opName}</span>;
