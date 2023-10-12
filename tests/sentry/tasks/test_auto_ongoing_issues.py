@@ -144,6 +144,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
         now = datetime.now(tz=timezone.utc)
@@ -249,6 +250,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
         now = datetime.now(tz=timezone.utc)
@@ -352,6 +354,7 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
         now = datetime.now(tz=timezone.utc)
