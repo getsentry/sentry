@@ -280,9 +280,15 @@ class ProjectSerializer(Serializer):
         expand: Iterable[str] | None = None,
         expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
+        dataset: Any | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
+
+        if dataset is None:
+            self.dataset = discover
+        else:
+            self.dataset = dataset
 
         self.environment_id = environment_id
         self.stats_period = stats_period
@@ -429,7 +435,7 @@ class ProjectSerializer(Serializer):
 
         # Generate a query result to skip the top_events.find query
         top_events = {"data": [{"project_id": p} for p in project_ids]}
-        stats = discover.top_events_timeseries(
+        stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
