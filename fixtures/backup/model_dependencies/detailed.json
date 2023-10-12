@@ -79,16 +79,13 @@
       }
     },
     "model": "hybridcloud.apitokenreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "hybridcloud_apitokenreplica",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "hybridcloud.organizationslugreservationreplica": {
     "dangling": false,
@@ -149,16 +146,13 @@
       }
     },
     "model": "hybridcloud.orgauthtokenreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "hybridcloud_orgauthtokenreplica",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "hybridcloud.regioncacheversion": {
     "dangling": false,
