@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -45,7 +46,8 @@ export default function ThresholdForm({
   const [formData, setFormData] = useState<FormData>({});
   const escapeKeyPressed = useKeyPress('Escape');
   // TODO: refetch all thresholds on form update?
-  const {data: thresholds = []} = useFetchThresholdsListData({
+  // NOTE: not fetching based on environments - env is filtered client side
+  const {data: thresholds = [], isLoading} = useFetchThresholdsListData({
     selectedProjectIds: selectedProjects.map(p => parseInt(p.id, 10)),
   });
 
@@ -78,7 +80,7 @@ export default function ThresholdForm({
         environment,
         windowUnit: propFormData.windowUnit || unit,
         windowVal: propFormData.windowVal || val,
-        thresholds: propFormData.thresholds || [],
+        thresholds: propFormData.thresholds || selectedThresholds,
       });
     } else {
       setFormOpen(false);
@@ -118,7 +120,7 @@ export default function ThresholdForm({
       selectedProject = formData.project;
       selectedEnvironment = value;
     }
-    if (selectedProject && selectedEnvironment) {
+    if (selectedProject) {
       const selectedThresholds = getSelectedThresholds(
         selectedProject,
         selectedEnvironment
@@ -128,6 +130,7 @@ export default function ThresholdForm({
         : ['min', 0];
       data.windowVal = val;
       data.windowUnit = unit;
+      data.thresholds = selectedThresholds;
     }
     data[key] = value;
     setFormData(data);
@@ -147,17 +150,21 @@ export default function ThresholdForm({
     [selectedProjects]
   );
 
-  const envSelectOptions: SelectValue<string>[] = useMemo(
-    () =>
-      allEnvs.map(env => {
-        return {
-          value: env,
-          textValue: env,
-          label: env,
-        };
-      }),
-    [allEnvs]
-  );
+  // NOTE: only includes environments already attached to projects
+  const envSelectOptions: SelectValue<string>[] = [
+    {
+      value: '',
+      textValue: 'None',
+      label: 'None',
+    },
+    ...allEnvs.map(env => {
+      return {
+        value: env,
+        textValue: env,
+        label: env,
+      };
+    }),
+  ];
 
   return (
     <SlideOverPanel collapsed={!formOpen} ref={panelRef} onOpen={onOpen}>
@@ -241,24 +248,16 @@ export default function ThresholdForm({
           </FormSection>
           <FormSection>
             <Title>Set Threshold</Title>
-            <div>iterate through threshold types</div>
-            {formData.thresholds &&
-              !!formData.thresholds.length &&
-              formData.thresholds.map((threshold, idx) => (
-                <div key={`${threshold}-${idx}`}>
-                  {threshold.threshold_type} : {threshold.value}
-                </div>
-              ))}
-            {!(formData.thresholds || []).length && <div>foobar</div>}
-            {formData &&
-              JSON.stringify(
-                getSelectedThresholds(formData.project || '', formData.environment || '')
-              )}
-            Length:{' '}
-            {
-              getSelectedThresholds(formData.project || '', formData.environment || '')
-                .length
-            }
+            <StyledPanelTable isLoading={isLoading} headers={[]}>
+              {formData.thresholds &&
+                !!formData.thresholds.length &&
+                formData.thresholds.map((threshold, idx) => (
+                  <div key={`${threshold}-${idx}`}>
+                    {threshold.threshold_type} : {threshold.value}
+                  </div>
+                ))}
+              <div>Add new row</div>
+            </StyledPanelTable>
           </FormSection>
         </Fragment>
       )}
@@ -322,4 +321,11 @@ const SplitRow = styled('div')`
   grid-template-columns: 1fr 1fr;
   column-gap: ${space(1)};
   padding: ${space(1)} 0;
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  margin: ${space(1)} 0;
+  > :last-child {
+    border-bottom: none;
+  }
 `;
