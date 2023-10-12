@@ -21,6 +21,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {Organization, PageFilters} from 'sentry/types';
@@ -135,27 +136,34 @@ function normalizeUnit(value: number, unit: string, dataType: string): number {
   return value * multiplier;
 }
 
-export function getWidgetIndicatorColor(
+export function getColoredWidgetIndicator(
   thresholds: ThresholdsConfig,
   tableData: TableDataWithTitle[]
-): string {
+): React.ReactNode {
   const tableMeta = {...tableData[0].meta};
   const fields = Object.keys(tableMeta);
   const field = fields[0];
   const dataType = tableMeta[field];
   const dataUnit = tableMeta.units?.[field];
-  const data = Number(tableData[0].data[0][field]);
+  const dataRow = tableData[0].data[0];
+
+  if (!dataRow) {
+    return null;
+  }
+
+  const data = Number(dataRow[field]);
   const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
 
   const {max_values} = thresholds;
 
+  let color = theme.red300;
   const greenMax = max_values[ThresholdMaxKeys.MAX_1];
   const normalizedGreenMax =
     thresholds.unit && greenMax
       ? normalizeUnit(greenMax, thresholds.unit, dataType)
       : greenMax;
   if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
-    return theme.green300;
+    color = theme.green300;
   }
 
   const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
@@ -164,10 +172,10 @@ export function getWidgetIndicatorColor(
       ? normalizeUnit(yellowMax, thresholds.unit, dataType)
       : yellowMax;
   if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
-    return theme.yellow300;
+    color = theme.yellow300;
   }
 
-  return theme.red300;
+  return <CircleIndicator color={color} size={12} />;
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
