@@ -32,8 +32,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
                     "discord.action.description.no.channel",
                     extra={"target_identifier": action.target_identifier},
                 )
-                action.target_display = ""
-            return "Send a Discord notification to " + action.target_display
+            return f"Send a Discord notification to {action.target_display or ''}"
 
     def get_identifier_from_action(self, action):
         if action.type in [
