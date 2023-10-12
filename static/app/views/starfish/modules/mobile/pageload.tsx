@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -37,6 +38,7 @@ export default function PageloadModule() {
                 <Container>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
+                    <EnvironmentPageFilter />
                     <DatePageFilter alignDropdown="left" />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
@@ -58,7 +60,7 @@ const Container = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }

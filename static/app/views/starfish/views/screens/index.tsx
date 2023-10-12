@@ -5,7 +5,6 @@ import Color from 'color';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -239,16 +238,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <StyledRow minSize={200}>
-        <ChartsContainer>{renderCharts()}</ChartsContainer>
-      </StyledRow>
+      <ChartsContainer>{renderCharts()}</ChartsContainer>
     </div>
   );
 }
-
-const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
-`;
 
 const ChartsContainer = styled('div')`
   display: flex;
