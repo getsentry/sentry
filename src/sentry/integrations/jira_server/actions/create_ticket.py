@@ -10,8 +10,8 @@ from sentry.utils.http import absolute_uri
 
 class JiraServerCreateTicketAction(TicketEventAction):
     id = "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
-    label = "Create a Jira Server issue in {integration} with these "
-    ticket_type = "a Jira Server issue"
+    label = "Create a Jira issue in {integration} with these "
+    ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
     provider = "jira_server"
     form_cls = JiraServerNotifyServiceForm
