@@ -97,9 +97,6 @@ export function MetricChart({
         }
         return '';
       },
-      axisPointer: {
-        label: {show: true},
-      },
     },
 
     yAxis: {
