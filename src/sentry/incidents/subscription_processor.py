@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 import operator
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -557,7 +558,7 @@ class SubscriptionProcessor:
             last_incident: Incident | None = (
                 Incident.objects.filter(alert_rule=self.alert_rule).order_by("-date_added").first()
             )
-            if last_incident and (timezone.now - last_incident.date_added).minutes <= 10:
+            if last_incident and (timezone.now() - last_incident.date_added).seconds / 60 <= 10:
                 return None
 
             # Only create a new incident if we don't already have an active one
