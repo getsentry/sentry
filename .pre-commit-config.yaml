@@ -1,3 +1,5 @@
+default_install_hook_types: ["pre-push"]
+
 exclude: >
     (?x)(
         LICENSE$|
@@ -59,7 +61,7 @@ repos:
       exclude: ^src/sentry/metrics/minimetrics.py$
     - id: prevent-push
       name: prevent pushing master
-      stages: [push]
+      stages: [pre-push]
       entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
       always_run: true
       pass_filenames: false
