@@ -73,6 +73,7 @@ export function FrameCallersFunctionRow(
     <FrameCallersTableCell
       // We stretch this table to 100% width.
       style={{paddingLeft: props.node.depth * 14 + 8, width: '100%'}}
+      className="FrameCallersTableCell"
     >
       <FrameNameContainer>
         {/* @TODO FIX COLOR */}
@@ -93,7 +94,11 @@ export function FrameCallersFunctionRow(
 export function FrameCallersFixedRows(props: Omit<FlamegraphTreeTableRowProps, 'style'>) {
   return (
     <Fragment>
-      <FrameCallersTableCell isSelected={props.tabIndex === 0} textAlign="right">
+      <FrameCallersTableCell
+        className="FrameCallersTableCell"
+        isSelected={props.tabIndex === 0}
+        textAlign="right"
+      >
         {props.formatDuration(props.node.node.node.selfWeight)}
         <Weight
           isSelected={props.tabIndex === 0}
@@ -107,6 +112,7 @@ export function FrameCallersFixedRows(props: Omit<FlamegraphTreeTableRowProps, '
         isSelected={props.tabIndex === 0}
         noPadding
         textAlign="right"
+        className="FrameCallersTableCell"
       >
         <FrameWeightTypeContainer>
           <FrameWeightContainer>

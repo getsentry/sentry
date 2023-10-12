@@ -1,15 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {forwardRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {FrameCallersTableCell} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer';
-import {
-  FrameCallersFixedRows,
-  FrameCallersFunctionRow,
-  FrameCallersRow,
-} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/flamegraphTreeTableRow';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -34,6 +29,227 @@ import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphTreeContextMenu} from './flamegraphDrawer/flamegraphTreeContextMenu';
+
+function computeRelativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
+}
+
+const enum FastFrameCallersTableClassNames {
+  ROW = 'FrameCallersRow',
+  CELL = 'FrameCallersTableCell',
+  FRAME_CELL = 'FrameCallersTableCellFrame',
+  WEIGHT = 'FrameCallersTableCellWeight',
+  BACKGROUND_WEIGHT = 'FrameCallersTableCellWeightBar',
+  FRAME_TYPE = 'FrameCallersTableCellFrameType',
+  COLOR_INDICATOR = 'FrameCallersTableCellColorIndicator',
+  EXPAND_BUTTON = 'FrameCallersTableCellExpandButton',
+}
+
+interface FastFrameCallersRowsProps {
+  formatDuration: (value: number) => string;
+  frameColor: string;
+  node: VirtualizedTreeNode<FlamegraphFrame>;
+  onClick: () => void;
+  onContextMenu: (event: React.MouseEvent) => void;
+  onExpandClick: (
+    node: VirtualizedTreeNode<FlamegraphFrame>,
+    expand: boolean,
+    opts?: {expandChildren: boolean}
+  ) => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
+  onMouseEnter: () => void;
+  referenceNode: FlamegraphFrame;
+  tabIndex: number;
+}
+
+interface FastFrameCallerRowProps {
+  children: React.ReactNode;
+  top: string;
+}
+const FastFrameCallersRow = forwardRef<HTMLDivElement, FastFrameCallerRowProps>(
+  (props, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={FastFrameCallersTableClassNames.ROW}
+        style={{top: props.top}}
+      >
+        {props.children}
+      </div>
+    );
+  }
+);
+
+const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
+function FastFrameCallersFixedRows(props: FastFrameCallersRowsProps) {
+  const selfWeight = computeRelativeWeight(
+    props.referenceNode.node.totalWeight,
+    props.node.node.node.selfWeight
+  );
+
+  const totalWeight = computeRelativeWeight(
+    props.referenceNode.node.totalWeight,
+    props.node.node.node.totalWeight
+  );
+
+  return (
+    <Fragment>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        {props.formatDuration(props.node.node.node.selfWeight)}
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {selfWeight.toFixed(1)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${selfWeight / 100})`}}
+          />
+        </div>
+      </div>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        {props.formatDuration(props.node.node.node.totalWeight)}
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {totalWeight.toFixed(1)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${totalWeight / 100})`}}
+          />
+        </div>
+        <div className={FastFrameCallersTableClassNames.FRAME_TYPE}>
+          {props.node.node.node.frame.is_application ? (
+            <IconUser size="xs" />
+          ) : (
+            <IconSettings size="xs" />
+          )}
+        </div>
+      </div>
+    </Fragment>
+  );
+}
+
+function FastFrameCallersDynamicRows(props: FastFrameCallersRowsProps) {
+  const handleExpanding = (evt: React.MouseEvent) => {
+    evt.stopPropagation();
+    props.onExpandClick(props.node, !props.node.expanded, {
+      expandChildren: evt.metaKey,
+    });
+  };
+
+  return (
+    <div
+      className={FastFrameCallersTableClassNames.FRAME_CELL}
+      style={{paddingLeft: props.node.depth * 14 + 8, width: '100%'}}
+    >
+      <div
+        className={FastFrameCallersTableClassNames.COLOR_INDICATOR}
+        style={{backgroundColor: props.frameColor}}
+      />
+      <button
+        className={FastFrameCallersTableClassNames.EXPAND_BUTTON}
+        style={props.node.expanded ? {transform: 'rotate(90deg)'} : {}}
+        onClick={handleExpanding}
+      >
+        {props.node.node.children.length > 0 ? '\u203A' : null}
+      </button>
+      <div>
+        <div>{props.node.node.frame.name}</div>
+      </div>
+    </div>
+  );
+}
+
+const FrameCallersTable = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: 0;
+  overflow: auto;
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .${FastFrameCallersTableClassNames.ROW} {
+    display: flex;
+    line-height: 24px;
+    font-size: 12px;
+    position: absolute;
+    width: 100%;
+  }
+
+  .${FastFrameCallersTableClassNames.CELL} {
+    position: relative;
+    width: 164px;
+    border-right: 1px solid ${p => p.theme.border};
+    display: flex;
+    align-items: center;
+    padding-right: ${space(1)};
+    justify-content: flex-end;
+
+    &:nth-child(2) {
+      padding-right: 0;
+    }
+  }
+
+  .${FastFrameCallersTableClassNames.FRAME_CELL} {
+    display: flex;
+    align-items: center;
+    padding: 0 ${space(1)};
+  }
+  .${FastFrameCallersTableClassNames.WEIGHT} {
+    display: inline-block;
+    min-width: 7ch;
+    padding-right: 0px;
+    color: ${p => p.theme.subText};
+    opacity: 1;
+  }
+  .${FastFrameCallersTableClassNames.BACKGROUND_WEIGHT} {
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-color: ${props => props.theme.yellow100};
+    border-bottom: 1px solid ${props => props.theme.yellow200};
+    transform-origin: center right;
+    height: 100%;
+    width: 100%;
+  }
+
+  .${FastFrameCallersTableClassNames.FRAME_TYPE} {
+    flex-shrink: 0;
+    width: 26px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${p => p.theme.subText};
+    opacity: ${_p => 1};
+  }
+
+  .${FastFrameCallersTableClassNames.COLOR_INDICATOR} {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+    margin-right: ${space(0.5)};
+  }
+
+  .${FastFrameCallersTableClassNames.EXPAND_BUTTON} {
+    width: 10px;
+    height: 10px;
+    display: flex;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transform: rotate(0deg);
+  }
+`;
 
 function makeSortFunction(
   property: 'total weight' | 'self weight' | 'name',
@@ -230,15 +446,14 @@ export function AggregateFlamegraphTreeTable({
         }
       ) => {
         return (
-          <FrameCallersRow
+          <FastFrameCallersRow
             key={r.key}
             ref={n => {
               r.ref = n;
             }}
-            isSelected={selectedNodeIndex === r.key}
-            style={r.styles}
+            top={r.styles.top}
           >
-            <FrameCallersFixedRows
+            <FastFrameCallersFixedRows
               node={r.item}
               referenceNode={referenceNode}
               frameColor={getFrameColor(r.item.node)}
@@ -253,7 +468,7 @@ export function AggregateFlamegraphTreeTable({
                 contextMenu.handleContextMenu(evt);
               }}
             />
-          </FrameCallersRow>
+          </FastFrameCallersRow>
         );
       },
       [contextMenu, referenceNode, flamegraph.formatter, getFrameColor]
@@ -272,15 +487,14 @@ export function AggregateFlamegraphTreeTable({
         }
       ) => {
         return (
-          <FrameCallersRow
+          <FastFrameCallersRow
             key={r.key}
             ref={n => {
               r.ref = n;
             }}
-            isSelected={selectedNodeIndex === r.key}
-            style={r.styles}
+            top={r.styles.top}
           >
-            <FrameCallersFunctionRow
+            <FastFrameCallersDynamicRows
               node={r.item}
               referenceNode={referenceNode}
               frameColor={getFrameColor(r.item.node)}
@@ -295,7 +509,7 @@ export function AggregateFlamegraphTreeTable({
                 contextMenu.handleContextMenu(evt);
               }}
             />
-          </FrameCallersRow>
+          </FastFrameCallersRow>
         );
       },
       [contextMenu, referenceNode, flamegraph.formatter, getFrameColor]
@@ -585,17 +799,6 @@ const FrameBar = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   grid-area: table;
-`;
-
-const FrameCallersTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin: 0;
-  overflow: auto;
-  max-height: 100%;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
 `;
 
 const FrameWeightCell = styled('div')`
