@@ -15,12 +15,14 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
     recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 0)
     if recovery_threshold:
-        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-            "-date_added"
-        )[:recovery_threshold]
+        previous_checkins = (
+            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+            .order_by("-date_added")
+            .values("id", "date_added", "status")[:recovery_threshold]
+        )
         # check for successive OK previous check-ins
         if not all(
-            previous_checkin.status == CheckInStatus.OK for previous_checkin in previous_checkins
+            previous_checkin["status"] == CheckInStatus.OK for previous_checkin in previous_checkins
         ):
             # don't send occurrence for active issue on an OK check-in
             return
