@@ -20,6 +20,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.outbox import (
     ControlOutbox,
+    OutboxBase,
     OutboxCategory,
     OutboxFlushError,
     OutboxScope,
@@ -392,7 +393,9 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
     def test_holding_lock_too_long(self):
-        outbox = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox: OutboxBase = OrganizationMember(
+            id=1, organization_id=3, user_id=1
+        ).outbox_for_update()
         with outbox_context(flush=False):
             outbox.save()
 
@@ -404,7 +407,7 @@ class OutboxDrainTest(TransactionTestCase):
             with outbox.process_shard(RegionOutbox(id=0)) as shard_outbox:
                 assert shard_outbox is None
             with pytest.raises(OutboxFlushError):
-                with outbox.process_shard(RegionOutbox(id=outbox.id + 1)) as outbox:
+                with outbox.process_shard(RegionOutbox(id=outbox.id + 1)):
                     pass
 
         thread = threading.Thread(target=wrap_with_connection_closure(test_inside_locked))
