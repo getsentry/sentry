@@ -62,6 +62,8 @@ export function PageSamplePerformanceTable({transaction}: Props) {
     [projects, location.query.project]
   );
 
+  // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
+  // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
       limit: 3,
@@ -83,11 +85,26 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
     });
 
+  // In case we don't have enough data, get some transactions with no LCP data
+  const {data: noLcpData, isLoading: isNoLcpTransactionWebVitalsQueryLoading} =
+    useTransactionSamplesWebVitalsQuery({
+      limit: 9,
+      transaction,
+      query: `!has:measurements.lcp`,
+    });
+
   const data = [...goodData, ...mehData, ...poorData];
+
+  // If we don't have enough data, fill in the rest with no LCP data
+  if (data.length < 9) {
+    data.push(...noLcpData.slice(0, 9 - data.length));
+  }
+
   const isTransactionWebVitalsQueryLoading =
     isGoodTransactionWebVitalsQueryLoading ||
     isMehTransactionWebVitalsQueryLoading ||
-    isPoorTransactionWebVitalsQueryLoading;
+    isPoorTransactionWebVitalsQueryLoading ||
+    isNoLcpTransactionWebVitalsQueryLoading;
 
   const tableData: TransactionSampleRowWithScoreAndExtra[] = data
     .map(row => ({

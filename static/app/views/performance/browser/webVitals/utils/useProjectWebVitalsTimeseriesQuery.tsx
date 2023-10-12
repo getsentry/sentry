@@ -80,13 +80,20 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
   };
 
   result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
+    const lcp: number = result?.data?.['p75(measurements.lcp)'].data[index][1][0].count;
+    const fcp: number = result?.data?.['p75(measurements.fcp)'].data[index][1][0].count;
+    const cls: number = result?.data?.['p75(measurements.cls)'].data[index][1][0].count;
+    const ttfb: number = result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count;
+    const fid: number = result?.data?.['p75(measurements.fid)'].data[index][1][0].count;
+    // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
+    // It's unlikely that we'll ever have a 0 value for a web vital, so this should be fine.
     const {totalScore, lcpScore, fcpScore, fidScore, clsScore, ttfbScore} =
       calculatePerformanceScore({
-        lcp: result?.data?.['p75(measurements.lcp)'].data[index][1][0].count,
-        fcp: result?.data?.['p75(measurements.fcp)'].data[index][1][0].count,
-        cls: result?.data?.['p75(measurements.cls)'].data[index][1][0].count,
-        ttfb: result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count,
-        fid: result?.data?.['p75(measurements.fid)'].data[index][1][0].count,
+        lcp: lcp === 0 ? Infinity : lcp,
+        fcp: fcp === 0 ? Infinity : fcp,
+        cls: cls === 0 ? Infinity : cls,
+        ttfb: ttfb === 0 ? Infinity : ttfb,
+        fid: fid === 0 ? Infinity : fid,
       });
 
     data.total.push({
