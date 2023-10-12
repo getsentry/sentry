@@ -109,6 +109,14 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
                 name="conflicting_org", slug=conflicting_slug, owner=owner_of_conflicting_org
             )
 
+        # De-register the conflicting organization to create the collision
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            OrganizationSlugReservation.objects.filter(
+                organization_id=region_only_organization.id
+            ).delete()
+
         if SiloMode.get_current_mode() == SiloMode.REGION:
             with pytest.raises(RpcRemoteException):
                 self.provision_organization()
