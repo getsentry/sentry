@@ -11,7 +11,7 @@ from sentry.rules.actions import IntegrationNotifyServiceForm
 
 class JiraServerNotifyServiceForm(IntegrationNotifyServiceForm):
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() | {}
 
         integration = cleaned_data.get("integration")
         try:
