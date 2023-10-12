@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
@@ -19,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DeadRageSelectorItem, ReplayClickElement} from 'sentry/views/replays/types';
+import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 
 export interface UrlState {
   widths: string[];
@@ -231,6 +233,17 @@ export function SelectorLink({
 }) {
   const organization = useOrganization();
   const location = useLocation();
+  const hovercardContent = (
+    <TooltipContainer>
+      {t('Search for replays with clicks on')}
+      <SelectorScroll>
+        <CodeSnippet hideCopyButton language="javascript">
+          {value}
+        </CodeSnippet>
+      </SelectorScroll>
+    </TooltipContainer>
+  );
+
   return (
     <StyledTextOverflow>
       <Link
@@ -244,12 +257,9 @@ export function SelectorLink({
           },
         }}
       >
-        <StyledTooltip
-          position="top-start"
-          title={t('Search for replays with clicks on this selector')}
-        >
-          {value}
-        </StyledTooltip>
+        <WiderHovercard position="right" body={hovercardContent}>
+          <TextOverflow>{value}</TextOverflow>
+        </WiderHovercard>
       </Link>
     </StyledTextOverflow>
   );
@@ -279,8 +289,14 @@ const StyledTextOverflow = styled(TextOverflow)`
   color: ${p => p.theme.blue300};
 `;
 
-const StyledTooltip = styled(Tooltip)`
-  display: inherit;
+const TooltipContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  gap: ${space(1)};
+`;
+
+const SelectorScroll = styled('div')`
+  overflow: scroll;
 `;
 
 const Subtitle = styled('div')`
