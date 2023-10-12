@@ -28,6 +28,7 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 DATASETS = {
+    "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
