@@ -31,7 +31,7 @@ def create_exception_with_frame(frame):
     }
 
 
-def create_exception_with_frames(frames, raw_frames):
+def create_exception_with_frames(raw_frames, frames):
     return {
         "type": "Error",
         "stacktrace": {"frames": frames},
