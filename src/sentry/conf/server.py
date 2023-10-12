@@ -1391,8 +1391,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the new crons onboarding experience with platform specific options
-    "organizations:crons-new-onboarding": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
