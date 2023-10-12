@@ -40,7 +40,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
-MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.0"
+MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.1"
 
 NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
