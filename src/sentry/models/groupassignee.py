@@ -125,12 +125,16 @@ class GroupAssigneeManager(BaseManager):
         from sentry.models.team import Team
         from sentry.services.hybrid_cloud.user.service import user_service
 
-        previous_groupassignee = self.get(group=group)
         previous_assignee: User | RpcUser | Team | None = None
-        if previous_groupassignee.user_id:
-            previous_assignee = user_service.get_user(previous_groupassignee.user_id)
+        try:
+            previous_groupassignee = self.get(group=group)
+        except GroupAssignee.DoesNotExist:
+            previous_groupassignee = None
         else:
-            previous_assignee = Team.objects.get(id=previous_groupassignee.team.id)
+            if previous_groupassignee.user_id:
+                previous_assignee = user_service.get_user(previous_groupassignee.user_id)
+            else:
+                previous_assignee = Team.objects.get(id=previous_groupassignee.team.id)
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
