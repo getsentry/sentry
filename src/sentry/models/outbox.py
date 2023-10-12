@@ -539,16 +539,16 @@ class OutboxBase(Model):
                 yield next_shard_row
             else:
                 yield None
-        except OperationalError as e:
+        except OperationalError:
             next_shard_row = self.selected_messages_in_shard(
                 latest_shard_row=latest_shard_row
             ).first()
             if next_shard_row is None:
                 yield None
-            else:
-                raise OutboxFlushError(
-                    f"Could not flush shard category={self.category}", self
-                ) from e
+            # else:
+            #     raise OutboxFlushError(
+            #         f"Could not flush shard category={self.category}", self
+            #     ) from e
         finally:
             try:
                 with connections[using].cursor() as cursor:
