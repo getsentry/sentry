@@ -25,7 +25,7 @@ type Row = {
   'resource.render_blocking_status': string;
   'span.description': string;
   'span.group': string;
-  'span.op': 'resource.script' | 'resource.img';
+  'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
 };
 
@@ -94,7 +94,15 @@ function ResourceTable({sort}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === 'span.op') {
-      const opName = row[key] === 'resource.script' ? t('Javascript') : t('Image');
+      const opNameMap = {
+        'resource.script': t('Javascript'),
+        'resource.img': t('Image'),
+        'resource.iframe': t('Javascript (iframe)'),
+        'resource.css': t('Stylesheet'),
+        'resource.video': t('Video'),
+        'resource.audio': t('Audio'),
+      };
+      const opName = opNameMap[row[key]] || row[key];
       return <span>{opName}</span>;
     }
     if (key === 'http.decoded_response_content_length') {

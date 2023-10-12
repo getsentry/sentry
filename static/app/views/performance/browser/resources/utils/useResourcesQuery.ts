@@ -30,6 +30,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         'spm()',
         'span.group',
         'resource.render_blocking_status',
+        'span.domain',
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
