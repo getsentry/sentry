@@ -155,6 +155,7 @@ export function MetricChart({
                 series: [...seriesToShow, ...releaseSeries],
                 legend,
               };
+
               return displayType === MetricDisplayType.LINE ? (
                 <LineChart {...allProps} />
               ) : displayType === MetricDisplayType.AREA ? (
