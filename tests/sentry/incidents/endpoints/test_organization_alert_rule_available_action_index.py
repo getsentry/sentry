@@ -3,7 +3,9 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -24,7 +26,7 @@ METADATA = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
     email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
@@ -108,7 +110,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     def test_build_action_response_sentry_app(self):
         installation = self.install_new_sentry_app("foo")
 
-        data = build_action_response(self.sentry_app, sentry_app_installation=installation)
+        data = build_action_response(
+            self.sentry_app, sentry_app_installation=serialize_sentry_app_installation(installation)
+        )
 
         assert data["type"] == "sentry_app"
         assert data["allowedTargetTypes"] == ["sentry_app"]
@@ -179,7 +183,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert len(response.data) == 2
         assert build_action_response(self.email) in response.data
         assert (
-            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            build_action_response(
+                self.sentry_app,
+                sentry_app_installation=serialize_sentry_app_installation(installation),
+            )
             in response.data
         )
 
@@ -192,7 +199,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
         assert len(response.data) == 2
         assert (
-            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            build_action_response(
+                self.sentry_app,
+                sentry_app_installation=serialize_sentry_app_installation(installation),
+            )
             in response.data
         )
 

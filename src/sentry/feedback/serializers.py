@@ -16,8 +16,9 @@ class FeedbackResponseType(TypedDict):
     dist: Optional[str]
     environment: Optional[str]
     release: Optional[str]
+    name: Optional[str]
+    contact_email: Optional[str]
     sdk: Any
-    contact_email: str
     feedback_id: str
     message: str
     platform: str
@@ -45,6 +46,7 @@ class FeedbackSerializer(Serializer):
             "dist": obj.data.get("dist"),
             "sdk": obj.data.get("sdk"),
             "contact_email": obj.data.get("feedback").get("contact_email"),
+            "name": obj.data.get("feedback").get("name"),
             "environment": env,
             "feedback_id": str(obj.feedback_id).replace("-", ""),
             "message": obj.message,

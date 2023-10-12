@@ -5,7 +5,8 @@ from django.db import router
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import AuthIdentity, OrganizationMemberMapping
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode

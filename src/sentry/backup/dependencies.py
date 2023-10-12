@@ -129,6 +129,7 @@ class ModelRelations:
     dangling: Optional[bool]
     foreign_keys: dict[str, ForeignField]
     model: Type[models.base.Model]
+    relocation_dependencies: set[Type[models.base.Model]]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
     table_name: str
@@ -145,6 +146,32 @@ class ModelRelations:
         if issubclass(self.model, BaseModel):
             return self.model.get_possible_relocation_scopes()
         return set()
+
+    def get_uniques_without_foreign_keys(self) -> list[frozenset[str]]:
+        """
+        Gets all unique sets (that is, either standalone fields that are marked `unique=True`, or
+        groups of fields listed in `Meta.unique_together`) for a model, as long as those sets do not
+        include any fields that are foreign keys. Note that the `id` field would be trivially
+        included in this list for every model, and is therefore ignored.
+        """
+
+        out = []
+        for u in self.uniques:
+            # Exclude unique sets that are just {"id"}, since this is true for every model and not
+            # very useful when searching for potential collisions.
+            if u == {"id"}:
+                continue
+
+            has_foreign_key = False
+            for field in u:
+                if self.foreign_keys.get(field):
+                    has_foreign_key = True
+                    break
+
+            if not has_foreign_key:
+                out.append(u)
+
+        return out
 
 
 def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
@@ -308,14 +335,14 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 is_nullable = getattr(field, "null", False)
-                if getattr(field, "unique", False):
+                if field.name != "id" and getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # actor.team_id, which avoids circular imports
-                    if model == Actor and rel_model == Team:
+                    # team.actor_id, which avoids circular imports
+                    if model == Team and rel_model == Actor:
                         continue
 
                     if isinstance(field, FlexibleForeignKey):
@@ -395,6 +422,8 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 dangling=None,
                 foreign_keys=foreign_keys,
                 model=model,
+                # We'll fill this in after the entire dictionary is populated.
+                relocation_dependencies=set(),
                 relocation_scope=getattr(model, "__relocation_scope__", RelocationScope.Excluded),
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
@@ -411,6 +440,22 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     for model_name in relocation_root_models:
         model_dependencies_dict[model_name].dangling = False
 
+    # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
+    # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
+    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
+    # reference at least one `User` or `Team`, neither of which are dangling.
+    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
+
+    # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this
+    # list: the schema defines all of their foreign keys as nullable, but since these models have no
+    # other models referencing them (ie, they are leaves on our dependency graph), we know that at
+    # least one of those nullable relations will be present on every model.
+    model_dependencies_dict[NormalizedModelName("sentry.savedsearch")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False
+
     # Now that all `ModelRelations` have been added to the `model_dependencies_dict`, we can circle
     # back and figure out which ones are actually dangling. We do this by marking all of the root
     # models non-dangling, then traversing from every other model to a (possible) root model
@@ -423,6 +468,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             raise RuntimeError(
                 f"Circular dependency: {model_name} cannot transitively reference itself"
             )
+        if model_relations.relocation_scope == RelocationScope.Excluded:
+            model_relations.dangling = False
+            return model_relations.dangling
         if model_relations.dangling is not None:
             return model_relations.dangling
 
@@ -446,9 +494,12 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         seen.remove(model_name)
         return model_relations.dangling
 
-    for model_name in model_dependencies_dict.keys():
-        if model_name not in relocation_root_models:
-            resolve_dangling(set(), model_name)
+    for model_name, model_relations in model_dependencies_dict.items():
+        resolve_dangling(set(), model_name)
+        model_relations.relocation_dependencies = {
+            model_dependencies_dict[NormalizedModelName(rd)].model
+            for rd in getattr(model_relations.model, "__relocation_dependencies__", set())
+        }
 
     return model_dependencies_dict
 
@@ -479,7 +530,7 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
         changed = False
         while model_dependencies_dict:
             model_deps = model_dependencies_dict.pop()
-            deps = model_deps.flatten()
+            deps = model_deps.flatten().union(model_deps.relocation_dependencies)
             model = model_deps.model
 
             # If all of the models in the dependency list are either already

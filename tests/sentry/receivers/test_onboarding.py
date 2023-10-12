@@ -5,14 +5,14 @@ import pytest
 from django.utils import timezone as django_timezone
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models import (
-    Integration,
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
-    OrganizationOption,
-    Rule,
 )
+from sentry.models.rule import Rule
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (

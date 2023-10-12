@@ -36,7 +36,7 @@ class SentryAppPermissionTest(TestCase):
             self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_has_permission(self):
-        from sentry.models import ApiToken
+        from sentry.models.apitoken import ApiToken
 
         token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.request = self.make_request(user=None, auth=token, method="GET")

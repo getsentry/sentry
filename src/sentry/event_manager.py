@@ -78,36 +78,29 @@ from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
-from sentry.models import (
-    CRASH_REPORT_TYPES,
-    Activity,
-    Environment,
-    EventAttachment,
-    EventDict,
-    EventUser,
-    File,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Organization,
-    Project,
-    ProjectKey,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    UserReport,
-    get_crashreport_key,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.event import EventDict
+from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventuser import EventUser
+from sentry.models.files.file import File
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.release import follows_semver_versioning_scheme
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG

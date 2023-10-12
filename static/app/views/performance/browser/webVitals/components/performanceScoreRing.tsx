@@ -16,6 +16,8 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * The width of the progress ring bar
    */
   barWidth?: number;
+  onHoverActions?: (() => void)[];
+  onUnhover?: () => void;
   /**
    * Endcaps on the progress bar
    */
@@ -56,6 +58,8 @@ function PerformanceScoreRing({
   segmentColors,
   backgroundColors,
   progressEndcaps,
+  onHoverActions,
+  onUnhover,
   ...p
 }: Props) {
   const textNode = (
@@ -92,6 +96,8 @@ function PerformanceScoreRing({
         cy={radius + barWidth / 2}
         color={backgroundColors[index]}
         rotate={rotate}
+        onMouseOver={() => onHoverActions?.[index]()}
+        onMouseLeave={() => onUnhover?.()}
       />
     );
     rings.push(
@@ -105,6 +111,8 @@ function PerformanceScoreRing({
         cy={radius + barWidth / 2}
         color={segmentColors[index]}
         rotate={rotate}
+        onMouseOver={() => onHoverActions?.[index]()}
+        onMouseLeave={() => onUnhover?.()}
       />
     );
   });

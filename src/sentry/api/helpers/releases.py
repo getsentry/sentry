@@ -1,5 +1,8 @@
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import GroupLink, GroupResolution, Release, ReleaseCommit
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
 
 
 def get_group_ids_resolved_in_release(organization, version):

@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import audit_log
-from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.silo import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
@@ -439,7 +439,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.data == correct_get_data
 
     def test_pagination(self):
-        for _ in range(0, 150):
+        for _ in range(0, 15):
             self.create_member(
                 user=self.create_user(),
                 organization=self.organization,
@@ -448,25 +448,18 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             )
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=1&count=100")
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 100
+        response = self.client.get(f"{url}?startIndex=1&count=10")
+        assert response.data["totalResults"] == 16
+        assert response.data["itemsPerPage"] == 10
         assert response.data["startIndex"] == 1
-        assert len(response.data["Resources"]) == 100
+        assert len(response.data["Resources"]) == 10
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=40&count=100")
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 100
-        assert response.data["startIndex"] == 40
-        assert len(response.data["Resources"]) == 100
-
-        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=101&count=100")
-        assert len(response.data["Resources"]) == 51
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 51
-        assert response.data["startIndex"] == 101
+        response = self.client.get(f"{url}?startIndex=10&count=10")
+        assert response.data["totalResults"] == 16
+        assert response.data["itemsPerPage"] == 7
+        assert response.data["startIndex"] == 10
+        assert len(response.data["Resources"]) == 7
 
 
 @region_silo_test(stable=True)

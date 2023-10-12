@@ -6,7 +6,8 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus

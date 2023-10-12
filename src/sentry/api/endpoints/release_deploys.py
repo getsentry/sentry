@@ -11,7 +11,10 @@ from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.signals import deploy_created
 
 

@@ -9,14 +9,15 @@ from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.client import ApiClient
-from sentry.models import Identity, Repository
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 UNSET = object()
 

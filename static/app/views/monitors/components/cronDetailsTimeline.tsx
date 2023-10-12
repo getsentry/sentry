@@ -103,7 +103,6 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
 const TimelineContainer = styled(Panel)`
   display: grid;
   grid-template-columns: 135px 1fr;
-  align-items: center;
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`

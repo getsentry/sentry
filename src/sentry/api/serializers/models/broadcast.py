@@ -1,7 +1,7 @@
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 
 @register(Broadcast)

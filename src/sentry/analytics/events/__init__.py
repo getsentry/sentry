@@ -5,8 +5,6 @@ from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
 from .alert_sent import *  # noqa: F401,F403
 from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
-from .artifactbundle_assemble import *  # noqa: F401,F403
-from .artifactbundle_manifest_extracted import *  # noqa: F401,F403
 from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403

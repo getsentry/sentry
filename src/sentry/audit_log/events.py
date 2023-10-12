@@ -1,5 +1,5 @@
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
 
 # AuditLogEvents with custom render functions

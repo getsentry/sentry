@@ -61,6 +61,11 @@ export function getAppKnownDataDetails({data, event, type}: Props): Output | und
         subject: t('App Build'),
         value: data.app_build,
       };
+    case AppKnownDataType.IN_FOREGROUND:
+      return {
+        subject: t('In Foreground'),
+        value: data.in_foreground,
+      };
     default:
       return undefined;
   }
