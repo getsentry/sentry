@@ -43,7 +43,6 @@ const emptyWidget = {
   op: undefined,
   query: '',
   groupBy: [],
-  displayType: defaultMetricDisplayType,
   sort: DEFAULT_SORT_STATE,
 };
 
