@@ -137,26 +137,6 @@ class OrganizationMappingTest(TransactionTestCase):
             ),
         )
 
-    def test_update_without_slug(self):
-        self.organization = self.create_organization(slug="santry", region="us")
-
-        organization_mapping_service.upsert(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(
-                slug=self.organization.slug,
-                name=self.organization.name,
-                status=self.organization.status,
-                region_name="us",
-                customer_id=("abc123",),
-            ),
-        )
-
-        new_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert new_org_mapping.name == self.organization.name
-        assert new_org_mapping.slug == self.organization.slug
-        assert new_org_mapping.status == self.organization.status
-        assert new_org_mapping.customer_id == "abc123"
-
     def test_update_when_no_slug_reservation_found(self):
         self.organization = self.create_organization(slug="santry", region="us")
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):

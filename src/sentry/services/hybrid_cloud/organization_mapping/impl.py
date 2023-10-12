@@ -4,10 +4,7 @@ from django.db import router
 from sentry_sdk import capture_exception
 
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationslugreservation import (
-    OrganizationSlugReservation,
-    OrganizationSlugReservationType,
-)
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
@@ -62,16 +59,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
             return True
 
-        primary_slug = next(
-            (
-                org_slug
-                for org_slug in org_slugs
-                if org_slug.reservation_type == OrganizationSlugReservationType.PRIMARY.value
-            ),
-            None,
-        )
-
-        if primary_slug.region_name != update.region_name:
+        org_slug_regions_set = {org_slug.region_name for org_slug in org_slugs}
+        if update.region_name not in org_slug_regions_set:
             capture_exception(
                 OrganizationMappingConsistencyException(
                     "Mismatched Slug Reservation and Organization Regions"

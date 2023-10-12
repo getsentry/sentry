@@ -35,8 +35,15 @@ class OrganizationProvisioningService:
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
 
-        if region_name is None:
-            region_name = get_local_region().name
+        if silo_mode == SiloMode.REGION:
+            local_region = get_local_region()
+
+            if region_name:
+                assert (
+                    region_name == local_region.name
+                ), "Cannot provision an organization in another region"
+            else:
+                region_name = local_region.name
 
         return region_name
 
