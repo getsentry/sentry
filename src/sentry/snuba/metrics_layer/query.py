@@ -72,7 +72,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
         raise e
 
     try:
-        results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+        snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
@@ -81,9 +81,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
         raise e
 
     # If we normalized the start/end, return those values in the response so the caller is aware
-    results["modified_start"] = start
-    results["modified_end"] = end
-
+    results = {**snuba_results, "modified_start": start, "modified_end": end}
     metrics.incr(
         "metrics_layer.query",
         tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "success"},
