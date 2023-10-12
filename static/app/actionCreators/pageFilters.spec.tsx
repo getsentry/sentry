@@ -1,5 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
-
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -16,9 +15,14 @@ import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-describe('PageFilters ActionCreators', function () {
-  const organization = Organization();
+const {organization} = initializeOrg({
+  projects: [
+    {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+    {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
+  ],
+});
 
+describe('PageFilters ActionCreators', function () {
   beforeEach(function () {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
@@ -53,7 +57,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -84,7 +89,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         skipLoadLastUsed: true,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -107,7 +113,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {},
         shouldPersist: false,
         router,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -143,7 +150,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -167,7 +175,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -200,7 +209,8 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -232,7 +242,8 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -263,7 +274,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -313,7 +325,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -344,7 +357,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -377,7 +391,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         storageNamespace: 'starfish',
       });
