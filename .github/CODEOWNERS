@@ -108,6 +108,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
+.volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 yarn.lock                                                @getsentry/owners-js-deps
 
@@ -165,6 +166,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
 /src/sentry/api/helpers/group_index.py                    @getsentry/issues
 /src/sentry/api/helpers/events.py                         @getsentry/issues
+/src/sentry/api/helpers/group_index/update.py             @getsentry/issues
 
 /src/sentry/snuba/models.py                               @getsentry/issues
 /src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues
@@ -267,6 +269,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
 /static/app/views/performance/database                                              @getsentry/team-starfish
+/static/app/views/performance/browser                                               @getsentry/team-starfish
 ## Endof Starfish
 
 
@@ -312,6 +315,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
 /src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
+/src/sentry/api/serializers/models/alert_rule.py 				     @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues

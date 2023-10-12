@@ -50,32 +50,28 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    GroupTombstone,
-    Integration,
-    Project,
-    PullRequest,
-    PullRequestCommit,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
+from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
 from sentry.models.eventuser import EventUser
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestCommit
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
@@ -2368,11 +2364,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2392,11 +2384,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
                 noise_limit=2,
@@ -2407,11 +2395,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
             )

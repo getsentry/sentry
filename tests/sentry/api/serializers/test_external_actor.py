@@ -4,8 +4,9 @@ from sentry.api.bases.external_actor import (
     ExternalUserSerializer,
 )
 from sentry.api.serializers import serialize
-from sentry.models import ExternalActor, Integration
 from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

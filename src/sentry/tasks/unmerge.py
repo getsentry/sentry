@@ -11,19 +11,17 @@ from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.eventstore.models import BaseEvent
-from sentry.models import (
-    Activity,
-    Environment,
-    EventAttachment,
-    EventUser,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupRelease,
-    Project,
-    Release,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventuser import EventUser
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel

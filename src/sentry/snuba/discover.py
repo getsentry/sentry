@@ -14,7 +14,7 @@ from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,

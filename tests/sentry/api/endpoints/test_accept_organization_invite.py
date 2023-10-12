@@ -8,16 +8,13 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    AuditLogEntry,
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMapping,
-    OrganizationMember,
-    OrganizationMemberMapping,
-    outbox_context,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import outbox_context
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories

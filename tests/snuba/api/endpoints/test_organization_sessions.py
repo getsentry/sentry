@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import release_health
-from sentry.models import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase

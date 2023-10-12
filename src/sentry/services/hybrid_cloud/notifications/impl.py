@@ -7,9 +7,10 @@ from django.db.models import Q, QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.models import NotificationSetting, User
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
@@ -224,6 +225,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: List[int],
         type: NotificationSettingEnum,
     ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        """
+        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
+        """
         user = user_service.get_user(user_id)
         if not user:
             return {}

@@ -2,11 +2,10 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import DateTime from 'sentry/components/dateTime';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization, Project} from 'sentry/types';
@@ -16,6 +15,7 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -83,8 +83,6 @@ interface EventComparisonListInnerProps {
   project: Project;
 }
 
-const DAY = 24 * 60 * 60 * 1000;
-
 function EventComparisonListInner({
   breakpoint,
   fingerprint,
@@ -93,19 +91,13 @@ function EventComparisonListInner({
   project,
 }: EventComparisonListInnerProps) {
   const organization = useOrganization();
-  const maxDateTime = Date.now();
-  const minDateTime = maxDateTime - 90 * DAY;
 
-  const breakpointTime = breakpoint * 1000;
-  const breakpointDateTime = new Date(breakpointTime);
-
-  const beforeTime = breakpointTime - DAY;
-  const beforeDateTime =
-    beforeTime >= minDateTime ? new Date(beforeTime) : new Date(minDateTime);
-
-  const afterTime = breakpointTime + DAY;
-  const afterDateTime =
-    afterTime <= maxDateTime ? new Date(afterTime) : new Date(maxDateTime);
+  const breakpointDateTime = new Date(breakpoint * 1000);
+  const datetime = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 1,
+  });
+  const {start: beforeDateTime, end: afterDateTime} = datetime;
 
   const beforeProfilesQuery = useProfileFunctions({
     datetime: {
@@ -149,7 +141,8 @@ function EventComparisonListInner({
     (afterProfilesQuery.data?.data?.[0]?.['examples()'] as string[]) ?? [];
 
   const profilesQuery = useProfileEvents({
-    fields: ['id', 'transaction', 'timestamp', 'profile.duration'],
+    datetime,
+    fields: ['id', 'transaction', 'profile.duration'],
     query: `id:[${[...beforeProfileIds, ...afterProfileIds].join(', ')}]`,
     sort: {
       key: 'profile.duration',
@@ -237,10 +230,11 @@ function EventList({
         <strong>{t('Profile ID')}</strong>
       </Container>
       <Container>
-        <strong>{t('Timestamp')}</strong>
+        <strong>{t('Transaction')}</strong>
       </Container>
       <NumberContainer>
-        <strong>{t('Duration')}</strong>
+        <strong>{t('Duration')} </strong>
+        <QuestionTooltip size="xs" position="top" title={t('The profile duration')} />
       </NumberContainer>
       {profiles.map(item => {
         const target = generateProfileFlamechartRouteWithQuery({
@@ -256,23 +250,19 @@ function EventList({
         return (
           <Fragment key={item.id}>
             <Container>
-              <Tooltip title={item.transaction} position="top">
-                <Link
-                  to={target}
-                  onClick={() => {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'profiling.issue.function_regression',
-                    });
-                  }}
-                >
-                  {getShortEventId(item.id)}
-                </Link>
-              </Tooltip>
+              <Link
+                to={target}
+                onClick={() => {
+                  trackAnalytics('profiling_views.go_to_flamegraph', {
+                    organization,
+                    source: 'profiling.issue.function_regression',
+                  });
+                }}
+              >
+                {getShortEventId(item.id)}
+              </Link>
             </Container>
-            <Container>
-              <DateTime date={item.timestamp} year seconds timeZone />
-            </Container>
+            <Container>{item.transaction}</Container>
             <NumberContainer>
               <PerformanceDuration nanoseconds={item['profile.duration']} abbreviation />
             </NumberContainer>
@@ -294,6 +284,6 @@ const Wrapper = styled('div')`
 
 const ListContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: minmax(75px, 1fr) auto minmax(75px, 1fr);
   gap: ${space(1)};
 `;

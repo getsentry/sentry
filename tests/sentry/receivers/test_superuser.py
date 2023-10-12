@@ -1,6 +1,6 @@
 from sentry.api.endpoints.auth_index import PREFILLED_SU_MODAL_KEY
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import User
+from sentry.models.user import User
 from sentry.receivers.superuser import disable_superuser, enable_superuser
 from sentry.testutils.cases import TestCase
 

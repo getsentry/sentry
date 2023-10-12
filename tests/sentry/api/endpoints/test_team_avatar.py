@@ -2,7 +2,7 @@ from base64 import b64encode
 
 from django.urls import reverse
 
-from sentry.models import TeamAvatar
+from sentry.models.avatars.team_avatar import TeamAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

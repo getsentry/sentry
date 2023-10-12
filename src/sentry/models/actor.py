@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from django.forms import model_to_dict
 from rest_framework import serializers
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
@@ -20,14 +20,16 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
     # `type` will be 0 or 1 and we want to get Team or User
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if type == ACTOR_TYPES["team"]:
         return Team
@@ -57,7 +59,8 @@ def fetch_actors_by_actor_ids(cls: type[Team], actor_ids: list[int]) -> list[Tea
 def fetch_actors_by_actor_ids(
     cls: type[User] | type[Team], actor_ids: list[int]
 ) -> list[Team] | list[RpcUser]:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if cls is User:
         user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
@@ -81,7 +84,8 @@ def fetch_actor_by_id(cls: type[Team], id: int) -> Team:
 
 
 def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if cls is Team:
         return Team.objects.get(id=id)
@@ -143,6 +147,13 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # Actors that can have both their `user` and `team` value set to null. Exclude such actors # from the export.
+        q = super().query_for_relocation_export(q, pk_map)
+
+        return q & ~models.Q(team__isnull=True, user_id__isnull=True)
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
@@ -209,7 +220,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier: int | str | None) -> ActorTuple | None:
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         """
         Returns an Actor tuple corresponding to a User or Team associated with
@@ -268,7 +280,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :param actors:
         :return:
         """
-        from sentry.models import User
+        from sentry.models.user import User
 
         if not actors:
             return []

@@ -8,25 +8,27 @@ from unittest.mock import call, patch
 import pytest
 import responses
 from django.conf import settings
-from django.db import connections
+from django.db import connections, router
+from django.db.transaction import get_connection
 from django.test import RequestFactory
 from pytest import raises
 from rest_framework import status
 
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.outbox import (
     ControlOutbox,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationMemberTeamReplica,
+    OutboxBase,
     OutboxCategory,
     OutboxFlushError,
     OutboxScope,
     RegionOutbox,
-    User,
     WebhookProviderIdentifier,
     outbox_context,
 )
+from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -389,6 +391,29 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
         assert mock_process_region_outbox.call_count == 2
+
+    def test_holding_lock_too_long(self):
+        outbox: OutboxBase = OrganizationMember(
+            id=1, organization_id=3, user_id=1
+        ).outbox_for_update()
+        with outbox_context(flush=False):
+            outbox.save()
+
+        def test_inside_locked():
+            nonlocal outbox
+            conn = get_connection(router.db_for_write(RegionOutbox))
+            with conn.cursor() as cursor:
+                cursor.execute("SET lock_timeout = '1s'")
+            with outbox.process_shard(RegionOutbox(id=0)) as shard_outbox:
+                assert shard_outbox is None
+            with pytest.raises(OutboxFlushError):
+                with outbox.process_shard(RegionOutbox(id=outbox.id + 1)):
+                    pass
+
+        thread = threading.Thread(target=wrap_with_connection_closure(test_inside_locked))
+        with outbox.process_shard(None):
+            thread.start()
+            thread.join()
 
 
 @region_silo_test(stable=True)

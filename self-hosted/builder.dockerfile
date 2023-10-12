@@ -29,11 +29,11 @@ RUN wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/v
 
 WORKDIR /js
 
-COPY package.json /js
+COPY .volta.json package.json
 # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
 RUN node -v && yarn -v
 
-COPY yarn.lock /js
+COPY .volta.json package.json yarn.lock .
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
   && yarn install --frozen-lockfile --production --quiet \
   && rm -r "$YARN_CACHE_FOLDER"
