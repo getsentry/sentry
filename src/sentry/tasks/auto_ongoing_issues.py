@@ -111,7 +111,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    span = sentry_sdk.Hub.current.scope.span
     total_count = 0
 
     def get_total_count(results):
