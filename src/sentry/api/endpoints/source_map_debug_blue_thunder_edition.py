@@ -243,9 +243,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             for exception_value in exception_values:
                 processed_frames = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
-                frames = frames or get_path(exception_value, "stacktrace", "frames")
+                stacktrace = get_path(exception_value, "stacktrace")
                 if frames is not None:
-                    for frame in frames:
+                    for frame, frame_index in frames:
                         abs_path = get_path(frame, "abs_path")
                         debug_id = next(
                             (
@@ -267,7 +267,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                 },
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
-                                    scraping_attempt_map, frame
+                                    scraping_attempt_map, frame, frame_index, stacktrace
                                 ),
                             }
                         )
@@ -290,21 +290,27 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         )
 
 
-def get_scraping_data_for_frame(scraping_attempt_map, frame):
-    abs_path = frame.get("abs_path")
+def get_scraping_data_for_frame(scraping_attempt_map, raw_frame, raw_frame_index, stacktrace):
+    scraping_data = {"source_file": None, "source_map": None}
+
+    abs_path = raw_frame.get("abs_path")
     if abs_path is None:
-        return {"source_file": None, "source_map": None}
+        return scraping_data
 
-    source_file_data = scraping_attempt_map.get(abs_path)
-    source_map_data = None
+    scraping_data["source_file"] = scraping_attempt_map.get(abs_path)
 
-    data = frame.get("data", {})
-    source_map_url = data.get("sourcemap")
+    frame = None
+    if stacktrace is not None:
+        try:
+            frame = stacktrace[raw_frame_index]
+        except IndexError:
+            pass
 
+    source_map_url = get_path(frame, "data", "sourcemap")
     if source_map_url is not None:
-        source_map_data = scraping_attempt_map.get(source_map_url)
+        scraping_data["source_map"] = scraping_attempt_map.get(source_map_url)
 
-    return {"source_file": source_file_data, "source_map": source_map_data}
+    return scraping_data
 
 
 class ReleaseLookupData:
@@ -669,10 +675,7 @@ def get_abs_paths_in_event(event_data):
     exception_values = get_path(event_data, "exception", "values")
     if exception_values is not None:
         for exception_value in exception_values:
-            stacktrace = get_path(exception_value, "raw_stacktrace") or get_path(
-                exception_value, "stacktrace"
-            )
-            frames = get_path(stacktrace, "frames")
+            frames = get_path(exception_value, "raw_stacktrace", "frames")
             if frames is not None:
                 for frame in frames:
                     abs_path = get_path(frame, "abs_path")

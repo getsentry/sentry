@@ -31,6 +31,14 @@ def create_exception_with_frame(frame):
     }
 
 
+def create_exception_with_frames(frames, raw_frames):
+    return {
+        "type": "Error",
+        "stacktrace": {"frames": frames},
+        "raw_stacktrace": {"frames": raw_frames},
+    }
+
+
 def create_event(
     exceptions=None,
     debug_meta_images=None,
@@ -1696,10 +1704,14 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             event = self.store_event(
                 data=create_event(
                     exceptions=[
-                        create_exception_with_frame({"abs_path": "https://example.com/bundle0.js"}),
-                        create_exception_with_frame({"abs_path": "https://example.com/bundle1.js"}),
-                        create_exception_with_frame({"abs_path": "https://example.com/bundle2.js"}),
-                        create_exception_with_frame({"abs_path": "https://example.com/bundle3.js"}),
+                        create_exception_with_frames(
+                            [
+                                {"abs_path": "https://example.com/bundle0.js"},
+                                {"abs_path": "https://example.com/bundle1.js"},
+                                {"abs_path": "https://example.com/bundle2.js"},
+                                {"abs_path": "https://example.com/bundle3.js"},
+                            ]
+                        ),
                     ],
                     scraping_attempts=[
                         {
@@ -1731,18 +1743,18 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                 "url": "https://example.com/bundle0.js",
                 "status": "success",
             }
-            assert resp.data["exceptions"][1]["frames"][0]["scraping_process"]["source_file"] == {
+            assert resp.data["exceptions"][0]["frames"][1]["scraping_process"]["source_file"] == {
                 "url": "https://example.com/bundle1.js",
                 "status": "not_attempted",
             }
-            assert resp.data["exceptions"][2]["frames"][0]["scraping_process"]["source_file"] == {
+            assert resp.data["exceptions"][0]["frames"][2]["scraping_process"]["source_file"] == {
                 "url": "https://example.com/bundle2.js",
                 "status": "failure",
                 "reason": "not_found",
                 "details": "Did not find source",
             }
             assert (
-                resp.data["exceptions"][3]["frames"][0]["scraping_process"]["source_file"] is None
+                resp.data["exceptions"][0]["frames"][3]["scraping_process"]["source_file"] is None
             )
 
     def test_scraping_result_source_map(self):
@@ -1750,30 +1762,40 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             event = self.store_event(
                 data=create_event(
                     exceptions=[
-                        create_exception_with_frame(
-                            {
-                                "abs_path": "https://example.com/bundle0.js",
-                                "data": {"sourcemap": "https://example.com/bundle0.js.map"},
-                            }
-                        ),
-                        create_exception_with_frame(
-                            {
-                                "abs_path": "https://example.com/bundle1.js",
-                                "data": {"sourcemap": "https://example.com/bundle1.js.map"},
-                            }
-                        ),
-                        create_exception_with_frame(
-                            {
-                                "abs_path": "https://example.com/bundle2.js",
-                                "data": {"sourcemap": "https://example.com/bundle2.js.map"},
-                            }
-                        ),
-                        create_exception_with_frame(
-                            {
-                                "abs_path": "https://example.com/bundle3.js",
-                                "data": {"sourcemap": "https://example.com/bundle3.js.map"},
-                            }
-                        ),
+                        create_exception_with_frames(
+                            frames=[
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle0.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle1.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle2.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle3.js.map"},
+                                },
+                            ],
+                            raw_frames=[
+                                {
+                                    "abs_path": "https://example.com/bundle0.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle1.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle2.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle3.js",
+                                },
+                            ],
+                        )
                     ],
                     scraping_attempts=[
                         {
