@@ -16,6 +16,12 @@ from sentry.silo.base import SiloMode
 class IssueService(RpcService):
     """
     Avoid the temptation to expand this service.
+
+    We want as little access to issues and events in control as possible.
+
+    Unfortunately the issue public share link view requires it as
+    we need issue data to render the initial HTML so that open-graph
+    data can be included.
     """
 
     key = "issue"
@@ -37,14 +43,6 @@ class IssueService(RpcService):
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
     ) -> Optional[RpcGroupShareMetadata]:
-        """
-        Get issue metadata required to generate open-graph metatags
-
-        Having control reach into region for issue data is an anti-pattern.
-        Unfortunately the issue public share link view requires it as
-        we need issue data to render the initial HTML so that open-graph
-        data can be included.
-        """
         pass
 
 
