@@ -1,5 +1,5 @@
 from sentry.exceptions import PluginError
-from sentry.http import is_valid_url
+from sentry.net.socket import is_valid_url
 
 
 def URLValidator(value, **kwargs):
