@@ -550,16 +550,15 @@ class SubscriptionProcessor:
         activated, and create an incident if there isn't already one.
         :return:
         """
+        # If an incident was created for this rule within the last 10 minutes, don't make another one
+        last_incident: Incident | None = (
+            Incident.objects.filter(alert_rule=trigger.alert_rule).order_by("-date_added").first()
+        )
+        if last_incident and (timezone.now() - last_incident.date_added).seconds / 60 <= 10:
+            return None
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
-
-            # If an incident was created for this rule within the last 10 minutes, don't make another one
-            last_incident: Incident | None = (
-                Incident.objects.filter(alert_rule=self.alert_rule).order_by("-date_added").first()
-            )
-            if last_incident and (timezone.now() - last_incident.date_added).seconds / 60 <= 10:
-                return None
 
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
