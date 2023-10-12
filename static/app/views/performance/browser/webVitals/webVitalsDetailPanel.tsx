@@ -405,17 +405,19 @@ export function WebVitalsDetailPanel({
             </ChartZoom>
           )}
         </ChartContainer>
-        <GridEditable
-          data={dataByOpportunity}
-          isLoading={isLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        {!transaction && (
+          <GridEditable
+            data={dataByOpportunity}
+            isLoading={isLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        )}
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
