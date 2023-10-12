@@ -64,10 +64,10 @@ import {
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
-  getWidgetIndicatorColor,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
@@ -93,8 +93,6 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import CircleIndicator from '../circleIndicator';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -1021,13 +1019,7 @@ function WidgetViewerModal(props: Props) {
                               thresholds={widget.thresholds}
                               tableData={tableData}
                             >
-                              <CircleIndicator
-                                color={getWidgetIndicatorColor(
-                                  widget.thresholds,
-                                  tableData
-                                )}
-                                size={12}
-                              />
+                              {getColoredWidgetIndicator(widget.thresholds, tableData)}
                             </ThresholdsHoverWrapper>
                           )}
                       </WidgetTitleRow>
