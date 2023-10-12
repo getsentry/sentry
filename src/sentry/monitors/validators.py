@@ -234,7 +234,8 @@ class ConfigValidator(serializers.Serializer):
 class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(
-        max_length=128, help_text="Name of the monitor. Used for notifications."
+        max_length=128,
+        help_text="Name of the monitor. Used for notifications.",
     )
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
@@ -299,7 +300,8 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("ok", CheckInStatus.OK),
             ("error", CheckInStatus.ERROR),
             ("in_progress", CheckInStatus.IN_PROGRESS),
-        )
+        ),
+        help_text="The status of the job run.",
     )
     duration = EmptyIntegerField(
         required=False,
@@ -309,7 +311,9 @@ class MonitorCheckInValidator(serializers.Serializer):
         help_text="Duration of the job run, in milliseconds.",
     )
     environment = serializers.CharField(
-        required=False, allow_null=True, help_text="Name of the environment."
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment.",
     )
     monitor_config = ConfigValidator(required=False)
     contexts = ContextsValidator(required=False, allow_null=True)
