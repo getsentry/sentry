@@ -18,7 +18,7 @@ const ALL_RELEASES = {
 
 type Props = {
   selectorKey: string;
-  selectorName: string;
+  selectorName?: string;
   selectorValue?: string;
 };
 
@@ -59,14 +59,10 @@ export function ReleaseComparisonSelector() {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   return (
     <PageFilterBar condensed>
-      <ReleaseSelector
-        selectorKey="primaryRelease"
-        selectorName={t('Primary Release')}
-        selectorValue={primaryRelease}
-      />
+      <ReleaseSelector selectorKey="primaryRelease" selectorValue={primaryRelease} />
       <ReleaseSelector
         selectorKey="secondaryRelease"
-        selectorName={t('Secondary Release')}
+        selectorName={t('Compared To')}
         selectorValue={secondaryRelease}
       />
     </PageFilterBar>
@@ -74,7 +70,7 @@ export function ReleaseComparisonSelector() {
 }
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    max-width: 300px;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    max-width: 275px;
   }
 `;

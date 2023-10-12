@@ -21,6 +21,7 @@ export const appKnownDataValues = [
   AppKnownDataType.NAME,
   AppKnownDataType.VERSION,
   AppKnownDataType.BUILD,
+  AppKnownDataType.IN_FOREGROUND,
 ];
 
 const appIgnoredDataValues = [];
