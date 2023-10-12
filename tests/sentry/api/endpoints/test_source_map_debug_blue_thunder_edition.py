@@ -37,10 +37,10 @@ def create_exception_with_frames(raw_frames=None, frames=None):
     }
 
     if raw_frames is not None:
-        ex["raw_stacktrace"] = {"frames": raw_frames}
+        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore
 
     if frames is not None:
-        ex["stacktrace"] = {"frames": frames}
+        ex["stacktrace"] = {"frames": frames}  # type: ignore
 
     return ex
 
