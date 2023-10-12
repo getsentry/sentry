@@ -231,7 +231,6 @@ export class SampledProfile extends Profile {
 
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
-
     for (let i = 0; i < end; i++) {
       const frame = stack[i];
       const last = node.children[node.children.length - 1];
@@ -268,7 +267,6 @@ export class SampledProfile extends Profile {
     }
 
     node.selfWeight += weight;
-    node.aggregate_duration_ns += aggregate_duration_ns ?? 0;
     this.minFrameDuration = Math.min(weight, this.minFrameDuration);
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
@@ -279,7 +277,6 @@ export class SampledProfile extends Profile {
     }
 
     node.frame.selfWeight += weight;
-    node.frame.aggregateDuration += aggregate_duration_ns ?? 0;
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
