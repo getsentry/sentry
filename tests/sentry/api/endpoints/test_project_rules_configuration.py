@@ -8,6 +8,7 @@ from sentry.testutils.silo import region_silo_test
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+JIRA_SERVER_ACTION = "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
@@ -94,6 +95,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         action_ids = [action["id"] for action in response.data["actions"]]
         assert EMAIL_ACTION in action_ids
         assert JIRA_ACTION in action_ids
+        assert JIRA_SERVER_ACTION in action_ids
 
     def test_ticket_rules_not_in_available_actions(self):
         with self.feature({"organizations:integrations-ticket-rules": False}):
@@ -101,6 +103,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             action_ids = [action["id"] for action in response.data["actions"]]
             assert EMAIL_ACTION in action_ids
             assert JIRA_ACTION not in action_ids
+            assert JIRA_SERVER_ACTION not in action_ids
 
     def test_sentry_app_alertable_webhook(self):
         team = self.create_team()
