@@ -197,9 +197,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for transaction in ["foo"]:
             for i in range(10):
                 self.store_span_metric(
-                    2,
+                    4 if i > 3 else 2,
                     metric="http.response_content_length",
-                    timestamp=self.day_ago + timedelta(minutes=0.5),
+                    timestamp=self.day_ago + timedelta(minutes=i),
                     tags={"transaction": transaction},
                 )
 
@@ -216,13 +216,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         )
 
         data = response.data["data"]
+        assert response.status_code == 200
         assert data == [
-            (1697018400, [{"count": 0}]),
+            (1697018400, [{"count": 2.0}]),
             (1697018460, [{"count": 2.0}]),
-            (1697018520, [{"count": 0}]),
-            (1697018580, [{"count": 0}]),
-            (1697018640, [{"count": 0}]),
-            (1697018700, [{"count": 0}]),
+            (1697018520, [{"count": 2.0}]),
+            (1697018580, [{"count": 2.0}]),
+            (1697018640, [{"count": 4.0}]),
+            (1697018700, [{"count": 4.0}]),
         ]
 
 
