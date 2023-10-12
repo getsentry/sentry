@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -79,7 +74,7 @@ describe('DropdownLink', function () {
         // Click outside
         await userEvent.click(screen.getByTestId('outside-element'), {delay: null});
 
-        await waitForElementToBeRemoved(() => screen.queryByText('hi'));
+        await waitFor(() => expect(screen.queryByText('hi')).not.toBeInTheDocument());
       });
 
       it('closes when dropdown actor button is clicked', async function () {

@@ -2,7 +2,7 @@ import {ReactElement, useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -70,15 +70,16 @@ describe('useProfileFunctions', function () {
     );
     expect(hook.result.current.isLoading).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
-    await hook.waitForNextUpdate();
-    expect(hook.result.current).toMatchObject(
-      expect.objectContaining({
-        isLoading: false,
-        isFetched: true,
-        data: expect.objectContaining({
-          data: expect.any(Array),
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(hook.result.current).toMatchObject(
+        expect.objectContaining({
+          isLoading: false,
+          isFetched: true,
+          data: expect.objectContaining({
+            data: expect.any(Array),
+          }),
+        })
+      );
+    });
   });
 });

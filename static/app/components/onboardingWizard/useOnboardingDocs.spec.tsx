@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {
@@ -39,7 +39,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = reactHooks.renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -49,7 +49,8 @@ describe('useOnboardingDocs', function () {
       },
       wrapper,
     });
-    await waitForNextUpdate();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
     expect(isLoading).toEqual(false);

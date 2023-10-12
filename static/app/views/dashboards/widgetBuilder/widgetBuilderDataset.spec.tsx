@@ -1,11 +1,13 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import MockDate from 'mockdate';
 import {MetricsField} from 'sentry-fixture/metrics';
 import {SessionsField} from 'sentry-fixture/sessions';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -268,6 +270,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     jest.useRealTimers();
+    MockDate.set(new Date(1508208080000));
   });
 
   describe('Release Widgets', function () {
@@ -359,7 +362,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort on tags except release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -400,7 +403,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('makes the appropriate sessions call', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -432,7 +435,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls the session endpoint with the right limit', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -470,7 +473,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -529,7 +532,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -601,7 +604,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      MockDate.set(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -882,6 +885,8 @@ describe('WidgetBuilder', function () {
           ],
         });
 
+        await act(tick);
+
         await waitFor(() => {
           expect(measurementsMetaMock).toHaveBeenCalled();
         });
@@ -934,6 +939,8 @@ describe('WidgetBuilder', function () {
           ],
         });
 
+        await act(tick);
+
         await waitFor(() => {
           expect(measurementsMetaMock).toHaveBeenCalled();
         });
@@ -979,6 +986,8 @@ describe('WidgetBuilder', function () {
           },
           orgFeatures: [...defaultOrgFeatures, 'dashboards-mep'],
         });
+
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         await waitFor(() => {
           expect(measurementsMetaMock).toHaveBeenCalled();

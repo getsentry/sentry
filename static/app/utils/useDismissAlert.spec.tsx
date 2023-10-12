@@ -27,7 +27,7 @@ describe('useDismissAlert', () => {
 
     const initialRef = result.current.dismiss;
 
-    rerender();
+    rerender({key});
 
     expect(result.current.dismiss).toEqual(initialRef);
   });

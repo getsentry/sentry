@@ -12,6 +12,12 @@ failOnConsole({
     // Ignore the following warnings
 
     if (
+      /Warning: ReactDOM.render is no longer supported in React 18/.test(errorMessage)
+    ) {
+      return true;
+    }
+
+    if (
       /Warning: componentWill(Mount|ReceiveProps) has been renamed/.test(errorMessage)
     ) {
       return true;

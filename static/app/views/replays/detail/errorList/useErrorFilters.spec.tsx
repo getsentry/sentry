@@ -90,7 +90,7 @@ describe('useErrorFilters', () => {
       },
     });
 
-    rerender();
+    rerender({errorFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({

@@ -140,7 +140,7 @@ describe('useConsoleFilters', () => {
       },
     });
 
-    rerender();
+    rerender({frames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({

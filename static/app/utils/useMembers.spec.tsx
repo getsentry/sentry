@@ -1,6 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -36,7 +36,7 @@ describe('useMembers', function () {
       body: [{user: newUser2}, {user: newUser3}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers);
+    const {result} = reactHooks.renderHook(useMembers);
     const {onSearch} = result.current;
 
     // Works with append
@@ -70,7 +70,7 @@ describe('useMembers', function () {
       body: [{user: userFoo}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers, {
+    const {result} = reactHooks.renderHook(useMembers, {
       initialProps: {emails: ['foo@test.com']},
     });
 
@@ -92,7 +92,7 @@ describe('useMembers', function () {
       body: [{user: userFoo}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers, {
+    const {result} = reactHooks.renderHook(useMembers, {
       initialProps: {ids: ['10']},
     });
 
@@ -118,7 +118,7 @@ describe('useMembers', function () {
   });
 
   it('correctly returns hasMore before and after store update', async function () {
-    const {result, waitFor} = reactHooks.renderHook(useMembers);
+    const {result} = reactHooks.renderHook(useMembers);
 
     const {members, hasMore} = result.current;
     expect(hasMore).toBe(null);

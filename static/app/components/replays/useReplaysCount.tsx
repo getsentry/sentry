@@ -21,7 +21,7 @@ function useReplaysCount({
   organization,
   replayIds,
   transactionNames,
-}: Options) {
+}: Options): CountState {
   const api = useApi();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});

@@ -90,7 +90,7 @@ describe('useDomFilters', () => {
       },
     });
 
-    rerender();
+    rerender({actions});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({

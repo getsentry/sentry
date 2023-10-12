@@ -154,7 +154,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -166,7 +166,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -232,7 +232,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -244,7 +244,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({

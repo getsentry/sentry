@@ -12,7 +12,7 @@ import {customerDomain, usingCustomerDomain} from 'sentry/constants';
  */
 function withSentryRouter<P extends WithRouterProps>(
   WrappedComponent: React.ComponentType<P>
-) {
+): React.ComponentClass<Omit<P, keyof WithRouterProps>> {
   function WithSentryRouterWrapper(props: P) {
     const {params} = props;
     if (usingCustomerDomain) {

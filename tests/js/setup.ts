@@ -1,5 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import '@testing-library/jest-dom';
+
 import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
