@@ -44,6 +44,9 @@ CHECKINS_LIMIT = 10_000
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
+# This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
+MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
+
 
 def _get_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
@@ -90,9 +93,13 @@ def _dispatch_tasks(ts: datetime):
     check_timeout.delay(current_datetime=ts)
 
 
-def try_monitor_tasks_trigger(ts: datetime):
+def try_monitor_tasks_trigger(ts: datetime, partition: int):
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
+
+    We keep a reference to the most recent timestamp for each partition and use
+    the slowest partition as our reference time. This ensures all partitions
+    have been synchronized before ticking our clock.
 
     This function is called by our consumer processor
     """
@@ -102,6 +109,30 @@ def try_monitor_tasks_trigger(ts: datetime):
     # should have their timestamp clamped to the minute.
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
+
+    # Store the current clock value for this partition.
+    redis_client.zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={f"part-{partition}": reference_ts},
+    )
+
+    # Find the slowest partition from our sorted set of partitions, where the
+    # clock is the score.
+    slowest_partitions = redis_client.zrange(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        withscores=True,
+        start=0,
+        end=0,
+    )
+
+    # the first tuple is the slowest (part-<id>, score), the score is the
+    # timestamp. Use `int()` to keep the timestamp (score) as an int
+    slowest_part_ts = int(slowest_partitions[0][1])
+
+    # TODO(epurkhiser): The `slowest_part_ts` is going to become the
+    # reference_ts for the rest of this function. But we don't want to flip
+    # this over quite yet since we want to make sure this is working as
+    # expected.
 
     precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
     if precheck_last_ts is not None:
@@ -130,6 +161,15 @@ def try_monitor_tasks_trigger(ts: datetime):
     # Track the delay from the true time, ideally this should be pretty
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp() - reference_ts
+
+    # TODO(epurkhiser): For now we will just log the slowest partition
+    # timestamp and in production we can validate the value moves forward
+    # correctly. It's likely this will be a minute behind the actual
+    # reference_ts since there will always be a sloest partition
+    logger.info(
+        "monitors.consumer.clock_tick_slowest_partition",
+        extra={"slowest_part_ts": slowest_part_ts},
+    )
 
     logger.info(
         "monitors.consumer.clock_tick",
@@ -160,7 +200,8 @@ def clock_pulse(current_datetime=None):
 
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
-        try_monitor_tasks_trigger(current_datetime)
+        for partition in _get_partitions().values():
+            try_monitor_tasks_trigger(current_datetime, partition.id)
         return
 
     message: ClockPulseMessage = {

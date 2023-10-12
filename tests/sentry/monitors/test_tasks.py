@@ -950,25 +950,25 @@ def test_monitor_task_trigger(dispatch_tasks):
     now = datetime.now().replace(second=0, microsecond=0)
 
     # First checkin triggers tasks
-    try_monitor_tasks_trigger(ts=now)
+    try_monitor_tasks_trigger(ts=now, partition=0)
     assert dispatch_tasks.call_count == 1
 
     # 5 seconds later does NOT trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=5))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=5), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # a minute later DOES trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tasks.call_count == 2
 
     # Same time does NOT trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tasks.call_count == 2
 
     # A skipped minute triggers the task AND captures an error
     with mock.patch("sentry_sdk.capture_message") as capture_message:
         assert capture_message.call_count == 0
-        try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5))
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5), partition=0)
         assert dispatch_tasks.call_count == 3
         capture_message.assert_called_with("Monitor task dispatch minute skipped")
 
@@ -984,19 +984,19 @@ def test_monitor_task_trigger_partition_desync(dispatch_tasks):
 
     # First message with timestamp just after the minute boundary
     # triggers the task
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Second message has a timestamp just before the minute boundary,
     # should not trigger anything since we've already ticked ahead of this
-    try_monitor_tasks_trigger(ts=now - timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now - timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Third message again just after the minute boundary does NOT trigger
     # the task, we've already ticked at that time.
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Fourth message moves past a new minute boundary, tick
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1), partition=0)
     assert dispatch_tasks.call_count == 2
