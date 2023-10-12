@@ -1,27 +1,16 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import {Flex} from 'sentry/components/profiling/flex';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  onDelete: () => void | Promise<void>;
 }
 
-function openDeleteModal({onDelete}: {onDelete: () => void | Promise<void>}) {
+export default function openDeleteModal({onDelete}: Props) {
   openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
     <Fragment>
       <Body>
@@ -43,43 +32,4 @@ function openDeleteModal({onDelete}: {onDelete: () => void | Promise<void>}) {
       </Footer>
     </Fragment>
   ));
-}
-
-export default function DeleteButton({feedbackItem}: Props) {
-  const feedbackId = feedbackItem.feedback_id;
-
-  const api = useApi();
-  const organization = useOrganization();
-  const {getParamValue: getFeedbackSlug, setParamValue: setFeedbackSlug} =
-    useUrlParams('feedbackSlug');
-  const {setFeedback} = useInfiniteFeedbackListData();
-
-  const url = useMemo(() => {
-    const feedbackSlug = getFeedbackSlug();
-    const projectSlug = feedbackSlug?.split(':')[0];
-    return `/projects/${organization.slug}/${projectSlug}/feedback/${feedbackId}/`;
-  }, [feedbackId, getFeedbackSlug, organization]);
-
-  const handleDelete = useCallback(async () => {
-    addLoadingMessage(t('Deleting feedback...'));
-    try {
-      await api.requestPromise(url, {method: 'DELETE'});
-      addSuccessMessage(t('Deleted feedback'));
-      setFeedbackSlug('');
-      setFeedback(feedbackId, undefined);
-    } catch {
-      addErrorMessage(t('An error occurred while deleting the feedback.'));
-    }
-  }, [api, feedbackId, setFeedback, setFeedbackSlug, url]);
-
-  return (
-    <Button
-      priority="danger"
-      size="xs"
-      icon={<IconDelete size="xs" />}
-      onClick={() => openDeleteModal({onDelete: handleDelete})}
-    >
-      {t('Delete')}
-    </Button>
-  );
 }
