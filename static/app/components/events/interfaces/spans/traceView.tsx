@@ -81,10 +81,16 @@ function TraceView(props: Props) {
       </EmptyStateWarning>
     );
   }
-  if (!waterfallModel.affectedSpanIds && performanceIssues) {
-    waterfallModel.affectedSpanIds = performanceIssues
-      .map(issue => issue.suspect_spans)
-      .flat();
+  if (
+    (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
+    performanceIssues
+  ) {
+    const suspectSpans = performanceIssues.map(issue => issue.suspect_spans).flat();
+    if (suspectSpans.length) {
+      waterfallModel.affectedSpanIds = performanceIssues
+        .map(issue => [...issue.suspect_spans, ...issue.span])
+        .flat();
+    }
   }
 
   return (

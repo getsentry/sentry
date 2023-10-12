@@ -51,9 +51,10 @@ export function useScratchpads() {
   const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
 
   useEffect(() => {
-    if (state.default && selected === undefined) {
+    if (state.default && selected === undefined && !routerQuery.widgets) {
       setSelected(state.default);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.default, selected]);
 
   // changes the query when a scratchpad is selected, clears it when none is selected
@@ -265,7 +266,7 @@ function SaveAsDropdown({
     setName('');
   }, [name, onSave, setOpen]);
 
-  const enterKeyPressed = useKeyPress('Enter', undefined, true);
+  const enterKeyPressed = useKeyPress('Enter');
 
   useEffect(() => {
     if (isOpen && enterKeyPressed && name) {

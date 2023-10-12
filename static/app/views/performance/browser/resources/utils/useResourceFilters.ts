@@ -4,7 +4,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 export enum BrowserStarfishFields {
   RESOURCE_TYPE = 'type',
-  PAGE = 'transaction',
+  TRANSACTION = 'transaction',
   DOMAIN = 'domain',
   GROUP_ID = 'groupId',
   DESCRIPTION = 'description',
@@ -13,7 +13,7 @@ export enum BrowserStarfishFields {
 export type ModuleFilters = {
   [BrowserStarfishFields.DOMAIN]?: string;
   [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
-  [BrowserStarfishFields.PAGE]?: string;
+  [BrowserStarfishFields.TRANSACTION]?: string;
 };
 
 export const useResourceModuleFilters = () => {
@@ -22,7 +22,7 @@ export const useResourceModuleFilters = () => {
   return pick(location.query, [
     BrowserStarfishFields.DOMAIN,
     BrowserStarfishFields.RESOURCE_TYPE,
-    BrowserStarfishFields.PAGE,
+    BrowserStarfishFields.TRANSACTION,
     BrowserStarfishFields.GROUP_ID,
     BrowserStarfishFields.DESCRIPTION,
   ]);

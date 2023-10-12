@@ -18,6 +18,7 @@ import {
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -174,6 +175,7 @@ function ReleaseEventsChart({
           disablePrevious
           showLegend
           projects={projects}
+          dataset={DiscoverDatasets.METRICS_ENHANCED}
           environments={environments}
           start={start ?? null}
           end={end ?? null}

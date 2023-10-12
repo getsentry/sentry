@@ -293,7 +293,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
 def get_scraping_data_for_frame(scraping_attempt_map, raw_frame, raw_frame_index, stacktrace):
     scraping_data = {"source_file": None, "source_map": None}
 
-    abs_path = raw_frame.get("abs_path")
+    abs_path = get_path(raw_frame, "abs_path")
     if abs_path is None:
         return scraping_data
 
