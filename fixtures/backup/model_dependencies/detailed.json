@@ -72,8 +72,8 @@
         "model": "sentry.apiapplication",
         "nullable": true
       },
-      "organization_id": {
-        "kind": "HybridCloudForeignKey",
+      "organization": {
+        "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": true
       },
