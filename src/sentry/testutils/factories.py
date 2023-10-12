@@ -82,8 +82,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.outbox import outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -285,30 +283,18 @@ class Factories:
                 with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
                     yield
 
-        slug_region = settings.SENTRY_MONOLITH_REGION if region is None else region.name
-        # Defer outbox flushes, as there won't be a slug reservation for the org yet
-        #  which will cause org mappings to fail
-        with org_creation_context(), outbox_context(flush=False):
+        with org_creation_context():
             org = Organization.objects.create(name=name, **kwargs)
 
-        org_slug_user = owner.id if owner else -1
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            OrganizationSlugReservation(
-                organization_id=org.id,
-                region_name=slug_region,
-                slug=org.slug,
-                user_id=org_slug_user,
-            ).save(unsafe_write=True)
+        if region is not None:
+            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+                using=router.db_for_write(OrganizationMapping)
+            ):
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name=region.name)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            if region is not None:
-                with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-                    org_mapping.update(region_name=region.name)
-
         return org
 
     @staticmethod
