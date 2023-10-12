@@ -74,7 +74,7 @@ export function ScreenLoadSpansTable({
       SPAN_DESCRIPTION,
       `avg(${SPAN_SELF_TIME})`, // TODO: Update these to avgIf with primary release when available
       `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      'spm()',
+      'count()',
       'time_spent_percentage(local)',
       `sum(${SPAN_SELF_TIME})`,
     ],
@@ -98,7 +98,7 @@ export function ScreenLoadSpansTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'spm()': DataTitles.throughput,
+    'count()': DataTitles.count,
     [`avg(${SPAN_SELF_TIME})`]: DataTitles.avg,
     [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
       DataTitles.change,

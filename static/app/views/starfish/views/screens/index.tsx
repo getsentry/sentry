@@ -31,6 +31,7 @@ export enum YAxis {
   SLOW_FRAME_RATE,
   FROZEN_FRAME_RATE,
   THROUGHPUT,
+  COUNT,
 }
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
@@ -41,6 +42,7 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: 'avg(measurements.frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(measurements.frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
@@ -51,6 +53,7 @@ export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
@@ -61,6 +64,7 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
   [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
   [YAxis.THROUGHPUT]: t('Throughput'),
+  [YAxis.COUNT]: t('Count'),
 };
 
 export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
@@ -71,6 +75,7 @@ export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
   [YAxis.SLOW_FRAME_RATE]: 'percentage',
   [YAxis.FROZEN_FRAME_RATE]: 'percentage',
   [YAxis.THROUGHPUT]: 'number',
+  [YAxis.COUNT]: 'number',
 };
 
 const DEVICE_CLASS_BREAKDOWN_INDEX = {
