@@ -1,11 +1,17 @@
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {AggregateEventTransaction} from 'sentry/types/event';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceEvent,
+  TraceErrorOrIssue,
+} from 'sentry/utils/performance/quickTrace/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 
 import {AggregateSpanType, ParsedTraceType} from './types';
 
@@ -14,16 +20,35 @@ type Props = {
   event: Readonly<AggregateEventTransaction>;
   isRoot: boolean;
   organization: Organization;
-  relatedErrors: TraceError[] | null;
+  relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: AggregateSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
+function renderSpanSamples(span: AggregateSpanType, project: Project | undefined) {
+  if (!project) {
+    return null;
+  }
+
+  return span.samples.map(([transactionId, spanId], index) => (
+    <Link
+      key={`${transactionId}-${spanId}`}
+      to={`/performance/${project.slug}:${transactionId}#span-${spanId}`}
+    >{`${spanId}${index < span.samples.length - 1 ? ', ' : ''}`}</Link>
+  ));
+}
+
 function AggregateSpanDetail({span}: Props) {
+  const location = useLocation();
+  const {projects} = useProjects();
+
+  const project = projects.find(p => p.id === location.query.project);
+
   const frequency = span?.frequency;
   const avgDuration = span?.timestamp - span?.start_timestamp;
+
   return (
     <SpanDetailContainer
       data-component="span-detail"
@@ -35,8 +60,9 @@ function AggregateSpanDetail({span}: Props) {
       <SpanDetails>
         <table className="table key-value">
           <tbody>
-            <Row title={t('avg(duration)')}>{getDuration(avgDuration)}</Row>
-            <Row title={t('frequency')}>{frequency && formatPercentage(frequency)}</Row>
+            <Row title={t('Avg Duration')}>{getDuration(avgDuration)}</Row>
+            <Row title={t('Frequency')}>{frequency && formatPercentage(frequency)}</Row>
+            <Row title={t('Span Samples')}>{renderSpanSamples(span, project)}</Row>
           </tbody>
         </table>
       </SpanDetails>

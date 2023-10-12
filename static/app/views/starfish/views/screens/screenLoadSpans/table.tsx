@@ -118,6 +118,7 @@ export function ScreenLoadSpansTable({
         ...location.query,
         transaction,
         spanGroup: row[SpanMetricsField.SPAN_GROUP],
+        spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
       };
 
       return (

@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from django.forms import model_to_dict
 from rest_framework import serializers
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
@@ -147,6 +147,13 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # Actors that can have both their `user` and `team` value set to null. Exclude such actors # from the export.
+        q = super().query_for_relocation_export(q, pk_map)
+
+        return q & ~models.Q(team__isnull=True, user_id__isnull=True)
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
