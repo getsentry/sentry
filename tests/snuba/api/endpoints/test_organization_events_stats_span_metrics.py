@@ -192,6 +192,39 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
+    def test_resource_size(self):
+        # Each of these denotes how many events to create in each minute
+        for transaction in ["foo"]:
+            for i in range(10):
+                self.store_span_metric(
+                    2,
+                    metric="http.response_content_length",
+                    timestamp=self.day_ago + timedelta(minutes=0.5),
+                    tags={"transaction": transaction},
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert data == [
+            (1697018400, [{"count": 0}]),
+            (1697018460, [{"count": 2.0}]),
+            (1697018520, [{"count": 0}]),
+            (1697018580, [{"count": 0}]),
+            (1697018640, [{"count": 0}]),
+            (1697018700, [{"count": 0}]),
+        ]
+
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
