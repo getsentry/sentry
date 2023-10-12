@@ -235,7 +235,7 @@ export function SelectorLink({
   const location = useLocation();
   const hovercardContent = (
     <TooltipContainer>
-      {t('Search for replays with clicks on')}
+      {t('Search for replays with clicks on the element')}
       <SelectorScroll>
         <CodeSnippet hideCopyButton language="javascript">
           {value}
