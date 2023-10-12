@@ -25,7 +25,7 @@ from typing import (
 import mmh3
 import sentry_sdk
 from django import db
-from django.db import connections, models, router, transaction
+from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
@@ -286,7 +286,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
-            OutboxCategory.AUTH_IDENTITY_UPDATE,
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
@@ -299,6 +298,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
         },
     )
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
@@ -539,6 +539,16 @@ class OutboxBase(Model):
                 yield next_shard_row
             else:
                 yield None
+        except OperationalError as e:
+            next_shard_row = self.selected_messages_in_shard(
+                latest_shard_row=latest_shard_row
+            ).first()
+            if next_shard_row is None:
+                yield None
+            else:
+                raise OutboxFlushError(
+                    f"Could not flush shard category={self.category}", self
+                ) from e
         finally:
             try:
                 with connections[using].cursor() as cursor:
