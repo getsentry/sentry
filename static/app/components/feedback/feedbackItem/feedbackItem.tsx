@@ -6,6 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -27,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface Props {
@@ -35,6 +37,8 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+
   const api = useApi();
   const {getParamValue: getFeedbackSlug, setParamValue: setFeedbackSlug} =
     useUrlParams('feedbackSlug');
@@ -61,21 +65,31 @@ export default function FeedbackItem({feedbackItem}: Props) {
 
   const onDelete = () => openDeleteModal({onDelete: handleDelete});
 
+  const project = projects.find(p => p.id === String(feedbackItem.project_id));
+  if (!project) {
+    return null;
+  }
+  const slug = project?.slug;
+
   return (
     <Fragment>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
-          <Flex gap={space(1)} align="center">
-            <FeedbackItemUsername feedbackItem={feedbackItem} />
-            {feedbackItem.contact_email ? (
-              <CopyToClipboardButton
-                size="xs"
-                iconSize="xs"
-                text={feedbackItem.contact_email}
-              />
-            ) : null}
+          <Flex column>
+            <Flex align="center" gap={space(0.5)}>
+              <FeedbackItemUsername feedbackItem={feedbackItem} />
+              {feedbackItem.contact_email ? (
+                <CopyToClipboardButton
+                  size="xs"
+                  iconSize="xs"
+                  text={feedbackItem.contact_email}
+                />
+              ) : null}
+            </Flex>
+            <Flex align="center" gap={space(0.5)}>
+              <ProjectAvatar project={project} size={12} /> {slug}
+            </Flex>
           </Flex>
-
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
               <FeedbackViewers feedbackItem={feedbackItem} />
