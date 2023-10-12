@@ -28,7 +28,7 @@ type Props = {
 };
 
 function renderSpanSamples(span: AggregateSpanType, project: Project | undefined) {
-  if (!project) {
+  if (!project || !span.samples) {
     return null;
   }
 
