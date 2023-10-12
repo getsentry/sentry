@@ -14,7 +14,11 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.models.user import User
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.signals import (
+    cron_monitor_created,
+    first_cron_checkin_received,
+    first_cron_monitor_created,
+)
 
 from .constants import MAX_TIMEOUT, TIMEOUT
 from .models import CheckInStatus, Monitor, MonitorCheckIn
@@ -37,6 +41,13 @@ def signal_first_monitor_created(project: Project, user, from_upsert: bool):
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+def signal_monitor_created(project: Project, user, from_upsert: bool):
+    cron_monitor_created.send_robust(
+        project=project, user=user, from_upsert=from_upsert, sender=Project
+    )
+    signal_first_monitor_created(project, user, from_upsert)
 
 
 # Generates a timeout_at value for new check-ins
