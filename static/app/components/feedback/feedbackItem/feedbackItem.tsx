@@ -1,23 +1,17 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
-import openDeleteModal from 'sentry/components/feedback/feedbackItem/deleteButton';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -26,10 +20,8 @@ import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
@@ -38,32 +30,9 @@ interface Props {
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
-
-  const api = useApi();
-  const {getParamValue: getFeedbackSlug, setParamValue: setFeedbackSlug} =
-    useUrlParams('feedbackSlug');
-  const {setFeedback} = useInfiniteFeedbackListData();
-  const feedbackId = feedbackItem.feedback_id;
-
-  const url = useMemo(() => {
-    const feedbackSlug = getFeedbackSlug();
-    const projectSlug = feedbackSlug?.split(':')[0];
-    return `/projects/${organization.slug}/${projectSlug}/feedback/${feedbackId}/`;
-  }, [feedbackId, getFeedbackSlug, organization]);
-
-  const handleDelete = useCallback(async () => {
-    addLoadingMessage(t('Deleting feedback...'));
-    try {
-      await api.requestPromise(url, {method: 'DELETE'});
-      addSuccessMessage(t('Deleted feedback'));
-      setFeedbackSlug('');
-      setFeedback(feedbackId, undefined);
-    } catch {
-      addErrorMessage(t('An error occurred while deleting the feedback.'));
-    }
-  }, [api, feedbackId, setFeedback, setFeedbackSlug, url]);
-
-  const onDelete = () => openDeleteModal({onDelete: handleDelete});
+  const {onDelete} = useDeleteFeedback({
+    feedbackItem,
+  });
 
   const project = projects.find(p => p.id === String(feedbackItem.project_id));
   if (!project) {
