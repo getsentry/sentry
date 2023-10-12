@@ -132,7 +132,6 @@ class DiscordRequest:
         self.user = self.get_identity_user()
         if not self.user:
             self._info("discord.validate.identity.no.user")
-            return
 
     def get_identity_user(self) -> RpcUser | None:
         identity = self.get_identity()
