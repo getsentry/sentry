@@ -35,7 +35,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         from sentry.models.projectkey import ProjectKey
 
         try:
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             return None
 
