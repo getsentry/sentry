@@ -32,6 +32,7 @@ export class Profile {
   minFrameDuration = Number.POSITIVE_INFINITY;
 
   samples: CallTreeNode[] = [];
+  sample_durations_ns: number[] = [];
   weights: number[] = [];
   rawWeights: number[] = [];
 

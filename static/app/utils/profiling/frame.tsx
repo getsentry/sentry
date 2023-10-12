@@ -24,6 +24,7 @@ export class Frame {
 
   totalWeight: number = 0;
   selfWeight: number = 0;
+  aggregateDuration: number = 0;
 
   static Root = new Frame({
     key: ROOT_KEY,
