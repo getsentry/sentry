@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class GroupAssigneeManager(BaseManager):
     def get_assigned_to_data(
         self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
-    ) -> Dict[str, str]:
+    ) -> Dict[str, str | Any | None]:
         data = {
             "assignee": str(assigned_to.id),
             "assigneeEmail": getattr(assigned_to, "email", None),
@@ -48,7 +48,7 @@ class GroupAssigneeManager(BaseManager):
 
         return data
 
-    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple(str, str, str) | None:
+    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple[str, str, str] | None:
         from sentry.models.team import Team
         from sentry.services.hybrid_cloud.user import RpcUser
 
