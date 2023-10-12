@@ -9,7 +9,22 @@ export type Row = {
   'transaction.op': string;
 };
 
-export type RowWithScore = Row & {
+export type TransactionSampleRow = {
+  id: string;
+  'measurements.cls': number;
+  'measurements.fcp': number;
+  'measurements.fid': number;
+  'measurements.lcp': number;
+  'measurements.ttfb': number;
+  replayId: string;
+  timestamp: string;
+  transaction: string;
+  'transaction.duration': number;
+  'transaction.op': string;
+  'user.display': string;
+};
+
+export type Score = {
   clsScore: number;
   fcpScore: number;
   fidScore: number;
@@ -17,5 +32,9 @@ export type RowWithScore = Row & {
   score: number;
   ttfbScore: number;
 };
+
+export type RowWithScore = Row & Score;
+
+export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
