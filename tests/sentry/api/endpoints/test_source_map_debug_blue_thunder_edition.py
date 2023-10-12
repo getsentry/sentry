@@ -27,16 +27,22 @@ pytestmark = [requires_snuba]
 def create_exception_with_frame(frame):
     return {
         "type": "Error",
-        "stacktrace": {"frames": [frame]},
+        "raw_stacktrace": {"frames": [frame]},
     }
 
 
-def create_exception_with_frames(raw_frames, frames):
-    return {
+def create_exception_with_frames(raw_frames=None, frames=None):
+    ex = {
         "type": "Error",
-        "stacktrace": {"frames": frames},
-        "raw_stacktrace": {"frames": raw_frames},
     }
+
+    if raw_frames is not None:
+        ex["raw_stacktrace"] = {"frames": raw_frames}
+
+    if frames is not None:
+        ex["stacktrace"] = {"frames": frames}
+
+    return ex
 
 
 def create_event(
@@ -1827,14 +1833,14 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                 "url": "https://example.com/bundle0.js.map",
                 "status": "success",
             }
-            assert resp.data["exceptions"][1]["frames"][0]["scraping_process"]["source_map"] == {
+            assert resp.data["exceptions"][0]["frames"][1]["scraping_process"]["source_map"] == {
                 "url": "https://example.com/bundle1.js.map",
                 "status": "not_attempted",
             }
-            assert resp.data["exceptions"][2]["frames"][0]["scraping_process"]["source_map"] == {
+            assert resp.data["exceptions"][0]["frames"][2]["scraping_process"]["source_map"] == {
                 "url": "https://example.com/bundle2.js.map",
                 "status": "failure",
                 "reason": "not_found",
                 "details": "Did not find source",
             }
-            assert resp.data["exceptions"][3]["frames"][0]["scraping_process"]["source_map"] is None
+            assert resp.data["exceptions"][0]["frames"][3]["scraping_process"]["source_map"] is None

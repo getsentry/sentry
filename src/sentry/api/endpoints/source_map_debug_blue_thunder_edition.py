@@ -243,9 +243,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             for exception_value in exception_values:
                 processed_frames = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
-                stacktrace = get_path(exception_value, "stacktrace")
+                stacktrace_frames = get_path(exception_value, "stacktrace", "frames")
                 if frames is not None:
-                    for frame, frame_index in frames:
+                    for frame_index, frame in enumerate(frames):
                         abs_path = get_path(frame, "abs_path")
                         debug_id = next(
                             (
@@ -267,7 +267,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                 },
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
-                                    scraping_attempt_map, frame, frame_index, stacktrace
+                                    scraping_attempt_map, frame, frame_index, stacktrace_frames
                                 ),
                             }
                         )
@@ -290,7 +290,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         )
 
 
-def get_scraping_data_for_frame(scraping_attempt_map, raw_frame, raw_frame_index, stacktrace):
+def get_scraping_data_for_frame(
+    scraping_attempt_map, raw_frame, raw_frame_index, stacktrace_frames
+):
     scraping_data = {"source_file": None, "source_map": None}
 
     abs_path = get_path(raw_frame, "abs_path")
@@ -300,9 +302,9 @@ def get_scraping_data_for_frame(scraping_attempt_map, raw_frame, raw_frame_index
     scraping_data["source_file"] = scraping_attempt_map.get(abs_path)
 
     frame = None
-    if stacktrace is not None:
+    if stacktrace_frames is not None:
         try:
-            frame = stacktrace[raw_frame_index]
+            frame = stacktrace_frames[raw_frame_index]
         except IndexError:
             pass
 
