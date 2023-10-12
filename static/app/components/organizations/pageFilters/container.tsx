@@ -26,7 +26,11 @@ import {extractSelectionParameters} from './utils';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
+  | 'memberProjects'
+  | 'nonMemberProjects'
+  | 'queryParams'
+  | 'router'
+  | 'shouldEnforceSingleProject'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -95,6 +99,9 @@ function Container({
   const memberProjects = user.isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
+  const nonMemberProjects = user.isSuperuser
+    ? []
+    : specifiedProjects.filter(project => !project.isMember);
 
   const doInitialization = () => {
     initializeUrlState({
@@ -104,6 +111,7 @@ function Container({
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       memberProjects,
+      nonMemberProjects,
       defaultSelection,
       forceProject,
       shouldForceProject,
@@ -122,15 +130,13 @@ function Container({
   //
   // This happens when we mount the container.
   useEffect(() => {
-    // We can initialize before ProjectsStore is fully loaded if we don't need to
-    // enforce single project.
-    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
+    if (!projectsLoaded) {
       return;
     }
 
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
+  }, [projectsLoaded]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
