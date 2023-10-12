@@ -283,7 +283,8 @@ class _TransactionsList extends Component<Props> {
       eventView,
     } = this.props;
     const cursorOffset = parseCursor(cursor)?.offset ?? 0;
-    const totalNumSamples = numSamples ? numSamples + cursorOffset : null;
+    numSamples = numSamples ?? null;
+    const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
     return (
       <Fragment>
         <div>

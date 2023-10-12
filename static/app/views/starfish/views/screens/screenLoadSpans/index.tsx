@@ -88,7 +88,7 @@ function ScreenLoadSpans() {
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreensView
-                yAxes={[YAxis.THROUGHPUT, YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />

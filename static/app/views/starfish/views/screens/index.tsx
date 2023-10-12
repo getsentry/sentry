@@ -5,7 +5,6 @@ import Color from 'color';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,6 +31,7 @@ export enum YAxis {
   SLOW_FRAME_RATE,
   FROZEN_FRAME_RATE,
   THROUGHPUT,
+  COUNT,
 }
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
@@ -42,6 +42,7 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: 'avg(measurements.frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(measurements.frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
@@ -52,6 +53,7 @@ export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
@@ -62,6 +64,7 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
   [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
   [YAxis.THROUGHPUT]: t('Throughput'),
+  [YAxis.COUNT]: t('Count'),
 };
 
 export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
@@ -72,6 +75,7 @@ export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
   [YAxis.SLOW_FRAME_RATE]: 'percentage',
   [YAxis.FROZEN_FRAME_RATE]: 'percentage',
   [YAxis.THROUGHPUT]: 'number',
+  [YAxis.COUNT]: 'number',
 };
 
 const DEVICE_CLASS_BREAKDOWN_INDEX = {
@@ -239,16 +243,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <StyledRow minSize={200}>
-        <ChartsContainer>{renderCharts()}</ChartsContainer>
-      </StyledRow>
+      <ChartsContainer>{renderCharts()}</ChartsContainer>
     </div>
   );
 }
-
-const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
-`;
 
 const ChartsContainer = styled('div')`
   display: flex;
