@@ -10,6 +10,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class SharedGroupDetailsTest(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
+        self.org_domain = f"{self.organization.slug}.testserver"
 
     def share_group(self):
         with assume_test_silo_mode(SiloMode.REGION):
@@ -41,7 +42,7 @@ class SharedGroupDetailsTest(TestCase):
         )
 
     def test_get_not_found(self):
-        response = self.client.get("/share/issue/lolnope/")
+        response = self.client.get("/share/issue/lolnope/", HTTP_HOST=self.org_domain)
         assert response.status_code == 200
         self.assert_group_metadata_absent(response)
 
@@ -50,13 +51,18 @@ class SharedGroupDetailsTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             self.organization.flags.disable_shared_issues = True
             self.organization.save()
-        response = self.client.get(f"/share/issue/{share.uuid}/")
+        response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
+        assert response.status_code == 200
+        self.assert_group_metadata_absent(response)
 
+    def test_get_no_subdomain(self):
+        share = self.share_group()
+        response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
         assert response.status_code == 200
         self.assert_group_metadata_absent(response)
 
     def test_get_success(self):
         share = self.share_group()
-        response = self.client.get(f"/share/issue/{share.uuid}/")
+        response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
         assert response.status_code == 200
         self.assert_group_metadata_present(response)
