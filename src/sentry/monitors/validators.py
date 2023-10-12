@@ -17,7 +17,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_TIMEOUT
+from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -142,6 +142,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
         min_value=1,
+        max_value=MAX_THRESHOLD,
     )
 
     recovery_threshold = EmptyIntegerField(
@@ -150,6 +151,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How many successful check-ins in a row before resolving an issue.",
         min_value=1,
+        max_value=MAX_THRESHOLD,
     )
 
     def bind(self, *args, **kwargs):
