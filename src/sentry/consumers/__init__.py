@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import List, Mapping, Optional, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
+from arroyo.backends.kafka import KafkaProducer
+from arroyo.dlq import DlqLimit, DlqPolicy, KafkaDlqProducer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -13,6 +16,9 @@ from django.conf import settings
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -206,6 +212,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "release-health",
         },
+        "dlq_topic": settings.KAFKA_INGEST_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "ingest-generic-metrics": {
         "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
@@ -214,6 +223,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "performance",
         },
+        "dlq_topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "generic-metrics-last-seen-updater": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
@@ -283,6 +295,7 @@ def get_stream_processor(
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
+    enable_dlq: bool,
     validate_schema: bool = False,
     group_instance_id: Optional[str] = None,
 ) -> StreamProcessor:
@@ -396,12 +409,44 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
+    if enable_dlq:
+        try:
+            dlq_topic = consumer_definition["dlq_topic"]
+        except KeyError:
+            raise click.BadParameter(
+                f"Cannot enable DLQ for consumer: {consumer_name}, DLQ topic is not specified in consumer definition"
+            )
+        try:
+            cluster_setting = get_topic_definition(dlq_topic)["cluster"]
+        except ValueError:
+            raise click.BadParameter(
+                f"Invalid DLQ topic: {dlq_topic}, all DLQ topics must have topic definition configured in settings"
+            )
+
+        producer_config = get_kafka_producer_cluster_options(cluster_setting)
+        producer_config.pop("message.max.bytes", None)
+        dlq_producer = KafkaProducer(producer_config)
+
+        dlq_policy = DlqPolicy(
+            KafkaDlqProducer(dlq_producer, Topic(dlq_topic)),
+            DlqLimit(
+                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
+                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+            ),
+            None,
+        )
+
+        logger.info(f"DLQ enabled for {consumer_name} on {dlq_topic}")
+    else:
+        dlq_policy = None
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
+        dlq_policy=dlq_policy,
     )
 
 

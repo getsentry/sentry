@@ -1,10 +1,11 @@
 import logging
 import random
-from typing import Any, Callable, Mapping
+from collections import deque
+from typing import Any, Callable, Mapping, cast
 
 import sentry_kafka_schemas
 import sentry_sdk
-from arroyo.types import Message
+from arroyo.types import BrokerValue, Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
@@ -13,7 +14,12 @@ from sentry.sentry_metrics.configuration import (
     UseCaseKey,
 )
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BrokerMeta,
+    IndexerOutputMessageBatch,
+    InvalidIndexerInputMsgBatchError,
+    MessageBatch,
+)
 from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     GenericMetricsTagsValidator,
     ReleaseHealthTagsValidator,
@@ -69,7 +75,22 @@ class MessageProcessor:
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
             sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
         ):
-            return self._process_messages_impl(outer_message)
+            try:
+                return self._process_messages_impl(outer_message)
+            except InvalidIndexerInputMsgBatchError as e:
+                logger.error(e)
+                return IndexerOutputMessageBatch(
+                    messages=[],
+                    invalid_msg_meta=deque(
+                        [
+                            BrokerMeta(
+                                cast(BrokerValue, msg.value).partition,
+                                cast(BrokerValue, msg.value).offset,
+                            )
+                            for msg in outer_message.payload
+                        ]
+                    ),
+                )
 
     def _process_messages_impl(
         self,
@@ -104,14 +125,14 @@ class MessageProcessor:
             tags_validator=self.__get_tags_validator(),
         )
 
-        sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))
+        sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
             op="check_cardinality_limits"
         ):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                self._config.use_case_id, batch.parsed_payloads_by_offset
+                self._config.use_case_id, batch.parsed_payloads_by_meta
             )
 
         sdk.set_measurement(
@@ -129,9 +150,9 @@ class MessageProcessor:
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()
 
-        new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
+        results = batch.reconstruct_messages(mapping, bulk_record_meta)
 
-        sdk.set_measurement("new_messages.len", len(new_messages.data))
+        sdk.set_measurement("new_messages.len", len(results.data))
 
         with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
             op="apply_cardinality_limits"
@@ -139,4 +160,4 @@ class MessageProcessor:
             # TODO: move to separate thread
             cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 
-        return new_messages
+        return results

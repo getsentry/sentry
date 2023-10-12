@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Mapping, Optional, Union, cast
+from collections import deque
+from typing import Any, Deque, Mapping, NamedTuple, Optional, Union, cast
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
+from arroyo.dlq import InvalidMessage
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -39,19 +41,32 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
+        next_step: ProcessingStep[Union[FilteredPayload, KafkaPayload, RoutingPayload]],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
+        self._invalid_msg_meta: Deque[NamedTuple] = deque()
 
     def poll(self) -> None:
+        if self._invalid_msg_meta:
+            partition, offset = self._invalid_msg_meta.popleft()
+            raise InvalidMessage(partition, offset)
+
         self.__next_step.poll()
 
     def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
         assert not self.__closed
 
-        # FilteredPayloads are not handled in the indexer
-        for transformed_message in cast(IndexerOutputMessageBatch, message.payload).data:
+        if isinstance(message.payload, FilteredPayload):
+            self.__next_step.submit(cast(Message[KafkaPayload], message))
+            return
+
+        transformed_messages = cast(IndexerOutputMessageBatch, message.payload).data
+        invalid_msg_meta = cast(IndexerOutputMessageBatch, message.payload).invalid_msg_meta
+        _ = cast(IndexerOutputMessageBatch, message.payload).cogs_data
+        self._invalid_msg_meta.extend(invalid_msg_meta)
+
+        for transformed_message in transformed_messages:
             self.__next_step.submit(transformed_message)
 
     def close(self) -> None:

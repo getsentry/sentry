@@ -706,6 +706,12 @@ def profiles_consumer(**options):
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
 )
 @click.option(
+    "--enable-dlq",
+    help="Enable dql to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     "--log-level",
     type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
     help="log level to pass to the arroyo consumer",
@@ -776,6 +782,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
+            enable_dlq=False,
             healthcheck_file_path=None,
             validate_schema=True,
         )

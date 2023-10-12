@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 import threading
 import types
-from typing import MutableSequence, NoReturn, Sequence
+from typing import List, MutableSequence, NoReturn, Sequence
 from urllib.parse import urlparse
 
 import click
@@ -129,6 +129,7 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     envvar="SENTRY_DEVSERVER_BIND",
     required=False,
 )
+@click.option("--enable-dlq", "dlq_consumers", multiple=True, help="The consumer to enable DLQ for")
 @log_options()  # needs this decorator to be typed
 @configuration  # needs this decorator to be typed
 def devserver(
@@ -146,6 +147,7 @@ def devserver(
     dev_consumer: bool,
     bind: str | None,
     client_hostname: str,
+    dlq_consumers: List[str] | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -403,6 +405,7 @@ Alternatively, run without --workers.
                             "--consumer-group=sentry-consumer",
                             "--auto-offset-reset=latest",
                             "--no-strict-offset-reset",
+                            *(("--enable-dlq",) if dlq_consumers and name in dlq_consumers else ()),
                         ],
                     )
                 )

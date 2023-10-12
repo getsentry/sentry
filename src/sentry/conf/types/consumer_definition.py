@@ -23,3 +23,7 @@ class ConsumerDefinition(TypedDict, total=False):
     require_synchronization: bool
     synchronize_commit_group_default: str
     synchronize_commit_log_topic_default: str
+
+    dlq_topic: str
+    dlq_max_invalid_ratio: float
+    dlq_max_consecutive_count: int
