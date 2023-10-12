@@ -140,6 +140,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
                 organization_name=provision_options.name,
                 create_default_team=provision_options.create_default_team,
                 organization_id=organization_id,
+                is_test=provision_options.is_test,
             )
 
             create_post_provision_outbox(

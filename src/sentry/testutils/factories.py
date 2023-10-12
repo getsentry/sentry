@@ -111,7 +111,7 @@ from sentry.sentry_apps.installations import (
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -288,7 +288,9 @@ class Factories:
             region_name = region.name if region is not None else get_local_region().name
             org: Organization = Organization.objects.create(name=name, **kwargs)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+            using=router.db_for_write(OrganizationSlugReservation)
+        ):
             OrganizationSlugReservation(
                 organization_id=org.id,
                 region_name=region_name,
