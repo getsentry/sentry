@@ -512,7 +512,9 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
     Similar to Django's algorithm except that we discard the importance of natural keys
     when sorting dependencies (ie, it works without them)."""
 
-    model_dependencies_dict = list(dependencies().values())
+    model_dependencies_dict = list(
+        sorted(dependencies().values(), key=lambda mr: get_model_name(mr.model))
+    )
     model_dependencies_dict.reverse()
     model_set = {md.model for md in model_dependencies_dict}
 
@@ -553,6 +555,6 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
                     for m in sorted(skipped, key=lambda mr: get_model_name(mr.model))
                 )
             )
-        model_dependencies_dict = skipped
+        model_dependencies_dict = sorted(skipped, key=lambda mr: get_model_name(mr.model))
 
     return model_list
