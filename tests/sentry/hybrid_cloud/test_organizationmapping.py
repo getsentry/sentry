@@ -1,7 +1,7 @@
 from typing import Optional
 
 import pytest
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -13,9 +13,6 @@ from sentry.models.outbox import outbox_context
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
-)
-from sentry.services.hybrid_cloud.organization_mapping.impl import (
-    OrganizationMappingConsistencyException,
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
@@ -72,6 +69,8 @@ class OrganizationMappingTest(TransactionTestCase):
             ),
         )
 
+        # TODO(Gabe): Remove these assertions once org mapping writing is prevented
+        #  when no slug is present
         fixture_org_mapping.refresh_from_db()
         assert fixture_org_mapping.name == "santry_org"
         assert fixture_org_mapping.slug == "santryslug"
@@ -82,34 +81,37 @@ class OrganizationMappingTest(TransactionTestCase):
         assert OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         fake_org_id = 7654321
-        organization_mapping_service.upsert(
-            organization_id=fake_org_id,
-            update=RpcOrganizationMappingUpdate(slug=self.organization.slug, region_name="us"),
-        )
-
-        assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
+        # TODO(Gabe): Change this to a validation that the org mapping has not been modified
+        # once org mapping writing fix is in place
+        with pytest.raises(IntegrityError):
+            organization_mapping_service.upsert(
+                organization_id=fake_org_id,
+                update=RpcOrganizationMappingUpdate(slug=self.organization.slug, region_name="us"),
+            )
 
     def test_org_slug_reservation_region_mismatch(self):
         self.organization = self.create_organization(slug="santry", region="us")
 
-        with pytest.raises(OrganizationMappingConsistencyException):
-            organization_mapping_service.upsert(
-                organization_id=self.organization.id,
-                update=RpcOrganizationMappingUpdate(
-                    slug=self.organization.slug, name="saaaaantry", region_name="eu"
-                ),
-            )
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                slug=self.organization.slug, name="saaaaantry", region_name="eu"
+            ),
+        )
+
+        # Assert that org mapping is rejected
+        self.assert_matching_organization_mapping(org=self.organization)
 
     def test_org_slug_reservation_slug_mismatch(self):
         self.organization = self.create_organization(slug="santry", region="us")
 
-        with pytest.raises(OrganizationMappingConsistencyException):
-            organization_mapping_service.upsert(
-                organization_id=self.organization.id,
-                update=RpcOrganizationMappingUpdate(
-                    slug="foobar", name="saaaaantry", region_name="us"
-                ),
-            )
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(slug="foobar", name="saaaaantry", region_name="us"),
+        )
+
+        # Assert that org mapping is rejected
+        self.assert_matching_organization_mapping(org=self.organization)
 
     def test_update_when_slug_matches_temporary_alias(self):
         user = self.create_user()
@@ -162,10 +164,12 @@ class OrganizationMappingTest(TransactionTestCase):
                 organization_id=self.organization.id
             ).delete()
 
+        new_name = "santry_org"
+        new_status = OrganizationStatus.PENDING_DELETION
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=RpcOrganizationMappingUpdate(
-                name="santry_org",
+                name=new_name,
                 slug="santry",
                 status=OrganizationStatus.PENDING_DELETION,
                 region_name="us",
@@ -173,6 +177,6 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         new_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert new_org_mapping.name == self.organization.name
+        assert new_org_mapping.name == new_name
         assert new_org_mapping.slug == self.organization.slug
-        assert new_org_mapping.status == self.organization.status
+        assert new_org_mapping.status == new_status

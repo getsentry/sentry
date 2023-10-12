@@ -54,13 +54,13 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         org_slugs = [org_slug for org_slug in org_slug_qs]
 
         if len(org_slugs) == 0:
-            # If there's no matching organization slug reservation, alert but don't raise an exception
+            # If there's no matching organization slug reservation, alert but don't prevent writing a new org mapping
             capture_exception(
                 OrganizationMappingConsistencyException(
                     f"Expected an organization slug reservation for organization {org_id}, none was found"
                 )
             )
-            return False
+            return True
 
         primary_slug = next(
             (
@@ -72,18 +72,24 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         )
 
         if primary_slug.region_name != update.region_name:
-            raise OrganizationMappingConsistencyException(
-                "Mismatched Slug Reservation and Organization Regions"
+            capture_exception(
+                OrganizationMappingConsistencyException(
+                    "Mismatched Slug Reservation and Organization Regions"
+                )
             )
+            return False
 
         has_matching_slug_reservation = (
             len([org_slug for org_slug in org_slugs if org_slug.slug == update.slug]) > 0
         )
 
         if not has_matching_slug_reservation:
-            raise OrganizationMappingConsistencyException(
-                "Mismatched Slug Reservation and Organization Slugs"
+            capture_exception(
+                OrganizationMappingConsistencyException(
+                    "Mismatched Slug Reservation and Organization Slugs"
+                )
             )
+            return False
 
         return True
 
