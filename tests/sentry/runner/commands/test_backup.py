@@ -10,6 +10,7 @@ from sentry.runner.commands.backup import compare, export, import_
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
@@ -114,6 +115,38 @@ class GoodImportExportCommandTests(TransactionTestCase):
         cli_import_then_export("users", export_args=["--filter_usernames", "testing@example.com"])
 
 
+class GoodImportExportCommandEncryptionTests(TransactionTestCase):
+    """
+    Ensure that encryption using an `--encrypt_with` file works as expected.
+    """
+
+    def encryption_export_args(self, tmp_dir) -> list[str]:
+        tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+        (_, public_key_pem) = generate_rsa_key_pair()
+        public_key_str = public_key_pem.decode("utf-8")
+        with open(tmp_pub_key_path, "w") as f:
+            f.write(public_key_str)
+        return ["--encrypt_with", str(tmp_pub_key_path)]
+
+    def test_global_scope_encryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cli_import_then_export("global", export_args=self.encryption_export_args(tmp_dir))
+
+    def test_config_scope_encryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cli_import_then_export("config", export_args=self.encryption_export_args(tmp_dir))
+
+    def test_organization_scope_encryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cli_import_then_export(
+                "organizations", export_args=self.encryption_export_args(tmp_dir)
+            )
+
+    def test_user_scope_encryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cli_import_then_export("users", export_args=self.encryption_export_args(tmp_dir))
+
+
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self):
         # First import should succeed.
@@ -141,3 +174,17 @@ class BadImportExportCommandTests(TestCase):
         rv = CliRunner().invoke(export, ["global", NONEXISTENT_FILE_PATH])
         assert isinstance(rv.exception, RuntimeError)
         assert "Exports must be run in REGION or MONOLITH instances only" in rv.output
+
+    def test_export_invalid_public_key(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+            with open(tmp_pub_key_path, "w") as f:
+                f.write("this is an invalid public key")
+
+            tmp_out_path = Path(tmp_dir).joinpath("bad.json")
+            rv = CliRunner().invoke(
+                export, ["global", str(tmp_out_path), "--encrypt_with", str(tmp_pub_key_path)]
+            )
+            assert isinstance(rv.exception, ValueError)
+            assert rv.exit_code == 1
+            assert "Could not deserialize" in str(rv.exception)

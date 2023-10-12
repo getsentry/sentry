@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import io
+import tarfile
 import tempfile
 from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import cached_property, lru_cache
 from pathlib import Path
+from typing import Tuple
 from uuid import uuid4
 
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from django.apps import apps
 from django.conf import settings
 from django.core.management import call_command
@@ -102,7 +109,7 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
-    with open(json_file_path, "w+") as tmp_file:
+    with open(json_file_path, "wb+") as tmp_file:
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
@@ -119,6 +126,102 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     with open(json_file_path) as tmp_file:
         output = json.load(tmp_file)
     return output
+
+
+def generate_rsa_key_pair() -> Tuple[bytes, bytes]:
+    private_key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+    public_key = private_key.public_key()
+    private_key_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    public_key_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    return (private_key_pem, public_key_pem)
+
+
+def export_to_encrypted_tarball(
+    path: Path,
+    scope: ExportScope,
+    *,
+    filter_by: set[str] | None = None,
+) -> JSONData:
+    """
+    Helper function that exports the current state of the database to the specified encrypted
+    tarball.
+    """
+
+    # Generate a public-private key pair.
+    (private_key_pem, public_key_pem) = generate_rsa_key_pair()
+    public_key_fp = io.BytesIO(public_key_pem)
+
+    # Run the appropriate `export_in_...` command with encryption enabled.
+    tar_file_path = str(path)
+    with open(tar_file_path, "wb+") as tmp_file:
+        # These functions are just thin wrappers, but its best to exercise them directly anyway in
+        # case that ever changes.
+        if scope == ExportScope.Global:
+            export_in_global_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+        elif scope == ExportScope.Config:
+            export_in_config_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+        elif scope == ExportScope.Organization:
+            export_in_organization_scope(
+                tmp_file, encrypt_with=public_key_fp, org_filter=filter_by, printer=NOOP_PRINTER
+            )
+        elif scope == ExportScope.User:
+            export_in_user_scope(
+                tmp_file, encrypt_with=public_key_fp, user_filter=filter_by, printer=NOOP_PRINTER
+            )
+        else:
+            raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
+
+    # Read the files in the generated tarball. This bit of code assume the file names, but that is
+    # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
+    # present and contain the data we expect.
+    export = None
+    encrypted_dek = None
+    pub_key = None
+    with tarfile.open(tar_file_path, "r") as tar:
+        for member in tar.getmembers():
+            if member.isfile():
+                file = tar.extractfile(member)
+                if file is None:
+                    raise AssertionError(f"Could not extract file for {member.name}")
+
+                content = file.read()
+                if member.name == "export.json":
+                    export = content.decode("utf-8")
+                elif member.name == "data.key":
+                    encrypted_dek = content
+                elif member.name == "key.pub":
+                    pub_key = content
+                else:
+                    raise AssertionError(f"Unknown tarball entity {member.name}")
+
+    if export is None or encrypted_dek is None or pub_key is None:
+        raise AssertionError("A required file was missing from the temporary test tarball")
+
+    # Decrypt the DEK, then use it to decrypt the underlying JSON.
+    private_key = serialization.load_pem_private_key(
+        private_key_pem,
+        password=None,  # Use the password here if the PEM was encrypted
+        backend=default_backend(),
+    )
+    decrypted_dek = private_key.decrypt(  # type: ignore
+        encrypted_dek,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    decryptor = Fernet(decrypted_dek)
+    return json.loads(decryptor.decrypt(export))
 
 
 # No arguments, so we lazily cache the result after the first calculation.
