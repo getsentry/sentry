@@ -10,7 +10,7 @@ export interface FeedbackItemResponse {
     name: null | string;
     version: null | string;
   };
-  contact_email: string;
+  contact_email: null | string;
   device: {
     brand: null | string;
     family: null | string;
