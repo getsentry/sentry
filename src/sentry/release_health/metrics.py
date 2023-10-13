@@ -23,6 +23,7 @@ from snuba_sdk.expressions import Granularity, Limit
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
+    AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
@@ -56,7 +57,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
-from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
