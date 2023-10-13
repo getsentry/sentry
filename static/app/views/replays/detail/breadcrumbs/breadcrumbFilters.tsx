@@ -25,7 +25,7 @@ function BreadcrumbFilters({
         multiple
         options={breadcrumbTypes}
         size="sm"
-        onChange={selected => setType(selected.map(_ => _.value))}
+        onChange={selected => setType(selected.map(({value}) => value))}
         value={type}
         disabled={!breadcrumbTypes.length}
       />
