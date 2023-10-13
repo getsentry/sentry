@@ -51,9 +51,10 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {items} = filterProps;
+  const {items, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
 
-  const deps = useMemo(() => [items], [items]);
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -108,7 +109,10 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
                 deferredMeasurementCache={cache}
                 height={height}
                 noRowsRenderer={() => (
-                  <NoRowRenderer unfilteredItems={items} clearSearchTerm={() => {}}>
+                  <NoRowRenderer
+                    unfilteredItems={items}
+                    clearSearchTerm={clearSearchTerm}
+                  >
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}

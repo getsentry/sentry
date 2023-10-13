@@ -24,49 +24,6 @@ type Return = {
   type: string[];
 };
 
-const OPORCATEGORY_TO_TYPE: Record<string, string> = {
-  ['replay.init']: 'start',
-  ['replay.mutations']: 'replay',
-  ['issue']: 'issue',
-  ['console']: 'console',
-  ['navigation']: 'nav',
-  ['navigation.push']: 'nav',
-  ['navigation.navigate']: 'pageLoad',
-  ['navigation.reload']: 'reload',
-  ['navigation.back_forward']: 'navBackForward',
-  ['memory']: 'memory',
-  ['paint']: 'paint',
-  ['ui.blur']: 'blur',
-  ['ui.focus']: 'action',
-  ['ui.multiClick']: 'rageOrMulti',
-  ['ui.slowClickDetected']: 'rageOrDead',
-  ['largest-contentful-paint']: 'lcp',
-  ['ui.click']: 'click',
-  ['ui.keyDown']: 'keydown',
-  ['ui.input']: 'input',
-};
-
-const TYPE_TO_OPORCATEGORY: Record<string, string[]> = {
-  start: ['replay.init'],
-  replay: ['replay.mutations'],
-  issue: ['issue'],
-  console: ['console'],
-  nav: ['navigation', 'navigation.push'],
-  pageLoad: ['navigation.navigate'],
-  reload: ['navigation.reload'],
-  navBackForward: ['navigation.back_forward'],
-  memory: ['memory'],
-  paint: ['paint'],
-  blur: ['ui.blur'],
-  action: ['ui.focus'],
-  rageOrMulti: ['ui.multiClick'],
-  rageOrDead: ['ui.slowClickDetected'],
-  lcp: ['largest-contentful-paint'],
-  click: ['ui.click'],
-  keydown: ['ui.keyDown'],
-  input: ['ui.input'],
-};
-
 const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',
   replay: 'Replay',
@@ -88,6 +45,28 @@ const TYPE_TO_LABEL: Record<string, string> = {
   input: 'Input',
 };
 
+const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
+  'replay.init': 'start',
+  'replay.mutations': 'replay',
+  issue: 'issue',
+  console: 'console',
+  navigation: 'nav',
+  'navigation.push': 'nav',
+  'navigation.navigate': 'pageLoad',
+  'navigation.reload': 'reload',
+  'navigation.back_forward': 'navBackForward',
+  memory: 'memory',
+  paint: 'paint',
+  'ui.blur': 'blur',
+  'ui.focus': 'action',
+  'ui.multiClick': 'rageOrMulti',
+  'ui.slowClickDetected': 'rageOrDead',
+  'largest-contentful-paint': 'lcp',
+  'ui.click': 'click',
+  'ui.keyDown': 'keydown',
+  'ui.input': 'input',
+};
+
 function typeToLabel(val: string): string {
   return TYPE_TO_LABEL[val] ?? 'Unknown';
 }
@@ -106,6 +85,14 @@ function useBreadcrumbFilters({frames}: Options): Return {
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
 
   const items = useMemo(() => {
+    // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
+    const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE)
+      .map(([key, value]) => [value, key])
+      .reduce(
+        (list, [key, value]) =>
+          list[key] ? {...list, [key]: [list[key], value]} : {...list, [key]: value},
+        {}
+      );
     const OpOrCategory = type.map(theType => TYPE_TO_OPORCATEGORY[theType]).flat();
     return filterItems({
       items: frames,
