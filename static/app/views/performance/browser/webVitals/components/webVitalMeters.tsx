@@ -20,73 +20,76 @@ type Props = {
 };
 
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
-  const getFormattedDuration = (value: number) => {
-    return getDuration(value, value < 1 ? 0 : 2, true);
-  };
+  if (!projectScore) {
+    return null;
+  }
+
   return (
     <Container>
-      {projectScore && (
-        <Flex>
-          <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
-            <MeterBarBody>
-              <MeterHeader>{t('Largest Contentful Paint (P75)')}</MeterHeader>
-              <MeterValueText>
-                {getFormattedDuration(
-                  (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
-                )}
-              </MeterValueText>
-            </MeterBarBody>
-            <MeterBarFooter score={projectScore.lcpScore} />
-          </MeterBarContainer>
-          <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
-            <MeterBarBody>
-              <MeterHeader>{t('First Contentful Paint (P75)')}</MeterHeader>
-              <MeterValueText>
-                {getFormattedDuration(
-                  (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
-                )}
-              </MeterValueText>
-            </MeterBarBody>
-            <MeterBarFooter score={projectScore.fcpScore} />
-          </MeterBarContainer>
-          <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
-            <MeterBarBody>
-              <MeterHeader>{t('First Input Delay (P75)')}</MeterHeader>
-              <MeterValueText>
-                {getFormattedDuration(
-                  (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
-                )}
-              </MeterValueText>
-            </MeterBarBody>
-            <MeterBarFooter score={projectScore.fidScore} />
-          </MeterBarContainer>
-          <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
-            <MeterBarBody>
-              <MeterHeader>{t('Cumulative Layout Shift (P75)')}</MeterHeader>
-              <MeterValueText>
-                {Math.round(
-                  (projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100
-                ) / 100}
-              </MeterValueText>
-            </MeterBarBody>
-            <MeterBarFooter score={projectScore.clsScore} />
-          </MeterBarContainer>
-          <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
-            <MeterBarBody>
-              <MeterHeader>{t('Time To First Byte (P75)')}</MeterHeader>
-              <MeterValueText>
-                {getFormattedDuration(
-                  (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
-                )}
-              </MeterValueText>
-            </MeterBarBody>
-            <MeterBarFooter score={projectScore.ttfbScore} />
-          </MeterBarContainer>
-        </Flex>
-      )}
+      <Flex>
+        <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
+          <MeterBarBody>
+            <MeterHeader>{t('Largest Contentful Paint (P75)')}</MeterHeader>
+            <MeterValueText>
+              {getFormattedDuration(
+                (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
+              )}
+            </MeterValueText>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.lcpScore} />
+        </MeterBarContainer>
+        <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
+          <MeterBarBody>
+            <MeterHeader>{t('First Contentful Paint (P75)')}</MeterHeader>
+            <MeterValueText>
+              {getFormattedDuration(
+                (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
+              )}
+            </MeterValueText>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.fcpScore} />
+        </MeterBarContainer>
+        <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
+          <MeterBarBody>
+            <MeterHeader>{t('First Input Delay (P75)')}</MeterHeader>
+            <MeterValueText>
+              {getFormattedDuration(
+                (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
+              )}
+            </MeterValueText>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.fidScore} />
+        </MeterBarContainer>
+        <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
+          <MeterBarBody>
+            <MeterHeader>{t('Cumulative Layout Shift (P75)')}</MeterHeader>
+            <MeterValueText>
+              {Math.round(
+                (projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100
+              ) / 100}
+            </MeterValueText>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.clsScore} />
+        </MeterBarContainer>
+        <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
+          <MeterBarBody>
+            <MeterHeader>{t('Time To First Byte (P75)')}</MeterHeader>
+            <MeterValueText>
+              {getFormattedDuration(
+                (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
+              )}
+            </MeterValueText>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.ttfbScore} />
+        </MeterBarContainer>
+      </Flex>
     </Container>
   );
 }
+
+const getFormattedDuration = (value: number) => {
+  return getDuration(value, value < 1 ? 0 : 2, true);
+};
 
 const Container = styled('div')`
   margin-top: ${space(2)};

@@ -1,9 +1,12 @@
+import {ReactText} from 'react';
+
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
   TransactionSampleRowWithScore,
   WebVitals,
@@ -61,6 +64,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
     },
   });
 
+  const toInt = (item: ReactText) => (item ? parseInt(item.toString(), 10) : null);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? data.data
@@ -69,12 +73,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
-            'measurements.lcp': row['measurements.lcp'] as number,
-            'measurements.fcp': row['measurements.fcp'] as number,
-            'measurements.cls': row['measurements.cls'] as number,
-            'measurements.ttfb': row['measurements.ttfb'] as number,
-            'measurements.fid': row['measurements.fid'] as number,
-            'transaction.duration': row['transaction.duration'] as number,
+            'measurements.lcp': toInt(row['measurements.lcp']),
+            'measurements.fcp': toInt(row['measurements.fcp']),
+            'measurements.cls': toInt(row['measurements.cls']),
+            'measurements.ttfb': toInt(row['measurements.ttfb']),
+            'measurements.fid': toInt(row['measurements.fid']),
+            'transaction.duration': toInt(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
@@ -104,21 +108,4 @@ export const useTransactionSamplesWebVitalsQuery = ({
     isLoading,
     ...rest,
   };
-};
-
-const mapWebVitalToOrderBy = (webVital?: WebVitals | null) => {
-  switch (webVital) {
-    case 'lcp':
-      return '-measurements.lcp';
-    case 'fcp':
-      return '-measurements.fcp';
-    case 'cls':
-      return '-measurements.cls';
-    case 'ttfb':
-      return '-measurements.ttfb';
-    case 'fid':
-      return '-measurements.fid';
-    default:
-      return undefined;
-  }
 };

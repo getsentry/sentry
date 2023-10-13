@@ -86,7 +86,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
     const ttfb: number = result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count;
     const fid: number = result?.data?.['p75(measurements.fid)'].data[index][1][0].count;
     // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
-    // It's unlikely that we'll ever have a 0 value for a web vital, so this should be fine.
+    // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
     const {totalScore, lcpScore, fcpScore, fidScore, clsScore, ttfbScore} =
       calculatePerformanceScore({
         lcp: lcp === 0 ? Infinity : lcp,

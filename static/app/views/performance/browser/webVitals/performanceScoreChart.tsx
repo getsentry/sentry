@@ -77,7 +77,7 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
                 <TooltipRow>
                   <span>
                     <Dot color={backgroundColors[ORDER.indexOf(webVitalTooltip)]} />
-                    {webVitalTooltip?.toUpperCase()} {t('Opportunity')}
+                    {webVitalTooltip.toUpperCase()} {t('Opportunity')}
                   </span>
                   <TooltipValue>
                     {100 - projectScore[`${webVitalTooltip}Score`]}
@@ -86,7 +86,7 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
                 <TooltipRow>
                   <span>
                     <Dot color={segmentColors[ORDER.indexOf(webVitalTooltip)]} />
-                    {webVitalTooltip?.toUpperCase()} {t('Score')}
+                    {webVitalTooltip.toUpperCase()} {t('Score')}
                   </span>
                   <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
                 </TooltipRow>

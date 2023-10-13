@@ -32,11 +32,11 @@ export type ProjectScore = {
 };
 
 type Vitals = {
-  cls: number | null;
-  fcp: number | null;
-  fid: number | null;
-  lcp: number | null;
-  ttfb: number | null;
+  cls?: number | null;
+  fcp?: number | null;
+  fid?: number | null;
+  lcp?: number | null;
+  ttfb?: number | null;
 };
 
 export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
@@ -48,7 +48,7 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     'fid',
   ].map(vital => {
     if (vitals[vital] === null) {
-      return null;
+      return 0;
     }
 
     return cdf(
@@ -65,20 +65,20 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
   const weightMultiplier = 100 / weightSum;
 
   const totalScore =
-    ((lcpScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.lcp +
-      (fcpScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.fcp +
-      (ttfbScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.ttfb +
-      (clsScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.cls +
-      (fidScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.fid) *
+    (lcpScore * PERFORMANCE_SCORE_WEIGHTS.lcp +
+      fcpScore * PERFORMANCE_SCORE_WEIGHTS.fcp +
+      ttfbScore * PERFORMANCE_SCORE_WEIGHTS.ttfb +
+      clsScore * PERFORMANCE_SCORE_WEIGHTS.cls +
+      fidScore * PERFORMANCE_SCORE_WEIGHTS.fid) *
     weightMultiplier;
 
   return {
     totalScore: Math.round(totalScore),
-    lcpScore: Math.round((lcpScore ?? 0) * 100),
-    fcpScore: Math.round((fcpScore ?? 0) * 100),
-    ttfbScore: Math.round((ttfbScore ?? 0) * 100),
-    clsScore: Math.round((clsScore ?? 0) * 100),
-    fidScore: Math.round((fidScore ?? 0) * 100),
+    lcpScore: Math.round(lcpScore * 100),
+    fcpScore: Math.round(fcpScore * 100),
+    ttfbScore: Math.round(ttfbScore * 100),
+    clsScore: Math.round(clsScore * 100),
+    fidScore: Math.round(fidScore * 100),
   };
 };
 

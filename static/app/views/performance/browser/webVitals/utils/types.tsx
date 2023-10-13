@@ -11,15 +11,15 @@ export type Row = {
 
 export type TransactionSampleRow = {
   id: string;
-  'measurements.cls': number;
-  'measurements.fcp': number;
-  'measurements.fid': number;
-  'measurements.lcp': number;
-  'measurements.ttfb': number;
+  'measurements.cls': number | null;
+  'measurements.fcp': number | null;
+  'measurements.fid': number | null;
+  'measurements.lcp': number | null;
+  'measurements.ttfb': number | null;
   replayId: string;
   timestamp: string;
   transaction: string;
-  'transaction.duration': number;
+  'transaction.duration': number | null;
   'transaction.op': string;
   'user.display': string;
 };
