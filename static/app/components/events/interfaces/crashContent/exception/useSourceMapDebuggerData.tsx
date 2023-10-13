@@ -44,6 +44,7 @@ interface SourceMapDebugBlueThunderResponse {
   sdk_debug_id_support: 'not-supported' | 'unofficial-sdk' | 'needs-upgrade' | 'full';
   sdk_version: string | null;
   has_scraping_data?: boolean;
+  min_debug_id_sdk_version?: string | null;
 }
 
 export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
@@ -181,5 +182,6 @@ export function prepareSourceMapDebuggerFrameInformation(
     scrapingProgress,
     frameIsResolved,
     hasScrapingData: sourceMapDebuggerData.has_scraping_data ?? false,
+    minDebugIdSdkVersion: sourceMapDebuggerData.min_debug_id_sdk_version ?? null,
   } satisfies FrameSourceMapDebuggerData;
 }
