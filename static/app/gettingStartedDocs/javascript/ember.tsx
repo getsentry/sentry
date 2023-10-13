@@ -27,9 +27,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 
 const performanceOtherConfig = `
 // Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
-
+tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 export const steps = ({
   sentryInitContent,
   ...props
