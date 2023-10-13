@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import PanelTable from 'sentry/components/panels/panelTable';
+import {IconDelete} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,6 +15,7 @@ import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
 import StyledIdBadge from '../../components/styledIdBadge';
 import {parseSeconds} from '../../utils';
+import {THRESHOLD_TYPE_TO_STRING} from '../../utils/constants';
 import {Threshold} from '../../utils/types';
 import useFetchThresholdsListData from '../../utils/useFetchThresholdsListData';
 
@@ -136,6 +138,18 @@ export default function ThresholdForm({
     setFormData(data);
   };
 
+  const updateThreshold = (thresholdId, key, value) => {
+    const {thresholds: formThresholds} = formData;
+
+    const updated = formThresholds
+      ? formThresholds?.map(threshold =>
+          threshold.id === thresholdId ? {...threshold, [key]: value} : threshold
+        )
+      : [];
+
+    return updated;
+  };
+
   const projectSelectOptions: SelectValue<string>[] = useMemo(
     () =>
       selectedProjects.map(project => {
@@ -251,13 +265,43 @@ export default function ThresholdForm({
             <StyledPanelTable isLoading={isLoading} headers={[]}>
               {formData.thresholds &&
                 !!formData.thresholds.length &&
-                formData.thresholds.map((threshold, idx) => (
-                  <div key={`${threshold}-${idx}`}>
-                    {threshold.threshold_type} : {threshold.value}
-                  </div>
+                formData.thresholds.map(threshold => (
+                  <ThresholdRow key={`${threshold.id}`}>
+                    <div>{THRESHOLD_TYPE_TO_STRING[threshold.threshold_type]}</div>
+                    <div />
+                    <StyledInput
+                      value={threshold.value}
+                      type="number"
+                      onChange={e => {
+                        const updatedThresholds = updateThreshold(
+                          threshold.id,
+                          'value',
+                          e.target.value
+                        );
+                        updateForm('thresholds', updatedThresholds);
+                      }}
+                      min="0"
+                    />
+                    <div>
+                      <StyledButton
+                        size="xs"
+                        icon={<IconDelete size="xs" />}
+                        aria-label={t('delete')}
+                        onClick={e => {
+                          e.preventDefault();
+                          console.log(`DELETING ${threshold.id}`);
+                        }}
+                      />
+                    </div>
+                  </ThresholdRow>
                 ))}
+              {/* TODO: add threshold btn */}
               <div>Add new row</div>
             </StyledPanelTable>
+          </FormSection>
+          <FormSection>
+            <Title>Actions</Title>
+            <div>Coming soon!</div>
           </FormSection>
         </Fragment>
       )}
@@ -328,4 +372,13 @@ const StyledPanelTable = styled(PanelTable)`
   > :last-child {
     border-bottom: none;
   }
+`;
+
+const ThresholdRow = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(150px, 3fr) 1fr minmax(250px, 2fr) auto;
+`;
+
+const StyledButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
