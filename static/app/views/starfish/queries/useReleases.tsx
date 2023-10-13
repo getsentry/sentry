@@ -1,11 +1,14 @@
+import {getInterval} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Release} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function useReleases() {
+export function useReleases(searchTerm?: string) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {environments, projects} = selection;
@@ -17,8 +20,9 @@ export function useReleases() {
         query: {
           sort: 'date',
           project: projects,
-          per_page: 20,
+          per_page: 50,
           environment: environments,
+          query: searchTerm,
         },
       },
     ],
@@ -41,25 +45,53 @@ export function useReleaseSelection() {
 }
 
 export function useReleaseStats() {
-  const {data: releases, isLoading} = useReleases();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {environments, projects} = selection;
 
-  const {data} = useApiQuery<any>(
+  const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime, {
+    allowEmptyPeriod: true,
+  });
+
+  const urlQuery = Object.fromEntries(
+    Object.entries({
+      project: projects,
+      environment: environments,
+      field: ['sum(session)'],
+      groupBy: ['release', 'project'],
+      orderBy: '-sum(session)',
+      start,
+      end,
+      statsPeriod,
+      per_page: 100,
+      interval: getInterval({start, end, period: statsPeriod}, 'low'),
+    }).filter(([, value]) => defined(value) && value !== '')
+  );
+
+  const {data, isLoading} = useApiQuery<any>(
     [
-      `/organizations/${organization.slug}/sessions`,
+      `/organizations/${organization.slug}/sessions/`,
       {
-        query: {
-          project: projects,
-          environment: environments,
-        },
+        query: urlQuery,
       },
     ],
     {staleTime: Infinity}
   );
+
+  const releaseStatsMap: {[release: string]: {project: number; 'sum(session)': number}} =
+    {};
+  if (data && data.groups) {
+    data.groups.forEach(group => {
+      const release = group.by.release;
+      const project = group.by.project;
+      const sessionCount = group.totals['sum(session)'];
+
+      releaseStatsMap[release] = {project, 'sum(session)': sessionCount};
+    });
+  }
+
   return {
-    releases,
+    data: releaseStatsMap,
     isLoading,
   };
 }
