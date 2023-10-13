@@ -23,7 +23,7 @@ const performanceIntegrations: string[] = [
 
 const performanceOtherConfig = `environment: params.INSTANCE_NAME,
 // Performance Monitoring
-// Capture 100% of the transactions, reduce in production!
+// Capture 100% of the transactions
 tracesSampleRate: 1.0, `;
 
 export const steps = ({
