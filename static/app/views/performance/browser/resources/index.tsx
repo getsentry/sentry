@@ -26,12 +26,7 @@ import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {
-  RESOURCE_TYPE,
-  SPAN_DOMAIN: DOMAIN,
-  TRANSACTION: PAGE,
-  DESCRIPTION,
-} = BrowserStarfishFields;
+const {RESOURCE_TYPE, SPAN_DOMAIN, TRANSACTION, DESCRIPTION} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -77,9 +72,9 @@ function ResourcesLandingPage() {
           </PaddedContainer>
 
           <FilterOptionsContainer>
-            <DomainSelector value={filters[DOMAIN] || ''} />
+            <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
             <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
-            <PageSelector value={filters[PAGE] || ''} />
+            <PageSelector value={filters[TRANSACTION] || ''} />
           </FilterOptionsContainer>
 
           <ResourceTable sort={sort} />
@@ -112,7 +107,7 @@ function DomainSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [DOMAIN]: newValue?.value,
+            [SPAN_DOMAIN]: newValue?.value,
           },
         });
       }}
@@ -166,7 +161,7 @@ function PageSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [PAGE]: newValue?.value,
+            [TRANSACTION]: newValue?.value,
           },
         });
       }}
