@@ -200,7 +200,7 @@ function EventAffectedTransactionsInner({
             value: data.values[i],
           };
         }),
-        seriesName: 'p95()',
+        seriesName: 'p95(function.duration)',
       };
     });
 
