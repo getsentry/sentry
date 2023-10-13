@@ -456,19 +456,11 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             value=100,
             hours_before_now=6,
         )
-        self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
-            tags={"transaction": "bar", "geo.country_code": "US"},
-            org_id=self.org.id,
-            project_id=self.project.id,
-            value=100,
-            hours_before_now=6,
-        )
 
         # Not in before
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "bar", "geo.country_code": "DE"},
+            tags={"transaction": "bar", "geo.country_code": "MS"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=50,

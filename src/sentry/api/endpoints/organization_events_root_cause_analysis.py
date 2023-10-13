@@ -149,7 +149,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             adjusted_params,
             referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
             limit=METRICS_MAX_LIMIT,
-            # Order by descending count to ensure more impactful countries are prioritized
+            # Order by descending count to ensure more active countries are prioritized
             orderby=["-count()"],
         )
 
