@@ -56,7 +56,7 @@ Retrieve a collection of feedback items.
 | browser           | object           | -                                                   |
 | browser.name      | optional[string] | -                                                   |
 | browser.version   | optional[string] | -                                                   |
-| contact_email     | string           | The contact email of the user writing feedback.     |
+| contact_email     | optional[string] | The contact email of the user writing feedback.     |
 | device            | object           | -                                                   |
 | device.brand      | optional[string] | -                                                   |
 | device.family     | optional[string] | -                                                   |
@@ -69,6 +69,7 @@ Retrieve a collection of feedback items.
 | locale.lang       | string           | The language preference of the user's browser.      |
 | locale.timezone   | string           | The timezone the feedback was submitted from.       |
 | message           | string           | The message written by the user providing feedback. |
+| name              | optional[string] | The contact email of the user writing feedback.     |
 | os                | object           | -                                                   |
 | os.name           | optional[string] | -                                                   |
 | os.version        | optional[string] | -                                                   |
@@ -84,7 +85,7 @@ Retrieve a collection of feedback items.
 | timestamp         | string           | ISO-8061 formatted UTC datetime.                    |
 | url               | string           | The page the feedback was triggered on.             |
 | user              | object           | The authorized user's information.                  |
-| user.display_name | optional[string] | -                                                   |
+| user.name         | optional[string] | -                                                   |
 | user.email        | optional[string] | -                                                   |
 | user.id           | optional[string] | -                                                   |
 | user.ip           | optional[string] | Same search field as Events                         |
@@ -122,6 +123,7 @@ Retrieve a collection of feedback items.
             "timezone": "UTC+1"
           },
           "message": "I really like this feedback feature!",
+          "name": "John Doe",
           "os": {
             "name": "iOS",
             "version": "16.2"
@@ -142,7 +144,7 @@ Retrieve a collection of feedback items.
           "timestamp": "2023-08-31T14:10:34.954048",
           "url": "https://docs.sentry.io/platforms/javascript/",
           "user": {
-            "display_name": "John Doe",
+            "name": "John Doe",
             "email": "john.doe@example.com",
             "id": "30246326",
             "ip": "213.164.1.114",
@@ -181,6 +183,7 @@ Retrieve a collection of feedback items.
           "timezone": "UTC+1"
         },
         "message": "I really like this feedback feature!",
+        "name": "John Doe",
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -201,7 +204,7 @@ Retrieve a collection of feedback items.
         "timestamp": "2023-08-31T14:10:34.954048",
         "url": "https://docs.sentry.io/platforms/javascript/",
         "user": {
-          "display_name": "John Doe",
+          "name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
           "ip": "213.164.1.114",
