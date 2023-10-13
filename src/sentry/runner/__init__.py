@@ -114,7 +114,8 @@ def configure(*, skip_service_validation: bool = False):
     or from another invocation of `configure()`. If Click, we're able
     to pass along the Click context object.
     """
-    from .settings import configure, discover_configs
+    from .settings import configure as _configure
+    from .settings import discover_configs
 
     try:
         ctx = click.get_current_context()
@@ -127,7 +128,7 @@ def configure(*, skip_service_validation: bool = False):
         "SENTRY_SKIP_BACKEND_VALIDATION" in os.environ
         or "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
     )
-    configure(ctx, py, yaml, skip_service_validation)
+    _configure(ctx, py, yaml, skip_service_validation)
 
 
 def get_prog():

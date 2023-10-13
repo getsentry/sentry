@@ -9,7 +9,6 @@ import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import {Flex} from 'sentry/components/profiling/flex';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
@@ -45,7 +44,7 @@ function openDeleteModal({onDelete}: {onDelete: () => void | Promise<void>}) {
   ));
 }
 
-export default function DeleteButton({feedbackItem}: Props) {
+export default function useDeleteFeedback({feedbackItem}: Props) {
   const feedbackId = feedbackItem.feedback_id;
 
   const api = useApi();
@@ -72,14 +71,7 @@ export default function DeleteButton({feedbackItem}: Props) {
     }
   }, [api, feedbackId, setFeedback, setFeedbackSlug, url]);
 
-  return (
-    <Button
-      priority="danger"
-      size="xs"
-      icon={<IconDelete size="xs" />}
-      onClick={() => openDeleteModal({onDelete: handleDelete})}
-    >
-      {t('Delete')}
-    </Button>
-  );
+  return {
+    onDelete: () => openDeleteModal({onDelete: handleDelete}),
+  };
 }
