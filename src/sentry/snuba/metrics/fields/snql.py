@@ -908,26 +908,7 @@ def on_demand_failure_count_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
     """Count the number of transactions where the failure tag is set to true."""
-    return Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "failure")),
-                            resolve_tag_value(use_case_id, org_id, "true"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
-        alias=alias,
-    )
+    return sum_if_column_snql(aggregate_filter, org_id, use_case_id, "failure", "true", alias)
 
 
 def on_demand_apdex_snql_factory(
@@ -935,49 +916,12 @@ def on_demand_apdex_snql_factory(
 ) -> Function:
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
-    satisfactory = Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
+    satisfactory = sum_if_column_snql(
+        aggregate_filter, org_id, use_case_id, "satisfaction", "satifactory"
     )
     tolerable_divided_by_2 = Function(
         "divide",
-        [
-            Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function(
-                        "and",
-                        [
-                            Function(
-                                "equals",
-                                [
-                                    Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                                    resolve_tag_value(use_case_id, org_id, "tolerable"),
-                                ],
-                            ),
-                            aggregate_filter,
-                        ],
-                    ),
-                ],
-            ),
-            2,
-        ],
+        [sum_if_column_snql(aggregate_filter, org_id, use_case_id, "satisfaction", "tolerable"), 2],
     )
 
     return Function(
@@ -993,6 +937,49 @@ def on_demand_count_web_vitals_snql_factory(
     return _count_if_with_conditions(
         [
             _web_vital_equivalence(org_id, TransactionSatisfactionTagValue.SATISFIED.value),
+        ],
+        alias,
+    )
+
+
+def on_demand_count_miserable(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    metric_frustrated = resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+
+    # Nobody is miserable, we can return 0
+    if metric_frustrated is None:
+        return Function(
+            "toUInt64",
+            [0],
+            alias,
+        )
+
+    args = {}  # For now since I don't know how to go about it
+
+    return Function(
+        "uniqIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column("metric_id"),
+                            args["metric_id"],
+                        ],
+                    ),
+                    Function(
+                        "equals",
+                        [
+                            Column(constants.METRIC_SATISFACTION_TAG_KEY),
+                            metric_frustrated,
+                        ],
+                    ),
+                ],
+            ),
         ],
         alias,
     )

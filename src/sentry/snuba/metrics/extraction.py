@@ -24,7 +24,7 @@ from typing_extensions import NotRequired
 
 from sentry.api import event_search
 from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
-from sentry.constants import DataCategory
+from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -123,6 +123,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "count_miserable": "on_demand_count_miserable",
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
@@ -142,6 +143,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p95": "d",
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "count_miserable": "c",
     "failure_count": "c",
     "failure_rate": "c",
     "count_web_vitals": "c",
@@ -642,6 +644,7 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
 
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
+    "on_demand_count_miserable": apdex_tag_spec,
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
@@ -726,6 +729,7 @@ class OnDemandMetricSpec:
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
         if self.op in [
+            "on_demand_count_miserable",
             "on_demand_epm",
             "on_demand_eps",
             "on_demand_failure_count",
@@ -946,11 +950,11 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
 
     if len(result) == 0:
         # We use the default threshold shown in the UI.
-        threshold = 300
+        threshold = APDEX_THRESHOLD_DEFAULT
         metric = TransactionMetric.DURATION.value
     else:
-        # We technically don't use this threshold since we extract it from the apdex(x) field where x is the threshold,
-        # but we still return it to have it in case a fallback will be needed.
+        # We technically don't use this threshold since we extract it from the apdex(x) field
+        # where x is the threshold, however, we still return it in case a fallback is needed.
         threshold, metric = result[0]
 
     if metric == TransactionMetric.DURATION.value:

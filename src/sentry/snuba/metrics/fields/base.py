@@ -46,7 +46,6 @@ from sentry.snuba.metrics.fields.snql import (
     apdex,
     complement,
     count_transaction_name_snql_factory,
-    count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -61,7 +60,6 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
-    on_demand_count_web_vitals_snql_factory,
     on_demand_epm_snql_factory,
     on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,
@@ -1720,12 +1718,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="rate",
             can_orderby=True,
             snql_func=rate_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="count_web_vitals",
-            can_orderby=True,
-            snql_func=count_web_vitals_snql_factory,
             default_null_value=0,
         ),
         DerivedOp(
