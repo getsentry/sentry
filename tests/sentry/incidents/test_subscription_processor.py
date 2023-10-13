@@ -167,6 +167,12 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
     def latest_activity(self, incident):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id").first()
 
+    def assert_incident_is_latest_for_rule(self, incident):
+        last_incident = (
+            Incident.objects.filter(alert_rule=incident.alert_rule).order_by("-date_added").first()
+        )
+        assert last_incident == incident
+
 
 @freeze_time()
 class ProcessUpdateTest(ProcessUpdateBaseClass):
@@ -2105,6 +2111,57 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_resolved_for_incident(
             incident, [self.action], [(150.0, IncidentStatus.CLOSED, mock.ANY)]
         )
+
+    def test_no_new_incidents_within_ten_minutes(self):
+        # Verify that a new incident is not made for the same rule, trigger, and
+        # subscription if an incident was already made within the last 10 minutes.
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=10))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), subscription=self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again within 10 minutes; no new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_incident_is_latest_for_rule(original_incident)
+
+    def test_incident_made_after_ten_minutes(self):
+        # Verify that a new incident will be made for the same rule, trigger, and
+        # subscription if the last incident made for those was made more tha 10 minutes
+        # ago
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=11))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again after more than 10 minutes have passed; a new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        new_incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_incident_is_latest_for_rule(new_incident)
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
