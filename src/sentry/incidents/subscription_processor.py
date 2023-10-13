@@ -554,10 +554,7 @@ class SubscriptionProcessor:
 
         # If an incident was created for this rule, trigger type, and subscription
         # within the last 10 minutes, don't make another one
-        trigger_incidents = [incident for incident in trigger.triggered_incidents.all()]
-        last_incident: Incident | None = None
-        if len(trigger_incidents) > 0:
-            last_incident = trigger_incidents[-1]
+        last_incident: Incident | None = trigger.triggered_incidents.order_by("-date_added").first()
         last_incident_projects = (
             [project.id for project in last_incident.projects.all()] if last_incident else []
         )
