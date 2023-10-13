@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -29,7 +30,6 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,

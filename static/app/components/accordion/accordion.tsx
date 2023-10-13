@@ -16,6 +16,7 @@ interface Props {
   items: AccordionItemContent[];
   setExpandedIndex: (index: number) => void;
   buttonOnLeft?: boolean;
+  collapsible?: boolean;
 }
 
 export default function Accordion({
@@ -23,6 +24,7 @@ export default function Accordion({
   setExpandedIndex,
   items,
   buttonOnLeft,
+  collapsible = true,
 }: Props) {
   return (
     <AccordionContainer>
@@ -34,6 +36,7 @@ export default function Accordion({
           content={item.content()}
           setExpandedIndex={setExpandedIndex}
           buttonOnLeft={buttonOnLeft}
+          collapsible={collapsible}
         >
           {item.header()}
         </AccordionItem>
@@ -49,6 +52,7 @@ function AccordionItem({
   setExpandedIndex,
   content,
   buttonOnLeft,
+  collapsible,
 }: {
   children: ReactNode;
   content: ReactNode;
@@ -56,20 +60,35 @@ function AccordionItem({
   isExpanded: boolean;
   setExpandedIndex: (index: number) => void;
   buttonOnLeft?: boolean;
+  collapsible?: boolean;
 }) {
+  const button = collapsible ? (
+    <Button
+      icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+      aria-label={isExpanded ? t('Collapse') : t('Expand')}
+      aria-expanded={isExpanded}
+      size="zero"
+      borderless
+      onClick={() => {
+        isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index);
+      }}
+    />
+  ) : (
+    <Button
+      icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+      aria-label={t('Expand')}
+      aria-expanded={isExpanded}
+      disabled={isExpanded}
+      size="zero"
+      borderless
+      onClick={() => setExpandedIndex(index)}
+    />
+  );
+
   return buttonOnLeft ? (
     <StyledLineItem>
       <ButtonLeftListItemContainer>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => {
-            isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index);
-          }}
-        />
+        {button}
         {children}
       </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
@@ -78,15 +97,7 @@ function AccordionItem({
     <StyledLineItem>
       <ListItemContainer>
         {children}
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          disabled={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpandedIndex(index)}
-        />
+        {button}
       </ListItemContainer>
       <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
     </StyledLineItem>

@@ -1,6 +1,7 @@
 import {ComponentProps, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -15,7 +16,6 @@ import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
 import {
   ContentContainer,
   HeaderContainer,
@@ -130,6 +130,7 @@ function AccordionWidget({
         <LeftAlignedContentContainer>
           <Accordion
             buttonOnLeft
+            collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {

@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -35,7 +36,6 @@ import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,

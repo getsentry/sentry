@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -25,7 +26,6 @@ import {
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
