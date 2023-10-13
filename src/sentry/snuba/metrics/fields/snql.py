@@ -891,55 +891,6 @@ def on_demand_apdex_snql_factory(
     )
 
 
-def on_demand_count_miserable(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
-) -> Function:
-    # return uniq_if_column_snql(aggregate_filter, org_id, use_case_id, "user", )
-    metric_frustrated = resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
-
-    # Nobody is miserable, we can return 0
-    if metric_frustrated is None:
-        return Function(
-            "toUInt64",
-            [0],
-            alias,
-        )
-
-    args = {}  # XXX: For now
-
-    return Function(
-        "uniqIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column("metric_id"),
-                            args["metric_id"],
-                        ],
-                    ),
-                    Function(
-                        "equals",
-                        [
-                            Column(constants.METRIC_SATISFACTION_TAG_KEY),
-                            metric_frustrated,
-                        ],
-                    ),
-                ],
-            ),
-        ],
-        alias,
-    )
-    # return Function(
-    #     "uniqIf",
-    #     [Column("user"), Function("greater", [Column("transaction.duration"), 4 * threshold])],
-    #     alias,
-    # )
-
-
 def on_demand_epm_snql_factory(
     aggregate_filter: Function,
     interval: float,
