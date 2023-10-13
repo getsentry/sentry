@@ -83,7 +83,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
-        if request.GET.get("includeAllTickets") is not None:
+        if can_create_tickets and request.GET.get("includeAllTickets") is not None:
             # Add disabled ticket integrations to response
             disabled_actions = TICKET_ACTIONS - available_ticket_actions
             context["disabledTicketActions"] = sorted(list(disabled_actions))
