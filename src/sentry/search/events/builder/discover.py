@@ -548,7 +548,7 @@ class BaseQueryBuilder:
     def resolve_boolean_condition(
         self, term: event_filter.ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, event_filter.ParenExpression):
+        if isinstance(term, event_search.ParenExpression):
             return self.resolve_boolean_conditions(term.children)
 
         where, having = [], []

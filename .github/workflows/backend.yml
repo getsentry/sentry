@@ -292,9 +292,10 @@ jobs:
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
-          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
+          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 
       - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         id: token

@@ -9,7 +9,7 @@ from django.db import router, transaction
 
 from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
-from sentry.event_manager import generate_culprit
+from sentry.culprit import generate_culprit
 from sentry.eventstore.models import BaseEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment

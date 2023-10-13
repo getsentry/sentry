@@ -1,11 +1,9 @@
 from sentry.api.serializers import Serializer, register
-from sentry.auth.authenticators import (
-    AuthenticatorInterface,
-    RecoveryCodeInterface,
-    SmsInterface,
-    U2fInterface,
-)
+from sentry.auth.authenticators.base import AuthenticatorInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.authenticators.u2f import U2fInterface
 
 
 @register(AuthenticatorInterface)

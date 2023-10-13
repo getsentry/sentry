@@ -13,7 +13,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.plugins.bases import ReleaseTrackingPlugin
+from sentry.plugins.bases.releasetracking import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json

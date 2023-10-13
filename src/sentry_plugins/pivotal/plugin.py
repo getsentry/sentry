@@ -6,9 +6,10 @@ from django.utils.encoding import force_str
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config

@@ -19,21 +19,20 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
-from .detectors import (
-    ConsecutiveDBSpanDetector,
-    ConsecutiveHTTPSpanDetector,
-    DBMainThreadDetector,
-    FileIOMainThreadDetector,
-    HTTPOverheadDetector,
-    LargeHTTPPayloadDetector,
-    MNPlusOneDBSpanDetector,
-    NPlusOneAPICallsDetector,
+from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
+from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.http_overhead_detector import HTTPOverheadDetector
+from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
+from .detectors.large_payload_detector import LargeHTTPPayloadDetector
+from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
+from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
+from .detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
     NPlusOneDBSpanDetectorExtended,
-    RenderBlockingAssetSpanDetector,
-    SlowDBQueryDetector,
-    UncompressedAssetSpanDetector,
 )
+from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
+from .detectors.slow_db_query_detector import SlowDBQueryDetector
+from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
