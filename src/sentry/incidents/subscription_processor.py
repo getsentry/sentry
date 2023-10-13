@@ -550,7 +550,10 @@ class SubscriptionProcessor:
         activated, and create an incident if there isn't already one.
         :return:
         """
-        # If an incident was created for this rule within the last 10 minutes, don't make another one
+        self.trigger_alert_counts[trigger.id] += 1
+
+        # If an incident was created for this rule, trigger type, and subscription
+        # within the last 10 minutes, don't make another one
         last_incident: Incident | None = (
             Incident.objects.filter(alert_rule=trigger.alert_rule).order_by("-date_added").first()
         )
@@ -558,14 +561,16 @@ class SubscriptionProcessor:
         last_incident_projects = (
             [project.id for project in last_incident.projects.all()] if last_incident else []
         )
+        minutes_since_last_incident = (
+            (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
+        )
         if (
             last_incident
             and self.subscription.project.id in last_incident_projects
             and (len(trigger_incidents) > 0 and last_incident.id == trigger_incidents[-1])
-            and (timezone.now() - last_incident.date_added).seconds / 60 <= 10
+            and minutes_since_last_incident <= 10
         ):
             return None
-        self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
 
