@@ -944,9 +944,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded(self):
-        # 2 * 3 => only show two groups
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.snuba.metrics.query.MAX_POINTS", 6
+        # 3 data points per group -> 4 groups fit into a limit of 15.
+        # need an extra group to check if there's more data -> 4 groups fit
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 15), patch(
+            "sentry.snuba.metrics.query.MAX_POINTS", 15
         ):
 
             def do_request(cursor):
@@ -965,28 +966,11 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             response = do_request(None)
 
             assert response.status_code == 200, response.content
-            assert result_sorted(response.data)["groups"] == [
-                {
-                    "by": {
-                        "release": "foo@1.0.0",
-                        "environment": "production",
-                        "project": self.project1.id,
-                    },
-                    "totals": {"sum(session)": 3, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
-                },
-                {
-                    "by": {
-                        "release": "foo@1.0.0",
-                        "environment": "production",
-                        "project": self.project3.id,
-                    },
-                    "totals": {"sum(session)": 2, "count_unique(user)": 1},
-                    "series": {"sum(session)": [0, 0, 2], "count_unique(user)": [0, 0, 1]},
-                },
-            ]
 
-            # Check if pagination still works:
+            counts = [group["totals"]["sum(session)"] for group in response.data["groups"]]
+            assert counts == [3, 2, 1, 1]
+
+            # prev = none, next = some
             links = {link["rel"]: link for _, link in parse_link_header(response["Link"]).items()}
             assert links["previous"]["results"] == "false"
             assert links["next"]["results"] == "true"
@@ -994,7 +978,13 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             response = do_request(links["next"]["cursor"])
             assert response.status_code == 200, response.content
 
-            assert result_sorted(response.data)["groups"] == ["something"]
+            counts = [group["totals"]["sum(session)"] for group in response.data["groups"]]
+            assert counts == [1, 1]
+
+            # prev = some, next = none
+            links = {link["rel"]: link for _, link in parse_link_header(response["Link"]).items()}
+            assert links["previous"]["results"] == "true"
+            assert links["next"]["results"] == "false"
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded_groupby_status(self):

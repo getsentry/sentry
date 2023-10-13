@@ -44,22 +44,20 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         num_intervals = (
             1 + (dummy_query.end - dummy_query.start).total_seconds() // dummy_query.rollup
         )
+
+        # We can only request as many groups as fit into a single snuba request:
         max_num_groups = SNUBA_LIMIT // num_intervals
+
+        # The paginator fetches one extra group to determine whether there's more data, so subtract one here:
+        max_num_groups = max_num_groups - 1
 
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
                 with sentry_sdk.start_span(
                     op="sessions.endpoint", description="build_sessions_query"
                 ):
-                    request_limit = None
-                    if request.GET.get("per_page") is not None:
-                        request_limit = limit
-                    request_offset = None
-                    if request.GET.get("cursor") is not None:
-                        request_offset = offset
-
                     query = self.build_sessions_query(
-                        request, organization, offset=request_offset, limit=request_limit
+                        request, organization, offset=offset, limit=limit
                     )
 
                 return release_health.backend.run_sessions_query(
