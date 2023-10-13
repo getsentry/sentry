@@ -10,7 +10,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.mediators import GrantTypes
+from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
