@@ -144,11 +144,13 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             adjusted_params["start"] = regression_breakpoint + BUFFER
 
         geo_code_durations = metrics_query(
-            ["p95(transaction.duration)", "geo.country_code"],
+            ["p95(transaction.duration)", "geo.country_code", "count()"],
             f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
             adjusted_params,
             referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
             limit=METRICS_MAX_LIMIT,
+            # Order by descending count to ensure more impactful countries are prioritized
+            orderby=["-count()"],
         )
 
         return geo_code_durations
