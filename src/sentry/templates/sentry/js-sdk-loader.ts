@@ -47,7 +47,7 @@ declare const __LOADER__IS_LAZY__: any;
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
-      injectSdk(onLoadCallbacks);
+      injectSdk();
     }
     queue.data.push(content);
   };
@@ -71,7 +71,7 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
-  function injectSdk(callbacks) {
+  function injectSdk() {
     if (injected) {
       return;
     }
@@ -90,34 +90,36 @@ declare const __LOADER__IS_LAZY__: any;
 
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function () {
-      try {
-        _window.removeEventListener(_errorEvent, onError);
-        _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
+      setTimeout(() => {
+        try {
+          _window.removeEventListener(_errorEvent, onError);
+          _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
-        // Add loader as SDK source
-        _window.SENTRY_SDK_SOURCE = 'loader';
+          // Add loader as SDK source
+          _window.SENTRY_SDK_SOURCE = 'loader';
 
-        const SDK = _window[_namespace];
+          const SDK = _window[_namespace];
 
-        const oldInit = SDK.init;
+          const oldInit = SDK.init;
 
-        // Configure it using provided DSN and config object
-        SDK.init = function (options) {
-          const target = _config;
-          for (const key in options) {
-            if (Object.prototype.hasOwnProperty.call(options, key)) {
-              target[key] = options[key];
+          // Configure it using provided DSN and config object
+          SDK.init = function (options) {
+            const target = _config;
+            for (const key in options) {
+              if (Object.prototype.hasOwnProperty.call(options, key)) {
+                target[key] = options[key];
+              }
             }
-          }
 
-          setupDefaultIntegrations(target, SDK);
-          oldInit(target);
-        };
+            setupDefaultIntegrations(target, SDK);
+            oldInit(target);
+          };
 
-        sdkLoaded(callbacks, SDK);
-      } catch (o_O) {
-        console.error(o_O);
-      }
+          sdkLoaded(SDK);
+        } catch (o_O) {
+          console.error(o_O);
+        }
+      });
     });
 
     _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
@@ -159,12 +161,12 @@ declare const __LOADER__IS_LAZY__: any;
     );
   }
 
-  function sdkLoaded(callbacks, SDK) {
+  function sdkLoaded(SDK) {
     try {
       // We have to make sure to call all callbacks first
-      for (let i = 0; i < callbacks.length; i++) {
-        if (typeof callbacks[i] === 'function') {
-          callbacks[i]();
+      for (let i = 0; i < onLoadCallbacks.length; i++) {
+        if (typeof onLoadCallbacks[i] === 'function') {
+          onLoadCallbacks[i]();
         }
       }
 
@@ -221,14 +223,14 @@ declare const __LOADER__IS_LAZY__: any;
     if (lazy && !forceLoad) {
       return;
     }
-    injectSdk(onLoadCallbacks);
+    injectSdk();
   };
 
   _window[_namespace].forceLoad = function () {
     forceLoad = true;
     if (lazy) {
       setTimeout(function () {
-        injectSdk(onLoadCallbacks);
+        injectSdk();
       });
     }
   };
@@ -253,7 +255,7 @@ declare const __LOADER__IS_LAZY__: any;
 
   if (!lazy) {
     setTimeout(function () {
-      injectSdk(onLoadCallbacks);
+      injectSdk();
     });
   }
 })(

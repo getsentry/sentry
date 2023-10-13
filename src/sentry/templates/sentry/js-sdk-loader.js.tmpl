@@ -27,7 +27,7 @@
             // We only want to lazy inject/load the sdk bundle if
             // an error or promise rejection occured
             // OR someone called `capture...` on the SDK
-            injectSdk(onLoadCallbacks);
+            injectSdk();
         }
         queue.data.push(content);
     };
@@ -47,7 +47,7 @@
                     : e,
         });
     }
-    function injectSdk(callbacks) {
+    function injectSdk() {
         if (injected) {
             return;
         }
@@ -64,29 +64,31 @@
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
         _newScriptTag.addEventListener('load', function () {
-            try {
-                _window.removeEventListener(_errorEvent, onError);
-                _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
-                // Add loader as SDK source
-                _window.SENTRY_SDK_SOURCE = 'loader';
-                var SDK_1 = _window[_namespace];
-                var oldInit_1 = SDK_1.init;
-                // Configure it using provided DSN and config object
-                SDK_1.init = function (options) {
-                    var target = _config;
-                    for (var key in options) {
-                        if (Object.prototype.hasOwnProperty.call(options, key)) {
-                            target[key] = options[key];
+            setTimeout(function () {
+                try {
+                    _window.removeEventListener(_errorEvent, onError);
+                    _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
+                    // Add loader as SDK source
+                    _window.SENTRY_SDK_SOURCE = 'loader';
+                    var SDK_1 = _window[_namespace];
+                    var oldInit_1 = SDK_1.init;
+                    // Configure it using provided DSN and config object
+                    SDK_1.init = function (options) {
+                        var target = _config;
+                        for (var key in options) {
+                            if (Object.prototype.hasOwnProperty.call(options, key)) {
+                                target[key] = options[key];
+                            }
                         }
-                    }
-                    setupDefaultIntegrations(target, SDK_1);
-                    oldInit_1(target);
-                };
-                sdkLoaded(callbacks, SDK_1);
-            }
-            catch (o_O) {
-                console.error(o_O);
-            }
+                        setupDefaultIntegrations(target, SDK_1);
+                        oldInit_1(target);
+                    };
+                    sdkLoaded(SDK_1);
+                }
+                catch (o_O) {
+                    console.error(o_O);
+                }
+            });
         });
         _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
     }
@@ -115,12 +117,12 @@
             __sentry.hub &&
             __sentry.hub.getClient());
     }
-    function sdkLoaded(callbacks, SDK) {
+    function sdkLoaded(SDK) {
         try {
             // We have to make sure to call all callbacks first
-            for (var i = 0; i < callbacks.length; i++) {
-                if (typeof callbacks[i] === 'function') {
-                    callbacks[i]();
+            for (var i = 0; i < onLoadCallbacks.length; i++) {
+                if (typeof onLoadCallbacks[i] === 'function') {
+                    onLoadCallbacks[i]();
                 }
             }
             var data = queue.data;
@@ -171,13 +173,13 @@
         if (lazy && !forceLoad) {
             return;
         }
-        injectSdk(onLoadCallbacks);
+        injectSdk();
     };
     _window[_namespace].forceLoad = function () {
         forceLoad = true;
         if (lazy) {
             setTimeout(function () {
-                injectSdk(onLoadCallbacks);
+                injectSdk();
             });
         }
     };
@@ -199,7 +201,7 @@
     _window.addEventListener(_unhandledrejectionEvent, onUnhandledRejection);
     if (!lazy) {
         setTimeout(function () {
-            injectSdk(onLoadCallbacks);
+            injectSdk();
         });
     }
 })(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
