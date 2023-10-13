@@ -554,10 +554,10 @@ class SubscriptionProcessor:
 
         # If an incident was created for this rule, trigger type, and subscription
         # within the last 10 minutes, don't make another one
-        last_incident: Incident | None = (
-            Incident.objects.filter(alert_rule=trigger.alert_rule).order_by("-date_added").first()
-        )
-        trigger_incidents = [incident.id for incident in trigger.triggered_incidents.all()]
+        trigger_incidents = [incident for incident in trigger.triggered_incidents.all()]
+        last_incident: Incident | None = None
+        if len(trigger_incidents) > 0:
+            last_incident = trigger_incidents[-1]
         last_incident_projects = (
             [project.id for project in last_incident.projects.all()] if last_incident else []
         )
@@ -567,9 +567,9 @@ class SubscriptionProcessor:
         if (
             last_incident
             and self.subscription.project.id in last_incident_projects
-            and (len(trigger_incidents) > 0 and last_incident.id == trigger_incidents[-1])
             and minutes_since_last_incident <= 10
         ):
+            metrics.incr("incidents.alert_rules.hit_rate_limit")
             return None
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})

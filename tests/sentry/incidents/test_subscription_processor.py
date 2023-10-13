@@ -2136,6 +2136,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
         self.assert_incident_is_latest_for_rule(original_incident)
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.hit_rate_limit"),
+            ],
+            any_order=True,
+        )
 
     def test_incident_made_after_ten_minutes(self):
         # Verify that a new incident will be made for the same rule, trigger, and
