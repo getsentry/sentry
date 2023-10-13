@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -18,6 +19,11 @@ class ProjectUserDetailsEndpoint(ProjectEndpoint):
     }
 
     def get(self, request: Request, project, user_hash) -> Response:
+        analytics.record(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.project_user_details.get",
+        )
         euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))
 
@@ -32,6 +38,11 @@ class ProjectUserDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project.
         :pparam string user_hash: the user hash.
         """
+        analytics.record(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.project_user_details.delete",
+        )
         if is_active_superuser(request):
             try:
                 euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
