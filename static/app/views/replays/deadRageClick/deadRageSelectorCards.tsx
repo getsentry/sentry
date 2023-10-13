@@ -120,7 +120,7 @@ function AccordionWidget({
             <div>{t('No results found')}</div>
             <EmptySubtitle>
               {tct(
-                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your sample rate to see more data.',
+                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
