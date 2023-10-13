@@ -22,7 +22,7 @@ class SentrySMTPTest(TestCase):
         self.event  # side effect of generating an event
 
     def test_decode_email_address(self):
-        self.assertEqual(email_to_group_id(self.mailto), self.group.id)
+        assert email_to_group_id(self.mailto) == (self.group.id, self.organization.id)
 
     def test_process_message(self):
         with self.tasks():
