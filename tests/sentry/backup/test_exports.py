@@ -17,6 +17,7 @@ from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import JSONData
 from tests.sentry.backup import get_matching_exportable_models
 
@@ -27,6 +28,7 @@ class ExportTestCase(BackupTestCase):
         return export_to_file(tmp_path, **kwargs)
 
 
+@region_silo_test(stable=True)
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
@@ -85,6 +87,7 @@ class ScopingTests(ExportTestCase):
             self.verify_model_inclusion(data, ExportScope.Global)
 
 
+@region_silo_test(stable=True)
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -156,7 +159,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("user_2")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            data = self.export(tmp_dir, scope=ExportScope.User, filter_by={})
+            data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
 
@@ -249,7 +252,7 @@ class FilteringTests(ExportTestCase):
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
-                filter_by={},
+                filter_by=set(),
             )
 
             assert len(data) == 0

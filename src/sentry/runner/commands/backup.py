@@ -3,12 +3,6 @@ from __future__ import annotations
 import click
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.exports import (
-    export_in_config_scope,
-    export_in_global_scope,
-    export_in_organization_scope,
-    export_in_user_scope,
-)
 from sentry.backup.findings import FindingJSONEncoder
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
@@ -237,6 +231,8 @@ def export_users(dest, silent, indent, filter_usernames):
     Export all Sentry users in the JSON format.
     """
 
+    from sentry.backup.exports import export_in_user_scope
+
     export_in_user_scope(
         dest,
         indent=indent,
@@ -268,6 +264,8 @@ def export_organizations(dest, silent, indent, filter_org_slugs):
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
 
+    from sentry.backup.exports import export_in_organization_scope
+
     export_in_organization_scope(
         dest,
         indent=indent,
@@ -291,6 +289,8 @@ def export_config(dest, silent, indent):
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
+    from sentry.backup.exports import export_in_config_scope
+
     export_in_config_scope(
         dest,
         indent=indent,
@@ -312,6 +312,8 @@ def export_global(dest, silent, indent):
     """
     Export all Sentry data in the JSON format.
     """
+
+    from sentry.backup.exports import export_in_global_scope
 
     export_in_global_scope(
         dest,

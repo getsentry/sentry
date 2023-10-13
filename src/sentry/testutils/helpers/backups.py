@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import tempfile
+from copy import deepcopy
 from datetime import datetime, timedelta
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from pathlib import Path
 from uuid import uuid4
 
@@ -74,8 +75,10 @@ from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
@@ -228,6 +231,7 @@ class BackupTestCase(TransactionTestCase):
     """Instruments a database state that includes an instance of every Sentry model with every field
     set to a non-default, non-null value. This is useful for exhaustive conformance testing."""
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
         self,
         username: str,
@@ -257,6 +261,7 @@ class BackupTestCase(TransactionTestCase):
 
         return user
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_organization(
         self, slug: str, owner: User, invitee: User, other: list[User] | None = None
     ) -> Organization:
@@ -269,21 +274,6 @@ class BackupTestCase(TransactionTestCase):
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
-        )
-
-        # Auth*
-        ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
-        auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
-        AuthIdentity.objects.create(
-            user=owner,
-            auth_provider=auth_provider,
-            ident=f"123456789{slug}",
-            data={
-                "key1": "value1",
-                "key2": 42,
-                "key3": [1, 2, 3],
-                "key4": {"nested_key": "nested_value"},
-            },
         )
 
         # Team
@@ -301,27 +291,15 @@ class BackupTestCase(TransactionTestCase):
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
         self.create_notification_action(organization=org, projects=[project])
 
-        # OrgAuthToken
-        OrgAuthToken.objects.create(
-            organization_id=org.id,
-            name=f"token 1 for {slug}",
-            token_hashed=f"ABCDEF{slug}",
-            token_last_characters="xyz1",
-            scope_list=["org:ci"],
-            date_last_used=None,
-            project_last_used_id=project.id,
-        )
+        # Auth*
+        self.create_exhaustive_organization_auth(owner, org, project)
 
         # Integration*
-        integration = Integration.objects.create(
-            provider="slack", name=f"Slack for {slug}", external_id=f"slack:{slug}"
-        )
-        OrganizationIntegration.objects.create(
-            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
-        )
+        org_integration = self.create_exhaustive_organization_integration(org)
+        integration_id = org_integration.integration.id
         # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
         ProjectIntegration.objects.create(
-            project=project, integration_id=integration.id, config='{"hello":"hello"}'
+            project=project, integration_id=integration_id, config='{"hello":"hello"}'
         )
 
         # Rule*
@@ -431,12 +409,47 @@ class BackupTestCase(TransactionTestCase):
             project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
-            integration_id=integration.id,
+            integration_id=integration_id,
             url="https://github.com/getsentry/getsentry",
         )
 
         return org
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_exhaustive_organization_auth(self, owner: User, org: Organization, project: Project):
+        ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
+        auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
+        AuthIdentity.objects.create(
+            user=owner,
+            auth_provider=auth_provider,
+            ident=f"123456789{org.slug}",
+            data={
+                "key1": "value1",
+                "key2": 42,
+                "key3": [1, 2, 3],
+                "key4": {"nested_key": "nested_value"},
+            },
+        )
+        OrgAuthToken.objects.create(
+            organization_id=org.id,
+            name=f"token 1 for {org.slug}",
+            token_hashed=f"ABCDEF{org.slug}",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+            project_last_used_id=project.id,
+        )
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_exhaustive_organization_integration(self, org: Organization):
+        integration = Integration.objects.create(
+            provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
+        )
+        return OrganizationIntegration.objects.create(
+            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+        )
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_sentry_app(self, name: str, owner: User, org: Organization) -> SentryApp:
         # SentryApp*
         app = self.create_sentry_app(name=name, organization=org)
@@ -467,25 +480,29 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # NotificationAction
-        project = Project.objects.filter(organization=org).first()
-        self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
+        self.create_exhaustive_sentry_app_notification(app, org)
 
         return app
 
-    def create_exhaustive_global_configs(self, owner: User):
-        # *Options
-        Option.objects.create(key="foo", value="a")
-        ControlOption.objects.create(key="bar", value="b")
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
+        project = Project.objects.filter(organization=org).first()
+        self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
 
-        # Relay*
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_exhaustive_global_configs(self, owner: User):
+        self.create_exhaustive_global_configs_regional()
+        ControlOption.objects.create(key="bar", value="b")
+        ApiAuthorization.objects.create(user=owner)
+        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
+
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_exhaustive_global_configs_regional(self):
         _, public_key = generate_key_pair()
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
         RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
-
-        # Global Api*
-        ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
+        Option.objects.create(key="foo", value="a")
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
@@ -502,3 +519,68 @@ class BackupTestCase(TransactionTestCase):
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
+
+    @cached_property
+    def _json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_maximum_privileges)
+
+    @cached_property
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
+
+    @staticmethod
+    def copy_user(exhaustive_user: JSONData, username: str) -> JSONData:
+        user = deepcopy(exhaustive_user)
+
+        for model in user:
+            if model["model"] == "sentry.user":
+                model["fields"]["username"] = username
+
+        return user
+
+    def generate_tmp_users_json(self) -> JSONData:
+        """
+        Generates an in-memory JSON array of users with different combinations of admin privileges.
+        """
+
+        # A user with the maximal amount of "evil" settings.
+        max_user = self.copy_user(
+            self.json_of_exhaustive_user_with_maximum_privileges(), "max_user"
+        )
+
+        # A user with no "evil" settings.
+        min_user = self.copy_user(
+            self.json_of_exhaustive_user_with_minimum_privileges(), "min_user"
+        )
+
+        # A copy of the `min_user`, but with a maximal `UserPermissions` attached.
+        permission_user = self.copy_user(min_user, "permission_user") + deepcopy(
+            list(filter(lambda mod: mod["model"] == "sentry.userpermission", max_user))
+        )
+
+        # A copy of the `min_user`, but with all of the "evil" flags set to `True`.
+        superadmin_user = self.copy_user(min_user, "superadmin_user")
+        for model in superadmin_user:
+            if model["model"] == "sentry.user":
+                model["fields"]["is_managed"] = True
+                model["fields"]["is_staff"] = True
+                model["fields"]["is_superuser"] = True
+
+        return max_user + min_user + permission_user + superadmin_user
+
+    def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
+        """
+        Generates a file filled with users with different combinations of admin privileges.
+        """
+
+        data = self.generate_tmp_users_json()
+        with open(tmp_path, "w+") as tmp_file:
+            json.dump(data, tmp_file)
