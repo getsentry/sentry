@@ -15,6 +15,7 @@ export const appMockData: AppData = {
   app_build: '1',
   app_id: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
   type: 'app',
+  in_foreground: false,
 };
 
 export const appMetaMockData = {

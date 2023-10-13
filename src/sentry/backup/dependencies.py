@@ -129,6 +129,7 @@ class ModelRelations:
     dangling: Optional[bool]
     foreign_keys: dict[str, ForeignField]
     model: Type[models.base.Model]
+    relocation_dependencies: set[Type[models.base.Model]]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
     table_name: str
@@ -202,14 +203,14 @@ class DependenciesJSONEncoder(json.JSONEncoder):
             return obj.name
         if isinstance(obj, set) and all(isinstance(rs, RelocationScope) for rs in obj):
             # Order by enum value, which should correspond to `RelocationScope` breadth.
-            return sorted(list(obj), key=lambda obj: obj.value)
+            return sorted(obj, key=lambda obj: obj.value)
         if isinstance(obj, SiloMode):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):
-            return sorted(list(obj), key=lambda obj: get_model_name(obj))
+            return sorted(obj, key=lambda obj: get_model_name(obj))
         # JSON serialization of `uniques` values, which are stored in `frozenset`s.
         if isinstance(obj, frozenset):
-            return sorted(list(obj))
+            return sorted(obj)
         return super().default(obj)
 
 
@@ -421,13 +422,15 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 dangling=None,
                 foreign_keys=foreign_keys,
                 model=model,
+                # We'll fill this in after the entire dictionary is populated.
+                relocation_dependencies=set(),
                 relocation_scope=getattr(model, "__relocation_scope__", RelocationScope.Excluded),
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
                 ),
                 table_name=model._meta.db_table,
                 # Sort the constituent sets alphabetically, so that we get consistent JSON output.
-                uniques=sorted(list(uniques), key=lambda u: ":".join(sorted(list(u)))),
+                uniques=sorted(uniques, key=lambda u: ":".join(sorted(u))),
             )
 
     # Get a flat list of "root" models, then mark all of them as non-dangling.
@@ -436,6 +439,22 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         relocation_root_models.extend(root_models.value)
     for model_name in relocation_root_models:
         model_dependencies_dict[model_name].dangling = False
+
+    # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
+    # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
+    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
+    # reference at least one `User` or `Team`, neither of which are dangling.
+    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
+
+    # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this
+    # list: the schema defines all of their foreign keys as nullable, but since these models have no
+    # other models referencing them (ie, they are leaves on our dependency graph), we know that at
+    # least one of those nullable relations will be present on every model.
+    model_dependencies_dict[NormalizedModelName("sentry.savedsearch")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
+    model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False
 
     # Now that all `ModelRelations` have been added to the `model_dependencies_dict`, we can circle
     # back and figure out which ones are actually dangling. We do this by marking all of the root
@@ -449,6 +468,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             raise RuntimeError(
                 f"Circular dependency: {model_name} cannot transitively reference itself"
             )
+        if model_relations.relocation_scope == RelocationScope.Excluded:
+            model_relations.dangling = False
+            return model_relations.dangling
         if model_relations.dangling is not None:
             return model_relations.dangling
 
@@ -472,9 +494,12 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         seen.remove(model_name)
         return model_relations.dangling
 
-    for model_name in model_dependencies_dict.keys():
-        if model_name not in relocation_root_models:
-            resolve_dangling(set(), model_name)
+    for model_name, model_relations in model_dependencies_dict.items():
+        resolve_dangling(set(), model_name)
+        model_relations.relocation_dependencies = {
+            model_dependencies_dict[NormalizedModelName(rd)].model
+            for rd in getattr(model_relations.model, "__relocation_dependencies__", set())
+        }
 
     return model_dependencies_dict
 
@@ -487,9 +512,12 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
     Similar to Django's algorithm except that we discard the importance of natural keys
     when sorting dependencies (ie, it works without them)."""
 
-    model_dependencies_dict = list(dependencies().values())
-    model_dependencies_dict.reverse()
-    model_set = {md.model for md in model_dependencies_dict}
+    model_dependencies_remaining = sorted(
+        dependencies().values(),
+        key=lambda mr: get_model_name(mr.model),
+        reverse=True,
+    )
+    model_set = {md.model for md in model_dependencies_remaining}
 
     # Now sort the models to ensure that dependencies are met. This
     # is done by repeatedly iterating over the input list of models.
@@ -500,12 +528,12 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
     # If we do a full iteration without a promotion, that means there are
     # circular dependencies in the list.
     model_list = []
-    while model_dependencies_dict:
+    while model_dependencies_remaining:
         skipped = []
         changed = False
-        while model_dependencies_dict:
-            model_deps = model_dependencies_dict.pop()
-            deps = model_deps.flatten()
+        while model_dependencies_remaining:
+            model_deps = model_dependencies_remaining.pop()
+            deps = model_deps.flatten().union(model_deps.relocation_dependencies)
             model = model_deps.model
 
             # If all of the models in the dependency list are either already
@@ -528,6 +556,6 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
                     for m in sorted(skipped, key=lambda mr: get_model_name(mr.model))
                 )
             )
-        model_dependencies_dict = skipped
+        model_dependencies_remaining = sorted(skipped, key=lambda mr: get_model_name(mr.model))
 
     return model_list
