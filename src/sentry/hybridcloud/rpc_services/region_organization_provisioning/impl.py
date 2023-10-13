@@ -163,9 +163,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         try:
             with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
                 org = Organization.objects.get(id=org_slug_temporary_alias_res.organization_id)
-
-                if org.slug != org_slug_temporary_alias_res.slug:
-                    org.update(slug=org_slug_temporary_alias_res.slug)
+                org.update(slug=org_slug_temporary_alias_res.slug)
 
             return True
         except (IntegrityError, Organization.DoesNotExist) as e:
