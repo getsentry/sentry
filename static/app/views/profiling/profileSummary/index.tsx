@@ -379,9 +379,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           <ProfileVisualizationContainer>
             <ProfileVisualization>
               <ProfileGroupProvider
+                traceID=""
                 type="flamegraph"
                 input={data ?? null}
-                traceID=""
                 frameFilter={flamegraphFrameFilter}
               >
                 <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
