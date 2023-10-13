@@ -27,7 +27,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         )
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo", "geo.country_code": "US"},
+            tags={"transaction": "foo"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=1,
@@ -430,7 +430,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         # Before
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo", "geo.country_code": "US"},
+            tags={"transaction": "bar", "geo.country_code": "US"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=10,
@@ -440,7 +440,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         # Not in after
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo", "geo.country_code": "DE"},
+            tags={"transaction": "bar", "geo.country_code": "DE"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=10,
@@ -450,7 +450,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         # After
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo", "geo.country_code": "US"},
+            tags={"transaction": "bar", "geo.country_code": "US"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=100,
@@ -460,7 +460,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         # Not in before
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo", "geo.country_code": "MS"},
+            tags={"transaction": "bar", "geo.country_code": "MS"},
             org_id=self.org.id,
             project_id=self.project.id,
             value=50,
@@ -472,7 +472,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "transaction": "foo",
+                    "transaction": "bar",
                     "project": self.project.id,
                     "breakpoint": breakpoint_timestamp,
                     "start": self.now - timedelta(days=3),
@@ -486,8 +486,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             {
                 "geo.country_code": "US",
                 "duration_before": 10.0,
-                "duration_after": 95.05,
-                "duration_delta": 85.05,
+                "duration_after": 100.0,
+                "duration_delta": 90.0,
             },
             {
                 "geo.country_code": "MS",
