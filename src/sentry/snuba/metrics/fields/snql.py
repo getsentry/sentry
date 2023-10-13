@@ -27,7 +27,7 @@ from sentry.snuba.metrics.naming_layer.public import (
 
 def _aggregation_on_session_status_func_factory(aggregate) -> Function:
     def _snql_on_session_status_factory(
-        org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
+        org_id: int, session_status: str, metric_ids: list[int], alias: Optional[str] = None
     ) -> Function:
         return Function(
             aggregate,
@@ -60,7 +60,7 @@ def _aggregation_on_session_status_func_factory(aggregate) -> Function:
 
 
 def _aggregation_on_abnormal_mechanism_func_factory(
-    org_id: int, abnormal_mechanism: Any, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, abnormal_mechanism: Any, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     if isinstance(abnormal_mechanism, list):
         abnormal_mechanism_condition = Function(
@@ -111,7 +111,7 @@ def _aggregation_on_abnormal_mechanism_func_factory(
 
 
 def _counter_sum_aggregation_on_session_status_factory(
-    org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, session_status: str, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_session_status_func_factory(aggregate="sumIf")(
         org_id, session_status, metric_ids, alias
@@ -119,7 +119,7 @@ def _counter_sum_aggregation_on_session_status_factory(
 
 
 def _set_uniq_aggregation_on_session_status_factory(
-    org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, session_status: str, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_session_status_func_factory(aggregate="uniqIf")(
         org_id, session_status, metric_ids, alias
@@ -128,7 +128,7 @@ def _set_uniq_aggregation_on_session_status_factory(
 
 def _aggregation_on_tx_status_func_factory(aggregate: Function) -> Function:
     def _get_snql_conditions(
-        org_id: int, metric_ids: Set[int], exclude_tx_statuses: list[str]
+        org_id: int, metric_ids: list[int], exclude_tx_statuses: list[str]
     ) -> Function:
         metric_match = Function("in", [Column("metric_id"), list(metric_ids)])
         assert exclude_tx_statuses is not None
@@ -162,7 +162,7 @@ def _aggregation_on_tx_status_func_factory(aggregate: Function) -> Function:
     def _snql_on_tx_status_factory(
         org_id: int,
         exclude_tx_statuses: list[str],
-        metric_ids: Set[int],
+        metric_ids: list[int],
         alias: Optional[str] = None,
     ) -> Function:
         return Function(
@@ -178,7 +178,7 @@ def _aggregation_on_tx_status_func_factory(aggregate: Function) -> Function:
 
 
 def _dist_count_aggregation_on_tx_status_factory(
-    org_id: int, exclude_tx_statuses: list[str], metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, exclude_tx_statuses: list[str], metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_status_func_factory("countIf")(
         org_id, exclude_tx_statuses, metric_ids, alias
@@ -187,7 +187,7 @@ def _dist_count_aggregation_on_tx_status_factory(
 
 def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Function:
     def _snql_on_tx_satisfaction_factory(
-        org_id: int, satisfaction_value: str, metric_ids: Set[int], alias: Optional[str] = None
+        org_id: int, satisfaction_value: str, metric_ids: list[int], alias: Optional[str] = None
     ) -> Function:
         return Function(
             aggregate,
@@ -222,7 +222,7 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Functio
 
 
 def _dist_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, satisfaction: str, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_satisfaction_func_factory("countIf")(
         org_id, satisfaction, metric_ids, alias
@@ -230,7 +230,7 @@ def _dist_count_aggregation_on_tx_satisfaction_factory(
 
 
 def _set_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, satisfaction: str, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
         org_id=org_id,
@@ -240,29 +240,29 @@ def _set_count_aggregation_on_tx_satisfaction_factory(
     )
 
 
-def all_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def all_sessions(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="init", metric_ids=metric_ids, alias=alias
     )
 
 
-def all_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def all_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return uniq_aggregation_on_metric(metric_ids, alias)
 
 
-def crashed_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def crashed_sessions(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
-def crashed_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def crashed_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
-def anr_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def anr_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _aggregation_on_abnormal_mechanism_func_factory(
         org_id,
         abnormal_mechanism=["anr_foreground", "anr_background"],
@@ -272,7 +272,7 @@ def anr_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) ->
 
 
 def foreground_anr_users(
-    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_abnormal_mechanism_func_factory(
         org_id,
@@ -283,32 +283,32 @@ def foreground_anr_users(
 
 
 def errored_preaggr_sessions(
-    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="errored_preaggr", metric_ids=metric_ids, alias=alias
     )
 
 
-def abnormal_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def abnormal_sessions(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="abnormal", metric_ids=metric_ids, alias=alias
     )
 
 
-def abnormal_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def abnormal_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="abnormal", metric_ids=metric_ids, alias=alias
     )
 
 
-def errored_all_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def errored_all_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="errored", metric_ids=metric_ids, alias=alias
     )
 
 
-def uniq_aggregation_on_metric(metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def uniq_aggregation_on_metric(metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return Function(
         "uniqIf",
         [
@@ -326,7 +326,7 @@ def uniq_aggregation_on_metric(metric_ids: Set[int], alias: Optional[str] = None
 
 
 def failure_count_transaction(
-    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
@@ -342,7 +342,7 @@ def failure_count_transaction(
 
 
 def http_error_count_transaction(
-    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     statuses = [
         resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, status)
@@ -379,7 +379,7 @@ def http_error_count_transaction(
 
 
 def all_spans(
-    metric_ids: Set[int],
+    metric_ids: list[int],
     alias: Optional[str] = None,
 ) -> Function:
     return Function(
@@ -393,7 +393,7 @@ def all_spans(
 
 
 def http_error_count_span(
-    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+    org_id: int, metric_ids: list[int], alias: Optional[str] = None
 ) -> Function:
     statuses = [
         resolve_tag_value(UseCaseID.SPANS, org_id, status)
@@ -509,7 +509,7 @@ def _count_if_with_conditions(
 def satisfaction_count_transaction(
     project_ids: Sequence[int],
     org_id: int,
-    metric_ids: Set[int],
+    metric_ids: list[int],
     alias: Optional[str] = None,
 ) -> Function:
     return _count_if_with_conditions(
@@ -526,7 +526,7 @@ def satisfaction_count_transaction(
 def tolerated_count_transaction(
     project_ids: Sequence[int],
     org_id: int,
-    metric_ids: Set[int],
+    metric_ids: list[int],
     alias: Optional[str] = None,
 ) -> Function:
     return _count_if_with_conditions(
@@ -543,7 +543,7 @@ def tolerated_count_transaction(
 def all_transactions(
     project_ids: Sequence[int],
     org_id: int,
-    metric_ids: Set[int],
+    metric_ids: list[int],
     alias: Optional[str] = None,
 ) -> Function:
     return _count_if_with_conditions(
@@ -564,7 +564,7 @@ def apdex(satisfactory_snql, tolerable_snql, total_snql, alias: Optional[str] = 
     )
 
 
-def miserable_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
+def miserable_users(org_id: int, metric_ids: list[int], alias: Optional[str] = None) -> Function:
     return _set_count_aggregation_on_tx_satisfaction_factory(
         org_id=org_id,
         satisfaction=TransactionSatisfactionTagValue.FRUSTRATED.value,
