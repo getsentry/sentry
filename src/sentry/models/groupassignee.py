@@ -48,7 +48,7 @@ class GroupAssigneeManager(BaseManager):
 
         return data
 
-    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple[str, str, str] | None:
+    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple[str, str, str]:
         from sentry.models.team import Team
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user import RpcUser
