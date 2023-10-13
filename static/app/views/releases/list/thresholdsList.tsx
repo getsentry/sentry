@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -6,29 +6,38 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
 
-import {Threshold, ThresholdQuery} from '../utils/types';
+import {Threshold} from '../utils/types';
+import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
 import {ThresholdGroupRow} from './thresholdGroupRow';
 
 type Props = {
-  organization: Organization;
   selectedEnvs: string[];
-  selectedProjects: number[];
+  selectedProjectIds: number[];
 };
 
-function ThresholdsList({organization, selectedEnvs, selectedProjects}: Props) {
-  const api = useApi();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [_featureEnabledFlag, setFeatureEnabledFlag] = useState<boolean>(true);
-  const [thresholds, setThresholds] = useState<Threshold[]>([]);
-  const [errors, setErrors] = useState<string | null>();
+function ThresholdsList({selectedEnvs, selectedProjectIds}: Props) {
+  const {
+    data: thresholds = [],
+    error,
+    isLoading,
+    isError,
+    refetch,
+  } = useFetchThresholdsListData({
+    selectedProjectIds,
+  });
+
+  // NOTE: currently no way to filter for 'None' environments
+  const filteredThresholds = selectedEnvs.length
+    ? thresholds.filter(
+        threshold => selectedEnvs.indexOf(threshold.environment.name) > -1
+      )
+    : thresholds;
 
   const thresholdGroups: {[key: string]: {[key: string]: Threshold[]}} = useMemo(() => {
     const byProj = {};
-    thresholds.forEach(threshold => {
+    filteredThresholds.forEach(threshold => {
       const projId = threshold.project.id;
       if (!byProj[projId]) {
         byProj[projId] = {};
@@ -40,61 +49,23 @@ function ThresholdsList({organization, selectedEnvs, selectedProjects}: Props) {
       byProj[projId][env].push(threshold);
     });
     return byProj;
-  }, [thresholds]);
+  }, [filteredThresholds]);
 
-  const fetchThresholds = useCallback(async () => {
-    //   re_path(
-    //     r"^(?P<organization_slug>[^\/]+)/releases/thresholds/$",
-    //     ReleaseThresholdIndexEndpoint.as_view(),
-    //     name="sentry-api-0-organization-release-thresholds",
-    // ),
-    const path = `/organizations/${organization.id}/releases/thresholds/`;
-    const query: ThresholdQuery = {};
-    if (selectedProjects.length) {
-      query.project = selectedProjects;
-    } else {
-      query.project = [-1];
-    }
-    if (selectedEnvs.length) {
-      query.environment = selectedEnvs;
-    }
-    try {
-      setIsLoading(true);
-      const resp = await api.requestPromise(path, {
-        method: 'GET',
-        query,
-      });
-      setThresholds(resp);
-    } catch (err) {
-      if (err.status === 404) {
-        setErrors('Error fetching release thresholds');
-      } else if (err.status === 403) {
-        // NOTE: If release thresholds are not enabled, API will return a 403 not found
-        // So capture this case and set enabled to false
-        setFeatureEnabledFlag(false);
-      } else {
-        setErrors(err.statusText);
-      }
-    }
-    setIsLoading(false);
-  }, [api, organization, selectedEnvs, selectedProjects]);
-
-  useEffect(() => {
-    fetchThresholds();
-  }, [fetchThresholds, selectedEnvs, selectedProjects]);
-
-  if (errors) {
-    return <LoadingError onRetry={fetchThresholds} message={errors} />;
+  if (isError) {
+    return <LoadingError onRetry={refetch} message={error.message} />;
   }
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
+  // TODO: make each proj/env their own grouping
+  // introduce + row btn
+  // figure out form logic....
   return (
     <Wrapper>
       <StyledPanelTable
         isLoading={isLoading}
-        isEmpty={thresholds.length === 0 && !errors}
+        isEmpty={filteredThresholds.length === 0 && !isError}
         emptyMessage={t('No thresholds found.')}
         headers={[
           t('Project Name'),
@@ -128,6 +99,7 @@ const StyledPanelTable = styled(PanelTable)`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
+
   grid-template-columns:
     minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(250px, 4fr)
     auto;
