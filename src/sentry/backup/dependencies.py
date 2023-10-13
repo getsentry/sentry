@@ -244,8 +244,7 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: Dict[str, Dict[int, Tuple[int, ImportKind]]]
+    mapping: Dict[str, Dict[int, Tuple[int, ImportKind, Optional[str]]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
@@ -287,12 +286,34 @@ class PrimaryKeyMap:
 
         return entry[1]
 
-    def insert(self, model_name: NormalizedModelName, old: int, new: int, kind: ImportKind) -> None:
+    def get_slug(self, model_name: NormalizedModelName, old: int) -> Optional[str]:
         """
-        Create a new OLD_PK -> NEW_PK mapping for the given model.
+        Does the mapped entry have a unique slug associated with it?
         """
 
-        self.mapping[str(model_name)][old] = (new, kind)
+        pk_map = self.mapping.get(str(model_name))
+        if pk_map is None:
+            return None
+
+        entry = pk_map.get(old)
+        if entry is None:
+            return None
+
+        return entry[2]
+
+    def insert(
+        self,
+        model_name: NormalizedModelName,
+        old: int,
+        new: int,
+        kind: ImportKind,
+        slug: str | None = None,
+    ) -> None:
+        """
+        Create a new OLD_PK -> NEW_PK mapping for the given model. Models that contain unique slugs (organizations, projects, etc) can optionally store that information as well.
+        """
+
+        self.mapping[str(model_name)][old] = (new, kind, slug)
 
 
 # No arguments, so we lazily cache the result after the first calculation.
