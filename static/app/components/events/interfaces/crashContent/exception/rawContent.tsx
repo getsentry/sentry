@@ -139,7 +139,8 @@ class RawContent extends Component<Props, State> {
 
     try {
       const data = await api.requestPromise(
-        this.getAppleCrashReportEndpoint(organization)
+        this.getAppleCrashReportEndpoint(organization),
+        {headers: {Accept: 'text/plain; charset=utf-8'}}
       );
       this.setState({
         error: false,
