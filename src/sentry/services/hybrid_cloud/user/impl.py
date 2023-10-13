@@ -5,7 +5,7 @@ from typing import Any, Callable, List, MutableMapping, Optional
 from uuid import uuid4
 
 from django.db import router, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.utils.text import slugify
 
 from sentry.api.serializers import (
@@ -187,6 +187,7 @@ class DatabaseBackedUserService(UserService):
                 user_signup.send_robust(
                     sender=self, user=user, source="api", referrer=referrer or "unknown"
                 )
+                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             else:
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
                 # So let's not break the user experience. Instead return the user with auth identity of ident or

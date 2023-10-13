@@ -1,6 +1,7 @@
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -10,6 +11,14 @@ from sentry.testutils.silo import control_silo_test
 class DatabaseBackedUserService(TestCase):
     def setUp(self) -> None:
         super().setUp()
+
+    def test_create_new_user(self):
+        old_user_count = User.objects.all().count()
+        rpc_user = user_service.get_or_create_user_by_email(email="test@email.com")
+        user = User.objects.get(id=rpc_user.id)
+        new_user_count = User.objects.all().count()
+        assert new_user_count == old_user_count + 1
+        assert user.flags.newsletter_consent_prompt
 
     def test_get_or_create_user(self):
         user1 = self.create_user(email="test@email.com", username="1")
