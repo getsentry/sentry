@@ -2,6 +2,7 @@ import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -59,6 +60,7 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
       // TODO[feedback]: Guard against invalid test data that has no valid project.
       return null;
     }
+    const slug = project?.slug;
 
     return (
       <Wrapper
@@ -98,7 +100,10 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
         <div style={{gridArea: 'message'}}>
           <TextOverflow>{feedbackItem.message}</TextOverflow>
         </div>
-        <Flex style={{gridArea: 'icons'}}>
+        <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
+          <Flex align="center" gap={space(0.5)}>
+            <ProjectAvatar project={project} size={12} /> {slug}
+          </Flex>
           {feedbackItem.replay_id ? <ReplayBadge /> : null}
         </Flex>
       </Wrapper>
