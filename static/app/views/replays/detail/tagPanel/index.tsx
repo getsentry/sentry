@@ -93,11 +93,11 @@ function TagPanel() {
   );
 }
 
-const StyledPanel = styled(Panel)`
-  width: 100%;
+const StyledPanel = styled('div')`
+  position: relative;
   height: 100%;
-  overflow: hidden;
-  margin-bottom: 0;
+  overflow: auto;
+  display: grid;
 `;
 
 export default TagPanel;
