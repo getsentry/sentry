@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Sequence, Set
+from typing import Any, Optional, Sequence, Set
 
 from snuba_sdk import Column, Function
 
@@ -26,7 +26,9 @@ from sentry.snuba.metrics.naming_layer.public import (
 
 
 def _aggregation_on_session_status_func_factory(aggregate) -> Function:
-    def _snql_on_session_status_factory(org_id, session_status, metric_ids, alias=None) -> Function:
+    def _snql_on_session_status_factory(
+        org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
+    ) -> Function:
         return Function(
             aggregate,
             [
@@ -58,7 +60,7 @@ def _aggregation_on_session_status_func_factory(aggregate) -> Function:
 
 
 def _aggregation_on_abnormal_mechanism_func_factory(
-    org_id: int, abnormal_mechanism, metric_ids, alias=None
+    org_id: int, abnormal_mechanism: Any, metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     if isinstance(abnormal_mechanism, list):
         abnormal_mechanism_condition = Function(
@@ -109,7 +111,7 @@ def _aggregation_on_abnormal_mechanism_func_factory(
 
 
 def _counter_sum_aggregation_on_session_status_factory(
-    org_id: int, session_status, metric_ids, alias=None
+    org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_session_status_func_factory(aggregate="sumIf")(
         org_id, session_status, metric_ids, alias
@@ -117,15 +119,17 @@ def _counter_sum_aggregation_on_session_status_factory(
 
 
 def _set_uniq_aggregation_on_session_status_factory(
-    org_id: int, session_status, metric_ids, alias=None
+    org_id: int, session_status: str, metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_session_status_func_factory(aggregate="uniqIf")(
         org_id, session_status, metric_ids, alias
     )
 
 
-def _aggregation_on_tx_status_func_factory(aggregate) -> Function:
-    def _get_snql_conditions(org_id: int, metric_ids, exclude_tx_statuses) -> Function:
+def _aggregation_on_tx_status_func_factory(aggregate: Function) -> Function:
+    def _get_snql_conditions(
+        org_id: int, metric_ids: Set[int], exclude_tx_statuses: list[str]
+    ) -> Function:
         metric_match = Function("in", [Column("metric_id"), list(metric_ids)])
         assert exclude_tx_statuses is not None
         if len(exclude_tx_statuses) == 0:
@@ -156,7 +160,10 @@ def _aggregation_on_tx_status_func_factory(aggregate) -> Function:
         )
 
     def _snql_on_tx_status_factory(
-        org_id: int, exclude_tx_statuses: list[str], metric_ids, alias=None
+        org_id: int,
+        exclude_tx_statuses: list[str],
+        metric_ids: Set[int],
+        alias: Optional[str] = None,
     ) -> Function:
         return Function(
             aggregate,
@@ -171,16 +178,16 @@ def _aggregation_on_tx_status_func_factory(aggregate) -> Function:
 
 
 def _dist_count_aggregation_on_tx_status_factory(
-    org_id: int, exclude_tx_statuses: [str], metric_ids, alias=None
+    org_id: int, exclude_tx_statuses: list[str], metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_status_func_factory("countIf")(
         org_id, exclude_tx_statuses, metric_ids, alias
     )
 
 
-def _aggregation_on_tx_satisfaction_func_factory(aggregate) -> Function:
+def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Function:
     def _snql_on_tx_satisfaction_factory(
-        org_id: int, satisfaction_value: str, metric_ids, alias=None
+        org_id: int, satisfaction_value: str, metric_ids: Set[int], alias: Optional[str] = None
     ) -> Function:
         return Function(
             aggregate,
@@ -215,7 +222,7 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate) -> Function:
 
 
 def _dist_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids, alias=None
+    org_id: int, satisfaction: str, metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_satisfaction_func_factory("countIf")(
         org_id, satisfaction, metric_ids, alias
@@ -223,7 +230,7 @@ def _dist_count_aggregation_on_tx_satisfaction_factory(
 
 
 def _set_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids, alias=None
+    org_id: int, satisfaction: str, metric_ids: Set[int], alias: Optional[str] = None
 ) -> Function:
     return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
         org_id=org_id,
@@ -233,29 +240,29 @@ def _set_count_aggregation_on_tx_satisfaction_factory(
     )
 
 
-def all_sessions(org_id: int, metric_ids, alias=None) -> Function:
+def all_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="init", metric_ids=metric_ids, alias=alias
     )
 
 
-def all_users(org_id: int, metric_ids, alias=None) -> Function:
+def all_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return uniq_aggregation_on_metric(metric_ids, alias)
 
 
-def crashed_sessions(org_id: int, metric_ids, alias=None) -> Function:
+def crashed_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
-def crashed_users(org_id: int, metric_ids, alias=None) -> Function:
+def crashed_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
-def anr_users(org_id: int, metric_ids, alias=None) -> Function:
+def anr_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _aggregation_on_abnormal_mechanism_func_factory(
         org_id,
         abnormal_mechanism=["anr_foreground", "anr_background"],
@@ -264,7 +271,9 @@ def anr_users(org_id: int, metric_ids, alias=None) -> Function:
     )
 
 
-def foreground_anr_users(org_id: int, metric_ids, alias=None) -> Function:
+def foreground_anr_users(
+    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+) -> Function:
     return _aggregation_on_abnormal_mechanism_func_factory(
         org_id,
         abnormal_mechanism="anr_foreground",
@@ -273,31 +282,33 @@ def foreground_anr_users(org_id: int, metric_ids, alias=None) -> Function:
     )
 
 
-def errored_preaggr_sessions(org_id: int, metric_ids, alias=None) -> Function:
+def errored_preaggr_sessions(
+    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="errored_preaggr", metric_ids=metric_ids, alias=alias
     )
 
 
-def abnormal_sessions(org_id: int, metric_ids, alias=None) -> Function:
+def abnormal_sessions(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="abnormal", metric_ids=metric_ids, alias=alias
     )
 
 
-def abnormal_users(org_id: int, metric_ids, alias=None) -> Function:
+def abnormal_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="abnormal", metric_ids=metric_ids, alias=alias
     )
 
 
-def errored_all_users(org_id: int, metric_ids, alias=None) -> Function:
+def errored_all_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="errored", metric_ids=metric_ids, alias=alias
     )
 
 
-def uniq_aggregation_on_metric(metric_ids, alias=None) -> Function:
+def uniq_aggregation_on_metric(metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return Function(
         "uniqIf",
         [
@@ -314,7 +325,9 @@ def uniq_aggregation_on_metric(metric_ids, alias=None) -> Function:
     )
 
 
-def failure_count_transaction(org_id: int, metric_ids, alias=None) -> Function:
+def failure_count_transaction(
+    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+) -> Function:
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
         exclude_tx_statuses=[
@@ -328,7 +341,9 @@ def failure_count_transaction(org_id: int, metric_ids, alias=None) -> Function:
     )
 
 
-def http_error_count_transaction(org_id: int, metric_ids, alias=None) -> Function:
+def http_error_count_transaction(
+    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+) -> Function:
     statuses = [
         resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, status)
         for status in constants.HTTP_SERVER_ERROR_STATUS
@@ -377,7 +392,9 @@ def all_spans(
     )
 
 
-def http_error_count_span(org_id: int, metric_ids, alias=None) -> Function:
+def http_error_count_span(
+    org_id: int, metric_ids: Set[int], alias: Optional[str] = None
+) -> Function:
     statuses = [
         resolve_tag_value(UseCaseID.SPANS, org_id, status)
         for status in constants.HTTP_SERVER_ERROR_STATUS
@@ -539,7 +556,7 @@ def all_transactions(
     )
 
 
-def apdex(satisfactory_snql, tolerable_snql, total_snql, alias=None) -> Function:
+def apdex(satisfactory_snql, tolerable_snql, total_snql, alias: Optional[str] = None) -> Function:
     return division_float(
         arg1_snql=addition(satisfactory_snql, division_float(tolerable_snql, 2)),
         arg2_snql=total_snql,
@@ -547,7 +564,7 @@ def apdex(satisfactory_snql, tolerable_snql, total_snql, alias=None) -> Function
     )
 
 
-def miserable_users(org_id: int, metric_ids, alias=None) -> Function:
+def miserable_users(org_id: int, metric_ids: Set[int], alias: Optional[str] = None) -> Function:
     return _set_count_aggregation_on_tx_satisfaction_factory(
         org_id=org_id,
         satisfaction=TransactionSatisfactionTagValue.FRUSTRATED.value,
@@ -556,15 +573,15 @@ def miserable_users(org_id: int, metric_ids, alias=None) -> Function:
     )
 
 
-def subtraction(arg1_snql, arg2_snql, alias=None) -> Function:
+def subtraction(arg1_snql, arg2_snql, alias: Optional[str] = None) -> Function:
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
 
-def addition(arg1_snql, arg2_snql, alias=None) -> Function:
+def addition(arg1_snql, arg2_snql, alias: Optional[str] = None) -> Function:
     return Function("plus", [arg1_snql, arg2_snql], alias)
 
 
-def division_float(arg1_snql, arg2_snql, alias=None) -> Function:
+def division_float(arg1_snql, arg2_snql, alias: Optional[str] = None) -> Function:
     return Function(
         "divide",
         # Clickhouse can manage divisions by 0, see:
@@ -574,7 +591,7 @@ def division_float(arg1_snql, arg2_snql, alias=None) -> Function:
     )
 
 
-def complement(arg1_snql, alias=None) -> Function:
+def complement(arg1_snql, alias: Optional[str] = None) -> Function:
     """(x) -> (1 - x)"""
     return Function("minus", [1.0, arg1_snql], alias=alias)
 
@@ -596,7 +613,7 @@ def histogram_snql_factory(
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,
     histogram_buckets: int = 100,
-    alias=None,
+    alias: Optional[str] = None,
 ) -> Function:
     zoom_conditions = zoom_histogram(
         histogram_buckets=histogram_buckets,
@@ -632,7 +649,7 @@ def rate_snql_factory(
 
 
 def count_web_vitals_snql_factory(
-    aggregate_filter: Function, org_id: int, measurement_rating, alias=None
+    aggregate_filter: Function, org_id: int, measurement_rating, alias: Optional[str] = None
 ) -> Function:
     return Function(
         "countIf",
@@ -661,7 +678,7 @@ def count_web_vitals_snql_factory(
 
 
 def count_transaction_name_snql_factory(
-    aggregate_filter: Function, org_id: int, transaction_name, alias=None
+    aggregate_filter: Function, org_id: int, transaction_name, alias: Optional[str] = None
 ) -> Function:
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
@@ -720,7 +737,9 @@ def count_transaction_name_snql_factory(
     )
 
 
-def team_key_transaction_snql(org_id: int, team_key_condition_rhs, alias=None) -> Function:
+def team_key_transaction_snql(
+    org_id: int, team_key_condition_rhs, alias: Optional[str] = None
+) -> Function:
     team_key_conditions = set()
     for elem in team_key_condition_rhs:
         if len(elem) != 2:
@@ -762,7 +781,13 @@ def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -
 
 
 def operation_if_column_snql(
-    operation, aggregate_filter: Function, org_id: int, use_case_id, if_column, if_value, alias
+    operation,
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
 ) -> Function:
     return Function(
         operation,
@@ -787,7 +812,11 @@ def operation_if_column_snql(
 
 
 def timestamp_column_snql(
-    operation: str, aggregate_filter: Function, org_id: int, use_case_id, alias
+    operation: str,
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    alias: Optional[str] = None,
 ) -> Function:
     return Function(
         operation,
@@ -800,7 +829,12 @@ def timestamp_column_snql(
 
 
 def sum_if_column_snql(
-    aggregate_filter: Function, org_id: int, use_case_id, if_column, if_value, alias=None
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
 ) -> Function:
     return operation_if_column_snql(
         "sumIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
@@ -808,18 +842,27 @@ def sum_if_column_snql(
 
 
 def uniq_if_column_snql(
-    aggregate_filter: Function, org_id: int, use_case_id, if_column, if_value, alias=None
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
 ) -> Function:
     return operation_if_column_snql(
         "uniqIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
     )
 
 
-def min_timestamp(aggregate_filter: Function, org_id: int, use_case_id, alias=None) -> Function:
+def min_timestamp(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
     return timestamp_column_snql("minIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def max_timestamp(aggregate_filter: Function, org_id: int, use_case_id, alias=None) -> Function:
+def max_timestamp(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
