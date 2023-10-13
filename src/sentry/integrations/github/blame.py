@@ -1,7 +1,7 @@
 import logging
 from dataclasses import asdict
 from datetime import timezone
-from typing import Dict, Optional, Sequence, TypedDict
+from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
 
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
@@ -34,7 +34,9 @@ class GitHubFileBlameRange(TypedDict):
 FilePathMapping = Dict[str, Dict[str, OrderedSet]]
 
 
-def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMapping:
+def generate_file_path_mapping(
+    files: Sequence[SourceLineInfo],
+) -> FilePathMapping:
     """
     Generates a nested mapping of repo -> ref -> file paths.
     This map is used to dedupe matching repos, refs, and file paths and only query
@@ -80,33 +82,37 @@ def extract_commits_from_blame_response(
     response: MappingApiResponse,
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
+    extra: Optional[Dict[str, str]] = None,
 ) -> Sequence[FileBlameInfo]:
     """
     Using the file path mapping that generated the initial GraphQL query,
     this function extracts all commits from the response and maps each one
     back to the correct file.
     """
-    logger_info = {}
-    file_blames: Sequence[FileBlameInfo] = []
-    for repo_index, (full_repo_name, ref) in enumerate(file_path_mapping.items()):
-        repo = response.get("data", {}).get(f"repository{repo_index}")
-        if not repo:
-            logger.info(f"Repository {full_repo_name} does not exist in GitHub.", extra=logger_info)
+    file_blames: List[FileBlameInfo] = []
+    for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
+        repo_mapping: Optional[Dict[str, Any]] = response.get("data", {}).get(
+            f"repository{repo_index}"
+        )
+        if not repo_mapping:
+            logger.info(f"Repository {full_repo_name} does not exist in GitHub.", extra=extra)
             continue
-        for ref_index, (ref_name, file_paths) in enumerate(ref.items()):
-            ref = repo.get(f"ref{ref_index}")
+        for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
+            ref: Optional[Dict[str, Any]] = repo_mapping.get(f"ref{ref_index}")
             if not ref:
                 logger.info(
                     f"Branch {ref_name} for repository {full_repo_name} does not exist in GitHub.",
-                    extra=logger_info,
+                    extra=extra,
                 )
                 continue
             for file_path_index, file_path in enumerate(file_paths):
-                blame = ref.get("target", {}).get(f"blame{file_path_index}")
+                blame: Optional[Dict[str, Any]] = ref.get("target", {}).get(
+                    f"blame{file_path_index}"
+                )
                 if not blame:
                     logger.info(
                         f"File {file_path} for branch {ref_name} for repository {full_repo_name} does not exist in GitHub.",
-                        extra=logger_info,
+                        extra=extra,
                     )
                     continue
                 matching_file, blame_info = _get_matching_file_and_blame(
@@ -119,7 +125,7 @@ def extract_commits_from_blame_response(
                 if not blame_info:
                     logger.info(
                         f"No matching commit found for line {matching_file.lineno} in file {matching_file.path} in branch {matching_file.ref} in repository {full_repo_name} in GitHub.",
-                        extra=logger_info,
+                        extra=extra,
                     )
                     continue
                 file_blames.append(blame_info)
@@ -136,7 +142,7 @@ def _get_matching_file_and_blame(
     matching_file = [
         f for f in files if f.path == path and f.repo.name == repo_name and f.ref == ref
     ][0]
-    matching_blame_range: GitHubFileBlameRange | None = next(
+    matching_blame_range: Optional[GitHubFileBlameRange] = next(
         iter(
             [
                 r
@@ -149,16 +155,22 @@ def _get_matching_file_and_blame(
     if not matching_blame_range:
         return matching_file, None
 
-    commit = matching_blame_range.get("commit") or {}
-    author = commit.get("author") or {}
+    commit: Optional[GitHubFileBlameCommit] = matching_blame_range.get("commit", None)
+    if not commit:
+        return matching_file, None
+    committed_date = commit.get("committedDate")
+    if not committed_date:
+        return matching_file, None
+
+    author: Union[GitHubAuthor, Dict[Any, Any]] = commit.get("author") or {}
     blame = FileBlameInfo(
         **asdict(matching_file),
         commit=CommitInfo(
             commitId=commit.get("oid"),
-            commitAuthorName=author.get("name"),
-            commitAuthorEmail=author.get("email"),
-            commitMessage=commit.get("message"),
-            committedDate=parse_datetime(commit.get("committedDate")).astimezone(timezone.utc),
+            commitAuthorName=author.get("name", None),
+            commitAuthorEmail=author.get("email", None),
+            commitMessage=commit.get("message", None),
+            committedDate=parse_datetime(committed_date).astimezone(timezone.utc),
         ),
     )
 
