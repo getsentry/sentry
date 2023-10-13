@@ -13,6 +13,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
 jobs:
     files-changed:
         name: detect what files changed
@@ -67,7 +73,7 @@ jobs:
             pg-version: 14
         - name: Download Codecov CLI
           run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli==0.3.8
         # Creates the commit and report objects in codecov
         - name: Codecov startup
           run: |
@@ -98,6 +104,9 @@ jobs:
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
             if [ -n "${output}" ];
             then
+              # TODO: With https://github.com/codecov/codecov-cli/pull/292 there will be an option to get JSON output
+              # Directly from codecov cli and this json_output will be unecessary
+              # But while pinned to codecov-cli==0.3.8 this is needed
               json_output=$(echo $output | grep -o -e "{.*}")
 
               echo ATS_TESTS_TO_RUN=$(jq <<< $json_output '.runner_options + .ats_tests_to_run | map(@sh) | join(" ")' --raw-output) >> "$GITHUB_OUTPUT"
@@ -123,7 +132,7 @@ jobs:
       steps:
         - name: Debug ATS_TESTS_TO_RUN
           run: |
-            echo ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }}
+            : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }}
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
-            echo ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}
+            : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}

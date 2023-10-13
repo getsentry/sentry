@@ -75,12 +75,15 @@ comment:
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
 
+# https://docs.codecov.com/docs/flags#two-approaches-to-flag-management
 flag_management:
   individual_flags:
     - name: smart-tests
       carryforward: true
+      # https://docs.codecov.com/docs/getting-started-with-ats#step-2-configure-the-codecovyml-for-automated-test-selection
       carryforward_mode: "labels"
       statuses:
+        # https://github.com/codecov/shared/blob/main/shared/validation/user_schema.py#L310
         - type: "patch"
           enabled: false
 
