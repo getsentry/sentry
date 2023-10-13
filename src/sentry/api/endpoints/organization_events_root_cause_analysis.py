@@ -145,7 +145,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 
         geo_code_durations = metrics_query(
             ["p95(transaction.duration)", "geo.country_code", "count()"],
-            f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
+            f"event.type:transaction transaction:{transaction_name}",
             adjusted_params,
             referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
             limit=METRICS_MAX_LIMIT,
@@ -219,7 +219,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
-                f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
+                f"event.type:transaction transaction:{transaction_name}",
                 params,
                 referrer=f"{BASE_REFERRER}-{analysis_type}",
             )
