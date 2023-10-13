@@ -432,6 +432,105 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 
 
 @django_db_all
+@pytest.mark.parametrize("quality", ["good", "meh", "poor", "any"])
+@pytest.mark.parametrize("measurement", ["measurements.lcp"])
+def test_get_metric_extraction_config_with_count_web_vitals(default_project, quality, measurement):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_alert(
+            f"count_web_vitals({measurement}, {quality})",
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+
+        if quality == "good":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "gte",
+                            "value": 2500,
+                        },
+                        "key": "quality",
+                        "value": "good",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if quality == "meh":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "inner": [
+                                {"name": f"event.{measurement}.value", "op": "gte", "value": 2500},
+                                {"name": f"event.{measurement}.value", "op": "lt", "value": 4000},
+                            ],
+                            "op": "and",
+                        },
+                        "key": "quality",
+                        "value": "meh",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if quality == "poor":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "gte",
+                            "value": 4000,
+                        },
+                        "key": "quality",
+                        "value": "poor",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if quality == "any":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "gte",
+                            "value": 0,
+                        },
+                        "key": "quality",
+                        "value": "any",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+
+@django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
 def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
