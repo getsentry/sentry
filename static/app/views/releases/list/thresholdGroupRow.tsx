@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import StyledIdBadge from '../components/styledIdBadge';
 import {forHumans} from '../utils';
 import {Threshold} from '../utils/types';
 
@@ -35,7 +35,7 @@ export function ThresholdGroupRow({thresholds}: Props) {
     <Fragment key={idx}>
       <FlexCenter>
         {idx === 0 ? (
-          <StyledIdBadge
+          <ProjectBadge
             project={threshold.project}
             avatarSize={16}
             hideOverflow
