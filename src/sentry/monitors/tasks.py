@@ -129,26 +129,23 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # timestamp. Use `int()` to keep the timestamp (score) as an int
     slowest_part_ts = int(slowest_partitions[0][1])
 
-    # TODO(epurkhiser): The `slowest_part_ts` is going to become the
-    # reference_ts for the rest of this function. But we don't want to flip
-    # this over quite yet since we want to make sure this is working as
-    # expected.
-
     precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
     if precheck_last_ts is not None:
         precheck_last_ts = int(precheck_last_ts)
 
-    # If we have the same or an older reference timestamp from the most recent
-    # tick there is nothing to do, we've already handled this tick.
+    # If we have the same or an older timestamp from the most recent tick there
+    # is nothing to do, we've already handled this tick.
     #
-    # The scenario where the reference_ts is older is likely due to a partition
-    # being slightly behind another partition that we've already read from
-    if precheck_last_ts is not None and precheck_last_ts >= reference_ts:
+    # The scenario where the slowest_part_ts is older may happen when our
+    # MONITOR_TASKS_PARTITION_CLOCKS set did not know about every partition the
+    # topic is responsible for. Older check-ins may be processed after newer
+    # ones in diferent topics. This should only happen if redis loses state.
+    if precheck_last_ts is not None and precheck_last_ts >= slowest_part_ts:
         return
 
     # GETSET is atomic. This is critical to avoid another consumer also
     # processing the same tick.
-    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, reference_ts)
+    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, slowest_part_ts)
     if last_ts is not None:
         last_ts = int(last_ts)
 
@@ -160,32 +157,22 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # Track the delay from the true time, ideally this should be pretty
     # close, but in the case of a backlog, this will be much higher
-    total_delay = datetime.now().timestamp() - reference_ts
+    total_delay = datetime.now().timestamp() - slowest_part_ts
 
-    # TODO(epurkhiser): For now we will just log the slowest partition
-    # timestamp and in production we can validate the value moves forward
-    # correctly. It's likely this will be a minute behind the actual
-    # reference_ts since there will always be a sloest partition
-    logger.info(
-        "monitors.consumer.clock_tick_slowest_partition",
-        extra={"slowest_part_ts": slowest_part_ts},
-    )
+    tick = datetime.fromtimestamp(slowest_part_ts)
 
-    logger.info(
-        "monitors.consumer.clock_tick",
-        extra={"reference_datetime": str(reference_datetime)},
-    )
+    logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
     # task run, report that to sentry, it is a problem.
-    if last_ts is not None and reference_ts > last_ts + 60:
+    if last_ts is not None and slowest_part_ts > last_ts + 60:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("last_ts", last_ts)
-            scope.set_extra("reference_ts", reference_ts)
+            scope.set_extra("slowest_part_ts", slowest_part_ts)
             sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
-    _dispatch_tasks(ts)
+    _dispatch_tasks(tick)
 
 
 @instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
