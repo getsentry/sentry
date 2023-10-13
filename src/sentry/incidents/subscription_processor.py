@@ -555,8 +555,12 @@ class SubscriptionProcessor:
             Incident.objects.filter(alert_rule=trigger.alert_rule).order_by("-date_added").first()
         )
         trigger_incidents = [incident.id for incident in trigger.triggered_incidents.all()]
+        last_incident_projects = (
+            [project.id for project in last_incident.projects.all()] if last_incident else []
+        )
         if (
             last_incident
+            and self.subscription.project.id in last_incident_projects
             and (len(trigger_incidents) > 0 and last_incident.id == trigger_incidents[-1])
             and (timezone.now() - last_incident.date_added).seconds / 60 <= 10
         ):
