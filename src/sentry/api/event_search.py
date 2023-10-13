@@ -10,8 +10,8 @@ from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
