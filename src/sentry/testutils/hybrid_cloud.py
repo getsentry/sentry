@@ -252,6 +252,7 @@ def simulate_on_commit(request: Any):
 
 
 def use_split_dbs() -> bool:
-    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set in stone.
-    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set
+    # in stone.
+    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     return not SENTRY_USE_MONOLITH_DBS

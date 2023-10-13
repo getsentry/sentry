@@ -49,6 +49,9 @@ class NormalizedModelName:
     def __str__(self) -> str:
         return self.__model_name
 
+    def __repr__(self) -> str:
+        return f"NormalizedModelName: {self.__model_name}"
+
 
 # A "root" model is one that is the source of a particular relocation scope - ex, `User` is the root
 # of the `User` relocation scope, the model from which all other (non-dangling; see below) models in
