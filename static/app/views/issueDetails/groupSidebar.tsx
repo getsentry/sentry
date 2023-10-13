@@ -150,7 +150,9 @@ export default function GroupSidebar({
           <QuestionTooltip
             size="xs"
             position="top"
-            title={t('People who have resolved, ignored, or added a comment')}
+            title={t(
+              'People who have been assigned, resolved, unresolved, archived, bookmarked, subscribed, or added a comment'
+            )}
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
