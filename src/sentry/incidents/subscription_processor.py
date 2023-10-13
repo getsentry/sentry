@@ -554,7 +554,12 @@ class SubscriptionProcessor:
         last_incident: Incident | None = (
             Incident.objects.filter(alert_rule=trigger.alert_rule).order_by("-date_added").first()
         )
-        if last_incident and (timezone.now() - last_incident.date_added).seconds / 60 <= 10:
+        trigger_incidents = [incident.id for incident in trigger.triggered_incidents.all()]
+        if (
+            last_incident
+            and (len(trigger_incidents) > 0 and last_incident.id == trigger_incidents[-1])
+            and (timezone.now() - last_incident.date_added).seconds / 60 <= 10
+        ):
             return None
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
