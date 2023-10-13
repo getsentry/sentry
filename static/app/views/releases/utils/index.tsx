@@ -296,6 +296,10 @@ const secondDerivatives = {
   days: 60 * 60 * 24,
 };
 export function parseSeconds(seconds: number): [string, number] {
+  /**
+   * Translates seconds its largest common denominator strings & values
+   * ex. 60s === 1m
+   */
   let largestDenominator = seconds;
   let largestDenKey = 'sec';
   Object.keys(secondDerivatives).forEach(key => {

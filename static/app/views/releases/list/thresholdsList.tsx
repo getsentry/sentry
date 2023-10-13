@@ -58,6 +58,9 @@ function ThresholdsList({selectedEnvs, selectedProjectIds}: Props) {
     return <LoadingIndicator />;
   }
 
+  // TODO: make each proj/env their own grouping
+  // introduce + row btn
+  // figure out form logic....
   return (
     <Wrapper>
       <StyledPanelTable
