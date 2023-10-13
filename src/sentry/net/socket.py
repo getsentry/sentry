@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import ipaddress
 import socket
@@ -16,7 +18,7 @@ DISALLOWED_IPS = frozenset(
 
 
 @functools.lru_cache(maxsize=100)
-def is_ipaddress_allowed(ip):
+def is_ipaddress_allowed(ip: str) -> bool:
     """
     Test if a given IP address is allowed or not
     based on the DISALLOWED_IPS rules.
@@ -30,7 +32,7 @@ def is_ipaddress_allowed(ip):
     return True
 
 
-def ensure_fqdn(hostname):
+def ensure_fqdn(hostname: str) -> str:
     """
     If a given hostname is just an IP address, this is already qualified.
     If it's not, then it's a hostname and we want to ensure it's fully qualified
@@ -57,14 +59,14 @@ def ensure_fqdn(hostname):
         return hostname + "."
 
 
-def is_valid_url(url):
+def is_valid_url(url: str) -> bool:
     """
     Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
     """
     return is_safe_hostname(urlparse(url).hostname)
 
 
-def is_safe_hostname(hostname):
+def is_safe_hostname(hostname: str | None) -> bool:
     """
     Tests a hostname to ensure it doesn't appear to be a blacklisted IP range.
     """
