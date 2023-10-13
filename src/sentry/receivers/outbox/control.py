@@ -17,6 +17,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 from sentry.silo.base import SiloMode
 
@@ -113,3 +114,13 @@ def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kw
     other_member.flags.sso__invalid = True
     other_member.flags.sso__linked = False
     organization_service.update_membership_flags(organization_member=other_member)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.ISSUE_COMMENT_UPDATE)
+def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
+    issue_service.upsert_issue_email_reply(
+        organization_id=shard_identifier,
+        group_id=payload["group_id"],
+        from_email=payload["from_email"],
+        text=payload["text"],
+    )

@@ -1,6 +1,10 @@
 import logging
+from typing import Optional
 
 from sentry.auth import access
+from sentry.models.group import Group
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import send_messages
@@ -8,11 +12,8 @@ from sentry.utils.email import send_messages
 logger = logging.getLogger(__name__)
 
 
-def _get_user_from_email(group, email):
-    from sentry.models.user import User
-
-    # TODO(dcramer): we should encode the userid in emails so we can avoid this
-    for user in User.objects.filter(email__iexact=email):
+def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
+    for user in user_service.get_many_by_email(emails=[email]):
         # Make sure that the user actually has access to this project
         context = access.from_user(user=user, organization=group.organization)
         if not any(context.has_team_access(t) for t in group.project.teams.all()):
@@ -29,8 +30,9 @@ def _get_user_from_email(group, email):
     max_retries=None,
     silo_mode=SiloMode.REGION,
 )
-def process_inbound_email(mailfrom, group_id, payload):
-    """ """
+def process_inbound_email(mailfrom: str, group_id: int, payload: str):
+    # TODO(hybridcloud) Once we aren't invoking this with celery
+    # detach  this from celery and have a basic function instead.
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -45,15 +47,9 @@ def process_inbound_email(mailfrom, group_id, payload):
         logger.warning("Inbound email from unknown address: %s", mailfrom)
         return
 
-    event = group.get_latest_event()
-
-    if event:
-        event.group = group
-        event.project = group.project
-
     form = NewNoteForm({"text": payload})
     if form.is_valid():
-        form.save(group, user, event=event)
+        form.save(group, user)
 
 
 @instrumented_task(
