@@ -31,6 +31,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
