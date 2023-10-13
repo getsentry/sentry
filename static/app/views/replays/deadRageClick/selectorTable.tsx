@@ -196,7 +196,7 @@ export default function SelectorTable({
       <Title>{t('No dead or rage clicks found')}</Title>
       <Subtitle>
         {t(
-          "Once your users start clicking around, you'll see the top selectors that were dead or rage clicked here."
+          'There were no dead or rage clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.'
         )}
       </Subtitle>
     </MessageContainer>
