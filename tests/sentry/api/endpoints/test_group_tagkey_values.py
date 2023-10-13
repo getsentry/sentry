@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -5,7 +7,8 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def test_simple(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -26,6 +29,12 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         assert len(response.data) == 1
 
         assert response.data[0]["value"] == "bar"
+
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        )
 
     def test_simple_perf(self):
         key, value = "foo", "bar"

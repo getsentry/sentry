@@ -6,6 +6,7 @@ import itertools
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 from unittest.mock import patch
 
 from sentry import eventstream, tagstore, tsdb
@@ -170,7 +171,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    def test_unmerge(self):
+    @mock.patch("sentry.analytics.record")
+    def test_unmerge(self, mock_record):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
 
         def time_from_now(offset=0):
@@ -463,7 +465,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
-            aggregate.add(get_event_user_from_interface(event.data["user"]).tag_value)
+            aggregate.add(
+                get_event_user_from_interface(event.data["user"], event.group.project).tag_value
+            )
+            mock_record.assert_called_with(
+                "eventuser_endpoint.request",
+                project_id=event.group.project.id,
+                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            )
             return aggregate
 
         for series in [time_series, environment_time_series]:

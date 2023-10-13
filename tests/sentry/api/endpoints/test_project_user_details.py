@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.models.eventuser import EventUser
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -18,12 +20,20 @@ class ProjectUserDetailsTest(APITestCase):
         self.euser = EventUser.objects.create(email="foo@example.com", project_id=self.project.id)
         self.euser2 = EventUser.objects.create(email="bar@example.com", project_id=self.project.id)
 
-    def test_simple(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         self.login_as(user=self.user)
         response = self.get_success_response(self.org.slug, self.project.slug, self.euser.hash)
         assert response.data["id"] == str(self.euser.id)
 
-    def test_delete_event_user(self):
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.project.id,
+            endpoint="sentry.api.endpoints.project_user_details.get",
+        )
+
+    @mock.patch("sentry.analytics.record")
+    def test_delete_event_user(self, mock_record):
         # Only delete an event user as a superuser
         self.login_as(user=self.user, superuser="true")
 
@@ -34,6 +44,11 @@ class ProjectUserDetailsTest(APITestCase):
 
         assert response.status_code == 200
         assert EventUser.objects.count() == 1
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.project.id,
+            endpoint="sentry.api.endpoints.project_user_details.delete",
+        )
 
         # User doesn't exist
         path = f"/api/0/projects/{self.org.slug}/{self.project.slug}/users/1234567abcdefg"
