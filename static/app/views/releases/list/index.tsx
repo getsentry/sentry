@@ -576,7 +576,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
-    const viewingThresholds = router.location.query.view === THRESHOLDS_VIEW;
+    const viewingThresholds =
+      this.hasV2ReleaseUIEnabled && router.location.query.view === THRESHOLDS_VIEW;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
@@ -603,7 +604,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 )}
               </ReleasesPageFilterBar>
 
-              {this.shouldShowQuickstart ? null : (
+              {/* TODO: Different search bar for thresholds - should be able to search for projects. don't need status/date/display filters */}
+              {this.shouldShowQuickstart || viewingThresholds ? null : (
                 <SortAndFilterWrapper>
                   <GuideAnchor
                     target="releases_search"
