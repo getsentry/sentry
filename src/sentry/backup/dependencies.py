@@ -203,14 +203,14 @@ class DependenciesJSONEncoder(json.JSONEncoder):
             return obj.name
         if isinstance(obj, set) and all(isinstance(rs, RelocationScope) for rs in obj):
             # Order by enum value, which should correspond to `RelocationScope` breadth.
-            return sorted(list(obj), key=lambda obj: obj.value)
+            return sorted(obj, key=lambda obj: obj.value)
         if isinstance(obj, SiloMode):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):
-            return sorted(list(obj), key=lambda obj: get_model_name(obj))
+            return sorted(obj, key=lambda obj: get_model_name(obj))
         # JSON serialization of `uniques` values, which are stored in `frozenset`s.
         if isinstance(obj, frozenset):
-            return sorted(list(obj))
+            return sorted(obj)
         return super().default(obj)
 
 
@@ -430,7 +430,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 ),
                 table_name=model._meta.db_table,
                 # Sort the constituent sets alphabetically, so that we get consistent JSON output.
-                uniques=sorted(list(uniques), key=lambda u: ":".join(sorted(list(u)))),
+                uniques=sorted(uniques, key=lambda u: ":".join(sorted(u))),
             )
 
     # Get a flat list of "root" models, then mark all of them as non-dangling.
@@ -512,11 +512,12 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
     Similar to Django's algorithm except that we discard the importance of natural keys
     when sorting dependencies (ie, it works without them)."""
 
-    model_dependencies_dict = list(
-        sorted(dependencies().values(), key=lambda mr: get_model_name(mr.model))
+    model_dependencies_remaining = sorted(
+        dependencies().values(),
+        key=lambda mr: get_model_name(mr.model),
+        reverse=True,
     )
-    model_dependencies_dict.reverse()
-    model_set = {md.model for md in model_dependencies_dict}
+    model_set = {md.model for md in model_dependencies_remaining}
 
     # Now sort the models to ensure that dependencies are met. This
     # is done by repeatedly iterating over the input list of models.
@@ -527,11 +528,11 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
     # If we do a full iteration without a promotion, that means there are
     # circular dependencies in the list.
     model_list = []
-    while model_dependencies_dict:
+    while model_dependencies_remaining:
         skipped = []
         changed = False
-        while model_dependencies_dict:
-            model_deps = model_dependencies_dict.pop()
+        while model_dependencies_remaining:
+            model_deps = model_dependencies_remaining.pop()
             deps = model_deps.flatten().union(model_deps.relocation_dependencies)
             model = model_deps.model
 
@@ -555,6 +556,6 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
                     for m in sorted(skipped, key=lambda mr: get_model_name(mr.model))
                 )
             )
-        model_dependencies_dict = sorted(skipped, key=lambda mr: get_model_name(mr.model))
+        model_dependencies_remaining = sorted(skipped, key=lambda mr: get_model_name(mr.model))
 
     return model_list
