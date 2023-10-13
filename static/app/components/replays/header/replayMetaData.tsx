@@ -24,13 +24,13 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
 
-  const domEventsTab = {
+  const breadcrumbTab = {
     ...location,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      t_main: 'breadcrumbs',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -39,7 +39,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
-          <Link to={domEventsTab}>
+          <Link to={breadcrumbTab}>
             <ClickCount color="yellow300">
               <IconCursorArrow size="sm" />
               {replayRecord.count_dead_clicks}
@@ -53,7 +53,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
-          <Link to={domEventsTab} color="red300">
+          <Link to={breadcrumbTab} color="red300">
             <ClickCount color="red300">
               <IconCursorArrow size="sm" />
               {replayRecord.count_rage_clicks}
