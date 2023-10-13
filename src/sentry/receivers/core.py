@@ -13,11 +13,13 @@ from sentry import options
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
@@ -72,7 +74,14 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
     user = user_service.get_first_superuser()
 
-    org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
+    with outbox_context(flush=False):
+        org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
+
+    # We need to provision an organization slug in control silo
+    organization_provisioning_service.change_organization_slug(
+        organization_id=org.id, slug="sentry"
+    )
+    org.handle_async_replication(org.id)
 
     if user:
         OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")

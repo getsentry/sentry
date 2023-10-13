@@ -83,7 +83,6 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -285,7 +284,7 @@ class Factories:
                 with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
                     yield
 
-        with org_creation_context(), outbox_context(flush=False):
+        with org_creation_context():
             region_name = region.name if region is not None else get_local_region().name
             org: Organization = Organization.objects.create(name=name, **kwargs)
 
@@ -299,13 +298,8 @@ class Factories:
                     slug=org.slug,
                 ).save(unsafe_write=True)
 
-            # Manually drain the outbox shard as we need to retain the region
-            # data for org outbox replication to succeed.
-            RegionOutbox(
-                category=OutboxCategory.ORGANIZATION_UPDATE,
-                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                shard_identifier=org.id,
-            ).drain_shard()
+            # Manually replicate org data after adding an org slug reservation
+            org.handle_async_replication(org.id)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
