@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
@@ -74,11 +73,11 @@ def test_bad_duplicate_entry(tmp_path):
 
     assert len(findings) == 2
     assert findings[0].kind == ComparatorFindingKind.UnorderedInput
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.option"), 2)
+    assert findings[0].on == InstanceID("sentry.option", 2)
     assert findings[0].left_pk == 1
     assert not findings[0].right_pk
     assert findings[1].kind == ComparatorFindingKind.UnorderedInput
-    assert findings[1].on == InstanceID(NormalizedModelName("sentry.option"), 2)
+    assert findings[1].on == InstanceID("sentry.option", 2)
     assert not findings[1].left_pk
     assert findings[1].right_pk == 1
 
@@ -123,11 +122,11 @@ def test_bad_out_of_order_entry(tmp_path):
 
     assert len(findings) == 2
     assert findings[0].kind == ComparatorFindingKind.UnorderedInput
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.option"), 3)
+    assert findings[0].on == InstanceID("sentry.option", 3)
     assert findings[0].left_pk == 2
     assert not findings[0].right_pk
     assert findings[1].kind == ComparatorFindingKind.UnorderedInput
-    assert findings[1].on == InstanceID(NormalizedModelName("sentry.option"), 3)
+    assert findings[1].on == InstanceID("sentry.option", 3)
     assert not findings[1].left_pk
     assert findings[1].right_pk == 2
 
@@ -156,7 +155,7 @@ def test_bad_extra_left_entry(tmp_path):
 
     assert len(findings) == 1
     assert findings[0].kind == ComparatorFindingKind.UnequalCounts
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.option"))
+    assert findings[0].on == InstanceID("sentry.option")
     assert not findings[0].left_pk
     assert not findings[0].right_pk
     assert "2 left" in findings[0].reason
@@ -187,7 +186,7 @@ def test_bad_extra_right_entry(tmp_path):
 
     assert len(findings) == 1
     assert findings[0].kind == ComparatorFindingKind.UnequalCounts
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.option"))
+    assert findings[0].on == InstanceID("sentry.option")
     assert not findings[0].left_pk
     assert not findings[0].right_pk
     assert "1 left" in findings[0].reason
@@ -298,7 +297,7 @@ def test_bad_left_side_comparator_field_missing(tmp_path):
 
     assert len(findings) == 1
     assert findings[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.userrole"), 1)
+    assert findings[0].on == InstanceID("sentry.userrole", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert "left `date_updated`" in findings[0].reason
@@ -342,7 +341,7 @@ def test_bad_right_side_comparator_field_missing(tmp_path):
 
     assert len(findings) == 1
     assert findings[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.userrole"), 1)
+    assert findings[0].on == InstanceID("sentry.userrole", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert "right `date_updated`" in findings[0].reason
@@ -384,7 +383,7 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
     assert len(findings) == 1
 
     assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.email"), 1)
+    assert findings[0].on == InstanceID("sentry.email", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert """`email`""" in findings[0].reason

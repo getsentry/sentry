@@ -23,7 +23,7 @@ from sentry.utils.json import JSONData
 
 def test_good_comparator_both_sides_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -37,7 +37,7 @@ def test_good_comparator_both_sides_existing():
 
 def test_good_comparator_neither_side_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     missing: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -49,7 +49,7 @@ def test_good_comparator_neither_side_existing():
 
 def test_bad_comparator_only_one_side_existing():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -91,7 +91,7 @@ def test_bad_comparator_only_one_side_existing():
 
 def test_good_auto_suffix_comparator():
     cmp = AutoSuffixComparator("same", "suffixed")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -115,7 +115,7 @@ def test_good_auto_suffix_comparator():
 
 def test_bad_auto_suffix_comparator():
     cmp = AutoSuffixComparator("same", "suffixed")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -157,7 +157,7 @@ def test_bad_auto_suffix_comparator():
 
 def test_good_auto_suffix_comparator_existence():
     cmp = AutoSuffixComparator("auto_suffix_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -217,7 +217,7 @@ def test_good_auto_suffix_comparator_scrubbed():
 
 def test_good_datetime_equality_comparator():
     cmp = DatetimeEqualityComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -239,7 +239,7 @@ def test_good_datetime_equality_comparator():
 
 def test_bad_datetime_equality_comparator():
     cmp = DatetimeEqualityComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -272,7 +272,7 @@ def test_bad_datetime_equality_comparator():
 
 def test_good_date_updated_comparator():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -294,7 +294,7 @@ def test_good_date_updated_comparator():
 
 def test_bad_date_updated_comparator():
     cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -327,7 +327,7 @@ def test_bad_date_updated_comparator():
 
 def test_good_email_obfuscating_comparator():
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     model = {
         "model": "test",
         "ordinal": 1,
@@ -345,7 +345,7 @@ def test_good_email_obfuscating_comparator():
 
 def test_bad_email_obfuscating_comparator():
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -393,7 +393,7 @@ def test_bad_email_obfuscating_comparator():
 
 def test_good_email_obfuscating_comparator_existence():
     cmp = EmailObfuscatingComparator("email_obfuscating_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -465,7 +465,7 @@ def test_good_email_obfuscating_comparator_scrubbed():
 
 def test_good_hash_obfuscating_comparator():
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     model: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -483,7 +483,7 @@ def test_good_hash_obfuscating_comparator():
 
 def test_bad_hash_obfuscating_comparator():
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -531,7 +531,7 @@ def test_bad_hash_obfuscating_comparator():
 
 def test_good_hash_obfuscating_comparator_existence():
     cmp = HashObfuscatingComparator("hash_obfuscating_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -606,7 +606,7 @@ def test_good_foreign_key_comparator():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID(NormalizedModelName("sentry.useremail"), 0)
+    id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -645,7 +645,7 @@ def test_good_foreign_key_comparator_existence():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -713,7 +713,7 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID(NormalizedModelName("sentry.useremail"), 0)
+    id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -752,7 +752,7 @@ def test_bad_foreign_key_comparator_unequal_mapping():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID(NormalizedModelName("sentry.useremail"), 0)
+    id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     left_pk_map.insert(NormalizedModelName("sentry.user"), 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
@@ -802,7 +802,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
     )
-    id = InstanceID(NormalizedModelName("sentry.useremail"), 0)
+    id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
     right_pk_map = PrimaryKeyMap()
     left: JSONData = {
@@ -855,7 +855,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
 
 def test_good_ignored_comparator():
     cmp = IgnoredComparator("ignored_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     model: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -870,7 +870,7 @@ def test_good_ignored_comparator():
 
 def test_good_ignored_comparator_existence():
     cmp = IgnoredComparator("ignored_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -922,7 +922,7 @@ def test_good_ignored_comparator_scrubbed():
 
 def test_good_secret_hex_comparator():
     cmp = SecretHexComparator(8, "equal", "unequal")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -946,7 +946,7 @@ def test_good_secret_hex_comparator():
 
 def test_bad_secret_hex_comparator():
     cmp = SecretHexComparator(8, "same", "invalid_left", "invalid_right")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1020,7 +1020,7 @@ def test_good_secret_hex_comparator_scrubbed():
 
 def test_good_subscription_id_comparator():
     cmp = SubscriptionIDComparator("subscription_id_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1042,7 +1042,7 @@ def test_good_subscription_id_comparator():
 
 def test_bad_subscription_id_comparator():
     cmp = SubscriptionIDComparator("same", "invalid_left", "invalid_right")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1099,7 +1099,7 @@ def test_bad_subscription_id_comparator():
 
 def test_good_subscription_id_comparator_existence():
     cmp = SubscriptionIDComparator("subscription_id_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1155,7 +1155,7 @@ def test_good_subscription_id_comparator_scrubbed():
 
 def test_good_uuid4_comparator():
     cmp = UUID4Comparator("guid_field")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1177,7 +1177,7 @@ def test_good_uuid4_comparator():
 
 def test_bad_uuid4_comparator():
     cmp = UUID4Comparator("same", "invalid_left", "invalid_right")
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1260,7 +1260,7 @@ def test_good_uuid4_comparator_scrubbed():
 
 def test_good_user_password_obfuscating_comparator_claimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     model: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1275,7 +1275,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user():
 
 def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1299,7 +1299,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
 
 def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1323,7 +1323,7 @@ def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
 
 def test_bad_user_password_obfuscating_comparator_claimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1358,7 +1358,7 @@ def test_bad_user_password_obfuscating_comparator_claimed_user():
 
 def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1392,7 +1392,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user():
 
 def test_bad_user_password_obfuscating_comparator_already_unclaimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1426,7 +1426,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user():
 
 def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -1460,7 +1460,7 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
 
 def test_good_user_password_obfuscating_comparator_existence():
     cmp = UserPasswordObfuscatingComparator()
-    id = InstanceID(NormalizedModelName("sentry.test"), 0)
+    id = InstanceID("sentry.test", 0)
     present: JSONData = {
         "model": "test",
         "ordinal": 1,

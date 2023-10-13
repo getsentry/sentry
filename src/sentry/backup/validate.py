@@ -52,7 +52,7 @@ def validate(
                 findings.append(
                     ComparatorFinding(
                         kind=ComparatorFindingKind.UnorderedInput,
-                        on=InstanceID(model_name, self.next_ordinal),
+                        on=InstanceID(str(model_name), self.next_ordinal),
                         left_pk=pk if side == Side.left else None,
                         right_pk=pk if side == Side.right else None,
                         reason=f"""instances not listed in ascending `pk` order; `pk` {pk} is less than or equal to {self.max_seen_pk} which precedes it""",
@@ -78,7 +78,7 @@ def validate(
             counter = ordinal_counters[model_name]
             ordinal, found = counter.assign(model, side)
             findings.extend(found)
-            id = InstanceID(model_name, ordinal)
+            id = InstanceID(str(model_name), ordinal)
             model_map[id] = model
         return (model_map, ordinal_counters)
 
@@ -109,7 +109,7 @@ def validate(
             findings.append(
                 ComparatorFinding(
                     kind=ComparatorFindingKind.UnequalCounts,
-                    on=InstanceID(model_name),
+                    on=InstanceID(str(model_name)),
                     reason=f"""counted {left_count} left entries and {right_count} right entries""",
                 )
             )
