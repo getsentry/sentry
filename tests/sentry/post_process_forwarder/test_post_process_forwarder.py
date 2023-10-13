@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 from arroyo.utils import metrics
+from arroyo.backends.kafka.commit import CommitCodec
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
@@ -103,8 +104,8 @@ class PostProcessForwarderTest(TestCase):
         # Move the committed offset forward for our synchronizing group.
         commit_log_producer.produce(
             self.commit_log_topic,
-            key=f"{self.events_topic}:0:{synchronize_commit_group}".encode(),
             value=f"{1}".encode(),
+            value=f""
         )
         assert (
             commit_log_producer.flush(5) == 0
