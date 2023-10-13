@@ -77,7 +77,8 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     with outbox_context(flush=False):
         org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
-    # We need to provision an organization slug in control silo
+    # We need to provision an organization slug in control silo, so we do
+    # this by "changing" the slug, then re-replicating the org data
     organization_provisioning_service.change_organization_slug(
         organization_id=org.id, slug="sentry"
     )

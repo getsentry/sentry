@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional
+from typing import List, Optional
 
 from django.db import router, transaction
 
@@ -121,6 +121,20 @@ class DatabaseBackedControlOrganizationProvisioningService(
         except OrganizationSlugReservation.DoesNotExist:
             return None
 
+    @staticmethod
+    def _get_slug_reservation_by_type_from_list(
+        org_slug_reservations: List[OrganizationSlugReservation],
+        reservation_type: OrganizationSlugReservationType,
+    ) -> Optional[OrganizationSlugReservation]:
+        return next(
+            (
+                slug_res
+                for slug_res in org_slug_reservations
+                if slug_res.reservation_type == reservation_type.value
+            ),
+            None,
+        )
+
     def provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
     ) -> RpcOrganizationSlugReservation:
@@ -180,13 +194,28 @@ class DatabaseBackedControlOrganizationProvisioningService(
         desired_slug: str,
         require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
-        existing_temporary_alias = self._get_slug_reservation_for_organization(
-            organization_id=organization_id,
+        existing_slug_reservations = list(
+            OrganizationSlugReservation.objects.filter(organization_id=organization_id)
+        )
+
+        existing_temporary_alias = self._get_slug_reservation_by_type_from_list(
+            org_slug_reservations=existing_slug_reservations,
             reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
         )
 
         if existing_temporary_alias:
             raise Exception("Cannot change an organization slug while another swap is in progress")
+
+        existing_primary_alias = self._get_slug_reservation_by_type_from_list(
+            org_slug_reservations=existing_slug_reservations,
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        # If there's already a matching primary slug reservation for the org,
+        # just replicate it to the region to kick off the organization sync process
+        if existing_primary_alias and existing_primary_alias.slug == desired_slug:
+            existing_primary_alias.handle_async_replication(region_name, organization_id)
+            return serialize_slug_reservation(existing_primary_alias)
 
         slug_base = desired_slug
         if not require_exact:

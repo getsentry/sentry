@@ -326,3 +326,25 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         ), f"Expected only a single slug reservation, received: {slug_reservations}"
         assert slug_reservations[0].slug == desired_primary_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
+
+    def test_swap_with_same_slug(self):
+        desired_slug = "santry"
+        org = self.create_organization(slug=desired_slug, owner=self.create_user())
+        control_organization_provisioning_rpc_service.update_organization_slug(
+            organization_id=org.id,
+            desired_slug=desired_slug,
+            require_exact=True,
+            region_name=self.region_name,
+        )
+
+        slug_reservations = self.get_slug_reservations_for_organization(organization_id=org.id)
+
+        assert (
+            len(slug_reservations) == 1
+        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert slug_reservations[0].slug == desired_slug
+        assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            org.refresh_from_db()
+            assert org.slug == desired_slug
