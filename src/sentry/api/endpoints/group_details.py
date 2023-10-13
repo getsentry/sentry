@@ -37,6 +37,7 @@ from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -156,6 +157,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
+    @staticmethod
+    def __get_group_global_count(group: Group) -> str:
+        fetch_buffered_group_stats(group)
+        return str(group.times_seen_with_pending)
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -257,6 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
+                    "count": self.__get_group_global_count(group),
                 }
             )
 
