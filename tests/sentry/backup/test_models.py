@@ -88,6 +88,7 @@ from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import export_to_file, import_export_then_validate
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.json import JSONData
 from tests.sentry.backup import mark, targets
 
@@ -317,6 +318,7 @@ class ModelUnitTests(TransactionTestCase):
     @targets(
         mark(UNIT_TESTED, Integration, OrganizationIntegration, ProjectIntegration, Repository)
     )
+    @freeze_time("2023-10-13 00:00:00")
     def test_integration(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
