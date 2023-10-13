@@ -31,6 +31,7 @@ type Query = {
   spanGroup: string;
   transaction: string;
   [QueryParameterNames.SPANS_SORT]: string;
+  spanDescription?: string;
 };
 
 function ScreenLoadSpans() {
@@ -63,6 +64,7 @@ function ScreenLoadSpans() {
     primaryRelease,
     secondaryRelease,
     transaction: transactionName,
+    spanDescription,
   } = location.query;
 
   return (
@@ -87,7 +89,7 @@ function ScreenLoadSpans() {
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreensView
-                yAxes={[YAxis.THROUGHPUT, YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
@@ -100,6 +102,7 @@ function ScreenLoadSpans() {
                 <SampleList
                   groupId={spanGroup}
                   transactionName={transactionName}
+                  spanDescription={spanDescription}
                   onClose={() => {
                     router.replace({
                       pathname: router.location.pathname,

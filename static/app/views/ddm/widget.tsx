@@ -22,7 +22,7 @@ import {
   MetricsData,
   MetricsQuery,
   updateQuery,
-  useMetricsData,
+  useMetricsDataZoom,
 } from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
@@ -31,20 +31,26 @@ import {MetricChart} from 'sentry/views/ddm/chart';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {MIN_WIDGET_WIDTH} from './constants';
+import {DEFAULT_SORT_STATE, MIN_WIDGET_WIDTH} from './constants';
+
+type SortState = {
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum';
+  order: 'asc' | 'desc';
+};
 
 const emptyWidget = {
   mri: '',
   op: undefined,
   query: '',
   groupBy: [],
-  displayType: defaultMetricDisplayType,
+  sort: DEFAULT_SORT_STATE,
 };
 
 export type MetricWidgetDisplayConfig = {
   displayType: MetricDisplayType;
   onChange: (data: Partial<MetricWidgetProps>) => void;
   position: number;
+  sort: SortState;
   focusedSeries?: string;
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
@@ -72,6 +78,7 @@ export function useMetricWidgets() {
         showSummaryTable: widget.showSummaryTable ?? true, // temporary default
         position: widget.position ?? i,
         powerUserMode: widget.powerUserMode,
+        sort: widget.sort ?? DEFAULT_SORT_STATE,
       };
     }
   );
@@ -157,11 +164,12 @@ function MetricWidgetBody({
   onChange,
   displayType,
   focusedSeries,
+  sort,
   ...metricsQuery
 }: MetricWidgetProps & PageFilters) {
   const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-  const {data, isLoading, isError, error} = useMetricsData({
+  const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom({
     mri,
     op,
     query,
@@ -222,12 +230,17 @@ function MetricWidgetBody({
         projects={metricsQuery.projects}
         environments={metricsQuery.environments}
         {...normalizeChartTimeParams(dataToBeRendered)}
+        onZoom={onZoom}
       />
       {metricsQuery.showSummaryTable && (
         <SummaryTable
           series={chartSeries}
+          onSortChange={newSort => {
+            onChange({sort: newSort});
+          }}
+          sort={sort}
           operation={metricsQuery.op}
-          onClick={toggleSeriesVisibility}
+          onRowClick={toggleSeriesVisibility}
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}

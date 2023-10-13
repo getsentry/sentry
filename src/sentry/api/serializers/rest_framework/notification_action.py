@@ -28,15 +28,16 @@ INTEGRATION_SERVICES = {
 }
 
 
+# Note the ordering of fields affects the Spike Protection API Documentation
 class NotificationActionInputData(TypedDict):
-    integration_id: int
-    sentry_app_id: int
-    projects: List[Project]
-    service_type: int
     trigger_type: int
-    target_type: int
+    service_type: int
+    integration_id: int
     target_identifier: str
     target_display: str
+    projects: List[Project]
+    sentry_app_id: int
+    target_type: int
 
 
 @extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
@@ -45,50 +46,54 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
-    integration_id = serializers.IntegerField(
-        help_text="""ID of the integration used as the notification service. For example, this would
-            be the Slack Integration ID if the action has Slack notify organization members.
-            This field is required if **service_type** is `slack`, `pagerduty` or `opsgenie`.""",
-        required=False,
+    trigger_type = serializers.CharField(
+        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`."""
     )
-
-    # Optional and not needed for spike protection so not documenting
-    # TODO: Include in documentation when any notification action works with sentry_app_id
-    sentry_app_id = serializers.IntegerField(
-        required=False,
-    )
-    projects = serializers.ListField(
-        help_text="""List of projects slugs that Notificaton Action is created for""",
-        child=ProjectField(scope="project:read"),
-        required=False,
-    )
-
     service_type = serializers.CharField(
-        help_text="Service that is used for sending the notification\n"
+        help_text="Service that is used for sending the notification.\n"
         + """- `email`\n"""
         + """- `slack`\n"""
         + """- `sentry_notification`\n"""
         + """- `pagerduty`\n"""
         + """- `opsgenie`\n"""
     )
+    integration_id = serializers.IntegerField(
+        help_text="""ID of the integration used as the notification service. See
+[List Integrations](https://docs.sentry.io/api/integrations/list-an-organizations-available-integrations/)
+to retrieve a full list of integrations.
 
+Required if **service_type** is `slack`, `pagerduty` or `opsgenie`.
+""",
+        required=False,
+    )
+    target_identifier = serializers.CharField(
+        help_text="""ID of the notification target, like a Slack channel ID.
+
+Required if **service_type** is `slack` or `opsgenie`.
+""",
+        required=False,
+    )
+    target_display = serializers.CharField(
+        help_text="""Name of the notification target, like a Slack channel name.
+
+Required if **service_type** is `slack` or `opsgenie`.
+""",
+        required=False,
+    )
+    projects = serializers.ListField(
+        help_text="""List of projects slugs that the Notification Action is created for.""",
+        child=ProjectField(scope="project:read"),
+        required=False,
+    )
+    # Optional and not needed for spike protection so not documenting
+    # TODO: Include in documentation when any notification action works with sentry_app_id
+    sentry_app_id = serializers.IntegerField(
+        required=False,
+    )
     # TODO: Include in documentation when any notification action works with anything other than "specific"
     target_type = serializers.CharField(
         required=False,
         default="specific",
-    )
-
-    trigger_type = serializers.CharField(
-        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`"""
-    )
-
-    target_identifier = serializers.CharField(
-        help_text="""ID of the notification target. For example, Slack channel ID. This is required when **service_type** is `slack` or `pagerduty`. """,
-        required=False,
-    )
-    target_display = serializers.CharField(
-        help_text="""Name of the notification target. For example, Slack channel name. This is required when **service_type** is `slack` or `pagerduty`""",
-        required=False,
     )
 
     def validate_integration_id(self, integration_id: int) -> int:
@@ -236,7 +241,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if timed_out:
             raise serializers.ValidationError(
                 {
-                    "target_identifier": "Please provide a slack channel id, we encountered an error while earching for it via the channel name."
+                    "target_identifier": "Please provide a slack channel id, we encountered an error while searching for it via the channel name."
                 }
             )
         data["target_identifier"] = channel_id

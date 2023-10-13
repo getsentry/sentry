@@ -61,7 +61,7 @@ function EventFunctionBreakpointChartInner({
 }: EventFunctionBreakpointChartInnerProps) {
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 7,
+    relativeDays: 14,
   });
 
   const functionStats = useProfileEventsStats({

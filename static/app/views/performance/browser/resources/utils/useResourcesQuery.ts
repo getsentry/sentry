@@ -13,13 +13,25 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
   const queryConditions = [
-    `span.op:[${resourceFilters.type || 'resource.script, resource.img'}]`,
+    `span.op:${resourceFilters.type || 'resource.*'}`,
+    ...(resourceFilters.transaction
+      ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
   ];
 
   // TODO - we should be using metrics data here
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
-      fields: ['span.description', 'span.op', 'count()', 'avg(span.self_time)', 'spm()'],
+      fields: [
+        'span.description',
+        'span.op',
+        'count()',
+        'avg(span.self_time)',
+        'spm()',
+        'span.group',
+        'resource.render_blocking_status',
+        'span.domain',
+      ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
       orderby: '-count',
@@ -41,6 +53,11 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     'avg(span.self_time)': row['avg(span.self_time)'] as number,
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
+    'span.group': row['span.group'].toString(),
+    'resource.render_blocking_status': row['resource.render_blocking_status'] as
+      | ''
+      | 'non-blocking'
+      | 'blocking',
   }));
 
   return {...result, data: data || []};

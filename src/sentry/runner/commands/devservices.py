@@ -749,9 +749,9 @@ def check_chartcuterie(options: dict[str, Any]) -> None:
 
 
 def check_snuba(options: dict[str, Any]) -> None:
-    port = options["ports"]["1218/tcp"]
+    from django.conf import settings
 
-    url = f"http://{port[0]}:{port[1]}/health_envoy"
+    url = f"{settings.SENTRY_SNUBA}/health_envoy"
     subprocess.run(
         (
             "docker",
@@ -782,5 +782,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "vroom": ServiceHealthcheck(check=check_vroom),
     "symbolicator": ServiceHealthcheck(check=check_symbolicator),
     "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
-    "snuba": ServiceHealthcheck(check=check_snuba, retries=6, timeout=10),
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=12, timeout=10),
 }
