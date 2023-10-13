@@ -200,7 +200,18 @@ export function PageSamplePerformanceTable({transaction}: Props) {
         orgSlug: organization.slug,
         eventSlug,
       });
-      const replayTarget = replayLinkGenerator(organization, row, undefined);
+      const replayTarget =
+        row['transaction.duration'] !== null &&
+        replayLinkGenerator(
+          organization,
+          {
+            replayId: row.replayId,
+            id: row.id,
+            'transaction.duration': row['transaction.duration'],
+            timestamp: row.timestamp,
+          },
+          undefined
+        );
 
       return (
         <NoOverflow>
@@ -208,7 +219,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
             <LinkButton to={eventTarget} size="xs">
               {t('Event')}
             </LinkButton>
-            {row.replayId && (
+            {row.replayId && replayTarget && (
               <LinkButton to={replayTarget} size="xs">
                 <IconPlay size="xs" />
               </LinkButton>
