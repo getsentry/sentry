@@ -78,6 +78,7 @@ function Event({
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
+      extraction={undefined}
       key={i}
       onClick={() => {
         onClickTimestamp(frame);

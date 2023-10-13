@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,24 +7,21 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 import useVirtualizedInspector from '../useVirtualizedInspector';
-
-type Props = {
-  frames: undefined | ReplayFrame[];
-  startTimestampMs: number;
-};
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -33,8 +30,14 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs({frames, startTimestampMs}: Props) {
+function Breadcrumbs() {
+  const {replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
+  const {data: frameToExtraction, isFetching: isFetchingExtractions} =
+    useExtractedDomNodes({replay});
+
+  const frames = replay?.getChapterFrames();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const {setActiveTab} = useActiveReplayTab();
 
@@ -65,6 +68,13 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
     ref: listRef,
   });
 
+  // Need to refresh the item dimensions when DOM info is loaded
+  useEffect(() => {
+    if (!isFetchingExtractions) {
+      updateList();
+    }
+  }, [isFetchingExtractions, updateList]);
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = (frames || [])[index];
 
@@ -79,6 +89,7 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
         <BreadcrumbRow
           index={index}
           frame={item}
+          extraction={frameToExtraction?.get(item)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
@@ -94,6 +105,9 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
+      <FilterLoadingIndicator isLoading={isFetchingExtractions}>
+        {''}
+      </FilterLoadingIndicator>
       <TabItemContainer>
         {frames ? (
           <AutoSizer onResize={updateList}>

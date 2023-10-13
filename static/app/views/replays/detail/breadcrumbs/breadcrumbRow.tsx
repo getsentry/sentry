@@ -4,10 +4,12 @@ import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
+  extraction: Extraction | undefined;
   frame: ReplayFrame;
   index: number;
   onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
@@ -26,6 +28,7 @@ interface Props {
 function BreadcrumbRow({
   expandPaths,
   frame,
+  extraction,
   index,
   onClick,
   onDimensionChange,
@@ -53,6 +56,7 @@ function BreadcrumbRow({
       <BreadcrumbItem
         index={index}
         frame={frame}
+        extraction={extraction}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
