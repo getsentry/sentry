@@ -1,13 +1,7 @@
 import re
 
 from sentry.constants import TAG_LABELS
-from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
-)
-from sentry.utils.services import Service, raises
+from sentry.utils.services import Service
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -118,7 +112,6 @@ class TagStorage(Service):
 
         return label
 
-    @raises([TagKeyNotFound])
     def get_tag_key(
         self, project_id, environment_id, key, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
@@ -148,7 +141,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    @raises([TagValueNotFound])
     def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
         """
         >>> get_tag_value(1, 2, "key1", "value1")
@@ -161,7 +153,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    @raises([GroupTagKeyNotFound])
     def get_group_tag_key(self, group, environment_id, key, tenant_ids=None):
         """
         >>> get_group_tag_key(group, 3, "key1")
@@ -174,7 +165,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    @raises([GroupTagValueNotFound])
     def get_group_tag_value(
         self, project_id, group_id, environment_id, key, value, tenant_ids=None
     ):
