@@ -4,8 +4,8 @@ import uuid
 from typing import Any
 from unittest.mock import patch
 
-from arroyo.utils import metrics
 from arroyo.backends.kafka.commit import CommitCodec
+from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
