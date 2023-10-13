@@ -69,7 +69,7 @@ Retrieve a collection of feedback items.
 | locale.lang       | string           | The language preference of the user's browser.      |
 | locale.timezone   | string           | The timezone the feedback was submitted from.       |
 | message           | string           | The message written by the user providing feedback. |
-| name              | optional[string] | The contact email of the user writing feedback.     |
+| name              | optional[string] | The name of the user writing feedback.              |
 | os                | object           | -                                                   |
 | os.name           | optional[string] | -                                                   |
 | os.version        | optional[string] | -                                                   |
