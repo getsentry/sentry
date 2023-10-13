@@ -86,13 +86,11 @@ function useBreadcrumbFilters({frames}: Options): Return {
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
-    const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE)
-      .map(([key, value]) => [value, key])
-      .reduce(
-        (list, [key, value]) =>
-          list[key] ? {...list, [key]: [list[key], value]} : {...list, [key]: value},
-        {}
-      );
+    const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
+      (dict, [key, value]) =>
+        dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
+      {}
+    );
     const OpOrCategory = type.map(theType => TYPE_TO_OPORCATEGORY[theType]).flat();
     return filterItems({
       items: frames,
