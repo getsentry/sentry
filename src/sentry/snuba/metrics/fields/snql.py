@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional, Sequence, Set
 
 from snuba_sdk import Column, Function
@@ -24,7 +26,12 @@ from sentry.snuba.metrics.naming_layer.public import (
 
 
 def _aggregation_on_session_status_func_factory(aggregate):
-    def _snql_on_session_status_factory(org_id, session_status, metric_ids, alias=None):
+    def _snql_on_session_status_factory(
+        org_id: int,
+        session_status: str,
+        metric_ids: list[int],
+        alias=None,
+    ) -> Function:
         return Function(
             aggregate,
             [
@@ -751,9 +758,28 @@ def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -
     )
 
 
+def _check_tag_key_equals_value(
+    use_case_id: UseCaseID, org_id: int, tag_key: str, tag_value: str
+) -> Function:
+    """Check if a specific tag key matches a specific value."""
+    return Function(
+        "equals",
+        [
+            Column(resolve_tag_key(use_case_id, org_id, tag_key)),
+            resolve_tag_value(use_case_id, org_id, tag_value),
+        ],
+    )
+
+
 def operation_if_column_snql(
-    operation, aggregate_filter, org_id, use_case_id, if_column, if_value, alias
-):
+    operation: str,
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
+) -> Function:
     return Function(
         operation,
         [
@@ -762,13 +788,7 @@ def operation_if_column_snql(
                 "and",
                 [
                     aggregate_filter,
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, if_column)),
-                            resolve_tag_value(use_case_id, org_id, if_value),
-                        ],
-                    ),
+                    _check_tag_key_equals_value(use_case_id, org_id, if_column, if_value),
                 ],
             ),
         ],
@@ -787,13 +807,27 @@ def timestamp_column_snql(operation: str, aggregate_filter, org_id, use_case_id,
     )
 
 
-def sum_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
+def sum_if_column_snql(
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
+) -> Function:
     return operation_if_column_snql(
         "sumIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
     )
 
 
-def uniq_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
+def uniq_if_column_snql(
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
+):
     return operation_if_column_snql(
         "uniqIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
     )
@@ -831,76 +865,23 @@ def on_demand_failure_count_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
     """Count the number of transactions where the failure tag is set to true."""
-    return Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "failure")),
-                            resolve_tag_value(use_case_id, org_id, "true"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
-        alias=alias,
-    )
+    return sum_if_column_snql(aggregate_filter, org_id, use_case_id, "failure", "true", alias)
 
 
 def on_demand_apdex_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
-):
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    alias: Optional[str] = None,
+) -> Function:
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
-    satisfactory = Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
+    satisfactory = sum_if_column_snql(
+        aggregate_filter, org_id, use_case_id, "satisfaction", "satifactory"
     )
     tolerable_divided_by_2 = Function(
         "divide",
-        [
-            Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function(
-                        "and",
-                        [
-                            Function(
-                                "equals",
-                                [
-                                    Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                                    resolve_tag_value(use_case_id, org_id, "tolerable"),
-                                ],
-                            ),
-                            aggregate_filter,
-                        ],
-                    ),
-                ],
-            ),
-            2,
-        ],
+        [sum_if_column_snql(aggregate_filter, org_id, use_case_id, "satisfaction", "tolerable"), 2],
     )
 
     return Function(
@@ -908,6 +889,55 @@ def on_demand_apdex_snql_factory(
         [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
         alias=alias,
     )
+
+
+def on_demand_count_miserable(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    # return uniq_if_column_snql(aggregate_filter, org_id, use_case_id, "user", )
+    metric_frustrated = resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+
+    # Nobody is miserable, we can return 0
+    if metric_frustrated is None:
+        return Function(
+            "toUInt64",
+            [0],
+            alias,
+        )
+
+    args = {}  # XXX: For now
+
+    return Function(
+        "uniqIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column("metric_id"),
+                            args["metric_id"],
+                        ],
+                    ),
+                    Function(
+                        "equals",
+                        [
+                            Column(constants.METRIC_SATISFACTION_TAG_KEY),
+                            metric_frustrated,
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        alias,
+    )
+    # return Function(
+    #     "uniqIf",
+    #     [Column("user"), Function("greater", [Column("transaction.duration"), 4 * threshold])],
+    #     alias,
+    # )
 
 
 def on_demand_epm_snql_factory(

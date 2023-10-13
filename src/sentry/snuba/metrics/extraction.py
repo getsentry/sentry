@@ -610,27 +610,22 @@ def _get_field_and_threshold(project: Project, argument: Optional[str]):
     return _map_field_name(metric), int(argument)
 
 
-def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
-    field, apdex_threshold = _get_field_and_threshold(project, argument)
-
-    # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
-    #  support that.
-    if argument is None:
-        raise Exception("apdex requires a threshold parameter.")
+def satisfaction_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
+    field, threshold = _get_field_and_threshold(project, argument)
 
     return [
         {
             "key": "satisfaction",
             "value": "satisfactory",
-            "condition": {"name": field, "op": "lte", "value": apdex_threshold},
+            "condition": {"name": field, "op": "lte", "value": threshold},
         },
         {
             "key": "satisfaction",
             "value": "tolerable",
             "condition": {
                 "inner": [
-                    {"name": field, "op": "gt", "value": apdex_threshold},
-                    {"name": field, "op": "lte", "value": apdex_threshold * 4},
+                    {"name": field, "op": "gt", "value": threshold},
+                    {"name": field, "op": "lte", "value": threshold * 4},
                 ],
                 "op": "and",
             },
@@ -638,7 +633,7 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
         {
             "key": "satisfaction",
             "value": "frustrated",
-            "condition": {"name": field, "op": "gt", "value": apdex_threshold * 4},
+            "condition": {"name": field, "op": "gt", "value": threshold * 4},
         },
     ]
 
@@ -647,7 +642,7 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
-    "on_demand_apdex": apdex_tag_spec,
+    "on_demand_apdex": satisfaction_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
 }
