@@ -190,38 +190,46 @@ const SUFFIX_ABBR = {
  * Translates seconds into human readable format of seconds, minutes, hours, days, and years
  * 'precision' arg will truncate the results to the specified suffix
  *
+ * NOTE: seconds input can be a decimal
  * @param  {number} seconds The number of seconds to be processed
  * @return {string}         The phrase describing the amount of time
  */
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
+  const operation = seconds < 0 ? Math.ceil : Math.floor;
   const levels = [
-    [Math.floor(seconds / 31536000), abbreviation ? 'years' : 'yr'],
-    [Math.floor((seconds % 31536000) / 604800), abbreviation ? 'weeks' : 'wk'],
-    [Math.floor(((seconds % 31536000) % 604800) / 86400), abbreviation ? 'days' : 'd'],
+    [operation(seconds / 604800), abbreviation ? 'wk' : ' weeks'],
+    [operation((seconds % 604800) / 86400), abbreviation ? 'd' : ' days'],
+    [operation(((seconds % 604800) % 86400) / 3600), abbreviation ? 'hr' : ' hours'],
     [
-      Math.floor((((seconds % 31536000) % 604800) % 86400) / 3600),
-      abbreviation ? 'hours' : 'hr',
+      operation((((seconds % 604800) % 86400) % 3600) / 60),
+      abbreviation ? 'min' : ' minutes',
     ],
     [
-      Math.floor(((((seconds % 31536000) % 604800) % 86400) % 3600) / 60),
-      abbreviation ? 'minutes' : 'min',
+      operation((((seconds % 604800) % 86400) % 3600) % 60),
+      abbreviation ? 's' : ' seconds',
     ],
     [
-      ((((seconds % 31536000) % 604800) % 86400) % 3600) % 60,
-      abbreviation ? 'seconds' : 's',
+      operation(
+        (((((seconds % 604800) % 86400) % 3600) % 60) -
+          operation(((((seconds % 31536000) % 604800) % 86400) % 3600) % 60)) *
+          1000
+      ),
+      abbreviation ? 'ms' : ' milliseconds',
     ],
   ];
   let returntext = '';
 
   for (let i = 0, max = levels.length; i < max; i++) {
+    if (i === max - 1 && !returntext && !levels[i][0]) {
+      returntext = '0' + levels[i][1];
+    }
     if (levels[i][0] === 0) {
       continue;
     }
     returntext +=
       ' ' +
       levels[i][0] +
-      ' ' +
-      (!abbreviation && levels[i][0] === 1
+      (!abbreviation && Math.abs(levels[i][0]) === 1
         ? (levels[i][1] as string).substring(0, (levels[i][1] as string).length - 1) // strip the 's' from the end if its singular
         : levels[i][1]);
   }
