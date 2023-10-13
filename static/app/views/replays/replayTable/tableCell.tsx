@@ -465,7 +465,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}

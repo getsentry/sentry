@@ -317,6 +317,122 @@ sentry.CaptureCheckIn(
   );
 }
 
+export function JavaCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const checkInSuccessCode = `import io.sentry.CheckIn;
+import io.sentry.CheckInStatus;
+import io.sentry.Sentry;
+import io.sentry.protocol.SentryId;
+
+// 🟡 Notify Sentry your job is running:
+SentryId checkInId = Sentry.captureCheckIn(
+    new CheckIn(
+        "${slug}",
+        CheckInStatus.IN_PROGRESS
+    )
+);
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+Sentry.captureCheckIn(
+    new CheckIn(
+        checkInId,
+        "${slug}",
+        CheckInStatus.OK
+    )
+);`;
+
+  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
+Sentry.captureCheckIn(
+    new CheckIn(
+        checkInId,
+        "${slug}",
+        CheckInStatus.ERROR
+    )
+);`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Java SDK (min v6.30.0), then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="java">{checkInSuccessCode}</CodeSnippet>
+      <div>{t('To notify Sentry if your job execution fails')}</div>
+      <CodeSnippet language="java">{checkInFailCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function JavaSpringBootCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const code = `import io.sentry.spring.jakarta.checkin.SentryCheckIn;
+
+@Component
+public class CustomJob {
+
+  @Scheduled(fixedRate = 3 * 60 * 1000L)
+  @SentryCheckIn("${slug}") // 👈
+  void execute() throws InterruptedException {
+    // your task code
+  }
+}`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Spring Boot SDK (min v6.30.0), then instrument your monitor:',
+          {
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring-boot/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="java">{code}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function JavaQuartzCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const code = `import io.sentry.quartz.SentryJobListener;
+
+// you can set the monitor slug on the job detail
+JobDetailFactoryBean jobDetailFactory = new JobDetailFactoryBean();
+jobDetailFactory.setJobDataAsMap(Collections.singletonMap(SentryJobListener.SENTRY_SLUG_KEY, "${slug}"));
+
+// you can also set the monitor slug on the trigger
+SimpleTriggerFactoryBean trigger = new SimpleTriggerFactoryBean();
+trigger.setJobDataAsMap(Collections.singletonMap(SENTRY_SLUG_KEY, "${slug}"));`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Java SDK (min v6.30.0), make sure `SentryJobListener` is [configureLink:configured], then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
+            configureLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/java/configuration/integrations/quartz/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="java">{code}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function CeleryBeatAutoDiscovery(props: QuickStartProps) {
   const {dsnKey} = props;
 
@@ -543,6 +659,61 @@ sentry.CaptureCheckIn(
       </div>
       <CodeSnippet language="go">{scheduleCode}</CodeSnippet>
       <CodeSnippet language="go">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function JavaUpsertPlatformGuide() {
+  const scheduleCode = `import io.sentry.MonitorSchedule;
+import io.sentry.MonitorScheduleUnit;
+
+// Create a crontab schedule object (every 10 minutes)
+MonitorSchedule monitorSchedule = MonitorSchedule.crontab("*/10 * * * *");
+
+// Or create an interval schedule object (every 10 minutes)
+MonitorSchedule monitorSchedule = MonitorSchedule.interval(10, MonitorScheduleUnit.MINUTE);`;
+
+  const upsertCode = `import io.sentry.MonitorConfig;
+
+// Create a config object
+MonitorConfig monitorConfig = new MonitorConfig(monitorSchedule);
+monitorConfig.setTimezone("Europe/Vienna"); // Optional timezone
+monitorConfig.setCheckinMargin(5L); // Optional check-in margin in minutes
+monitorConfig.setMaxRuntime(15L); // Optional max runtime in minutes
+
+// 🟡 Notify Sentry your job is running:
+CheckIn checkIn = new CheckIn(
+    "<monitor-slug>",
+    CheckInStatus.IN_PROGRESS
+);
+checkIn.setMonitorConfig(monitorConfig);
+SentryId checkInId = Sentry.captureCheckIn(checkIn);
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+Sentry.captureCheckIn(
+    new CheckIn(
+        checkInId,
+        "<monitor-slug>",
+        CheckInStatus.OK
+    )
+);`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the [additionalDocs: Java SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/java/crons/#upserting-cron-monitors" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="java">{scheduleCode}</CodeSnippet>
+      <CodeSnippet language="java">{upsertCode}</CodeSnippet>
     </Fragment>
   );
 }

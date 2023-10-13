@@ -284,16 +284,14 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper
-            hasGrid={group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION}
-          >
-            <div className="count">
-              <h6 className="nav-header">{t('Events')}</h6>
-              <Link disabled={disableActions} to={eventRoute}>
-                <Count className="count" value={group.count} />
-              </Link>
-            </div>
-            {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+          {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+            <StatsWrapper>
+              <div className="count">
+                <h6 className="nav-header">{t('Events')}</h6>
+                <Link disabled={disableActions} to={eventRoute}>
+                  <Count className="count" value={group.count} />
+                </Link>
+              </div>
               <div className="count">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
@@ -307,8 +305,8 @@ function GroupHeader({
                   <span>0</span>
                 )}
               </div>
-            )}
-          </StatsWrapper>
+            </StatsWrapper>
+          )}
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
@@ -357,14 +355,10 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')<{hasGrid?: boolean}>`
-  ${p =>
-    p.hasGrid &&
-    `
-    display: grid;
-    grid-template-columns: repeat(2, min-content);
-    gap: calc(${space(3)} + ${space(3)});
-    `}
+const StatsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, min-content);
+  gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;

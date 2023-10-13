@@ -17,7 +17,7 @@ import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/brows
 import Chart from 'sentry/views/starfish/components/chart';
 
 type Props = {
-  projectScore: ProjectScore;
+  projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
 };
@@ -37,8 +37,11 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
   const pageFilters = usePageFilters();
 
   const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({transaction});
-  const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
-  const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
+  const score = projectScore
+    ? webVital
+      ? projectScore[`${webVital}Score`]
+      : projectScore.totalScore
+    : undefined;
 
   const segmentColors = theme.charts.getColorPalette(3);
   const backgroundColors = segmentColors.map(color => `${color}33`);
@@ -67,76 +70,78 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
-          {webVitalTooltip && (
-            <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
-              <TooltipRow>
-                <span>
-                  <Dot color={backgroundColors[ORDER.indexOf(webVitalTooltip)]} />
-                  {webVitalTooltip?.toUpperCase()} {t('Opportunity')}
-                </span>
-                <TooltipValue>
-                  {100 - projectScore[`${webVitalTooltip}Score`]}
-                </TooltipValue>
-              </TooltipRow>
-              <TooltipRow>
-                <span>
-                  <Dot color={segmentColors[ORDER.indexOf(webVitalTooltip)]} />
-                  {webVitalTooltip?.toUpperCase()} {t('Score')}
-                </span>
-                <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
-              </TooltipRow>
-              <PerformanceScoreRingTooltipArrow />
-            </PerformanceScoreRingTooltip>
-          )}
-          <svg height={180} width={220}>
-            <ProgressRingText x={160} y={30}>
-              LCP
-            </ProgressRingText>
-            <ProgressRingText x={175} y={140}>
-              FCP
-            </ProgressRingText>
-            <ProgressRingText x={20} y={140}>
-              FID
-            </ProgressRingText>
-            <ProgressRingText x={10} y={60}>
-              CLS
-            </ProgressRingText>
-            <ProgressRingText x={50} y={20}>
-              TTFB
-            </ProgressRingText>
-            <PerformanceScoreRing
-              values={[
-                lcpScore * LCP_WEIGHT * 0.01,
-                fcpScore * FCP_WEIGHT * 0.01,
-                fidScore * FID_WEIGHT * 0.01,
-                clsScore * CLS_WEIGHT * 0.01,
-                ttfbScore * TTFB_WEIGHT * 0.01,
-              ]}
-              maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
-              text={score}
-              size={140}
-              barWidth={14}
-              textCss={() => css`
-                font-size: 32px;
-                font-weight: bold;
-                color: ${theme.textColor};
-              `}
-              segmentColors={segmentColors}
-              backgroundColors={backgroundColors}
-              x={40}
-              y={20}
-              onHoverActions={[
-                () => setWebVitalTooltip('lcp'),
-                () => setWebVitalTooltip('fcp'),
-                () => setWebVitalTooltip('fid'),
-                () => setWebVitalTooltip('cls'),
-                () => setWebVitalTooltip('ttfb'),
-              ]}
-              onUnhover={() => setWebVitalTooltip(null)}
-            />
-          </svg>
-        </ProgressRingContainer>
+        {projectScore && (
+          <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
+            {webVitalTooltip && (
+              <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
+                <TooltipRow>
+                  <span>
+                    <Dot color={backgroundColors[ORDER.indexOf(webVitalTooltip)]} />
+                    {webVitalTooltip.toUpperCase()} {t('Opportunity')}
+                  </span>
+                  <TooltipValue>
+                    {100 - projectScore[`${webVitalTooltip}Score`]}
+                  </TooltipValue>
+                </TooltipRow>
+                <TooltipRow>
+                  <span>
+                    <Dot color={segmentColors[ORDER.indexOf(webVitalTooltip)]} />
+                    {webVitalTooltip.toUpperCase()} {t('Score')}
+                  </span>
+                  <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
+                </TooltipRow>
+                <PerformanceScoreRingTooltipArrow />
+              </PerformanceScoreRingTooltip>
+            )}
+            <svg height={180} width={220}>
+              <ProgressRingText x={160} y={30}>
+                LCP
+              </ProgressRingText>
+              <ProgressRingText x={175} y={140}>
+                FCP
+              </ProgressRingText>
+              <ProgressRingText x={20} y={140}>
+                FID
+              </ProgressRingText>
+              <ProgressRingText x={10} y={60}>
+                CLS
+              </ProgressRingText>
+              <ProgressRingText x={50} y={20}>
+                TTFB
+              </ProgressRingText>
+              <PerformanceScoreRing
+                values={[
+                  projectScore.lcpScore * LCP_WEIGHT * 0.01,
+                  projectScore.fcpScore * FCP_WEIGHT * 0.01,
+                  projectScore.fidScore * FID_WEIGHT * 0.01,
+                  projectScore.clsScore * CLS_WEIGHT * 0.01,
+                  projectScore.ttfbScore * TTFB_WEIGHT * 0.01,
+                ]}
+                maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
+                text={score}
+                size={140}
+                barWidth={14}
+                textCss={() => css`
+                  font-size: 32px;
+                  font-weight: bold;
+                  color: ${theme.textColor};
+                `}
+                segmentColors={segmentColors}
+                backgroundColors={backgroundColors}
+                x={40}
+                y={20}
+                onHoverActions={[
+                  () => setWebVitalTooltip('lcp'),
+                  () => setWebVitalTooltip('fcp'),
+                  () => setWebVitalTooltip('fid'),
+                  () => setWebVitalTooltip('cls'),
+                  () => setWebVitalTooltip('ttfb'),
+                ]}
+                onUnhover={() => setWebVitalTooltip(null)}
+              />
+            </svg>
+          </ProgressRingContainer>
+        )}
       </PerformanceScoreLabelContainer>
       <ChartContainer>
         <PerformanceScoreLabel>{t('Score Breakdown')}</PerformanceScoreLabel>

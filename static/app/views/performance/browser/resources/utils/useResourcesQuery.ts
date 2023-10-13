@@ -17,6 +17,11 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
+    ...(resourceFilters['resource.render_blocking_status']
+      ? [
+          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+        ]
+      : []),
   ];
 
   // TODO - we should be using metrics data here
@@ -30,6 +35,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         'spm()',
         'span.group',
         'resource.render_blocking_status',
+        'span.domain',
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),

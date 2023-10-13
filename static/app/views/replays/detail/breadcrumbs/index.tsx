@@ -88,9 +88,9 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
-          onClick={frame => {
-            onClickTimestamp(frame);
-            setActiveTab(getFrameDetails(frame).tabKey);
+          onClick={() => {
+            onClickTimestamp(item);
+            setActiveTab(getFrameDetails(item).tabKey);
           }}
           onDimensionChange={handleDimensionChange}
         />
