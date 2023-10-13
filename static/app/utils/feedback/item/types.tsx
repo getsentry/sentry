@@ -42,10 +42,10 @@ export interface FeedbackItemResponse {
   timestamp: string;
   url: string;
   user: {
-    display_name: null | string;
     email: null | string;
     id: null | string;
     ip: null | string;
+    name: null | string;
     username: null | string;
   };
 }

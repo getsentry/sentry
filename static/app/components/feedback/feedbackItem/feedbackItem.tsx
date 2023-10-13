@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -19,9 +20,11 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getShortEventId} from 'sentry/utils/events';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
@@ -46,7 +49,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} />
+              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
               {feedbackItem.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
@@ -57,6 +60,17 @@ export default function FeedbackItem({feedbackItem}: Props) {
             </Flex>
             <Flex align="center" gap={space(0.5)}>
               <ProjectAvatar project={project} size={12} /> {slug}
+              {feedbackItem.replay_id ? (
+                <Link
+                  to={{
+                    pathname: normalizeUrl(
+                      `/organizations/${organization.slug}/replays/${feedbackItem.replay_id}/`
+                    ),
+                  }}
+                >
+                  {getShortEventId(feedbackItem.replay_id)}
+                </Link>
+              ) : null}
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center">
