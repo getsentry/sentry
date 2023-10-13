@@ -83,6 +83,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -111,7 +112,7 @@ from sentry.sentry_apps.installations import (
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -284,19 +285,27 @@ class Factories:
                 with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
                     yield
 
-        with org_creation_context():
+        with org_creation_context(), outbox_context(flush=False):
             region_name = region.name if region is not None else get_local_region().name
             org: Organization = Organization.objects.create(name=name, **kwargs)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(OrganizationSlugReservation)
-        ):
-            OrganizationSlugReservation(
-                organization_id=org.id,
-                region_name=region_name,
-                user_id=owner.id if owner else -1,
-                slug=org.slug,
-            ).save(unsafe_write=True)
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                # Organization mapping creation relies on having a matching org slug reservation
+                #
+                OrganizationSlugReservation(
+                    organization_id=org.id,
+                    region_name=region_name,
+                    user_id=owner.id if owner else -1,
+                    slug=org.slug,
+                ).save(unsafe_write=True)
+
+            # Manually drain the outbox shard as we need to retain the region
+            # data for org outbox replication to succeed.
+            RegionOutbox(
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=org.id,
+            ).drain_shard()
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
