@@ -12,14 +12,14 @@ export enum BrowserStarfishFields {
 }
 
 export type ModuleFilters = {
-  [BrowserStarfishFields.SPAN_DOMAIN]?: string;
   [BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS]:
     | ''
     | 'non-blocking'
     | 'blocking';
+  [BrowserStarfishFields.SPAN_DOMAIN]?: string;
   [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
   [BrowserStarfishFields.TRANSACTION]?: string;
-  [BrowserStarfishFields.DOMAIN]?: string;
+  [BrowserStarfishFields.SPAN_DOMAIN]?: string;
 };
 
 export const useResourceModuleFilters = () => {
