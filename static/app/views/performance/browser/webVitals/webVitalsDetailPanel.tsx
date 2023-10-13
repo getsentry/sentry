@@ -319,6 +319,13 @@ export function WebVitalsDetailPanel({
     return <AlignRight>{col.name}</AlignRight>;
   };
 
+  const getFormattedDuration = (value: number) => {
+    if (value < 1000) {
+      return getDuration(value / 1000, 0, true);
+    }
+    return getDuration(value / 1000, 2, true);
+  };
+
   const renderBodyCell = (col: Column, row: RowWithScore) => {
     const {key} = col;
     if (key === 'score') {
@@ -331,7 +338,7 @@ export function WebVitalsDetailPanel({
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
       if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
-        value = getDuration(value / 1000, 2, true);
+        value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
       }
@@ -388,22 +395,29 @@ export function WebVitalsDetailPanel({
                     top: 10,
                     bottom: 0,
                   }}
+                  yAxis={
+                    webVital === 'cls'
+                      ? {}
+                      : {axisLabel: {formatter: getFormattedDuration}}
+                  }
                 />
               )}
             </ChartZoom>
           )}
         </ChartContainer>
-        <GridEditable
-          data={dataByOpportunity}
-          isLoading={isLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        {!transaction && (
+          <GridEditable
+            data={dataByOpportunity}
+            isLoading={isLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        )}
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>

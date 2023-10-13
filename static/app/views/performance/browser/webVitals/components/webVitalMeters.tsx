@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {getDuration} from 'sentry/utils/formatters';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
@@ -12,17 +12,18 @@ import {
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
-  projectData: any;
   // TODO: type
-  projectScore: ProjectScore;
+  projectData: any;
   onClick?: (webVital: WebVitals) => void;
+  projectScore?: ProjectScore;
   transaction?: string;
 };
 
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
-  const getFormattedDuration = (value: number) => {
-    return getDuration(value, value < 1 ? 0 : 2, true);
-  };
+  if (!projectScore) {
+    return null;
+  }
+
   return (
     <Container>
       <Flex>
@@ -63,10 +64,9 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarBody>
             <MeterHeader>{t('Cumulative Layout Shift (P75)')}</MeterHeader>
             <MeterValueText>
-              {formatAbbreviatedNumber(
-                projectData?.data?.[0]?.['p75(measurements.cls)'] as number,
-                2
-              )}
+              {Math.round(
+                (projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100
+              ) / 100}
             </MeterValueText>
           </MeterBarBody>
           <MeterBarFooter score={projectScore.clsScore} />
@@ -86,6 +86,10 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
     </Container>
   );
 }
+
+const getFormattedDuration = (value: number) => {
+  return getDuration(value, value < 1 ? 0 : 2, true);
+};
 
 const Container = styled('div')`
   margin-top: ${space(2)};

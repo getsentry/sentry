@@ -32,32 +32,45 @@ export type ProjectScore = {
 };
 
 type Vitals = {
-  cls: number;
-  fcp: number;
-  fid: number;
-  lcp: number;
-  ttfb: number;
+  cls?: number | null;
+  fcp?: number | null;
+  fid?: number | null;
+  lcp?: number | null;
+  ttfb?: number | null;
 };
 
 export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
-  const {cls, fcp, fid, lcp, ttfb} = vitals;
+  const [lcpScore, fcpScore, ttfbScore, clsScore, fidScore] = [
+    'lcp',
+    'fcp',
+    'ttfb',
+    'cls',
+    'fid',
+  ].map(vital => {
+    if (vitals[vital] === null) {
+      return 0;
+    }
 
-  const lcpScore = cdf(lcp, PERFORMANCE_SCORE_MEDIANS.lcp, PERFORMANCE_SCORE_P90S.lcp);
-  const fcpScore = cdf(fcp, PERFORMANCE_SCORE_MEDIANS.fcp, PERFORMANCE_SCORE_P90S.fcp);
-  const ttfbScore = cdf(
-    ttfb,
-    PERFORMANCE_SCORE_MEDIANS.ttfb,
-    PERFORMANCE_SCORE_P90S.ttfb
+    return cdf(
+      vitals[vital],
+      PERFORMANCE_SCORE_MEDIANS[vital],
+      PERFORMANCE_SCORE_P90S[vital]
+    );
+  });
+
+  const weightSum = Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce(
+    (sum, key) => (vitals[key] !== null ? sum + PERFORMANCE_SCORE_WEIGHTS[key] : sum),
+    0
   );
-  const clsScore = cdf(cls, PERFORMANCE_SCORE_MEDIANS.cls, PERFORMANCE_SCORE_P90S.cls);
-  const fidScore = cdf(fid, PERFORMANCE_SCORE_MEDIANS.fid, PERFORMANCE_SCORE_P90S.fid);
+  const weightMultiplier = 100 / weightSum;
 
   const totalScore =
-    lcpScore * PERFORMANCE_SCORE_WEIGHTS.lcp +
-    fcpScore * PERFORMANCE_SCORE_WEIGHTS.fcp +
-    ttfbScore * PERFORMANCE_SCORE_WEIGHTS.ttfb +
-    clsScore * PERFORMANCE_SCORE_WEIGHTS.cls +
-    fidScore * PERFORMANCE_SCORE_WEIGHTS.fid;
+    (lcpScore * PERFORMANCE_SCORE_WEIGHTS.lcp +
+      fcpScore * PERFORMANCE_SCORE_WEIGHTS.fcp +
+      ttfbScore * PERFORMANCE_SCORE_WEIGHTS.ttfb +
+      clsScore * PERFORMANCE_SCORE_WEIGHTS.cls +
+      fidScore * PERFORMANCE_SCORE_WEIGHTS.fid) *
+    weightMultiplier;
 
   return {
     totalScore: Math.round(totalScore),
