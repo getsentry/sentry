@@ -110,7 +110,7 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
                 height={height}
                 noRowsRenderer={() => (
                   <NoRowRenderer
-                    unfilteredItems={items}
+                    unfilteredItems={frames}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No breadcrumbs recorded')}
