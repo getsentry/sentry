@@ -36,6 +36,9 @@ from sentry.utils.services import build_instance_from_options
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.models.team import Team
+    from sentry.ownership.grammar import Rule
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +94,7 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def should_write_event_stats(event: Event):
+def should_write_event_stats(event: Union[Event, GroupEvent]):
     # For now, we only want to write these stats for error events. If we start writing them for
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
@@ -103,8 +106,11 @@ def should_write_event_stats(event: Event):
     )
 
 
-def format_event_platform(event: Event):
-    platform = event.group.platform
+def format_event_platform(event: Union[Event, GroupEvent]):
+    group = event.group
+    if not group:
+        return
+    platform = group.platform
     if not platform:
         return
     return platform.split("-", 1)[0].split("_", 1)[0]
@@ -267,7 +273,13 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners = []
+                            issue_owners: Sequence[
+                                Tuple[
+                                    Rule,
+                                    Sequence[Union[Team, RpcUser]],
+                                    str,
+                                ]
+                            ] = []
                         else:
 
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
@@ -325,7 +337,7 @@ def handle_group_owners(project, group, issue_owners):
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
-            new_owners = {}
+            new_owners: dict = {}
             owners: Union[List[RpcUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
