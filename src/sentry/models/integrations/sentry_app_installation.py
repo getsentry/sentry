@@ -227,6 +227,8 @@ def prepare_sentry_app_components(
         )
     except SentryAppComponent.DoesNotExist:
         return None
+    else:
+        raise Exception()
 
     return prepare_ui_component(installation, component, project_slug, values)
 
