@@ -51,7 +51,9 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         org_slugs = [org_slug for org_slug in org_slug_qs]
 
         if len(org_slugs) == 0:
-            # If there's no matching organization slug reservation, alert but don't prevent writing a new org mapping
+            # If there's no matching organization slug reservation, alert and prevent writing
+            # a new org mapping, as we don't want to create contention if the slug conflicts
+            # with a future organization.
             capture_exception(
                 OrganizationMappingConsistencyException(
                     f"Expected an organization slug reservation for organization {org_id}, none was found"
