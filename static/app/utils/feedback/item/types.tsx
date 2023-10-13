@@ -25,6 +25,7 @@ export interface FeedbackItemResponse {
     timezone: string;
   };
   message: string;
+  name: null | string;
   os: {
     name: null | string;
     version: null | string;

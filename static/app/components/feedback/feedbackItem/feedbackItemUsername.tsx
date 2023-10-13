@@ -10,8 +10,11 @@ interface Props {
 }
 
 export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Props) {
-  const hasName = feedbackItem.user.name;
-  const hasEmail = feedbackItem.contact_email;
+  // const t_feedbackItem = {name: 'test name', email: 'test@gmail.com'};
+
+  const hasName = feedbackItem.name;
+  const hasEmail = feedbackItem.contact_email.trim.length > 0;
+  // const name = 'Test Name';
 
   if (!hasEmail && !hasName) {
     return <strong>{t('Anonymous User')}</strong>;
@@ -20,14 +23,16 @@ export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Prop
   if (detailDisplay) {
     return (
       <strong>
-        {feedbackItem.user.name ?? 'No Name'}
+        {hasName ?? 'No Name'}
         <Purple>•</Purple>
         {feedbackItem.contact_email ?? 'No Email'}
       </strong>
     );
   }
 
-  return <strong>{feedbackItem.contact_email ?? feedbackItem.user.name}</strong>;
+  return (
+    <strong>{hasEmail ? feedbackItem.contact_email : feedbackItem.user.name}</strong>
+  );
 }
 
 const Purple = styled('span')`
