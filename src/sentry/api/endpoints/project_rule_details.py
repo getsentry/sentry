@@ -27,7 +27,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.mediators import project_rules
+from sentry.mediators.project_rules.updater import Updater
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
@@ -312,7 +312,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
-            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+            updated_rule = Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
                 rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
