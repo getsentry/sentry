@@ -1917,6 +1917,20 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
+    def test_collapse_unhandled(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["unhandled"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "isUnhandled" not in response.data[0]
+
     def test_query_status_and_substatus_overlapping(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
