@@ -98,7 +98,7 @@ class WebHooksPluginTest(TestCase):
         form.is_valid()
 
         with pytest.raises(PluginError):
-            validate_urls(form.cleaned_data.get("urls"))
+            validate_urls(form.cleaned_data["urls"])
 
     @responses.activate
     def test_moved_permanently(self):
