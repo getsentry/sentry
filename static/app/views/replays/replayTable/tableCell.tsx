@@ -318,13 +318,12 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsDOMEventsTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -335,7 +334,7 @@ export function ReplayCell({
       case 'dead-table':
       case 'rage-table':
       case 'selector-widget':
-        return replayDetailsDOMEventsTab;
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
