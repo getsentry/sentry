@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import Avatar from 'sentry/components/avatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
@@ -76,16 +76,21 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
           onClick={() => setIsExpanded(!isExpanded)}
         />
       </ParticipantWrapper>
-      <AnimateContainer
-        variants={{
-          open: {height: '100%', opacity: 1, marginTop: space(1)},
-          closed: {height: '0', opacity: 0},
-        }}
-        animate={isExpanded ? 'open' : 'closed'}
-        isExpanded={isExpanded}
-      >
-        <ParticipantScrollbox users={users} teams={teams} />
-      </AnimateContainer>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            variants={{
+              open: {height: '100%', opacity: 1, marginTop: space(1)},
+              closed: {height: '0', opacity: 0},
+            }}
+            initial="closed"
+            animate="open"
+            exit="closed"
+          >
+            <ParticipantScrollbox users={users} teams={teams} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Fragment>
   );
 }
@@ -99,12 +104,6 @@ const ParticipantWrapper = styled('div')`
   & > span {
     cursor: pointer;
   }
-`;
-
-const AnimateContainer = styled(motion.div)<{isExpanded: boolean}>`
-  height: 0;
-  opacity: 0;
-  ${p => (!p.isExpanded ? 'overflow: hidden;' : '')}
 `;
 
 const ParticipantListWrapper = styled('div')`

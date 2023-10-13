@@ -22,7 +22,7 @@ describe('ParticipantList', () => {
         Click Me
       </ParticipantList>
     );
-    expect(screen.getByText('#team-1')).not.toBeVisible();
+    expect(screen.queryByText('#team-1')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText('Click Me'));
     await waitFor(() => expect(screen.getByText('#team-1')).toBeVisible());
 
