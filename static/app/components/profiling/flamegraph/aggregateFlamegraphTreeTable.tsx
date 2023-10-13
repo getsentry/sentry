@@ -1,7 +1,8 @@
-import {forwardRef, useCallback, useEffect, useMemo, useState} from 'react';
+import {forwardRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -93,24 +94,44 @@ function FastFrameCallersFixedRows(props: FastFrameCallersRowsProps) {
     props.node.node.node.totalWeight
   );
 
+  const totalAggregateDuration = computeRelativeWeight(
+    props.referenceNode.node.aggregate_duration_ns,
+    props.node.node.node.aggregate_duration_ns
+  );
+
   return (
-    <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
-      {props.node.node.node.totalWeight}
-      <div className={FastFrameCallersTableClassNames.WEIGHT}>
-        {totalWeight.toFixed(2)}%
-        <div
-          className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
-          style={{transform: `scaleX(${totalWeight / 100})`}}
+    <Fragment>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        {props.node.node.node.totalWeight}
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {totalWeight.toFixed(2)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${totalWeight / 100})`}}
+          />
+        </div>
+      </div>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        <PerformanceDuration
+          nanoseconds={props.node.node.node.aggregate_duration_ns}
+          abbreviation
         />
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {totalAggregateDuration.toFixed(2)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${totalAggregateDuration / 100})`}}
+          />
+        </div>
+        <div className={FastFrameCallersTableClassNames.FRAME_TYPE}>
+          {props.node.node.node.frame.is_application ? (
+            <IconUser size="xs" />
+          ) : (
+            <IconSettings size="xs" />
+          )}
+        </div>
       </div>
-      <div className={FastFrameCallersTableClassNames.FRAME_TYPE}>
-        {props.node.node.node.frame.is_application ? (
-          <IconUser size="xs" />
-        ) : (
-          <IconSettings size="xs" />
-        )}
-      </div>
-    </div>
+    </Fragment>
   );
 }
 
@@ -177,8 +198,8 @@ const FrameCallersTable = styled('div')`
       }
 
       .${FastFrameCallersTableClassNames.BACKGROUND_WEIGHT} {
-        background-color: #f9f3e7;
-        border-bottom: #f8ce68;
+        background-color: ${props => props.theme.yellow100};
+        border-bottom: 1px solid ${props => props.theme.yellow200};
       }
 
       .${FastFrameCallersTableClassNames.FRAME_TYPE} {
@@ -291,7 +312,10 @@ const FrameCallersTable = styled('div')`
   }
 `;
 
-function makeSortFunction(property: 'sample count' | 'name', direction: 'asc' | 'desc') {
+function makeSortFunction(
+  property: 'sample count' | 'duration' | 'name',
+  direction: 'asc' | 'desc'
+) {
   if (property === 'sample count') {
     return direction === 'desc'
       ? (
@@ -305,6 +329,22 @@ function makeSortFunction(property: 'sample count' | 'name', direction: 'asc' | 
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
           return a.node.node.totalWeight - b.node.node.totalWeight;
+        };
+  }
+
+  if (property === 'duration') {
+    return direction === 'desc'
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
+        }
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
         };
   }
 
@@ -413,7 +453,7 @@ export function AggregateFlamegraphTreeTable({
     useState<HTMLDivElement | null>(null);
   const [dynamicScrollContainerRef, setDynamicScrollContainerRef] =
     useState<HTMLDivElement | null>(null);
-  const [sort, setSort] = useState<'sample count' | 'name'>('sample count');
+  const [sort, setSort] = useState<'sample count' | 'duration' | 'name'>('sample count');
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
@@ -586,7 +626,7 @@ export function AggregateFlamegraphTreeTable({
   });
 
   const onSortChange = useCallback(
-    (newSort: 'sample count' | 'name') => {
+    (newSort: 'sample count' | 'duration' | 'name') => {
       const newDirection =
         newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
 
@@ -616,6 +656,10 @@ export function AggregateFlamegraphTreeTable({
     onSortChange('name');
   }, [onSortChange]);
 
+  const onSortByDuration = useCallback(() => {
+    onSortChange('duration');
+  }, [onSortChange]);
+
   return (
     <FrameBar>
       <FrameCallersTable>
@@ -632,6 +676,22 @@ export function AggregateFlamegraphTreeTable({
                 />
               </span>
               {sort === 'sample count' ? (
+                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+              ) : null}
+            </TableHeaderButton>
+          </FrameWeightCell>
+          <FrameWeightCell>
+            <TableHeaderButton onClick={onSortByDuration}>
+              <InteractionStateLayer />
+              <span>
+                {t('Duration')}{' '}
+                <QuestionTooltip
+                  title={t('Aggregated duration of this frame across different samples')}
+                  size="sm"
+                  position="top"
+                />
+              </span>
+              {sort === 'duration' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
             </TableHeaderButton>
@@ -700,7 +760,7 @@ const FixedTableItemsContainer = styled('div')`
   left: 0;
   top: 0;
   height: 100%;
-  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  width: ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px;
   overflow: hidden;
   z-index: 1;
 `;
@@ -710,7 +770,7 @@ const DynamicTableItemsContainer = styled('div')`
   right: 0;
   top: 0;
   height: 100%;
-  width: calc(100% - ${FRAME_WEIGHT_CELL_WIDTH_PX}px);
+  width: calc(100% - ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px);
   overflow: hidden;
   z-index: 1;
 `;
