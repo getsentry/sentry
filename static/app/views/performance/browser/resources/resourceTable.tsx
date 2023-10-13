@@ -18,7 +18,8 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_DESCRIPTION} = SpanMetricsField;
+const {SPAN_DESCRIPTION, RESOURCE_RENDER_BLOCKING_STATUS, SPAN_OP, SPAN_SELF_TIME} =
+  SpanMetricsField;
 
 type Row = {
   'avg(span.self_time)': number;
@@ -44,8 +45,8 @@ function ResourceTable({sort}: Props) {
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Type'},
-    {key: 'avg(span.self_time)', width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: 'Type'},
+    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
     {
       key: 'spm()',
       width: COL_WIDTH_UNDEFINED,
@@ -57,7 +58,7 @@ function ResourceTable({sort}: Props) {
       name: 'Resource size',
     },
     {
-      key: 'resource.render_blocking_status',
+      key: RESOURCE_RENDER_BLOCKING_STATUS,
       width: COL_WIDTH_UNDEFINED,
       name: 'Render blocking',
     },
@@ -95,7 +96,7 @@ function ResourceTable({sort}: Props) {
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
     }
-    if (key === 'span.op') {
+    if (key === SPAN_OP) {
       const opNameMap = {
         'resource.script': t('Javascript'),
         'resource.img': t('Image'),

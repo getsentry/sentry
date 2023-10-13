@@ -7,7 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_DOMAIN} = SpanMetricsField;
+const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 
 /**
  * Gets a list of pages that have a resource.
@@ -19,10 +19,10 @@ export const useResourcePagesQuery = () => {
   const resourceFilters = useResourceModuleFilters();
   const {[SPAN_DOMAIN]: spanDomain} = resourceFilters;
 
-  const fields = ['transaction', 'count()']; // TODO: this query fails without avg(span.self_time)
+  const fields = ['transaction', 'count()']; // count() is only here because an aggregation is required for the query to work
 
   const queryConditions = [
-    `span.op:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
     ...(spanDomain ? [`${SPAN_DOMAIN}:${spanDomain}`] : []),
   ]; // TODO: We will need to consider other ops
 

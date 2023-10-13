@@ -9,7 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_DOMAIN} = SpanMetricsField;
+const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 
 /**
  * Gets a list of pages that have a resource.
@@ -23,7 +23,7 @@ export const useResourceDomainsQuery = () => {
   const fields = [SPAN_DOMAIN, 'count()']; // count() is only here because an aggregation is required for the query to work
 
   const queryConditions = [
-    `span.op:resource.*`,
+    `${SPAN_OP}:resource.*`,
     `has:${SPAN_DOMAIN}`,
     ...(transaction ? [`transaction:${transaction}`] : []),
   ];

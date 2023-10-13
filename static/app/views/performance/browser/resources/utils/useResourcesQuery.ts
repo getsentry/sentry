@@ -23,7 +23,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
   const queryConditions = [
-    `span.op:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
