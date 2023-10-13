@@ -193,15 +193,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
     def test_resource_size(self):
-        # Each of these denotes how many events to create in each minute
-        for transaction in ["foo"]:
-            for i in range(10):
-                self.store_span_metric(
-                    4 if i > 3 else 2,
-                    metric="http.response_content_length",
-                    timestamp=self.day_ago + timedelta(minutes=i),
-                    tags={"transaction": transaction},
-                )
+        for i in range(10):
+            self.store_span_metric(
+                4 if i > 3 else 2,
+                metric="http.response_content_length",
+                timestamp=self.day_ago + timedelta(minutes=i),
+                tags={"transaction": "foo"},
+            )
 
         response = self.do_request(
             data={
