@@ -51,21 +51,21 @@ function AvatarList({
           </CollapsedAvatars>
         </Tooltip>
       )}
-      {visibleTeamAvatars?.map(team => (
-        <StyledTeamAvatar
-          key={`${team.id}-${team.name}`}
-          team={team}
-          size={avatarSize}
-          tooltipOptions={tooltipOptions}
-          hasTooltip
-        />
-      ))}
       {visibleUserAvatars.map(user => (
         <StyledUserAvatar
           key={`${user.id}-${user.email}`}
           user={user}
           size={avatarSize}
           renderTooltip={renderTooltip}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+      {visibleTeamAvatars?.map(team => (
+        <StyledTeamAvatar
+          key={`${team.id}-${team.name}`}
+          team={team}
+          size={avatarSize}
           tooltipOptions={tooltipOptions}
           hasTooltip
         />
