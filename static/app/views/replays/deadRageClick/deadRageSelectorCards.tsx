@@ -306,6 +306,7 @@ export const RightAlignedCell = styled('div')`
   align-items: center;
   justify-content: center;
   gap: ${space(1)};
+  padding-left: ${space(1)};
 `;
 
 const EmptySubtitle = styled('div')`

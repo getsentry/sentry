@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
+from typing import MutableMapping
 from unittest import mock
 
 import msgpack
 import pytest
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from confluent_kafka.admin import PartitionMetadata
 from django.test import override_settings
 from django.utils import timezone
 
@@ -919,17 +922,27 @@ class MonitorTaskCheckTimeoutTest(TestCase):
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.tasks._checkin_producer")
 def test_clock_pulse(checkin_producer_mock):
-    clock_pulse()
+    partition_count = 2
 
-    assert checkin_producer_mock.produce.call_count == 1
-    assert checkin_producer_mock.produce.mock_calls[0] == mock.call(
-        mock.ANY,
-        KafkaPayload(
-            None,
-            msgpack.packb({"message_type": "clock_pulse"}),
-            [],
-        ),
-    )
+    mock_partitions: MutableMapping[int, PartitionMetadata] = {}
+    for idx in range(partition_count):
+        mock_partitions[idx] = PartitionMetadata()
+        mock_partitions[idx].id = idx
+
+    with mock.patch("sentry.monitors.tasks._get_partitions", lambda: mock_partitions):
+        clock_pulse()
+
+    # One clock pulse per partition
+    assert checkin_producer_mock.produce.call_count == len(mock_partitions.items())
+    for idx in range(partition_count):
+        assert checkin_producer_mock.produce.mock_calls[idx] == mock.call(
+            Partition(Topic("monitors-test-topic"), idx),
+            KafkaPayload(
+                None,
+                msgpack.packb({"message_type": "clock_pulse"}),
+                [],
+            ),
+        )
 
 
 @mock.patch("sentry.monitors.tasks._dispatch_tasks")
@@ -937,25 +950,25 @@ def test_monitor_task_trigger(dispatch_tasks):
     now = datetime.now().replace(second=0, microsecond=0)
 
     # First checkin triggers tasks
-    try_monitor_tasks_trigger(ts=now)
+    try_monitor_tasks_trigger(ts=now, partition=0)
     assert dispatch_tasks.call_count == 1
 
     # 5 seconds later does NOT trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=5))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=5), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # a minute later DOES trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tasks.call_count == 2
 
     # Same time does NOT trigger the task
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tasks.call_count == 2
 
     # A skipped minute triggers the task AND captures an error
     with mock.patch("sentry_sdk.capture_message") as capture_message:
         assert capture_message.call_count == 0
-        try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5))
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5), partition=0)
         assert dispatch_tasks.call_count == 3
         capture_message.assert_called_with("Monitor task dispatch minute skipped")
 
@@ -971,19 +984,19 @@ def test_monitor_task_trigger_partition_desync(dispatch_tasks):
 
     # First message with timestamp just after the minute boundary
     # triggers the task
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Second message has a timestamp just before the minute boundary,
     # should not trigger anything since we've already ticked ahead of this
-    try_monitor_tasks_trigger(ts=now - timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now - timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Third message again just after the minute boundary does NOT trigger
     # the task, we've already ticked at that time.
-    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1), partition=0)
     assert dispatch_tasks.call_count == 1
 
     # Fourth message moves past a new minute boundary, tick
-    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1))
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1), partition=0)
     assert dispatch_tasks.call_count == 2
