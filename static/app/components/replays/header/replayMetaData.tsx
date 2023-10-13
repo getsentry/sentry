@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -29,7 +30,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'breadcrumbs',
+      t_main: TabKey.BREADCRUMBS,
       f_b_type: 'rageOrDead',
     },
   };
