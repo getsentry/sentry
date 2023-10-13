@@ -36,9 +36,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     # TODO(epurkhiser): probably convert to snuba
     def get(self, request: Request, organization) -> Response:
-        # Do not restirct rollups allowing us to define custom resolutions.
+        # Do not restrict rollups allowing us to define custom resolutions.
         # Important for this endpoint since we want our buckets to align with
-        # the UI's time scale markers.
+        # the UI's timescale markers.
         args = self._parse_args(request, restrict_rollups=False)
 
         start = normalize_to_epoch(args["start"], args["rollup"])
@@ -71,7 +71,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         if environments:
             check_ins = check_ins.filter(monitor_environment__environment__in=environments)
 
-        # Use postgres' `date_bin` to bucket rounded to our rolllups
+        # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",
