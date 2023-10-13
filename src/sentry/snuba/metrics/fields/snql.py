@@ -449,6 +449,13 @@ def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Funct
     )
 
 
+def _web_vital_equivalence(org_id: int, measurement_rating: str) -> Function:
+    return Function(
+        "equals",
+        [],
+    )
+
+
 def _metric_id_equivalence(metric_condition: Function) -> Function:
     return Function(
         "equals",
@@ -807,8 +814,8 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def total_count(aggregate_filter: Function) -> Function:
-    return Function("sumIf", [Column("value"), aggregate_filter])
+def total_count(aggregate_filter: Function, alias=None) -> Function:
+    return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
 
 def on_demand_failure_rate_snql_factory(
@@ -907,6 +914,17 @@ def on_demand_apdex_snql_factory(
         "divide",
         [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
         alias=alias,
+    )
+
+
+def on_demand_count_web_vitals_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+):
+    return _count_if_with_conditions(
+        [
+            _web_vital_equivalence(org_id, TransactionSatisfactionTagValue.SATISFIED.value),
+        ],
+        alias,
     )
 
 
