@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -114,7 +116,9 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
 
-    def test_with_event_user(self):
+    @with_feature("organizations:eventuser-from-snuba")
+    @mock.patch("sentry.ingest.userreport.logger")
+    def test_with_event_user(self, mock_logger):
         event = self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -139,3 +143,12 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["comments"] == "It broke"
         assert response.data[0]["user"]["name"] == "alice@example.com"
         assert response.data[0]["user"]["email"] == "alice@example.com"
+        # assert mock_logger.info.call_count == 1
+        mock_logger.info.assert_called_with(
+            "EventUser equal to results from Errors dataset query.",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project_id,
+                "group_id": event.group_id,
+            },
+        )
