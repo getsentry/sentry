@@ -17,7 +17,7 @@ export function useReleases() {
         query: {
           sort: 'date',
           project: projects,
-          per_page: 50,
+          per_page: 20,
           environment: environments,
         },
       },
@@ -38,4 +38,28 @@ export function useReleaseSelection() {
     (releases && releases.length > 1 ? releases?.[1]?.version : undefined);
 
   return {primaryRelease, secondaryRelease, isLoading};
+}
+
+export function useReleaseStats() {
+  const {data: releases, isLoading} = useReleases();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const {environments, projects} = selection;
+
+  const {data} = useApiQuery<any>(
+    [
+      `/organizations/${organization.slug}/sessions`,
+      {
+        query: {
+          project: projects,
+          environment: environments,
+        },
+      },
+    ],
+    {staleTime: Infinity}
+  );
+  return {
+    releases,
+    isLoading,
+  };
 }
