@@ -9,19 +9,19 @@ import {useResourceModuleFilters} from 'sentry/views/performance/browser/resourc
 /**
  * Gets a list of pages that have a resource.
  */
-export const useResourcePagesQuery = () => {
+export const useResourceDomainsQuery = () => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
-  const resourceFilters = useResourceModuleFilters();
-  const {'span.domain': spanDomain} = resourceFilters;
+  const {transaction} = useResourceModuleFilters();
 
-  const fields = ['transaction', 'avg(span.self_time)']; // TODO: this query fails without avg(span.self_time)
+  const fields = ['avg(span.self_time)', 'span.domain']; // TODO: this query fails without avg(span.self_time)
 
   const queryConditions = [
-    `span.op:${resourceFilters.type || 'resource.*'}`,
-    ...(spanDomain ? [`span.domain:${spanDomain}`] : []),
-  ]; // TODO: We will need to consider other ops
+    `span.op:resource.*`,
+    'has:span.domain',
+    ...(transaction ? [`transaction:${transaction}`] : []),
+  ];
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -41,7 +41,8 @@ export const useResourcePagesQuery = () => {
     orgSlug,
     limit: 100,
   });
+  const data: string[] =
+    result?.data?.data.map(row => row['span.domain'][0].toString()).sort() || [];
 
-  const pages = result?.data?.data.map(row => row.transaction.toString()).sort() || [];
-  return {...result, data: pages};
+  return {...result, data};
 };

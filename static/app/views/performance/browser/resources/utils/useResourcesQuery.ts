@@ -17,6 +17,9 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
+    ...(resourceFilters['span.domain']
+      ? [`span.domain:${resourceFilters['span.domain']}`]
+      : []),
   ];
 
   // TODO - we should be using metrics data here
