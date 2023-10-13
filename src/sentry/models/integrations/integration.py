@@ -58,7 +58,7 @@ class Integration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
-    date_added = models.DateTimeField(auto_now=True, null=True)
+    date_updated = models.DateTimeField(auto_now=True, null=True)
 
     objects = IntegrationManager()
 
