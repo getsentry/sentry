@@ -27,7 +27,7 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
 const HEADER_HEIGHT = 25;
-const BODY_HEIGHT = 28;
+const BODY_HEIGHT = 25;
 
 const RESIZEABLE_HANDLE_HEIGHT = 90;
 
