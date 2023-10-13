@@ -808,7 +808,6 @@ module = [
     "tests.sentry.issues.test_utils",
     "tests.sentry.lang.javascript.test_processor",
     "tests.sentry.models.test_organizationmember",
-    "tests.sentry.models.test_project",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
     "tests.sentry.replays.unit.test_dead_click_issue",
     "tests.sentry.tasks.test_post_process",
