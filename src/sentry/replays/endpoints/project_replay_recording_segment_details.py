@@ -8,6 +8,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -17,6 +18,7 @@ from sentry.replays.usecases.reader import download_segment, fetch_segment_metad
 
 @region_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
