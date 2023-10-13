@@ -820,12 +820,6 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
 
-    @pytest.mark.xfail(
-        not use_split_dbs(),
-        reason="Preexisting failure: getsentry/team-ospo#205",
-        raises=AssertionError,
-        strict=True,
-    )
     @targets(mark(COLLISION_TESTED, OrgAuthToken))
     def test_colliding_org_auth_token(self):
         owner = self.create_exhaustive_user("owner")
