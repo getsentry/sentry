@@ -104,8 +104,7 @@ class PostProcessForwarderTest(TestCase):
         # Move the committed offset forward for our synchronizing group.
         commit_log_producer.produce(
             self.commit_log_topic,
-            value=f"{1}".encode(),
-            value=f""
+            value=b'{"orig_message_ts": 123456, "offset": 1}',
         )
         assert (
             commit_log_producer.flush(5) == 0
