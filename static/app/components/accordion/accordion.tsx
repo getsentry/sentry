@@ -24,7 +24,7 @@ export default function Accordion({
   setExpandedIndex,
   items,
   buttonOnLeft,
-  collapsible = false,
+  collapsible = true,
 }: Props) {
   return (
     <AccordionContainer>
