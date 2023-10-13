@@ -109,7 +109,6 @@ class ProjectRuleConfigurationTest(APITestCase):
                 assert action not in action_ids
             assert "disabledTicketActions" not in response.data
 
-    # @patch.object(RuleSerializer, "serialize", return_value=[])
     @patch("sentry.api.endpoints.project_rules_configuration.rules", new=[])
     def test_show_disabled_ticket_actions(self):
         response = self.get_success_response(
