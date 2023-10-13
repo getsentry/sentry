@@ -1,3 +1,5 @@
+import {ReactText} from 'react';
+
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -6,17 +8,23 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
-  RowWithScore,
+  TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
+  transaction: string;
   limit?: number;
   orderBy?: WebVitals | null;
-  transaction?: string | null;
+  query?: string;
 };
 
-export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Props) => {
+export const useTransactionSamplesWebVitalsQuery = ({
+  orderBy,
+  limit,
+  transaction,
+  query,
+}: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -24,19 +32,22 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
+        'id',
+        'user.display',
         'transaction',
         'transaction.op',
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'count()',
+        'measurements.lcp',
+        'measurements.fcp',
+        'measurements.cls',
+        'measurements.ttfb',
+        'measurements.fid',
+        'transaction.duration',
+        'replayId',
+        'timestamp',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
+      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
+      orderby: mapWebVitalToOrderBy(orderBy),
       version: 2,
     },
     pageFilters.selection
@@ -53,27 +64,32 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
     },
   });
 
-  const tableData: RowWithScore[] =
+  const toInt = (item: ReactText) => (item ? parseInt(item.toString(), 10) : null);
+  const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? data.data
           .map(row => ({
+            id: row.id?.toString(),
+            'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
-            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
-            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
-            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
-            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
-            'count()': row['count()'] as number,
+            'measurements.lcp': toInt(row['measurements.lcp']),
+            'measurements.fcp': toInt(row['measurements.fcp']),
+            'measurements.cls': toInt(row['measurements.cls']),
+            'measurements.ttfb': toInt(row['measurements.ttfb']),
+            'measurements.fid': toInt(row['measurements.fid']),
+            'transaction.duration': toInt(row['transaction.duration']),
+            replayId: row.replayId?.toString(),
+            timestamp: row.timestamp?.toString(),
           }))
           .map(row => {
             const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
               calculatePerformanceScore({
-                lcp: row['p75(measurements.lcp)'],
-                fcp: row['p75(measurements.fcp)'],
-                cls: row['p75(measurements.cls)'],
-                ttfb: row['p75(measurements.ttfb)'],
-                fid: row['p75(measurements.fid)'],
+                lcp: row['measurements.lcp'],
+                fcp: row['measurements.fcp'],
+                cls: row['measurements.cls'],
+                ttfb: row['measurements.ttfb'],
+                fid: row['measurements.fid'],
               });
             return {
               ...row,
