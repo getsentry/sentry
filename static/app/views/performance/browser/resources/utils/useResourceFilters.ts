@@ -8,12 +8,18 @@ export enum BrowserStarfishFields {
   SPAN_DOMAIN = 'span.domain',
   GROUP_ID = 'groupId',
   DESCRIPTION = 'description',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
 }
 
 export type ModuleFilters = {
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
+  [BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS]:
+    | ''
+    | 'non-blocking'
+    | 'blocking';
   [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
   [BrowserStarfishFields.TRANSACTION]?: string;
+  [BrowserStarfishFields.DOMAIN]?: string;
 };
 
 export const useResourceModuleFilters = () => {
@@ -25,5 +31,6 @@ export const useResourceModuleFilters = () => {
     BrowserStarfishFields.TRANSACTION,
     BrowserStarfishFields.GROUP_ID,
     BrowserStarfishFields.DESCRIPTION,
+    BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS,
   ]);
 };

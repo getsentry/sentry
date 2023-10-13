@@ -1344,12 +1344,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=90.0,
+    default=50.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=900.0,  # ms
+    default=500.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1384,7 +1384,7 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=900,  # ms
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

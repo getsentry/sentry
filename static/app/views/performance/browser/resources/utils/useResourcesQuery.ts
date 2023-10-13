@@ -19,6 +19,10 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
       : []),
     ...(resourceFilters['span.domain']
       ? [`span.domain:${resourceFilters['span.domain']}`]
+    ...(resourceFilters['resource.render_blocking_status']
+      ? [
+          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+        ]
       : []),
   ];
 
