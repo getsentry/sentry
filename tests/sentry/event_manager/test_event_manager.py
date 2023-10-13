@@ -3376,7 +3376,7 @@ class DSLatestReleaseBoostTest(TestCase):
             for o in mocked_invalidate.mock_calls
         )
 
-    @freeze_time()
+    @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
         ts = time()

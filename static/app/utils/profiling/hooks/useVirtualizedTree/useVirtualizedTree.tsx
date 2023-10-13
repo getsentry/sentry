@@ -180,12 +180,14 @@ export function useVirtualizedTree<T extends TreeLike>(
   >(undefined);
 
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(
-      props.tree,
-      props.expanded,
-      props.skipFunction,
-      expandedHistory.current
-    );
+    const newTree =
+      props.virtualizedTree ||
+      VirtualizedTree.fromRoots(
+        props.tree,
+        props.expanded,
+        props.skipFunction,
+        expandedHistory.current
+      );
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
@@ -222,6 +224,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     flattenedHistory.current = newTree.flattened;
   }, [
     props.tree,
+    props.virtualizedTree,
     props.expanded,
     props.skipFunction,
     props.sortFunction,
@@ -256,9 +259,30 @@ export function useVirtualizedTree<T extends TreeLike>(
         cancelAnimationTimeout(scrollEndTimeoutId.current);
       }
 
-      evt.target.firstChild.style.pointerEvents = 'none';
+      if (Array.isArray(props.scrollContainer)) {
+        props.scrollContainer.forEach(container => {
+          if (!container.firstChild) {
+            return;
+          }
+          (container.firstChild as HTMLElement).style.pointerEvents = 'none';
+        });
+      } else {
+        (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'none';
+      }
       scrollEndTimeoutId.current = requestAnimationTimeout(() => {
-        evt.target.firstChild.style.pointerEvents = 'auto';
+        if (!props.scrollContainer) {
+          return;
+        }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'auto';
+          });
+        } else {
+          (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'auto';
+        }
       }, 150);
 
       if (latestStateRef.current.selectedNodeIndex !== null) {

@@ -130,6 +130,8 @@ class DiscordRequest:
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
+        if not self.user:
+            self._info("discord.validate.identity.no.user")
 
     def get_identity_user(self) -> RpcUser | None:
         identity = self.get_identity()
@@ -206,5 +208,10 @@ class DiscordRequest:
 
     def get_selected_options(self) -> list[str]:
         if not self.is_select_component():
+            logger.info("discord.interaction.component.not.is_select_component")
             return []
+        logger.info(
+            "discord.interaction.component.get_selected_options",
+            extra={"data": self.data, "values": self.data["values"]},
+        )
         return self.data["values"]  # type: ignore
