@@ -13,6 +13,7 @@ from sentry.models.eventuser import EventUser
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.snuba import raw_snql_query
 
@@ -26,73 +27,77 @@ class Conflict(Exception):
 
 
 def save_userreport(project, report, start_time=None):
-    if start_time is None:
-        start_time = timezone.now()
+    with metrics.timer("sentry.ingest.userreport.save_userreport"):
+        if start_time is None:
+            start_time = timezone.now()
 
-    # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
-    report["event_id"] = report["event_id"].lower()
-    report["project_id"] = project.id
+        # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
+        report["event_id"] = report["event_id"].lower()
+        report["project_id"] = project.id
 
-    event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
+        event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
 
-    # TODO(dcramer): we should probably create the user if they dont
-    # exist, and ideally we'd also associate that with the event
-    euser = find_event_user(report, event)
+        # TODO(dcramer): we should probably create the user if they dont
+        # exist, and ideally we'd also associate that with the event
+        euser = find_event_user(report, event)
 
-    if features.has("organizations:eventuser-from-snuba", project.organization):
-        find_event_user_with_snuba(event, euser)
+        if features.has("organizations:eventuser-from-snuba", project.organization):
+            try:
+                find_event_user_with_snuba(event, euser)
+            except Exception as e:
+                logger.exception(e)
 
-    if euser and not euser.name and report.get("name"):
-        euser.update(name=report["name"])
-    if euser:
-        report["event_user_id"] = euser.id
+        if euser and not euser.name and report.get("name"):
+            euser.update(name=report["name"])
+        if euser:
+            report["event_user_id"] = euser.id
 
-    if event:
-        # if the event is more than 30 minutes old, we don't allow updates
-        # as it might be abusive
-        if event.datetime < start_time - timedelta(minutes=30):
-            raise Conflict("Feedback for this event cannot be modified.")
+        if event:
+            # if the event is more than 30 minutes old, we don't allow updates
+            # as it might be abusive
+            if event.datetime < start_time - timedelta(minutes=30):
+                raise Conflict("Feedback for this event cannot be modified.")
 
-        report["environment_id"] = event.get_environment().id
-        report["group_id"] = event.group_id
+            report["environment_id"] = event.get_environment().id
+            report["group_id"] = event.group_id
 
-    try:
-        with atomic_transaction(using=router.db_for_write(UserReport)):
-            report_instance = UserReport.objects.create(**report)
+        try:
+            with atomic_transaction(using=router.db_for_write(UserReport)):
+                report_instance = UserReport.objects.create(**report)
 
-    except IntegrityError:
-        # There was a duplicate, so just overwrite the existing
-        # row with the new one. The only way this ever happens is
-        # if someone is messing around with the API, or doing
-        # something wrong with the SDK, but this behavior is
-        # more reasonable than just hard erroring and is more
-        # expected.
+        except IntegrityError:
+            # There was a duplicate, so just overwrite the existing
+            # row with the new one. The only way this ever happens is
+            # if someone is messing around with the API, or doing
+            # something wrong with the SDK, but this behavior is
+            # more reasonable than just hard erroring and is more
+            # expected.
 
-        existing_report = UserReport.objects.get(
-            project_id=report["project_id"], event_id=report["event_id"]
-        )
+            existing_report = UserReport.objects.get(
+                project_id=report["project_id"], event_id=report["event_id"]
+            )
 
-        # if the existing report was submitted more than 5 minutes ago, we dont
-        # allow updates as it might be abusive (replay attacks)
-        if existing_report.date_added < timezone.now() - timedelta(minutes=5):
-            raise Conflict("Feedback for this event cannot be modified.")
+            # if the existing report was submitted more than 5 minutes ago, we dont
+            # allow updates as it might be abusive (replay attacks)
+            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+                raise Conflict("Feedback for this event cannot be modified.")
 
-        existing_report.update(
-            name=report.get("name", ""),
-            email=report["email"],
-            comments=report["comments"],
-            date_added=timezone.now(),
-            event_user_id=euser.id if euser else None,
-        )
-        report_instance = existing_report
+            existing_report.update(
+                name=report.get("name", ""),
+                email=report["email"],
+                comments=report["comments"],
+                date_added=timezone.now(),
+                event_user_id=euser.id if euser else None,
+            )
+            report_instance = existing_report
 
-    else:
-        if report_instance.group_id:
-            report_instance.notify()
+        else:
+            if report_instance.group_id:
+                report_instance.notify()
 
-    user_feedback_received.send(project=project, sender=save_userreport)
+        user_feedback_received.send(project=project, sender=save_userreport)
 
-    return report_instance
+        return report_instance
 
 
 def find_event_user(report_data, event):
