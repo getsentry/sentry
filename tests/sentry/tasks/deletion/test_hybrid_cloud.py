@@ -191,41 +191,6 @@ def xtest_hybrid_cloud_foreign_keys_generate_outboxes():
     assert False
 
 
-# @django_db_all
-# @region_silo_test(stable=True)
-# def test_do_nothing_deletion_behavior(task_runner):
-#     organization = Factories.create_organization(region="eu")
-#     project = Factories.create_project(organization=organization)
-#     integration = Factories.create_integration(organization=organization, external_id="123")
-#     group = Factories.create_group(project=project)
-#     external_issue = Factories.create_integration_external_issue(
-#         group=group, integration=integration, key="abc123"
-#     )
-#     project_integration = ProjectIntegration.objects.create(
-#         project=project, integration_id=integration.id
-#     )
-
-#     with assume_test_silo_mode(SiloMode.CONTROL):
-#         # Spawn the outboxes
-#         integration.delete()
-
-#         # Process them immediately
-#         for co in ControlOutbox.objects.all():
-#             co.drain_shard()
-
-#         assert not Integration.objects.filter(id=integration.id).exists()
-
-#     with task_runner():
-#         schedule_hybrid_cloud_foreign_key_jobs()
-
-#     with assume_test_silo_mode(SiloMode.REGION):
-#         assert ProjectIntegration.objects.filter(id=project_integration.id).exists()
-#         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
-
-
-# def test_e2e_hc_foreign_key_cascade_deletion():
-
-
 @region_silo_test(stable=True)
 class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
     def setUp(self):
@@ -302,6 +267,6 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
         with self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        # Deletion did nothing
+        # Deletion set field to null
         saved_query = DiscoverSavedQuery.objects.get(id=self.saved_query.id)
         assert saved_query.created_by_id is None
