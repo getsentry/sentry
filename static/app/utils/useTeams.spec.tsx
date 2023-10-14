@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -40,7 +41,7 @@ describe('useTeams', function () {
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = reactHooks.act(() => onSearch('test'));
+    const onSearchPromise = act(() => onSearch('test'));
 
     expect(result.current.fetching).toBe(true);
     await onSearchPromise;
@@ -116,7 +117,7 @@ describe('useTeams', function () {
     expect(hasMore).toBe(null);
     expect(teams).toEqual(expect.arrayContaining([]));
 
-    reactHooks.act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    act(() => TeamStore.loadInitialData(mockTeams, false, null));
     await waitFor(() => expect(result.current.teams.length).toBe(1));
 
     expect(result.current.hasMore).toBe(false);

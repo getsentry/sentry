@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
@@ -61,7 +63,7 @@ describe('useLocalStorageState', () => {
       {initialProps: ['key', 'default value']}
     );
 
-    reactHooks.act(() => {
+    act(() => {
       result.current[1]('new value');
     });
 
@@ -76,7 +78,7 @@ describe('useLocalStorageState', () => {
     );
     const spy = jest.spyOn(Storage.prototype, 'setItem');
 
-    reactHooks.act(() => {
+    act(() => {
       result.current[1]('new value');
     });
 

@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
@@ -93,7 +95,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -124,7 +126,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -159,7 +161,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -194,7 +196,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -227,7 +229,7 @@ describe('useVirtualizedTree', () => {
       },
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0],
         !result.current.tree.roots[0].expanded,
@@ -240,7 +242,7 @@ describe('useVirtualizedTree', () => {
 
     const stableKeys = result.current.items.map(item => item.key);
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.dispatch({type: 'set scroll top', payload: 60});
     });
 

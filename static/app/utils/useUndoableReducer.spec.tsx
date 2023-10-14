@@ -1,4 +1,5 @@
 import {useReducer} from 'react';
+import {act} from 'react-test-renderer';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -85,12 +86,12 @@ describe('makeUndoableReducer', () => {
           useUndoableReducer(args[0], args[1]),
         {initialProps: [reducer, 0]}
       );
-      reactHooks.act(() => result.current[1]('add'));
+      act(() => result.current[1]('add'));
 
       expect(result.current[0]).toEqual(1);
       expect(reducer).toHaveBeenNthCalledWith(1, 0, 'add');
 
-      reactHooks.act(() => result.current[1]('add'));
+      act(() => result.current[1]('add'));
       expect(result.current[0]).toEqual(2);
       expect(reducer).toHaveBeenNthCalledWith(2, 0, 'add');
     });
@@ -102,10 +103,10 @@ describe('makeUndoableReducer', () => {
         {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
       );
 
-      reactHooks.act(() => result.current[1](0));
+      act(() => result.current[1](0));
       expect(result.current[0]).toEqual(1);
 
-      reactHooks.act(() => result.current[1]({type: 'undo'}));
+      act(() => result.current[1]({type: 'undo'}));
       expect(result.current[0]).toEqual(0);
     });
 
@@ -116,18 +117,18 @@ describe('makeUndoableReducer', () => {
         {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
       );
 
-      reactHooks.act(() => result.current[1](0)); // 0 + 1
-      reactHooks.act(() => result.current[1](1)); // 1 + 1
+      act(() => result.current[1](0)); // 0 + 1
+      act(() => result.current[1](1)); // 1 + 1
 
-      reactHooks.act(() => result.current[1]({type: 'undo'})); // 2 -> 1
-      reactHooks.act(() => result.current[1]({type: 'undo'})); // 1 -> 0
+      act(() => result.current[1]({type: 'undo'})); // 2 -> 1
+      act(() => result.current[1]({type: 'undo'})); // 1 -> 0
       expect(result.current[0]).toEqual(0);
 
-      reactHooks.act(() => result.current[1]({type: 'redo'})); // 0 -> 1
-      reactHooks.act(() => result.current[1]({type: 'redo'})); // 1 -> 2
+      act(() => result.current[1]({type: 'redo'})); // 0 -> 1
+      act(() => result.current[1]({type: 'redo'})); // 1 -> 2
       expect(result.current[0]).toEqual(2);
 
-      reactHooks.act(() => result.current[1]({type: 'redo'})); // 2 -> undefined
+      act(() => result.current[1]({type: 'redo'})); // 2 -> undefined
       expect(result.current[0]).toEqual(2);
     });
   });
@@ -144,10 +145,10 @@ describe('makeUndoableReducer', () => {
       }
     );
 
-    reactHooks.act(() => result.current[1]({type: 'add'}));
+    act(() => result.current[1]({type: 'add'}));
     expect(result.current?.[2].previousState).toEqual(0);
 
-    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    act(() => result.current[1]({type: 'undo'}));
     expect(result.current?.[2].nextState).toEqual(1);
   });
 
@@ -171,13 +172,13 @@ describe('makeUndoableReducer', () => {
       }
     );
 
-    reactHooks.act(() => result.current[1]({type: 'add'}));
+    act(() => result.current[1]({type: 'add'}));
     expect(result.current[0].current.simple).toBe(1);
 
-    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    act(() => result.current[1]({type: 'undo'}));
     expect(result.current[0].current.simple).toBe(0);
 
-    reactHooks.act(() => result.current[1]({type: 'redo'}));
+    act(() => result.current[1]({type: 'redo'}));
     expect(result.current[0].current.simple).toBe(1);
   });
 
@@ -202,13 +203,13 @@ describe('makeUndoableReducer', () => {
       }
     );
 
-    reactHooks.act(() => result.current[1]({type: 'add'}));
+    act(() => result.current[1]({type: 'add'}));
     expect(result.current[0].current.math).toBe(1);
 
-    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    act(() => result.current[1]({type: 'undo'}));
     expect(result.current[0].current.math).toBe(0);
 
-    reactHooks.act(() => result.current[1]({type: 'redo'}));
+    act(() => result.current[1]({type: 'redo'}));
     expect(result.current[0].current.math).toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import {reactHooks, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
@@ -13,7 +13,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for project with no user feedback', function () {
-    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
 
     render(<UserFeedbackEmpty />);
 
@@ -23,7 +23,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project with any user feedback', function () {
-    reactHooks.act(() => void ProjectsStore.loadInitialData([projectWithReports]));
+    ProjectsStore.loadInitialData([projectWithReports]);
 
     render(<UserFeedbackEmpty />);
 
@@ -33,9 +33,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for projects with any user feedback', function () {
-    reactHooks.act(
-      () => void ProjectsStore.loadInitialData([project, projectWithReports])
-    );
+    ProjectsStore.loadInitialData([project, projectWithReports]);
 
     render(<UserFeedbackEmpty />);
 
@@ -45,9 +43,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project query with user feedback', function () {
-    reactHooks.act(
-      () => void ProjectsStore.loadInitialData([project, projectWithReports])
-    );
+    ProjectsStore.loadInitialData([project, projectWithReports]);
 
     render(<UserFeedbackEmpty projectIds={[projectWithReports.id]} />);
 
@@ -57,9 +53,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for project query without any user feedback', function () {
-    reactHooks.act(
-      () => void ProjectsStore.loadInitialData([project, projectWithReports])
-    );
+    ProjectsStore.loadInitialData([project, projectWithReports]);
 
     render(<UserFeedbackEmpty projectIds={[project.id]} />);
 
@@ -69,9 +63,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for multi project query with any user feedback', function () {
-    reactHooks.act(
-      () => void ProjectsStore.loadInitialData([project, projectWithReports])
-    );
+    ProjectsStore.loadInitialData([project, projectWithReports]);
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithReports.id]} />);
 
@@ -81,9 +73,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for multi project query without any user feedback', function () {
-    reactHooks.act(
-      () => void ProjectsStore.loadInitialData([project, projectWithoutReports])
-    );
+    ProjectsStore.loadInitialData([project, projectWithoutReports]);
 
     render(<UserFeedbackEmpty projectIds={[project.id, projectWithoutReports.id]} />);
 

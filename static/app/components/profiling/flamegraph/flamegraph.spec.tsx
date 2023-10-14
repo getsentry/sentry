@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   findAllByTestId,
-  reactHooks,
   render,
   screen,
   userEvent,
@@ -115,7 +114,7 @@ Object.defineProperty(window, 'matchMedia', {
 describe('Flamegraph', function () {
   beforeEach(() => {
     const project = TestStubs.Project({slug: 'foo-project'});
-    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
   });
   it('renders a missing profile', async function () {
     MockApiClient.addMockResponse({

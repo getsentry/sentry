@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -58,7 +60,7 @@ describe('useDismissAlert', () => {
       initialProps: {key},
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.dismiss();
       jest.runAllTicks();
     });

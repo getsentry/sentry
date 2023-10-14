@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 
@@ -44,7 +45,7 @@ describe('useUserTeams', () => {
 
     expect(TeamStore.getState().loading).toBe(true);
     expect(mockapi).toHaveBeenCalledTimes(0);
-    reactHooks.act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
+    act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
     expect(TeamStore.getState().loading).toBe(false);
     expect(TeamStore.getState().loadedUserTeams).toBe(false);
 

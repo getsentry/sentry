@@ -1,5 +1,3 @@
-import {act} from 'react-test-renderer';
-
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
@@ -145,10 +143,7 @@ describe('useSortNetwork', () => {
     const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
       initialProps: {items},
     });
-
-    act(() => {
-      result.current.handleSort('startTimestamp');
-    });
+    result.current.handleSort('startTimestamp');
 
     rerender({items});
 
@@ -174,10 +169,7 @@ describe('useSortNetwork', () => {
     const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
       initialProps: {items},
     });
-
-    act(() => {
-      result.current.handleSort('description');
-    });
+    result.current.handleSort('description');
 
     rerender({items});
 
@@ -203,10 +195,7 @@ describe('useSortNetwork', () => {
     const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
       initialProps: {items},
     });
-
-    act(() => {
-      result.current.handleSort('size');
-    });
+    result.current.handleSort('size');
 
     rerender({items});
 
@@ -233,10 +222,7 @@ describe('useSortNetwork', () => {
     const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
       initialProps: {items: mixedItems},
     });
-
-    act(() => {
-      result.current.handleSort('method');
-    });
+    result.current.handleSort('method');
 
     rerender({items: mixedItems});
 
@@ -250,10 +236,7 @@ describe('useSortNetwork', () => {
       SPAN_7_FETCH_GET,
       SPAN_8_FETCH_POST,
     ]);
-
-    act(() => {
-      result.current.handleSort('method');
-    });
+    result.current.handleSort('method');
 
     rerender({items: mixedItems});
 

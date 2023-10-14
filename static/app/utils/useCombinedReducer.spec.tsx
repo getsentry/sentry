@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers, useCombinedReducer} from 'sentry/utils/useCombinedReducer';
@@ -45,7 +47,7 @@ describe('useCombinedReducer', () => {
       {initialProps: [{first: (state, action) => state + action}, {first: 'initial'}]}
     );
 
-    reactHooks.act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
     expect(result.current[0]).toEqual({first: 'initial_action'});
   });
   it('doesnt keep old state around', () => {
@@ -55,8 +57,8 @@ describe('useCombinedReducer', () => {
       {initialProps: [{first: (state, action) => state + action}, {first: 'initial'}]}
     );
 
-    reactHooks.act(() => result.current[1]('_action'));
-    reactHooks.act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
     expect(result.current[0]).toEqual({first: 'initial_action_action'});
   });
 });

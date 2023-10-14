@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
@@ -13,7 +15,7 @@ describe('useLegacyStore', () => {
 
     expect(result.current.teams).toEqual([]);
 
-    reactHooks.act(() => TeamStore.loadInitialData([team]));
+    act(() => TeamStore.loadInitialData([team]));
 
     expect(result.current.teams).toEqual([team]);
   });

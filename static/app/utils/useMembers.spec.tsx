@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -40,7 +41,7 @@ describe('useMembers', function () {
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = reactHooks.act(() => onSearch('test'));
+    const onSearchPromise = act(() => onSearch('test'));
 
     expect(result.current.fetching).toBe(true);
     await onSearchPromise;
@@ -54,7 +55,7 @@ describe('useMembers', function () {
 
     // de-duplicates items in the query results
     mockRequest.mockClear();
-    await reactHooks.act(() => onSearch('test'));
+    await act(() => onSearch('test'));
 
     // No new items have been added
     expect(mockRequest).toHaveBeenCalled();
@@ -124,7 +125,7 @@ describe('useMembers', function () {
     expect(hasMore).toBe(null);
     expect(members).toEqual(expect.arrayContaining([]));
 
-    reactHooks.act(() => MemberListStore.loadInitialData(mockUsers, false, null));
+    act(() => MemberListStore.loadInitialData(mockUsers, false, null));
     await waitFor(() => expect(result.current.members.length).toBe(1));
 
     expect(result.current.hasMore).toBe(false);

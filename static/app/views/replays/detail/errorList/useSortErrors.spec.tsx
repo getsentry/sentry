@@ -1,5 +1,3 @@
-import {act} from 'react-test-renderer';
-
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
@@ -79,10 +77,7 @@ describe('useSortErrors', () => {
     const {result, rerender} = reactHooks.renderHook(useSortErrors, {
       initialProps: {items},
     });
-
-    act(() => {
-      result.current.handleSort('timestamp');
-    });
+    result.current.handleSort('timestamp');
 
     rerender({items});
 
@@ -102,10 +97,7 @@ describe('useSortErrors', () => {
     const {result, rerender} = reactHooks.renderHook(useSortErrors, {
       initialProps: {items},
     });
-
-    act(() => {
-      result.current.handleSort('title');
-    });
+    result.current.handleSort('title');
 
     rerender({items});
 
@@ -130,10 +122,7 @@ describe('useSortErrors', () => {
     const {result, rerender} = reactHooks.renderHook(useSortErrors, {
       initialProps: {items: mixedItems},
     });
-
-    act(() => {
-      result.current.handleSort('project');
-    });
+    result.current.handleSort('project');
 
     rerender({items: mixedItems});
 
@@ -147,10 +136,7 @@ describe('useSortErrors', () => {
       ERROR_1_JS_RANGEERROR,
       ERROR_2_NEXTJS_TYPEERROR,
     ]);
-
-    act(() => {
-      result.current.handleSort('project');
-    });
+    result.current.handleSort('project');
 
     rerender({items: mixedItems});
 
