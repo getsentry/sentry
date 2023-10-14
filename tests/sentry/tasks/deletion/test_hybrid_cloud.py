@@ -6,8 +6,13 @@ from django.apps import apps
 from django.db.models import Max, QuerySet
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.discover.models import DiscoverSavedQuery
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
+from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     get_watermark,
@@ -15,6 +20,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
+from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -170,3 +176,132 @@ def test_control_processing(task_runner):
 
         # Do not process
         assert results.exists()
+
+
+@django_db_all
+def xtest_hybrid_cloud_foreign_keys_generate_outboxes():
+    for app_models in apps.all_models.values():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
+                    continue
+
+    assert False
+
+
+# @django_db_all
+# @region_silo_test(stable=True)
+# def test_do_nothing_deletion_behavior(task_runner):
+#     organization = Factories.create_organization(region="eu")
+#     project = Factories.create_project(organization=organization)
+#     integration = Factories.create_integration(organization=organization, external_id="123")
+#     group = Factories.create_group(project=project)
+#     external_issue = Factories.create_integration_external_issue(
+#         group=group, integration=integration, key="abc123"
+#     )
+#     project_integration = ProjectIntegration.objects.create(
+#         project=project, integration_id=integration.id
+#     )
+
+#     with assume_test_silo_mode(SiloMode.CONTROL):
+#         # Spawn the outboxes
+#         integration.delete()
+
+#         # Process them immediately
+#         for co in ControlOutbox.objects.all():
+#             co.drain_shard()
+
+#         assert not Integration.objects.filter(id=integration.id).exists()
+
+#     with task_runner():
+#         schedule_hybrid_cloud_foreign_key_jobs()
+
+#     with assume_test_silo_mode(SiloMode.REGION):
+#         assert ProjectIntegration.objects.filter(id=project_integration.id).exists()
+#         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
+
+
+# def test_e2e_hc_foreign_key_cascade_deletion():
+
+
+@region_silo_test(stable=True)
+class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
+    def setUp(self):
+        self.user = self.create_user()
+        self.organization = self.create_organization(region="eu", owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="123"
+        )
+        self.group = self.create_group(project=self.project)
+        self.external_issue = self.create_integration_external_issue(
+            group=self.group, integration=self.integration, key="abc123"
+        )
+        self.project_integration = ProjectIntegration.objects.create(
+            project=self.project, integration_id=self.integration.id
+        )
+        self.saved_query = DiscoverSavedQuery.objects.create(
+            name="disco-query",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+
+    def test_cascade_deletion_behavior(self):
+        integration_id = self.integration.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create the outboxes
+            self.integration.delete()
+
+            # Process the them immediately
+            for co in ControlOutbox.objects.all():
+                co.drain_shard()
+
+            assert not Integration.objects.filter(id=integration_id).exists()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Deletion cascaded
+        assert not ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_do_nothing_deletion_behavior(self):
+        integration_id = self.integration.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create the outboxes
+            self.integration.delete()
+
+            # Process the them immediately
+            for co in ControlOutbox.objects.all():
+                co.drain_shard()
+
+            assert not Integration.objects.filter(id=integration_id).exists()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Deletion did nothing
+        project_integration = ProjectIntegration.objects.get(id=self.project_integration.id)
+        assert project_integration.integration_id == integration_id
+
+    def test_set_null_deletion_behavior(self):
+        user_id = self.user.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Create the outboxes
+            self.user.delete()
+
+            # Process the them immediately
+            for co in ControlOutbox.objects.all():
+                co.drain_shard()
+
+            assert not User.objects.filter(id=user_id).exists()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Deletion did nothing
+        saved_query = DiscoverSavedQuery.objects.get(id=self.saved_query.id)
+        assert saved_query.created_by_id is None

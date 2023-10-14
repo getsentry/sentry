@@ -14,7 +14,7 @@ class ProjectIntegration(Model):
     __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project")
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
     config = JSONField(default=dict)
 
     class Meta:
