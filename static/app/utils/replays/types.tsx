@@ -15,6 +15,8 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
+
 /**
  * Extra breadcrumb types not included in `@sentry/replay`
  */
@@ -268,4 +270,4 @@ export type ErrorFrame = Overwrite<
   }
 >;
 
-export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;

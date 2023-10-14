@@ -20,7 +20,7 @@ interface A11yIssueElementAlternative {
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-export type HydratedA11yIssue = Overwrite<
+export type HydratedA11yFrame = Overwrite<
   A11yIssue,
   {
     /**
@@ -38,7 +38,7 @@ export type HydratedA11yIssue = Overwrite<
   }
 >;
 
-export default function hydrateA11yIssue(raw: A11yIssue): HydratedA11yIssue {
+export default function hydrateA11yIssue(raw: A11yIssue): HydratedA11yFrame {
   const timestamp = new Date(raw.timestamp);
   return {
     ...raw,
