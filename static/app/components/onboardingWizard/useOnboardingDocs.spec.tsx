@@ -1,3 +1,5 @@
+import {act} from 'react-test-renderer';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -39,7 +41,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = reactHooks.renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -49,7 +51,8 @@ describe('useOnboardingDocs', function () {
       },
       wrapper,
     });
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
     expect(isLoading).toEqual(false);

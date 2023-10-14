@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {Location} from 'history';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -36,7 +37,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = reactHooks.renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -50,7 +51,8 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       eventView: expect.objectContaining({
@@ -72,7 +74,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = reactHooks.renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -86,7 +88,8 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       eventView: expect.objectContaining({
@@ -106,7 +109,7 @@ describe('useReplaysFromIssue', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = reactHooks.renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -120,7 +123,8 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       eventView: expect.objectContaining({

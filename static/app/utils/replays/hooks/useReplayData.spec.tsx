@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {duration} from 'moment';
 import {ReplayError} from 'sentry-fixture/replayError';
 
@@ -70,14 +71,15 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result} = reactHooks.renderHook(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
       },
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       attachments: expect.any(Array),
@@ -142,7 +144,7 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result} = reactHooks.renderHook(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -151,7 +153,8 @@ describe('useReplayData', () => {
     });
 
     jest.runAllTimers();
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
@@ -230,7 +233,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result} = reactHooks.renderHook(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -239,7 +242,8 @@ describe('useReplayData', () => {
     });
 
     jest.runAllTimers();
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
@@ -295,7 +299,7 @@ describe('useReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result} = reactHooks.renderHook(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -319,7 +323,8 @@ describe('useReplayData', () => {
     expect(result.current).toEqual(expectedReplayData);
 
     jest.advanceTimersByTime(10);
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     // Afterwards we see the attachments & errors requests are made
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
@@ -335,7 +340,8 @@ describe('useReplayData', () => {
     );
 
     jest.advanceTimersByTime(100);
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     // Next we see that some rrweb data has arrived
     expect(result.current).toStrictEqual(
@@ -347,7 +353,8 @@ describe('useReplayData', () => {
     );
 
     jest.advanceTimersByTime(250);
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     // Finally we see fetching is complete, errors are here too
     expect(result.current).toStrictEqual(

@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -73,7 +74,7 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -93,7 +94,8 @@ describe('useReplaysCount', () => {
       })
     );
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
   });
 
   it('should query for groupIds on performance issues', async () => {
@@ -103,7 +105,7 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         issueCategory: IssueCategory.PERFORMANCE,
@@ -124,7 +126,8 @@ describe('useReplaysCount', () => {
       })
     );
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
   });
 
   it('should return the count of each groupId, or zero if not included in the response', async () => {
@@ -136,7 +139,7 @@ describe('useReplaysCount', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -146,7 +149,8 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(replayCountRequest).toHaveBeenCalled();
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       '123': 42,
@@ -161,14 +165,15 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result, rerender} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         groupIds: mockGroupIds,
       },
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(replayCountRequest).toHaveBeenCalledTimes(1);
     expect(replayCountRequest).toHaveBeenCalledWith(
@@ -192,7 +197,8 @@ describe('useReplaysCount', () => {
       groupIds: [...mockGroupIds, '789'],
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(replayCountRequest).toHaveBeenCalledTimes(2);
     expect(replayCountRequest).toHaveBeenCalledWith(
@@ -220,14 +226,15 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result, rerender} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         groupIds: mockGroupIds,
       },
     });
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(replayCountRequest).toHaveBeenCalledTimes(1);
     expect(replayCountRequest).toHaveBeenCalledWith(
@@ -265,7 +272,7 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -285,7 +292,8 @@ describe('useReplaysCount', () => {
       })
     );
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
   });
 
   it('should return the count of each replayId, or zero if not included in the response', async () => {
@@ -297,7 +305,7 @@ describe('useReplaysCount', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -307,7 +315,8 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(countRequest).toHaveBeenCalled();
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       abc: 42,
@@ -322,7 +331,7 @@ describe('useReplaysCount', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -342,7 +351,8 @@ describe('useReplaysCount', () => {
       })
     );
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
   });
 
   it('should return the count of each transactionName, or zero if not included in the response', async () => {
@@ -354,7 +364,7 @@ describe('useReplaysCount', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+    const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -364,7 +374,8 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(countRequest).toHaveBeenCalled();
 
-    await waitForNextUpdate();
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
 
     expect(result.current).toEqual({
       '/home': 42,

@@ -1,4 +1,5 @@
 import {ReactElement, useMemo} from 'react';
+import {act} from 'react-test-renderer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -62,7 +63,10 @@ describe('useProfileFunctionTrendss', function () {
     );
     expect(hook.result.current.isLoading).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
-    await hook.waitForNextUpdate();
+
+    // TODO(scttcper): React 18 switch to waitFor
+    await act(tick);
+
     expect(hook.result.current).toMatchObject(
       expect.objectContaining({
         isLoading: false,
