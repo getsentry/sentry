@@ -9,7 +9,7 @@ from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
-from parsimonious.expressions import Optional
+from parsimonious.expressions import Quantifier
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -259,9 +259,23 @@ def flatten(children):
     return children
 
 
+def is_optional_quantifier(x):
+    if not isinstance(x, Quantifier):
+        return False
+    # ZeroOrMore and OneOrMore have "max" equal to "float('inf')"
+    # Optional has "max" equal to "int(1)"
+    return (x.max == 1) and (x.min == 0)
+
+
+def is_optional(x):
+    if not isinstance(x, Node):
+        return False
+    return is_optional_quantifier(x.expr)
+
+
 def remove_optional_nodes(children):
     def is_not_optional(child):
-        return not (isinstance(child, Node) and isinstance(child.expr, Optional))
+        return not is_optional(child)
 
     return list(filter(is_not_optional, children))
 
@@ -302,7 +316,7 @@ def handle_negation(negation, operator):
 
 def get_operator_value(operator):
     if isinstance(operator, Node):
-        operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        operator = "=" if is_optional_quantifier(operator.expr) else operator.text
     elif isinstance(operator, list):
         operator = operator[0]
     return operator
