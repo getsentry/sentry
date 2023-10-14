@@ -78,11 +78,11 @@ class JSONEncoderForHTML(JSONEncoder):
     def encode(self, o: object) -> str:
         # Override JSONEncoder.encode because it has hacks for
         # performance that make things more complicated.
-        chunks = self.iterencode(o, True)
+        chunks = self.iterencode(o)
         return "".join(chunks)
 
-    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str, None, None]:
-        chunks = super().iterencode(o, _one_shot)
+    def iterencode(self, o: object) -> Generator[str, None, None]:
+        chunks = super().iterencode(o)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")
             chunk = chunk.replace("<", "\\u003c")
