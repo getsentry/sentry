@@ -176,15 +176,14 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
   if (request.isLoading) {
     return null;
   }
-
-  if (request.error !== null) {
+  if (request.isError) {
     const errorResponse = t('Unable to fetch investigation rule');
     addErrorMessage(errorResponse);
     return null;
   }
 
   const rule = request.data;
-  const haveInvestigationRuleInProgress = rule !== null;
+  const haveInvestigationRuleInProgress = !!rule;
 
   if (haveInvestigationRuleInProgress) {
     // investigation rule in progress, just show a message
