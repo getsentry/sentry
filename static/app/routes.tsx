@@ -1468,6 +1468,10 @@ function buildRoutes() {
       >
         {releasesChildRoutes({forCustomerDomain: false})}
       </Route>
+    </Fragment>
+  );
+  const releaseThresholdRoutes = (
+    <Fragment>
       {usingCustomerDomain && (
         <Route
           path="/release-thresholds/"
@@ -2311,6 +2315,7 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
+      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}

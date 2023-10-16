@@ -17,7 +17,7 @@ type Props = {
 };
 
 function Header({router}: Props) {
-  const [selected, setSelected] = useState(router.location.query.view);
+  const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
   const {
@@ -67,7 +67,7 @@ function Header({router}: Props) {
               query: {
                 ...queryParams,
               },
-              pathname: path, // TODO: redirect to reverse('org-releases') or reverse('org-release-thresholds')
+              pathname: path,
             });
 
             return (
