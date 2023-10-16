@@ -13,7 +13,7 @@ export function createSentrySampleProfileFrameIndex(
   platform: 'mobile' | 'node' | 'javascript' | string
 ): FrameIndex {
   const index: FrameIndex = {};
-  const insertionCache: Set<string> = new Set();
+  const insertionCache: Record<string, Frame> = {};
   let idx = -1;
 
   for (let i = 0; i < frames.length; i++) {
@@ -22,11 +22,13 @@ export function createSentrySampleProfileFrameIndex(
       String(frame.lineno) ?? ''
     }:${frame.instruction_addr ?? ''}`;
 
-    if (insertionCache.has(frameKey)) {
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
       continue;
     }
 
-    index[++idx] = new Frame(
+    const f = new Frame(
       {
         key: i,
         is_application: frame.in_app,
@@ -44,7 +46,8 @@ export function createSentrySampleProfileFrameIndex(
       },
       platform
     );
-    insertionCache.add(frameKey);
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
   }
 
   return index;
