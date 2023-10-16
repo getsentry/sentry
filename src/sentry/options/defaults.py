@@ -971,6 +971,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to enable reading from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
