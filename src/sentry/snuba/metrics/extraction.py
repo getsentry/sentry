@@ -302,7 +302,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
-        function, _, args, _ = unresolvedQueryBuilder.parse_function(match)
+        function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function)
         args_support = _get_args_support(function, args)
 
