@@ -500,7 +500,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     if (this.hasV2ReleaseUIEnabled && router.location.query.view === THRESHOLDS_VIEW) {
       return (
         <ThresholdsList
-          organization={organization}
           selectedEnvs={selection.environments}
           selectedProjectIds={selection.projects}
         />

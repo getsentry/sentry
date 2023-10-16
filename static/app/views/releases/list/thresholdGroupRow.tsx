@@ -6,8 +6,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getExactDuration} from 'sentry/utils/formatters';
 
-import {forHumans} from '../utils';
 import {Threshold} from '../utils/types';
 
 type Props = {
@@ -46,7 +46,7 @@ export function ThresholdGroupRow({thresholds}: Props) {
         )}
       </FlexCenter>
       <FlexCenter>{idx === 0 ? threshold.environment.name || 'None' : ''}</FlexCenter>
-      <FlexCenter>{forHumans(threshold.window_in_seconds)}</FlexCenter>
+      <FlexCenter>{getExactDuration(threshold.window_in_seconds)}</FlexCenter>
       <FlexCenter>
         {threshold.trigger_type === 'over' ? '>' : '<'} {threshold.threshold_type}
       </FlexCenter>
