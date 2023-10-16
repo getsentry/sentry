@@ -60,8 +60,8 @@ export default function FeedbackItem({feedbackItem}: Props) {
               <Flex column={false} align="center" gap={space(0.5)}>
                 <ProjectAvatar project={project} size={12} title={slug} /> {slug}
               </Flex>
-              <Flex column={false} gap={space(1)}>
-                <Flex>{' > '}</Flex>
+              <Flex column={false} gap={space(1.5)}>
+                <Flex>{'>'}</Flex>
                 <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
               </Flex>
             </Flex>
