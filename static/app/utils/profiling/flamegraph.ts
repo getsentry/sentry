@@ -140,6 +140,10 @@ export class Flamegraph {
     );
 
     this.root.node.totalWeight += weight;
+    this.root.node.aggregate_duration_ns = this.root.children.reduce(
+      (acc, frame) => acc + frame.node.aggregate_duration_ns,
+      0
+    );
     this.root.end = this.root.start + weight;
     this.root.frame.totalWeight += weight;
 

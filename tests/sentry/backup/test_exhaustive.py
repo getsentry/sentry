@@ -4,7 +4,11 @@ import tempfile
 from pathlib import Path
 
 from sentry.backup.dependencies import NormalizedModelName
-from sentry.backup.imports import import_in_global_scope, import_in_organization_scope
+from sentry.backup.imports import (
+    import_in_config_scope,
+    import_in_global_scope,
+    import_in_organization_scope,
+)
 from sentry.backup.scopes import ExportScope
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
@@ -62,6 +66,8 @@ class UniquenessTests(BackupTestCase):
                 #
                 # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+                tmp_file.seek(0)
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)
 
@@ -80,10 +86,10 @@ class UniquenessTests(BackupTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
             with open(tmp_expect) as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
-                # database), so use organization scope instead.
-                #
-                # TODO(getsentry/team-ospo#201): Change to global scope once have collision tests.
+                # database), so use organization scope followed by config scope instead.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+                tmp_file.seek(0)
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
 
                 actual = export_to_file(tmp_actual, ExportScope.Global)
 

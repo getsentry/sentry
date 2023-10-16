@@ -2,7 +2,8 @@ import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -13,10 +14,7 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  FeedbackItemLoaderQueryParams,
-  HydratedFeedbackItem,
-} from 'sentry/utils/feedback/item/types';
+import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +23,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
+  isChecked: boolean;
+  onChecked: (isChecked: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -40,20 +40,16 @@ const ReplayBadge = styled(props => (
   align-items: center;
 `;
 
-function UnreadBadge() {
-  return <FeatureBadge type="new" variant="indicator" />;
-}
-
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
-  const {feedbackSlug} = useLocationQuery<FeedbackItemLoaderQueryParams>({
+  const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
-  const [, feedbackId] = feedbackSlug?.split(':') ?? [];
+  const [, feedbackId] = feedbackSlug.split(':') ?? [];
   return feedbackId === feedbackItem.feedback_id;
 }
 
 const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
-  ({className, feedbackItem, style}: Props, ref) => {
+  ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
     const organization = useOrganization();
     const {projects} = useProjects();
 
@@ -64,6 +60,7 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
       // TODO[feedback]: Guard against invalid test data that has no valid project.
       return null;
     }
+    const slug = project?.slug;
 
     return (
       <Wrapper
@@ -88,8 +85,11 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
       >
         <InteractionStateLayer />
         <Flex column style={{gridArea: 'right'}}>
-          <input type="checkbox" />
-          <UnreadBadge />
+          <Checkbox
+            checked={isChecked}
+            onChange={e => onChecked(e.target.checked)}
+            onClick={e => e.stopPropagation()}
+          />
         </Flex>
         <strong style={{gridArea: 'user'}}>
           <FeedbackItemUsername feedbackItem={feedbackItem} />
@@ -100,7 +100,10 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
         <div style={{gridArea: 'message'}}>
           <TextOverflow>{feedbackItem.message}</TextOverflow>
         </div>
-        <Flex style={{gridArea: 'icons'}}>
+        <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
+          <Flex align="center" gap={space(0.5)}>
+            <ProjectAvatar project={project} size={12} /> {slug}
+          </Flex>
           {feedbackItem.replay_id ? <ReplayBadge /> : null}
         </Flex>
       </Wrapper>
@@ -110,7 +113,7 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
 
 const Wrapper = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(0.75)};
+  padding: ${space(1)} ${space(0.75)} ${space(1)} ${space(1)};
 
   color: ${p => p.theme.textColor};
   &:hover {

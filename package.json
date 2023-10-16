@@ -134,7 +134,7 @@
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
     "pegjs-loader": "^0.5.6",
-    "platformicons": "^5.6.5",
+    "platformicons": "^5.7.0",
     "po-catalog-loader": "2.0.0",
     "prettier": "3.0.3",
     "prismjs": "^1.29.0",
@@ -261,8 +261,7 @@
     ]
   },
   "volta": {
-    "node": "18.12.1",
-    "yarn": "1.22.5"
+    "extends": ".volta.json"
   },
   "fork-ts-checker": {
     "typescript": {

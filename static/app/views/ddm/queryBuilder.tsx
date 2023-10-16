@@ -93,6 +93,7 @@ export function QueryBuilder({
                 op: selectedOp,
                 groupBy: undefined,
                 focusedSeries: undefined,
+                displayType: getWidgetDisplayType(option.value, selectedOp),
               });
             }}
           />
@@ -226,10 +227,20 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
-      defaultQuery={query}
+      query={query}
       savedSearchType={SavedSearchType.METRIC}
     />
   );
+}
+
+function getWidgetDisplayType(
+  mri: MetricsQuery['mri'],
+  op: MetricsQuery['op']
+): MetricDisplayType {
+  if (mri?.startsWith('c') || op === 'count') {
+    return MetricDisplayType.BAR;
+  }
+  return MetricDisplayType.LINE;
 }
 
 const QueryBuilderWrapper = styled('div')`
