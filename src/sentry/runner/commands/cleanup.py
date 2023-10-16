@@ -197,7 +197,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
             (RuleFireHistory, "date_added", None),
-            (monitor_models.MonitorCheckIn, "date_added", None),
         ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
@@ -206,6 +205,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.EventAttachment, "date_added", "date_added"),
             (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
             (models.ArtifactBundle, "date_added", "date_added"),
+            (monitor_models.MonitorCheckIn, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead

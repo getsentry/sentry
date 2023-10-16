@@ -1,5 +1,6 @@
 from django.core.files.base import ContentFile
 
+from sentry.models.files import File
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -47,3 +48,22 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
             self.organization.slug, monitor.slug, checkin.guid, status_code=404
         )
         assert resp.data["detail"] == "Check-in has no attachment"
+
+    def test_delete_cascade(self):
+        file = self.create_file(name="log.txt", type="checkin.attachment")
+        file.putfile(ContentFile(b"some data!"))
+
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+            attachment_id=file.id,
+        )
+
+        checkin.delete()
+
+        assert not File.objects.filter(type="checkin.attachment").exists()
