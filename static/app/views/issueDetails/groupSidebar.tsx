@@ -38,6 +38,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -205,10 +206,12 @@ export default function GroupSidebar({
     );
   };
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <Container>
       <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
-      {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+      {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
           project={project}
@@ -224,27 +227,29 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {renderPluginIssue()}
-      <TagFacets
-        environments={environments}
-        groupId={group.id}
-        tagKeys={
-          isMobilePlatform(project?.platform)
-            ? !organization.features.includes('device-classification')
-              ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
-              : MOBILE_TAGS
-            : frontend.some(val => val === project?.platform)
-            ? FRONTEND_TAGS
-            : backend.some(val => val === project?.platform)
-            ? BACKEND_TAGS
-            : DEFAULT_TAGS
-        }
-        event={event}
-        tagFormatter={TAGS_FORMATTER}
-        project={project}
-        isStatisticalDetector={
-          group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
-        }
-      />
+      {issueTypeConfig.tags.enabled && (
+        <TagFacets
+          environments={environments}
+          groupId={group.id}
+          tagKeys={
+            isMobilePlatform(project?.platform)
+              ? !organization.features.includes('device-classification')
+                ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
+                : MOBILE_TAGS
+              : frontend.some(val => val === project?.platform)
+              ? FRONTEND_TAGS
+              : backend.some(val => val === project?.platform)
+              ? BACKEND_TAGS
+              : DEFAULT_TAGS
+          }
+          event={event}
+          tagFormatter={TAGS_FORMATTER}
+          project={project}
+          isStatisticalDetector={
+            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+          }
+        />
+      )}
       {renderParticipantData()}
       {renderSeenByList()}
     </Container>

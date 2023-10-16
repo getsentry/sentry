@@ -21,14 +21,7 @@ import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Event,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -124,6 +117,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
+        hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={`${baseUrl}tags/${location.search}`}
       >
@@ -131,6 +125,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
+        hidden={!issueTypeConfig.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
@@ -240,6 +235,8 @@ function GroupHeader({
     <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -284,7 +281,7 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+          {issueTypeConfig.stats.enabled && (
             <StatsWrapper>
               <div className="count">
                 <h6 className="nav-header">{t('Events')}</h6>
