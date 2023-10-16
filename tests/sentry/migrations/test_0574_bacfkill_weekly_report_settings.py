@@ -7,6 +7,7 @@ from sentry.testutils.cases import TestMigrations
 class BackfillWeeklyReportSettingsMigrationTest(TestMigrations):
     migrate_from = "0573_add_first_seen_index_groupedmessage"
     migrate_to = "0574_backfill_weekly_report_settings"
+    connection = "control"
 
     def setup_before_migration(self, apps):
         User = apps.get_model("sentry", "User")
