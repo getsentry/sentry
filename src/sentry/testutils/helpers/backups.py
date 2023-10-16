@@ -31,6 +31,7 @@ from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
+from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentSnapshot,
@@ -197,21 +198,11 @@ def is_control_model(model):
     return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
 
 
-def clear_model(model, *, use_sql: bool, reset_pks: bool):
+def clear_model(model, *, reset_pks: bool):
     using = router.db_for_write(model)
     with unguarded_write(using=using):
-        connection = connections[using]
-
-        # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-        # when using `model.objects.all().delete()`, so we have to call out to Postgres
-        # manually.
-        if use_sql:
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
-        else:
-            model.objects.all().delete()
-
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()
         if reset_pks:
             table = model._meta.db_table
             seq = f"{table}_id_seq"
@@ -232,17 +223,17 @@ def clear_database(*, reset_pks: bool = False):
     for model in reversed:
         if is_control_model(model):
             with assume_test_silo_mode(SiloMode.CONTROL):
-                clear_model(model, use_sql=True, reset_pks=False)
+                clear_model(model, reset_pks=False)
         else:
-            clear_model(model, use_sql=True, reset_pks=False)
+            clear_model(model, reset_pks=False)
 
     # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
     for model in set(apps.get_models()) - set(reversed):
         if is_control_model(model):
             with assume_test_silo_mode(SiloMode.CONTROL):
-                clear_model(model, use_sql=False, reset_pks=reset_pks)
+                clear_model(model, reset_pks=reset_pks)
         else:
-            clear_model(model, use_sql=False, reset_pks=reset_pks)
+            clear_model(model, reset_pks=reset_pks)
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:

@@ -106,27 +106,26 @@ class UniversalImportExportService(ImportExportService):
         try:
             using = router.db_for_write(model)
             with transaction.atomic(using=using):
-                allowed_relocation_scopes = import_scope.value
+                ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 max_pk = 0
                 counter = 0
-                for obj in deserialize("json", json_data, use_natural_keys=False):
+                for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     counter += 1
-                    o = obj.object
-                    if o._meta.app_label not in EXCLUDED_APPS or o:
-                        if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
-                            o = obj.object
-                            inst_model_name = get_model_name(o)
+                    model_instance = deserialized_object.object
+                    if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
+                        if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
+                            inst_model_name = get_model_name(model_instance)
                             if inst_model_name != batch_model_name:
                                 return RpcImportError(
                                     kind=RpcImportErrorKind.UnexpectedModel,
                                     on=InstanceID(model=str(inst_model_name), ordinal=1),
-                                    left_pk=o.pk,
+                                    left_pk=model_instance.pk,
                                     reason=f"Received model of kind `{str(inst_model_name)}` when `{str(batch_model_name)}` was expected",
                                 )
 
                             for f in filters:
-                                if getattr(o, f.field, None) not in f.values:
+                                if getattr(model_instance, f.field, None) not in f.values:
                                     break
                             else:
                                 try:
@@ -135,7 +134,7 @@ class UniversalImportExportService(ImportExportService):
                                     # `get_relocation_scope()` methods rely on being able to
                                     # correctly resolve foreign keys, which is only possible after
                                     # normalization.
-                                    old_pk = o.normalize_before_relocation_import(
+                                    old_pk = model_instance.normalize_before_relocation_import(
                                         in_pk_map, import_scope, import_flags
                                     )
                                     if old_pk is None:
@@ -144,18 +143,23 @@ class UniversalImportExportService(ImportExportService):
                                     # Now that the model has been normalized, we can ensure that
                                     # this particular instance has a `RelocationScope` that permits
                                     # importing.
-                                    if not o.get_relocation_scope() in allowed_relocation_scopes:
+                                    if (
+                                        not model_instance.get_relocation_scope()
+                                        in ok_relocation_scopes
+                                    ):
                                         continue
 
                                     # Perform the actual database write.
-                                    written = o.write_relocation_import(import_scope, import_flags)
+                                    written = model_instance.write_relocation_import(
+                                        import_scope, import_flags
+                                    )
                                     if written is None:
                                         continue
 
                                     # For models that may have circular references to themselves
                                     # (unlikely), keep track of the new pk in the input map as well.
                                     new_pk, import_kind = written
-                                    slug = getattr(o, "slug", None)
+                                    slug = getattr(model_instance, "slug", None)
                                     in_pk_map.insert(
                                         inst_model_name, old_pk, new_pk, import_kind, slug
                                     )
@@ -170,7 +174,7 @@ class UniversalImportExportService(ImportExportService):
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
                                         on=InstanceID(model_name, ordinal=counter),
-                                        left_pk=o.pk,
+                                        left_pk=model_instance.pk,
                                         reason=f"Django validation error encountered: {errs}",
                                     )
 
@@ -178,13 +182,13 @@ class UniversalImportExportService(ImportExportService):
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
                                         on=InstanceID(model_name, ordinal=counter),
-                                        left_pk=o.pk,
+                                        left_pk=model_instance.pk,
                                         reason=str(e),
                                     )
 
             # If we wrote at least one model, make sure to update the sequences too.
             if counter > 0:
-                table = o._meta.db_table
+                table = model_instance._meta.db_table
                 seq = f"{table}_id_seq"
                 with connections[using].cursor() as cursor:
                     cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
@@ -317,7 +321,9 @@ class UniversalImportExportService(ImportExportService):
                             # For models that may have circular references to themselves (unlikely),
                             # keep track of the new pk in the input map as well.
                             nonlocal max_pk
-                            max_pk = item.pk
+                            if item.pk > max_pk:
+                                max_pk = item.pk
+
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             yield item
