@@ -1,7 +1,13 @@
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 
@@ -208,8 +214,59 @@ describe('GroupSidebar', function () {
       />
     );
 
-    expect(await screen.findByText('Participants (2)')).toBeInTheDocument();
-    expect(screen.getByText('Viewers (2)')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Participants (2)'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Viewers (2)'})).toBeInTheDocument();
+  });
+
+  it('expands participants and viewers', async () => {
+    const org = {
+      ...organization,
+      features: ['participants-purge'],
+    };
+    const teams = [{...TestStubs.Team(), type: 'team'}];
+    const users = [
+      TestStubs.User({
+        id: '2',
+        name: 'John Smith',
+        email: 'johnsmith@example.com',
+        type: 'user',
+      }),
+      TestStubs.User({
+        id: '3',
+        name: 'Sohn Jmith',
+        email: 'sohnjmith@example.com',
+        type: 'user',
+      }),
+    ];
+    render(
+      <GroupSidebar
+        group={{
+          ...group,
+          participants: [...teams, ...users],
+          seenBy: users,
+        }}
+        project={project}
+        organization={org}
+        event={TestStubs.Event()}
+        environments={[]}
+      />,
+      {
+        organization: org,
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Participants (1 Team, 2 Individuals)'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Expand Participants'})[0]
+    );
+
+    await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());
   });
 
   describe('displays mobile tags when issue platform is mobile', function () {

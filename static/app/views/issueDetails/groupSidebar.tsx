@@ -19,7 +19,7 @@ import TagFacets, {
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -43,6 +43,8 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
+
+import {ParticipantList} from './participantList';
 
 type Props = {
   environments: string[];
@@ -131,6 +133,7 @@ export default function GroupSidebar({
     );
   };
 
+  const hasParticipantsFeature = organization.features.includes('participants-purge');
   const renderParticipantData = () => {
     const {participants} = group;
     if (!participants.length) {
@@ -144,10 +147,47 @@ export default function GroupSidebar({
       (p): p is TeamParticipant => p.type === 'team'
     );
 
+    const getParticipantTitle = (): React.ReactNode => {
+      if (!hasParticipantsFeature) {
+        return `${group.participants.length}`;
+      }
+
+      const individualText = tn(
+        '%s Individual',
+        '%s Individuals',
+        userParticipants.length
+      );
+      const teamText = tn('%s Team', '%s Teams', teamParticipants.length);
+
+      if (teamParticipants.length === 0) {
+        return individualText;
+      }
+
+      if (userParticipants.length === 0) {
+        return teamText;
+      }
+
+      return (
+        <Fragment>
+          {teamText}, {individualText}
+        </Fragment>
+      );
+    };
+
+    const avatars = (
+      <StyledAvatarList
+        users={userParticipants}
+        teams={teamParticipants}
+        avatarSize={28}
+        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        typeAvatars="participants"
+      />
+    );
+
     return (
       <SidebarSection.Wrap>
         <SidebarSection.Title>
-          {t('Participants (%s)', participants.length)}
+          {t('Participants')} <TitleNumber>({getParticipantTitle()})</TitleNumber>
           <QuestionTooltip
             size="xs"
             position="top"
@@ -157,13 +197,23 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList
-            users={userParticipants}
-            teams={teamParticipants}
-            avatarSize={28}
-            maxVisibleAvatars={13}
-            typeAvatars="participants"
-          />
+          {hasParticipantsFeature ? (
+            <ParticipantList
+              users={userParticipants}
+              teams={teamParticipants}
+              description={t('participants')}
+            >
+              {avatars}
+            </ParticipantList>
+          ) : (
+            <StyledAvatarList
+              users={userParticipants}
+              teams={teamParticipants}
+              avatarSize={28}
+              maxVisibleAvatars={13}
+              typeAvatars="participants"
+            />
+          )}
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
@@ -178,10 +228,26 @@ export default function GroupSidebar({
       return null;
     }
 
+    const avatars = (
+      <StyledAvatarList
+        users={displayUsers}
+        avatarSize={28}
+        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        renderTooltip={user => (
+          <Fragment>
+            {userDisplayName(user)}
+            <br />
+            <DateTime date={(user as AvatarUser).lastSeen} />
+          </Fragment>
+        )}
+      />
+    );
+
     return (
       <SidebarSection.Wrap>
         <SidebarSection.Title>
-          {t('Viewers (%s)', displayUsers.length)}{' '}
+          {t('Viewers')}
+          <TitleNumber>({displayUsers.length})</TitleNumber>
           <QuestionTooltip
             size="xs"
             position="top"
@@ -189,18 +255,13 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList
-            users={displayUsers}
-            avatarSize={28}
-            maxVisibleAvatars={13}
-            renderTooltip={user => (
-              <Fragment>
-                {userDisplayName(user)}
-                <br />
-                <DateTime date={(user as AvatarUser).lastSeen} />
-              </Fragment>
-            )}
-          />
+          {hasParticipantsFeature ? (
+            <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
+              {avatars}
+            </ParticipantList>
+          ) : (
+            avatars
+          )}
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
@@ -269,4 +330,8 @@ const ExternalIssues = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
+`;
+
+const TitleNumber = styled('span')`
+  font-weight: normal;
 `;
