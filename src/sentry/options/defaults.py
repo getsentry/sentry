@@ -290,6 +290,8 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether to use redis to cache `FileBlob.id` lookups
+register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Symbol server
 register(
