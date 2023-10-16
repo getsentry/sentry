@@ -178,7 +178,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 Variables = Dict[str, Any]
 
-unresolvedQueryBuilder = UnresolvedQuery(
+query_builder = UnresolvedQuery(
     dataset=Dataset.Discover, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
