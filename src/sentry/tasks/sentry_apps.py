@@ -247,7 +247,7 @@ def process_resource_change_bound(self, action, sender, instance_id, *args, **kw
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
 @retry_decorator
 def installation_webhook(installation_id, user_id, *args, **kwargs):
-    from sentry.mediators.sentry_app_installations import InstallationNotifier
+    from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 
     extra = {"installation_id": installation_id, "user_id": user_id}
     try:
