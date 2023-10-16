@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import tempfile
 from copy import deepcopy
-from datetime import datetime
+from datetime import date, datetime
 from functools import cached_property
+from os import environ
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import urllib3.exceptions
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
@@ -47,6 +49,7 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
+from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.utils import json
 from tests.sentry.backup import get_matching_exportable_models, mark, targets
 
@@ -226,7 +229,8 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_unclaimed=True).count() == 4
+        # We don't mark `Global`ly imported `User`s unclaimed.
+        assert User.objects.filter(is_unclaimed=True).count() == 0
         assert User.objects.filter(is_managed=True).count() == 1
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
@@ -894,6 +898,12 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
 
+    @pytest.mark.xfail(
+        not use_split_dbs(),
+        reason="Preexisting failure: getsentry/team-ospo#206",
+        raises=urllib3.exceptions.MaxRetryError,
+        strict=True,
+    )
     @targets(mark(COLLISION_TESTED, QuerySubscription))
     def test_colliding_query_subscription(self):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
@@ -1465,3 +1475,16 @@ class CollisionTests(ImportTestCase):
 
             with open(tmp_path) as tmp_file:
                 return json.load(tmp_file)
+
+
+@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+class TestLegacyTestSuite:
+    def test_deleteme(self):
+        """
+        The monolith-dbs test suite should only exist until relocation code
+        handles monolith- and hybrid-database modes with the same code path,
+        which is planned work.
+        """
+        assert date.today() <= date(
+            2023, 11, 11
+        ), "Please delete the monolith-dbs test suite!"  # or else bump the date

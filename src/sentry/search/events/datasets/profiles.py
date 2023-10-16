@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Callable, Mapping, Optional, Union
 
 from snuba_sdk import Condition, Direction, Op, OrderBy
+from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -15,7 +16,6 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
-    Function,
     InvalidFunctionArgument,
     NumberRange,
     NumericColumn,

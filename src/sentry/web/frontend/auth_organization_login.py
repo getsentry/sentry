@@ -12,6 +12,9 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
+TERMS_URL = "https://sentry.io/terms/"
+PRIVACY_POLICY_URL = "https://sentry.io/privacy/"
+
 
 class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponse:
@@ -37,7 +40,6 @@ class AuthOrganizationLoginView(AuthLoginView):
             return helper.current_step()
 
         provider = auth_provider.get_provider()
-
         context = {
             "CAN_REGISTER": False,
             "organization": organization,
@@ -45,6 +47,9 @@ class AuthOrganizationLoginView(AuthLoginView):
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated,
             "referrer": referrer,
+            "terms_url": TERMS_URL,
+            "privacy_policy_url": PRIVACY_POLICY_URL,
+            "is_provider_partner": provider.is_partner,
         }
 
         return self.respond("sentry/organization-login.html", context)

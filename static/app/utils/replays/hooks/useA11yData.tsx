@@ -24,7 +24,7 @@ export default function useA11yData() {
   );
 
   if (project && replayRecord && startTimestampMs) {
-    return data?.map(record => hydrateA11yIssue(record, startTimestampMs));
+    return data?.map(record => hydrateA11yIssue(record));
   }
   return [];
 }
