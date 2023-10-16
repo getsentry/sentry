@@ -73,7 +73,7 @@ def build_action_response(
             installation_id=sentry_app_installation.id, component_type="alert-rule-action"
         )
         if component:
-            action_response["settings"] = component.schema.get("settings", {})
+            action_response["settings"] = component.app_schema.get("settings", {})
 
     return action_response
 
