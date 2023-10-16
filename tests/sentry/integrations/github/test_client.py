@@ -798,7 +798,7 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
     def test_get_blame_for_files_same_repo(self, get_jwt):
         """
         When all files are in the same repo, only one repository object should be
-        queried, but files blames within the repo should be deduped
+        queried and files blames within the repo should be deduped
         """
         file1 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
