@@ -603,7 +603,7 @@ def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
     ]
 
 
-def apdex_tag_spec(project: Project, arguments: Optional[List[str]]) -> List[TagSpec]:
+def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
     _, metric = _get_apdex_project_transaction_threshold(project)
 
     # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
