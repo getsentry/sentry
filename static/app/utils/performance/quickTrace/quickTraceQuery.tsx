@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -73,6 +74,10 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               organization
             );
 
+            const scope = new Sentry.Scope();
+            const traceErrorMsg = 'Trace endpoints returning non-array in response';
+            scope.setFingerprint([traceErrorMsg]);
+
             if (
               !traceFullResults.isLoading &&
               traceFullResults.error === null &&
@@ -88,19 +93,31 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                 });
               }
 
-              for (const subtrace of transactions ??
-                (traceFullResults.traces as TraceFull[])) {
-                try {
-                  const trace = flattenRelevantPaths(event, subtrace);
-                  return children({
-                    ...traceFullResults,
-                    trace,
-                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
-                  });
-                } catch {
-                  // let this fall through and check the next subtrace
-                  // or use the trace lite results
+              const traceTransactions =
+                transactions ?? (traceFullResults.traces as TraceFull[]);
+
+              try {
+                for (const subtrace of traceTransactions) {
+                  try {
+                    const trace = flattenRelevantPaths(event, subtrace);
+                    return children({
+                      ...traceFullResults,
+                      trace,
+                      currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                    });
+                  } catch {
+                    // let this fall through and check the next subtrace
+                    // or use the trace lite results
+                  }
                 }
+              } catch {
+                // capture exception and let this fall through to
+                // use the /events-trace-lite/ response below
+                scope.setExtras({
+                  traceTransactions,
+                  traceFullResults,
+                });
+                Sentry.captureException(new Error(traceErrorMsg), scope);
               }
             }
 
@@ -118,14 +135,25 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   ? orphanErrorsLite[0]
                   : undefined;
               const traceTransactions = transactionLite ?? (trace as TraceLite);
+
+              let traceTransaction: EventLite | undefined;
+              try {
+                traceTransaction = traceTransactions.find(e => isCurrentEvent(e, event));
+              } catch {
+                scope.setExtras({
+                  traceTransaction,
+                  orphanError,
+                  traceTransactions,
+                  trace,
+                });
+                Sentry.captureException(new Error(traceErrorMsg), scope);
+              }
+
               return children({
                 ...traceLiteResults,
-                trace: traceTransactions,
+                trace: Array.isArray(traceTransactions) ? traceTransactions : [],
                 orphanErrors: orphanErrorsLite,
-                currentEvent:
-                  orphanError ??
-                  traceTransactions.find(e => isCurrentEvent(e, event)) ??
-                  null,
+                currentEvent: orphanError ?? traceTransaction ?? null,
               });
             }
 
