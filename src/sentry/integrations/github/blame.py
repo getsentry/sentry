@@ -161,11 +161,16 @@ def _get_matching_file_and_blame(
     path: str,
     repo_name: str,
     ref: str,
-):
+) -> tuple[SourceLineInfo, Optional[FileBlameInfo]]:
+    """
+    Generates a FileBlameInfo object for the given file path, repo name, and ref.
+    Combines matching objects from the initial file list and the blame range
+    returned from the GraphQL response to create the FileBlameInfo.
+    """
     matching_file = [
         f for f in files if f.path == path and f.repo.name == repo_name and f.ref == ref
     ][0]
-    matching_blame_range: Optional[GitHubFileBlameRange] = next(
+    matching_blame_range = next(
         iter(
             [
                 r
@@ -191,8 +196,8 @@ def _get_matching_file_and_blame(
         commit=CommitInfo(
             commitId=commit.get("oid"),
             commitAuthorName=author.get("name") if author else None,
-            commitAuthorEmail=author.get("email", None) if author else None,
-            commitMessage=commit.get("message", None),
+            commitAuthorEmail=author.get("email") if author else None,
+            commitMessage=commit.get("message"),
             committedDate=parse_datetime(committed_date).astimezone(timezone.utc),
         ),
     )
@@ -200,7 +205,7 @@ def _get_matching_file_and_blame(
     return matching_file, blame
 
 
-def _make_ref_query(ref: str, blame_queries: str, index: int):
+def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
     return f"""
         ref{index}: ref(qualifiedName: "{ref}") {{
             target {{
@@ -210,7 +215,7 @@ def _make_ref_query(ref: str, blame_queries: str, index: int):
         }}"""
 
 
-def _make_blame_query(path: str, index: int):
+def _make_blame_query(path: str, index: int) -> str:
     return f"""
                     blame{index}: blame(path: "{path}") {{
                         ranges {{
@@ -230,7 +235,7 @@ def _make_blame_query(path: str, index: int):
                     }}"""
 
 
-def _make_repo_query(repo_name: str, repo_owner: str, ref_queries: str, index: int):
+def _make_repo_query(repo_name: str, repo_owner: str, ref_queries: str, index: int) -> str:
     return f"""
     repository{index}: repository(name: "{repo_name}", owner: "{repo_owner}") {{{ref_queries}
     }}"""

@@ -686,7 +686,14 @@ class GitHubClientMixin(GithubProxyClient):
             err_message = ", ".join(
                 [error.get("message", "") for error in response.get("errors", [])]
             )
-            logger.info("GitHub blame response had some errors", extra={"error": err_message})
+            logger.error(
+                "get_blame_for_files.graphql_error",
+                extra={
+                    "provider": "github",
+                    "error": err_message,
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
 
         return extract_commits_from_blame_response(
             response=response,

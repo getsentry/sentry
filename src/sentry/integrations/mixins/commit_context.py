@@ -37,10 +37,10 @@ class FileBlameInfo(SourceLineInfo):
 class GetBlameForFile(Protocol):
     def get_blame_for_file(
         self, repo: Repository, filepath: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]] | None:
+    ) -> list[dict[str, Any]] | None:
         ...
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
         ...
 
 
@@ -78,7 +78,7 @@ class CommitContextMixin(GetClient):
 
         return response
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
         """
         Calls the client's `get_blame_for_files` method to fetch blame for a list of files.
 
@@ -97,9 +97,7 @@ class CommitContextMixin(GetClient):
 
         return response
 
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo]
-    ) -> Sequence[FileBlameInfo]:
+    def get_commit_context_all_frames(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
