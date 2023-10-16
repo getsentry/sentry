@@ -436,8 +436,8 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
 def test_get_metric_extraction_config_with_count_web_vitals(default_project, quality, measurement):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        create_alert(
-            f"count_web_vitals({measurement}, {quality})",
+        create_widget(
+            [f"count_web_vitals({measurement}, {quality})"],
             "transaction.duration:>=1000",
             default_project,
         )
