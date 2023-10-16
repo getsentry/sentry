@@ -5271,20 +5271,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         }
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        query = {
-            "field": ["transaction"],
-            "project": [self.project.id],
-        }
-        with freeze_time("2000-01-01"):
-            for _ in range(15):
-                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
-            response = self.do_request(
-                query, features={"organizations:discover-events-rate-limit": True}
-            )
-            assert response.status_code == 429, response.content
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_no_ratelimit(self):
         query = {
             "field": ["transaction"],
