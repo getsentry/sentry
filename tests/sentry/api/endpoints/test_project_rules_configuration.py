@@ -117,7 +117,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             self.organization.slug, self.project.slug, includeAllTickets=True
         )
         disabled_ticket_actions = response.data["disabledTicketActions"]
-        assert len(disabled_ticket_actions) == 2
+        assert len(disabled_ticket_actions) == 3
         for ticket in self.ticket_actions:
             assert ticket in disabled_ticket_actions
 
