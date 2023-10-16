@@ -21,6 +21,7 @@ from sentry import analytics
 from sentry.db.models.manager import BaseManager
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
@@ -60,7 +61,6 @@ from sentry.utils.sdk import configure_scope
 if TYPE_CHECKING:
     from sentry.models.notificationsetting import NotificationSetting  # noqa: F401
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 logger = logging.getLogger(__name__)
@@ -417,7 +417,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[RpcActor | Team | RpcUser],
+        recipients: Iterable[RpcActor | Team | RpcUser | User],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
@@ -427,14 +427,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """
         recipient_actors = RpcActor.many_from_object(recipients)
 
-        organization, project_ids = None, None
-        try:
-            organization = parent.organization  # type: ignore
+        if isinstance(parent, Project):
+            organization = parent.organization
             project_ids = [parent.id]
-        except AttributeError:
+        else:
             organization = parent
+            project_ids = None
 
-        if should_use_notifications_v2(organization):  # type: ignore
+        if should_use_notifications_v2(organization):
             # We should replace calls to NotificationSettings.get_notification_recipients at the call site - this code should never be reached
             setting_type = (
                 NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])

@@ -187,7 +187,8 @@ def _import(
                                     continue
 
                                 new_pk, import_kind = written
-                                pk_map.insert(model_name, old_pk, new_pk, import_kind)
+                                slug = getattr(o, "slug", None)
+                                pk_map.insert(model_name, old_pk, new_pk, import_kind, slug)
                                 count += 1
 
                 # If we wrote at least one model, make sure to update the sequences too.

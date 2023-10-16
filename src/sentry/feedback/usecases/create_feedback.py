@@ -13,7 +13,7 @@ def make_evidence(feedback):
     if feedback.get("contact_email"):
         evidence_data["contact_email"] = feedback["contact_email"]
         evidence_display.append(
-            IssueEvidence(name="contact_email", value=feedback["contact_email"], important=True)
+            IssueEvidence(name="contact_email", value=feedback["contact_email"], important=False)
         )
     if feedback.get("message"):
         evidence_data["message"] = feedback["message"]

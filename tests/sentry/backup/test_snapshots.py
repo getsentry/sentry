@@ -1,7 +1,6 @@
 import pytest
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.testutils.helpers.backups import (
     ValidationError,
@@ -46,7 +45,7 @@ def test_date_updated_with_unzeroed_milliseconds(tmp_path):
     findings = execinfo.value.info.findings
     assert len(findings) == 1
     assert findings[0].kind == ComparatorFindingKind.UnequalJSON
-    assert findings[0].on == InstanceID(NormalizedModelName("sentry.option"), 1)
+    assert findings[0].on == InstanceID("sentry.option", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert """-  "last_updated": "2023-06-22T00:00:00Z",""" in findings[0].reason
