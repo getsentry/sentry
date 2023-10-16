@@ -21,6 +21,7 @@ def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
             continue
 
         return user
+    return None
 
 
 @instrumented_task(

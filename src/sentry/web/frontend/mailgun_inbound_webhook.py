@@ -1,6 +1,7 @@
 import hmac
 import logging
 from hashlib import sha256
+from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -73,13 +74,14 @@ class MailgunInboundWebhookView(View):
 
         # Email replies cannot be coaleseced so we
         # need to generate unique object_identifier values.
+        outbox_payload: Any = {"from_email": from_email, "text": payload, "group_id": group_id}
         outbox = ControlOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=org_id or 0,
             category=OutboxCategory.ISSUE_COMMENT_UPDATE,
             object_identifier=ControlOutbox.next_object_identifier(),
             region_name=region_name,
-            payload={"from_email": from_email, "text": payload, "group_id": group_id},
+            payload=outbox_payload,
         )
         outbox.save()
 
