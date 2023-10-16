@@ -101,7 +101,7 @@ function AccordionWidget({
   const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
 
   return (
-    <StyledWidgetContainer>
+    <StyledWidgetContainer data-test-id="selector-widget">
       <StyledHeaderContainer>
         <ClickColor color={clickColor}>
           <IconCursorArrow />
