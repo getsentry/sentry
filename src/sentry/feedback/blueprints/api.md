@@ -85,7 +85,7 @@ Retrieve a collection of feedback items.
 | timestamp         | string           | ISO-8061 formatted UTC datetime.                    |
 | url               | string           | The page the feedback was triggered on.             |
 | user              | object           | The authorized user's information.                  |
-| user.name         | optional[string] | -                                                   |
+| user.display_name | optional[string] | -                                                   |
 | user.email        | optional[string] | -                                                   |
 | user.id           | optional[string] | -                                                   |
 | user.ip           | optional[string] | Same search field as Events                         |
@@ -144,7 +144,7 @@ Retrieve a collection of feedback items.
           "timestamp": "2023-08-31T14:10:34.954048",
           "url": "https://docs.sentry.io/platforms/javascript/",
           "user": {
-            "name": "John Doe",
+            "display_name": "John Doe",
             "email": "john.doe@example.com",
             "id": "30246326",
             "ip": "213.164.1.114",
@@ -204,7 +204,7 @@ Retrieve a collection of feedback items.
         "timestamp": "2023-08-31T14:10:34.954048",
         "url": "https://docs.sentry.io/platforms/javascript/",
         "user": {
-          "name": "John Doe",
+          "display_name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
           "ip": "213.164.1.114",
