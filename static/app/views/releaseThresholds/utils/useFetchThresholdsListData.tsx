@@ -31,6 +31,9 @@ export default function useFetchThresholdsListData({
         query,
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+      enabled: organization.features?.includes('event-attachments') ?? false,
+    }
   );
 }
