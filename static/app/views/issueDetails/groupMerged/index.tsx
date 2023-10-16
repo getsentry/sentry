@@ -135,7 +135,7 @@ class GroupMergedView extends Component<Props, State> {
         <Layout.Main fullWidth>
           <HeaderWrapper>
             <Title>
-              {tct('Merged fingerprints with latest event [count]', {
+              {tct('Fingerprints included in this issue [count]', {
                 count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
               })}
             </Title>
