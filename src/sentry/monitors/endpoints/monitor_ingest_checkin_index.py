@@ -30,7 +30,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializer
-from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -163,7 +163,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     )
 
                     if created:
-                        signal_first_monitor_created(project, request.user, True)
+                        signal_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
 

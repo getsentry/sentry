@@ -30,7 +30,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import create_alert_rule, signal_first_monitor_created
+from sentry.monitors.utils import create_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 
@@ -227,7 +227,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         )
 
         project = result["project"]
-        signal_first_monitor_created(project, request.user, False)
+        signal_monitor_created(project, request.user, False)
 
         validated_alert_rule = result.get("alert_rule")
         if validated_alert_rule:
