@@ -213,42 +213,6 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumn.MOST_RAGE_CLICKS:
-                  return (
-                    <ReplayCell
-                      key="mostRageClicks"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="rage-table"
-                    />
-                  );
-
-                case ReplayColumn.MOST_DEAD_CLICKS:
-                  return (
-                    <ReplayCell
-                      key="mostDeadClicks"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="dead-table"
-                    />
-                  );
-
-                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
-                  return (
-                    <ReplayCell
-                      key="mostErroneousReplays"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="errors-table"
-                    />
-                  );
-
                 default:
                   return null;
               }
@@ -264,7 +228,6 @@ const flexibleColumns = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_RAGE_CLICKS,
   ReplayColumn.MOST_DEAD_CLICKS,
-  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
 ];
 
 const StyledPanelTable = styled(PanelTable)<{
@@ -273,8 +236,7 @@ const StyledPanelTable = styled(PanelTable)<{
 }>`
   ${props =>
     props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
-    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
-    props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
+    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS)
       ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
       : ``}
   margin-bottom: 0;

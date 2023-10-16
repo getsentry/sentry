@@ -42,12 +42,7 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType =
-  | 'main'
-  | 'dead-table'
-  | 'errors-table'
-  | 'rage-table'
-  | 'selector-widget';
+export type ReferrerTableType = 'main' | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -309,15 +304,6 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsErrorTab = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      t_main: 'errors',
-    },
-  };
-
   const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
@@ -329,10 +315,6 @@ export function ReplayCell({
 
   const detailsTab = () => {
     switch (referrer_table) {
-      case 'errors-table':
-        return replayDetailsErrorTab;
-      case 'dead-table':
-      case 'rage-table':
       case 'selector-widget':
         return replayDetailsDeadRage;
       default:

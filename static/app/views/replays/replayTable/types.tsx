@@ -7,7 +7,6 @@ export enum ReplayColumn {
   COUNT_RAGE_CLICKS = 'countRageClicks',
   COUNT_RAGE_CLICKS_NO_HEADER = 'countRageClicksNoHeader',
   DURATION = 'duration',
-  MOST_ERRONEOUS_REPLAYS = 'mostErroneousReplays',
   MOST_RAGE_CLICKS = 'mostRageClicks',
   MOST_DEAD_CLICKS = 'mostDeadClicks',
   OS = 'os',
