@@ -16,7 +16,7 @@ import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconChevron, IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
@@ -56,12 +56,12 @@ export default function FeedbackItem({feedbackItem}: Props) {
                 />
               ) : null}
             </Flex>
-            <Flex gap={space(1.5)}>
-              <Flex column={false} align="center" gap={space(0.5)}>
+            <Flex gap={space(1)}>
+              <Flex align="center" gap={space(0.5)}>
                 <ProjectAvatar project={project} size={12} title={slug} /> {slug}
               </Flex>
-              <Flex column={false} gap={space(1.5)}>
-                <Flex>{'>'}</Flex>
+              <Flex align="center" gap={space(1)}>
+                <IconChevron direction="right" size="xs" />
                 <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
               </Flex>
             </Flex>
