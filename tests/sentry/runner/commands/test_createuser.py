@@ -5,18 +5,20 @@ from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import CliTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class CreateUserTest(CliTestCase):
     command = createuser
     default_args = ["--no-input"]
 
     def setUp(self) -> None:
         super().setUp()
-        create_default_projects()
+        with assume_test_silo_mode(SiloMode.REGION):
+            create_default_projects()
         manage_default_super_admin_role()
 
     def test_superuser(self):
@@ -60,8 +62,9 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            assert OrganizationMember.objects.count() == 1
-            member = OrganizationMember.objects.all()[0]
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert OrganizationMember.objects.count() == 1
+                member = OrganizationMember.objects.all()[0]
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"
@@ -73,8 +76,9 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password", "--superuser")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            assert OrganizationMember.objects.count() == 1
-            member = OrganizationMember.objects.all()[0]
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert OrganizationMember.objects.count() == 1
+                member = OrganizationMember.objects.all()[0]
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"
@@ -86,7 +90,9 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            assert OrganizationMember.objects.count() == 0
+            with assume_test_silo_mode(SiloMode.REGION):
+                member_count = OrganizationMember.objects.count()
+            assert member_count == 0
 
     def test_no_input(self):
         rv = self.invoke()
