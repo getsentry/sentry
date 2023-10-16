@@ -1,5 +1,6 @@
+from uuid import uuid4
+
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
 from sentry.testutils.cases import TestMigrations
 
 
@@ -8,11 +9,20 @@ class BackfillWeeklyReportSettingsMigrationTest(TestMigrations):
     migrate_to = "0574_backfill_weekly_report_settings"
 
     def setup_before_migration(self, apps):
+        User = apps.get_model("sentry", "User")
+
+        def create_user():
+            email = uuid4().hex + "@example.com"
+            return User.objects.create(
+                email=email, username=email, is_staff=True, is_active=True, is_superuser=False
+            )
+
+        UserOption = apps.get_model("sentry", "UserOption")
 
         # Given: We are simulating a few UserOption records
-        self.user1 = self.create_user()
-        self.user2 = self.create_user()
-        self.user3 = self.create_user()  # This user has no orgs with disabled settings
+        self.user1 = create_user()
+        self.user2 = create_user()
+        self.user3 = create_user()  # This user has no orgs with disabled settings
         self.org1_id = 201
         self.org2_id = 202
 
