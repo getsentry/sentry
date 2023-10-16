@@ -216,7 +216,12 @@ def test_detect_function_trends_options(
     timestamp,
     project,
 ):
-    with override_options({"statistical_detectors.enable": enabled}):
+    with override_options(
+        {
+            "statistical_detectors.enable": enabled,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ):
         detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
@@ -224,7 +229,12 @@ def test_detect_function_trends_options(
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
-    with override_options({"statistical_detectors.enable": True}):
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ):
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
@@ -290,7 +300,12 @@ def test_detect_function_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called

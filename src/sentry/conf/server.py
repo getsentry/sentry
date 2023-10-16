@@ -1455,8 +1455,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable profiling statistical detectors
-    "organizations:profiling-statistical-detectors": False,
+    # Enable profiling statistical detectors ema detection
+    "organizations:profiling-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
