@@ -28,6 +28,8 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/sponsored_education_account/$'),
   new RegExp('^api/0/organizations/[^/]+/broadcasts/$'),
   new RegExp('^api/0/auth-details/$'),
+  new RegExp('^api/0/_admin/instance-level-oauth/$'),
+  new RegExp('^api/0/_admin/instance-level-oauth/[^/]+/$'),
   new RegExp('^_admin/'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
@@ -149,6 +151,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/msteams/unlink-identity/[^/]+/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
+  new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
 
 export default patterns;
