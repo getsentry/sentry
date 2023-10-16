@@ -793,8 +793,6 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    print("REQUEST")
-    print(request)
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
     if "consistent" in OVERRIDE_OPTIONS:
         request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
@@ -815,8 +813,6 @@ def bulk_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    print("REQUESTS")
-    print([r.query.serialize() for r in requests])
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
     if "consistent" in OVERRIDE_OPTIONS:
         for request in requests:
