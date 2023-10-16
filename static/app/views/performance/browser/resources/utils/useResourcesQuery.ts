@@ -15,6 +15,7 @@ const {
   SPAN_OP,
   SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  HTTP_RESPONSE_CONTENT_LENGTH,
 } = SpanMetricsField;
 
 export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
@@ -49,6 +50,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         SPAN_GROUP,
         RESOURCE_RENDER_BLOCKING_STATUS,
         SPAN_DOMAIN,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -77,6 +79,9 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
       | 'non-blocking'
       | 'blocking',
     [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
+    [`avg(http.response_content_length)`]: row[
+      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
+    ] as number,
   }));
 
   return {...result, data: data || []};

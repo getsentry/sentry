@@ -22,9 +22,9 @@ const {SPAN_DESCRIPTION, RESOURCE_RENDER_BLOCKING_STATUS, SPAN_OP, SPAN_SELF_TIM
   SpanMetricsField;
 
 type Row = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http.decoded_response_content_length': number;
-  'http.response_content_length': number;
   'resource.render_blocking_status': string;
   'span.description': string;
   'span.domain': string;
@@ -53,9 +53,9 @@ function ResourceTable({sort}: Props) {
       name: 'Throughput',
     },
     {
-      key: 'http.response_content_length',
+      key: 'avg(http.response_content_length)',
       width: COL_WIDTH_UNDEFINED,
-      name: 'Resource size',
+      name: 'Avg Resource size',
     },
     {
       key: RESOURCE_RENDER_BLOCKING_STATUS,
@@ -74,7 +74,6 @@ function ResourceTable({sort}: Props) {
         'http.decoded_response_content_length': Math.floor(
           Math.random() * (1000 - 500) + 500
         ),
-        'http.response_content_length': Math.floor(Math.random() * (500 - 50) + 50),
       }))
     : [];
 
@@ -90,7 +89,7 @@ function ResourceTable({sort}: Props) {
     if (key === 'spm()') {
       return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
     }
-    if (key === 'http.response_content_length') {
+    if (key === 'avg(http.response_content_length)') {
       return <FileSize bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
