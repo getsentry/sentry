@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -55,6 +56,7 @@ class ProjectCard extends Component<Props> {
       projectId: project.id,
       query: {
         transactionStats: this.hasPerformance ? '1' : undefined,
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
         sessionStats: '1',
       },
     });
