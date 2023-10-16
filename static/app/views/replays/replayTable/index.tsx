@@ -138,15 +138,6 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
-                  return (
-                    <DeadClickCountCell
-                      key="countDeadClicks"
-                      replay={replay}
-                      showDropdownFilters={false}
-                    />
-                  );
-
                 case ReplayColumn.COUNT_ERRORS:
                   return (
                     <ErrorCountCell
@@ -162,15 +153,6 @@ function ReplayTable({
                       key="countRageClicks"
                       replay={replay}
                       showDropdownFilters={showDropdownFilters}
-                    />
-                  );
-
-                case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
-                  return (
-                    <RageClickCountCell
-                      key="countRageClicks"
-                      replay={replay}
-                      showDropdownFilters={false}
                     />
                   );
 
@@ -224,30 +206,16 @@ function ReplayTable({
   );
 }
 
-const flexibleColumns = [
-  ReplayColumn.REPLAY,
-  ReplayColumn.MOST_RAGE_CLICKS,
-  ReplayColumn.MOST_DEAD_CLICKS,
-];
-
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
   gridRows?: string;
 }>`
-  ${props =>
-    props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
-    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS)
-      ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
-      : ``}
   margin-bottom: 0;
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column =>
-        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
-      )
+      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
       .join(' ')};
-
   ${props =>
     props.gridRows
       ? `grid-template-rows: ${props.gridRows};`

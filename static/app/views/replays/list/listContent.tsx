@@ -78,9 +78,7 @@ export default function ListContent() {
           </Button>
         </SearchWrapper>
       </FiltersContainer>
-      widgetIsOpen ? (
-      <DeadRageSelectorCards />
-      ) : null
+      {widgetIsOpen ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
   );
