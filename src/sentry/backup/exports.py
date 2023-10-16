@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import io
-import tarfile
 from typing import BinaryIO, Type
 
 import click
-from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
@@ -17,7 +12,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Filter
+from sentry.backup.helpers import Filter, create_encrypted_export_tarball
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,
@@ -47,7 +42,7 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest,
+    dest: BinaryIO,
     scope: ExportScope,
     *,
     encrypt_with: BinaryIO | None = None,
@@ -151,47 +146,11 @@ def _export(
         dest_wrapper.detach()
         return
 
-    # Generate a new DEK (data encryption key), and use that DEK to encrypt the JSON being exported.
-    pem = encrypt_with.read()
-    data_encryption_key = Fernet.generate_key()
-    backup_encryptor = Fernet(data_encryption_key)
-    encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_export).encode("utf-8"))
-
-    # Encrypt the newly minted DEK using symmetric public key encryption.
-    dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
-    sha256 = hashes.SHA256()
-    mgf = padding.MGF1(algorithm=sha256)
-    oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-    encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
-
-    # Generate a tarball with 3 files:
-    #
-    #   1. The DEK we minted, name "data.key".
-    #   2. The public key we used to encrypt that DEK, named "key.pub".
-    #   3. The exported JSON data, encrypted with that DEK, named "export.json".
-    #
-    # The upshot: to decrypt the exported JSON data, you need the plaintext (decrypted) DEK. But to
-    # decrypt the DEK, you need the private key associated with the included public key, which
-    # you've hopefully kept in a safe, trusted location.
-    #
-    # Note that the supplied file names are load-bearing - ex, changing to `data.key` to `foo.key`
-    # risks breaking assumptions that the decryption side will make on the other end!
-    tar_buffer = io.BytesIO()
-    with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
-        json_info = tarfile.TarInfo("export.json")
-        json_info.size = len(encrypted_json_export)
-        tar.addfile(json_info, fileobj=io.BytesIO(encrypted_json_export))
-        key_info = tarfile.TarInfo("data.key")
-        key_info.size = len(encrypted_dek)
-        tar.addfile(key_info, fileobj=io.BytesIO(encrypted_dek))
-        pub_info = tarfile.TarInfo("key.pub")
-        pub_info.size = len(pem)
-        tar.addfile(pub_info, fileobj=io.BytesIO(pem))
-    dest.write(tar_buffer.getvalue())
+    dest.write(create_encrypted_export_tarball(json_export, encrypt_with).getvalue())
 
 
 def export_in_user_scope(
-    dest,
+    dest: BinaryIO,
     *,
     encrypt_with: BinaryIO | None = None,
     user_filter: set[str] | None = None,
@@ -217,7 +176,7 @@ def export_in_user_scope(
 
 
 def export_in_organization_scope(
-    dest,
+    dest: BinaryIO,
     *,
     encrypt_with: BinaryIO | None = None,
     org_filter: set[str] | None = None,
@@ -244,7 +203,7 @@ def export_in_organization_scope(
 
 
 def export_in_config_scope(
-    dest,
+    dest: BinaryIO,
     *,
     encrypt_with: BinaryIO | None = None,
     indent: int = 2,
@@ -269,7 +228,7 @@ def export_in_config_scope(
 
 
 def export_in_global_scope(
-    dest,
+    dest: BinaryIO,
     *,
     encrypt_with: BinaryIO | None = None,
     indent: int = 2,

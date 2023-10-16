@@ -6,6 +6,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from django.db import IntegrityError
 
+from sentry.backup.helpers import create_encrypted_export_tarball
 from sentry.runner.commands.backup import compare, export, import_
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -115,36 +116,53 @@ class GoodImportExportCommandTests(TransactionTestCase):
         cli_import_then_export("users", export_args=["--filter_usernames", "testing@example.com"])
 
 
+def cli_encrypted_import_then_export(scope: str):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
+
+        tmp_priv_key_path = Path(tmp_dir).joinpath("key")
+        with open(tmp_priv_key_path, "wb") as f:
+            f.write(priv_key_pem)
+
+        tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+        with open(tmp_pub_key_path, "wb") as f:
+            f.write(pub_key_pem)
+
+        with open(GOOD_FILE_PATH) as f:
+            data = json.load(f)
+
+        tmp_input_path = Path(tmp_dir).joinpath("input.tar")
+        with open(tmp_input_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
+            i.write(create_encrypted_export_tarball(data, p).getvalue())
+
+        rv = CliRunner().invoke(
+            import_, [scope, str(tmp_input_path), "--decrypt_with", str(tmp_priv_key_path)]
+        )
+        assert rv.exit_code == 0, rv.output
+
+        tmp_output_path = Path(tmp_dir).joinpath("output.tar")
+        rv = CliRunner().invoke(
+            export, [scope, str(tmp_output_path), "--encrypt_with", str(tmp_pub_key_path)]
+        )
+        assert rv.exit_code == 0, rv.output
+
+
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
     Ensure that encryption using an `--encrypt_with` file works as expected.
     """
 
-    def encryption_export_args(self, tmp_dir) -> list[str]:
-        tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
-        (_, public_key_pem) = generate_rsa_key_pair()
-        public_key_str = public_key_pem.decode("utf-8")
-        with open(tmp_pub_key_path, "w") as f:
-            f.write(public_key_str)
-        return ["--encrypt_with", str(tmp_pub_key_path)]
-
     def test_global_scope_encryption(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            cli_import_then_export("global", export_args=self.encryption_export_args(tmp_dir))
+        cli_encrypted_import_then_export("global")
 
     def test_config_scope_encryption(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            cli_import_then_export("config", export_args=self.encryption_export_args(tmp_dir))
+        cli_encrypted_import_then_export("config")
 
     def test_organization_scope_encryption(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            cli_import_then_export(
-                "organizations", export_args=self.encryption_export_args(tmp_dir)
-            )
+        cli_encrypted_import_then_export("organizations")
 
     def test_user_scope_encryption(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            cli_import_then_export("users", export_args=self.encryption_export_args(tmp_dir))
+        cli_encrypted_import_then_export("users")
 
 
 class BadImportExportDomainErrorTests(TransactionTestCase):
