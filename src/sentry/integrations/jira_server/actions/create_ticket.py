@@ -10,8 +10,8 @@ from sentry.utils.http import absolute_uri
 
 class JiraServerCreateTicketAction(TicketEventAction):
     id = "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
-    label = "Create a Jira issue in {integration} with these "
-    ticket_type = "a Jira issue"
+    label = "Create a Jira Server issue in {integration} with these "
+    ticket_type = "a Jira Server issue"
     link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
     provider = "jira_server"
     form_cls = JiraServerNotifyServiceForm
@@ -31,4 +31,5 @@ class JiraServerCreateTicketAction(TicketEventAction):
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         name = integration.metadata.get("domain_name", integration.name)
-        return name.replace(".atlassian.net", "")
+        customer_domain = integration.metadata.get("base_url", "")
+        return name.replace(customer_domain, "")
