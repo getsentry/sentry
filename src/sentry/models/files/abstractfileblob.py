@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
 from threading import Semaphore
 from typing import Any, ClassVar
 from uuid import uuid4
@@ -16,7 +15,7 @@ from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
-    _get_size_and_checksum,
+    get_size_and_checksum,
     get_storage,
     lock_blob,
     locked_blob,
@@ -67,7 +66,6 @@ class AbstractFileBlob(Model):
                 files_with_checksums.append((fileobj, None))
 
         checksums_seen = set()
-        blobs_created = []
         blobs_to_save = []
         locks = set()
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
@@ -144,7 +142,7 @@ class AbstractFileBlob(Model):
                     # also deduplicates duplicates uploaded in the same request.
                     # This is necessary because we acquire multiple locks in one
                     # go which would let us deadlock otherwise.
-                    size, checksum = _get_size_and_checksum(fileobj)
+                    size, checksum = get_size_and_checksum(fileobj)
                     if reference_checksum is not None and checksum != reference_checksum:
                         raise OSError("Checksum mismatch")
                     if checksum in checksums_seen:
@@ -153,15 +151,10 @@ class AbstractFileBlob(Model):
 
                     # Check if we need to lock the blob.  If we get a result back
                     # here it means the blob already exists.
-                    lock = locked_blob(cls, checksum, logger=logger)
+                    lock = locked_blob(cls, size, checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
-                        now = timezone.now()
-                        threshold = now - timedelta(hours=12)
-                        if existing.timestamp <= threshold:
-                            existing.update(timestamp=timezone.now())
                         lock.__exit__(None, None, None)
-                        blobs_created.append(existing)
                         _ensure_blob_owned(existing)
                         continue
 
@@ -195,16 +188,12 @@ class AbstractFileBlob(Model):
         """
         logger.debug("FileBlob.from_file.start")
 
-        size, checksum = _get_size_and_checksum(fileobj)
+        size, checksum = get_size_and_checksum(fileobj)
 
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        with locked_blob(cls, checksum, logger=logger) as existing:
+        with locked_blob(cls, size, checksum, logger=logger) as existing:
             if existing is not None:
-                now = timezone.now()
-                threshold = now - timedelta(hours=12)
-                if existing.timestamp <= threshold:
-                    existing.update(timestamp=timezone.now())
                 return existing
 
             blob = cls(size=size, checksum=checksum)
