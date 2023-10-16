@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 from django.db import router, transaction
 
@@ -232,14 +232,46 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
             ).save(unsafe_write=True)
 
-        primary_slug_alias = self._get_slug_reservation_for_organization(
+        primary_slug = self._validate_primary_slug_updated(
+            organization_id=organization_id, slug_base=slug_base
+        )
+
+        return serialize_slug_reservation(primary_slug)
+
+    def _validate_primary_slug_updated(
+        self, organization_id: int, slug_base: str
+    ) -> OrganizationSlugReservation:
+        primary_slug = self._get_slug_reservation_for_organization(
             organization_id=organization_id,
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
-        if not primary_slug_alias or primary_slug_alias.slug != slug_base:
+        if not primary_slug or primary_slug.slug != slug_base:
             raise InvalidOrganizationProvisioningException(
                 "Failed to swap slug for organization, likely due to conflict on the region"
             )
 
-        return serialize_slug_reservation(primary_slug_alias)
+        return primary_slug
+
+    def bulk_create_organization_slug_reservations(
+        self, *, region_name: str, organization_ids_and_slugs: Set[Tuple[int, str]]
+    ) -> None:
+        slug_reservations_to_create: List[OrganizationSlugReservation] = []
+
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
+            for org_id, slug in organization_ids_and_slugs:
+                slug_reservation = OrganizationSlugReservation(
+                    slug=self._generate_org_slug(slug=slug, region_name=region_name),
+                    organization_id=org_id,
+                    reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
+                    user_id=-1,
+                    region_name=region_name,
+                )
+                slug_reservation.save(unsafe_write=True)
+
+                slug_reservations_to_create.append(slug_reservation)
+
+        for slug_reservation in slug_reservations_to_create:
+            self._validate_primary_slug_updated(
+                slug_base=slug_reservation.slug, organization_id=slug_reservation.organization_id
+            )

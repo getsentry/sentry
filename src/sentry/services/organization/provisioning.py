@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Set, Tuple
 
 from django.db import router, transaction
 from django.dispatch import receiver
@@ -34,7 +34,7 @@ class OrganizationProvisioningService:
             raise OrganizationProvisioningException(
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
-        else:
+        elif silo_mode != SiloMode.CONTROL:
             local_region = get_local_region()
 
             assert (
@@ -124,6 +124,19 @@ class OrganizationProvisioningService:
             )
 
         return rpc_org
+
+    def bulk_create_organization_slugs(
+        self, org_ids_and_slugs: Set[Tuple[int, str]], region_name: Optional[str] = None
+    ):
+        destination_region_name = self._validate_or_default_region(region_name=region_name)
+
+        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+            control_organization_provisioning_rpc_service,
+        )
+
+        control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
+            organization_ids_and_slugs=org_ids_and_slugs, region_name=destination_region_name
+        )
 
 
 organization_provisioning_service = OrganizationProvisioningService()
