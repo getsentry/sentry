@@ -17,7 +17,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-function ReleaseThresholdList({router}: Props) {
+function ReleaseThresholdList({router, organization}: Props) {
+  const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
+  if (!hasV2ReleaseUIEnabled) {
+    router.replace('/releases/');
+  }
+
   return (
     <div>
       <Header router={router} hasV2ReleaseUIEnabled />
