@@ -170,6 +170,9 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 
     analysis_results = []
     for key in changed_keys | new_keys:
+        if key == "":
+            continue
+
         duration_before = (
             before_results[key]["p95_transaction_duration"] if before_results.get(key) else 0.0
         )
