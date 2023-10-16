@@ -97,7 +97,7 @@ def extract_commits_from_blame_response(
     response: GitHubGraphQlResponse,
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
-    extra: Optional[dict[str, str]] = None,
+    extra: dict[str, str | int | None],
 ) -> Sequence[FileBlameInfo]:
     """
     Using the file path mapping that generated the initial GraphQL query,
@@ -110,14 +110,17 @@ def extract_commits_from_blame_response(
             f"repository{repo_index}"
         )
         if not repo_mapping:
-            logger.info(f"Repository {full_repo_name} does not exist in GitHub.", extra=extra)
+            logger.error(
+                "get_blame_for_files.extract_commits_from_blame.missing_repository",
+                extra={**extra, "repo": full_repo_name},
+            )
             continue
         for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
             ref: Optional[GitHubRefResponse] = repo_mapping.get(f"ref{ref_index}")
             if not isinstance(ref, dict):
-                logger.info(
-                    f"Branch {ref_name} for repository {full_repo_name} does not exist in GitHub.",
-                    extra=extra,
+                logger.error(
+                    "get_blame_for_files.extract_commits_from_blame.missing_branch",
+                    extra={**extra, "repo": full_repo_name, "branch": ref_name},
                 )
                 continue
             for file_path_index, file_path in enumerate(file_paths):
@@ -125,9 +128,14 @@ def extract_commits_from_blame_response(
                     f"blame{file_path_index}"
                 )
                 if not blame:
-                    logger.info(
-                        f"File {file_path} for branch {ref_name} for repository {full_repo_name} does not exist in GitHub.",
-                        extra=extra,
+                    logger.error(
+                        "get_blame_for_files.extract_commits_from_blame.missing_file_blame",
+                        extra={
+                            **extra,
+                            "repo": full_repo_name,
+                            "branch": ref_name,
+                            "file_path": file_path,
+                        },
                     )
                     continue
                 matching_file, blame_info = _get_matching_file_and_blame(
@@ -138,7 +146,7 @@ def extract_commits_from_blame_response(
                     ref=ref_name,
                 )
                 if not blame_info:
-                    logger.info(
+                    logger.error(
                         f"No matching commit found for line {matching_file.lineno} in file {matching_file.path} in branch {matching_file.ref} in repository {full_repo_name} in GitHub.",
                         extra=extra,
                     )
