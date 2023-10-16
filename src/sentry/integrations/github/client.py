@@ -676,7 +676,13 @@ class GitHubClientMixin(GithubProxyClient):
                 allow_text=False,
             )
         except ValueError as e:
-            sentry_sdk.capture_exception(e)
+            logger.exception(
+                e,
+                {
+                    "provider": "github",
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
             return []
 
         if not isinstance(response, MappingApiResponse):
