@@ -2426,41 +2426,41 @@
   resolved "https://registry.yarnpkg.com/@sentry-internal/react-inspector/-/react-inspector-6.0.1-4.tgz#10758f3461cf2cf48df8c80f0514c55ca18872c5"
   integrity sha512-uL2RyvW8EqDEchnbo8Hu/c4IpBqM3LLxUpZPHs8o40kynerzPset6bC/m5SU124gEhy4PqjdvJ7DhTYR75NetQ==
 
-"@sentry-internal/rrdom@2.0.0-beta11.0":
-  version "2.0.0-beta11.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.0.0-beta11.0.tgz#83110a5db9434383eba3c7506aaa6a5f8b32ea78"
-  integrity sha512-6yL23XeauKi4FtRewFnX5SL22HOVirwgCj9VYb31It8kVaE+aFWxcMo8bkkgxO9orokox2iW4fjr+zsuvGkTgg==
+"@sentry-internal/rrdom@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.0.1.tgz#5d41892ff26462bb5e2412c2f2c646ef2dcfe0b5"
+  integrity sha512-uPQyq/ANoXSS5HpYkv9qupRSYh/tfbX4xBgM7XZDlApsnD3t6LxAqdAUP//zQO/z+kOHzJVUX5H5uiauqA96Yg==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.0.0-beta11.0"
+    "@sentry-internal/rrweb-snapshot" "2.0.1"
 
-"@sentry-internal/rrweb-player@2.0.0-beta11.0":
-  version "2.0.0-beta11.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.0.0-beta11.0.tgz#518f8003ae398c7694148b12da30d9f37b4cafb0"
-  integrity sha512-/uPw1jP8Dkqwz8QsmaY4xQcIJH/ukFt60h1CUtQjJ8Cf3uvcdyvmYPMCGksU6azDVAOG8hy/ElvJQDxFM5Pj+g==
+"@sentry-internal/rrweb-player@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.0.1.tgz#37313ef620f37e3929cdc5a614be0ba75a2b9eff"
+  integrity sha512-q+FnvHcj2cU2wBolYFIedGnWgzBjOm43OFYc/S/9nWMaF+fesutzXGc1PUO1k5dEA6onE5Sw9H+B/3pKcUb2nQ==
   dependencies:
-    "@sentry-internal/rrweb" "2.0.0-beta11.0"
+    "@sentry-internal/rrweb" "2.0.1"
     "@tsconfig/svelte" "^1.0.0"
 
-"@sentry-internal/rrweb-snapshot@2.0.0-beta11.0":
-  version "2.0.0-beta11.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.0.0-beta11.0.tgz#54a5f54a0b5ae66927ef77d21be6750bceac692a"
-  integrity sha512-IF0NuVja+f5PrRYy5xwMZlv3gNmm46ODti3ECLuuxqZ0n93DKnicZ/Bc03sHpne2cVla+6x0+lGk6eHX4fqauw==
+"@sentry-internal/rrweb-snapshot@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.0.1.tgz#5467041c33815d7c07ec0e484a85418d31857ddc"
+  integrity sha512-C4fIzcpreOzDXkyPOBwGir9YvLiT9jeTa2WQ96U1RVRiLBvXhEyPKgMxWXQcyYTpzYtGwX9dLfHR29uOejzzxQ==
 
-"@sentry-internal/rrweb-types@2.0.0-beta11.0":
-  version "2.0.0-beta11.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.0.0-beta11.0.tgz#12ebea406a2813deab534b35ccc7a7081466ec21"
-  integrity sha512-LzaVyUOnd1SDMVeO9Mo8KndHIAMxBNPn972/rx+pB4lxOWUQiV627ymu9uUZR5XzvBUDmtpeEQalBsoFHJDDJQ==
+"@sentry-internal/rrweb-types@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.0.1.tgz#4f465715df2959cde486fe77fdda528d85a3c7f7"
+  integrity sha512-MQRdjsKm/kypHqumsWN+cmFhU0OWWoJSPNxOEG1efbUxZPvZL64tZSrgWimfisIId9TPDn0tr58sBhIgpqgNuw==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.0.0-beta11.0"
+    "@sentry-internal/rrweb-snapshot" "2.0.1"
 
-"@sentry-internal/rrweb@2.0.0-beta11.0":
-  version "2.0.0-beta11.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.0.0-beta11.0.tgz#9bcc760bd8b494ea87eea9ead54226146d8c27c6"
-  integrity sha512-9nLYk2ks+cdAKRQNycKhypPHMcF2f/N+yrcaqLVESotEbOgiJlH5CbNjW7XHNTXw6rWLkFtulBveghC4vSInlg==
+"@sentry-internal/rrweb@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.0.1.tgz#fa3a60d1e01362ba2ce58583f87bfa076d77ee3b"
+  integrity sha512-X33eL2CioQn0vOgkFVgu9L8LV4D4H48LFz7cqAofnWC5h6n36zsf7eIBpdDJKZ8JCj1z52h9gL5X+X4W2i/yXQ==
   dependencies:
-    "@sentry-internal/rrdom" "2.0.0-beta11.0"
-    "@sentry-internal/rrweb-snapshot" "2.0.0-beta11.0"
-    "@sentry-internal/rrweb-types" "2.0.0-beta11.0"
+    "@sentry-internal/rrdom" "2.0.1"
+    "@sentry-internal/rrweb-snapshot" "2.0.1"
+    "@sentry-internal/rrweb-types" "2.0.1"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
