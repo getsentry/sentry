@@ -82,12 +82,15 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           }}
         >
           <InteractionStateLayer />
-          <Flex column style={{gridArea: 'right'}}>
+          <Flex column style={{gridArea: 'checkbox'}}>
             <Checkbox
               checked={isChecked}
               onChange={e => onChecked(e.target.checked)}
               onClick={e => e.stopPropagation()}
             />
+          </Flex>
+          <Flex column style={{gridArea: 'right'}}>
+            {''}
           </Flex>
           <strong style={{gridArea: 'user'}}>
             <FeedbackItemUsername feedbackItem={feedbackItem} />
@@ -117,7 +120,7 @@ const CardSpacing = styled('div')`
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(0.75)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1.5)};
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -132,11 +135,12 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-columns: max-content 1fr max-content;
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
-    'right user time'
+    'checkbox user time'
     'right message message'
     'right icons icons';
   gap: ${space(1)};
   place-items: stretch;
+  align-items: center;
 `;
 
 export default FeedbackListItem;
