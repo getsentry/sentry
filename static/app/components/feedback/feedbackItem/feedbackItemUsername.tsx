@@ -20,9 +20,9 @@ export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Prop
   if (detailDisplay) {
     return (
       <strong>
-        {name ?? 'No Name'}
+        {name ?? t('No Name')}
         <Purple>•</Purple>
-        {email ?? 'No Email'}
+        {email ?? t('No Email')}
       </strong>
     );
   }

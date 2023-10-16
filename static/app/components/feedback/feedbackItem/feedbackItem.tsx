@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -24,7 +23,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
@@ -58,19 +56,14 @@ export default function FeedbackItem({feedbackItem}: Props) {
                 />
               ) : null}
             </Flex>
-            <Flex align="center" gap={space(0.5)}>
-              <ProjectAvatar project={project} size={12} /> {slug}
-              {feedbackItem.replay_id ? (
-                <Link
-                  to={{
-                    pathname: normalizeUrl(
-                      `/organizations/${organization.slug}/replays/${feedbackItem.replay_id}/`
-                    ),
-                  }}
-                >
-                  {getShortEventId(feedbackItem.replay_id)}
-                </Link>
-              ) : null}
+            <Flex gap={space(1.5)}>
+              <Flex column={false} align="center" gap={space(0.5)}>
+                <ProjectAvatar project={project} size={12} title={slug} /> {slug}
+              </Flex>
+              <Flex column={false} gap={space(1)}>
+                <Flex>{' > '}</Flex>
+                <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
+              </Flex>
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center">
