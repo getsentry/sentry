@@ -240,35 +240,41 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
+    let raf: number;
     function handleScroll(evt) {
       if (!props.scrollContainer) {
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      dispatch({type: 'set scroll top', payload: scrollTop});
+      raf !== undefined && window.cancelAnimationFrame(raf);
 
-      if (Array.isArray(props.scrollContainer)) {
-        for (let i = 0; i < props.scrollContainer.length; i++) {
-          props.scrollContainer[i].scrollTop = scrollTop;
+      raf = window.requestAnimationFrame(() => {
+        dispatch({type: 'set scroll top', payload: scrollTop});
+        if (Array.isArray(props.scrollContainer)) {
+          for (let i = 0; i < props.scrollContainer.length; i++) {
+            if (props.scrollContainer[i] === evt.target) {
+              // our scroll event is non blocking, so we only need to update the other containers
+              continue;
+            }
+            props.scrollContainer[i].scrollTop = scrollTop;
+          }
         }
-      } else {
-        props.scrollContainer.scrollTop = scrollTop;
-      }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'none';
+          });
+        } else {
+          (props.scrollContainer?.firstChild as HTMLElement).style.pointerEvents = 'none';
+        }
+      });
 
       if (scrollEndTimeoutId.current !== undefined) {
         cancelAnimationTimeout(scrollEndTimeoutId.current);
       }
 
-      if (Array.isArray(props.scrollContainer)) {
-        props.scrollContainer.forEach(container => {
-          if (!container.firstChild) {
-            return;
-          }
-          (container.firstChild as HTMLElement).style.pointerEvents = 'none';
-        });
-      } else {
-        (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'none';
-      }
       scrollEndTimeoutId.current = requestAnimationTimeout(() => {
         if (!props.scrollContainer) {
           return;
@@ -323,6 +329,9 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     return () => {
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
       if (!scrollContainer) {
         return;
       }
