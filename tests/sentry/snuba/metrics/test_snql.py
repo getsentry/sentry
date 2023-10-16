@@ -50,14 +50,14 @@ pytestmark = pytest.mark.sentry_metrics
 class DerivedMetricSnQLTestCase(TestCase):
     def setUp(self):
         self.org_id = 666
-        self.metric_ids = set()
+        self.metric_ids = []
         for metric_name in [
             TransactionMRI.MEASUREMENTS_LCP.value,
             TransactionMRI.DURATION.value,
         ]:
             metric_id = indexer.record(UseCaseID.TRANSACTIONS, self.org_id, metric_name)
             assert metric_id is not None
-            self.metric_ids.add(metric_id)
+            self.metric_ids.append(metric_id)
 
         indexer.bulk_record(
             {
