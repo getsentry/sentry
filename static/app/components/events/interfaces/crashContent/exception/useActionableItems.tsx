@@ -36,7 +36,7 @@ export function useActionableItems(props?: UseActionableItemsProps) {
 }
 
 /**
- * Check we have all required props and feature flag
+ * Check we have all required props
  */
 export function actionableItemsEnabled({
   eventId,
@@ -50,5 +50,5 @@ export function actionableItemsEnabled({
   if (!organization || !organization.features || !projectSlug || !eventId) {
     return false;
   }
-  return organization.features.includes('actionable-items');
+  return true;
 }
