@@ -25,7 +25,7 @@ function ReplayView({toggleFullscreen}: Props) {
       <Panel>
         <ReplayPlayer />
       </Panel>
-      {!hasNewTimeline ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
+      {hasNewTimeline ? null : <ReplayController toggleFullscreen={toggleFullscreen} />}
     </Fragment>
   );
 }
