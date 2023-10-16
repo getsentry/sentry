@@ -1578,7 +1578,7 @@ SENTRY_FEATURES = {
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
-    "organizations:new-page-filter": False,
+    "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
     "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
