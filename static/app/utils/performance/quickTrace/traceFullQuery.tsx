@@ -105,13 +105,10 @@ function GenericTraceFullQuery<T>({
 }
 
 export function TraceFullQuery(
-  props: Omit<QueryProps<TraceFull[] | TraceSplitResults<TraceFull>>, 'detailed'>
+  props: Omit<QueryProps<TraceSplitResults<TraceFull>>, 'detailed'>
 ) {
   return (
-    <GenericTraceFullQuery<TraceFull[] | TraceSplitResults<TraceFull>>
-      {...props}
-      detailed={false}
-    />
+    <GenericTraceFullQuery<TraceSplitResults<TraceFull>> {...props} detailed={false} />
   );
 }
 
