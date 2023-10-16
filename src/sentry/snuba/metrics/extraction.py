@@ -941,7 +941,7 @@ class OnDemandMetricSpec:
             if not match:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 
-            function, _, arguments, alias = unresolvedQueryBuilder.parse_function(match)
+            function, _, arguments, alias = query_builder.parse_function(match)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
         except InvalidSearchQuery:
             return None
