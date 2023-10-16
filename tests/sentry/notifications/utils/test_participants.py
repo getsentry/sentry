@@ -1186,7 +1186,6 @@ class GetSendToOwnersTestV2(GetSendToOwnersTest):
     def store_event_owners(self, filename: str) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
-    @with_feature("organizations:notifications-double-write")
     def setUp(self):
         super().setUp()
 
@@ -1243,7 +1242,6 @@ class GetSendToOwnersTestV2(GetSendToOwnersTest):
             slack=[self.user.id],
         )
 
-    @with_feature("organizations:notifications-double-write")
     @with_feature("organizations:notification-settings-v2")
     def test_disable_alerts_multiple_scopes(self):
         super().test_disable_alerts_multiple_scopes()

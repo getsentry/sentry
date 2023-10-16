@@ -11,7 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, TypeVar, overload
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -21,9 +21,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import type_from_value
-
-T = TypeVar("T")
+from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -33,27 +31,31 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
+_EnvTypes = Union[str, float, int, list, dict]
+
+
 @overload
 def env(key: str) -> str:
     ...
 
 
 @overload
-def env(key: str, default: T, type: Callable[[Any], T] | None = None) -> T:
+def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
     ...
 
 
 def env(
     key: str,
-    default: str | T = "",
-    type: Optional[Callable[[Any], T]] = None,
-) -> T:
+    default: str | _EnvTypes = "",
+    type: Optional[Type] = None,
+) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
 
     :param key: The environment variable to be extracted.
     :param default: The value to be returned if `key` is not found.
     :param type: The type of the returned object (defaults to the type of `default`).
+       Type parsers must come from sentry.utils.types and not python stdlib.
     :return: The environment variable if it exists, else `default`.
     """
 
@@ -1475,6 +1477,8 @@ SENTRY_FEATURES = {
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
     "organizations:issue-platform-extra-logging": False,
+    # Enable issue platform status change API for crons and SD issues
+    "organizations:issue-platform-api-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1675,6 +1679,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
+    # Enable the Replay Details > New timeline
+    "organizations:session-replay-new-timeline": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1786,8 +1792,6 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
-    # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
