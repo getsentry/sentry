@@ -1028,6 +1028,7 @@ def _raw_snql_query(
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = request.serialize()
+            print("SNQL body", body)
 
         with thread_hub.start_span(op="snuba_snql.run", description=str(request)) as span:
             span.set_tag("snuba.referrer", referrer)
