@@ -451,7 +451,7 @@ def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
     if file_id := instance.attachment_id:
         from sentry.models.files import File
 
-        File.objects.filter(file_id=file_id).delete()
+        File.objects.filter(id=file_id).delete()
 
 
 post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
