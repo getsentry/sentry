@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from snuba_sdk import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -37,13 +38,15 @@ class ReplayDataSourceValidator(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
     """
     Get all the replay ids associated with a set of issues/transactions in discover,
     then verify that they exist in the replays dataset, and return the count.
     """
+
+    owner = ApiOwner.REPLAY
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
 
     enforce_rate_limit = True
     rate_limits = {

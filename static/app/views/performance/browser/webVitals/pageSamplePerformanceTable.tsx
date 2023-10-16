@@ -1,80 +1,117 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {LinkButton} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import SearchBar from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {getDuration} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {Row} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {
+  PERFORMANCE_SCORE_MEDIANS,
+  PERFORMANCE_SCORE_P90S,
+} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {TransactionSampleRow} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
+import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
-type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
+type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
+  score: number;
+  view: any;
+};
 
-type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
+type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
 
-const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
-  {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
-  {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'p75(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'p75(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+const columnOrder: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[] = [
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
+  {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
+  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
-  {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
+  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
 ];
 
-export function PagePerformanceTable() {
+type Props = {
+  transaction: string;
+};
+
+export function PageSamplePerformanceTable({transaction}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+  const organization = useOrganization();
+  const routes = useRoutes();
+  const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
     [projects, location.query.project]
   );
 
-  const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: search});
+  // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
+  // We can't query by performance score yet, so we're using LCP as a best estimate
+  const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
+    useTransactionSamplesWebVitalsQuery({
+      limit: 3,
+      transaction,
+      query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
+    });
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
+    useTransactionSamplesWebVitalsQuery({
+      limit: 3,
+      transaction,
+      query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
+    });
 
-  const {data, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 10, transaction: search});
+  const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
+    useTransactionSamplesWebVitalsQuery({
+      limit: 3,
+      transaction,
+      query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
+    });
 
-  const count = projectData?.data[0]['count()'] as number;
+  // In case we don't have enough data, get some transactions with no LCP data
+  const {data: noLcpData, isLoading: isNoLcpTransactionWebVitalsQueryLoading} =
+    useTransactionSamplesWebVitalsQuery({
+      limit: 9,
+      transaction,
+      query: `!has:measurements.lcp`,
+    });
 
-  const tableData: RowWithScoreAndOpportunity[] = data
+  const data = [...goodData, ...mehData, ...poorData];
+
+  // If we don't have enough data, fill in the rest with no LCP data
+  if (data.length < 9) {
+    data.push(...noLcpData.slice(0, 9 - data.length));
+  }
+
+  const isTransactionWebVitalsQueryLoading =
+    isGoodTransactionWebVitalsQueryLoading ||
+    isMehTransactionWebVitalsQueryLoading ||
+    isPoorTransactionWebVitalsQueryLoading ||
+    isNoLcpTransactionWebVitalsQueryLoading;
+
+  const tableData: TransactionSampleRowWithScoreAndExtra[] = data
     .map(row => ({
       ...row,
-      opportunity: calculateOpportunity(
-        projectScore.totalScore,
-        count,
-        row.score,
-        row['count()']
-      ),
+      view: null,
     }))
-    .sort((a, b) => b.opportunity - a.opportunity);
+    .sort((a, b) => a.score - b.score);
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
@@ -82,12 +119,12 @@ export function PagePerformanceTable() {
   function renderHeadCell(col: Column) {
     if (
       [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.cls)',
-        'count()',
+        'measurements.fcp',
+        'measurements.lcp',
+        'measurements.ttfb',
+        'measurements.fid',
+        'measurements.cls',
+        'transaction.duration',
       ].includes(col.key)
     ) {
       return (
@@ -103,21 +140,10 @@ export function PagePerformanceTable() {
         </AlignCenter>
       );
     }
-    if (col.key === 'opportunity') {
-      return (
-        <Tooltip
-          title={t(
-            'The biggest opportunities to improve your cumulative performance score.'
-          )}
-        >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
-        </Tooltip>
-      );
-    }
     return <span>{col.name}</span>;
   }
 
-  function renderBodyCell(col: Column, row: RowWithScoreAndOpportunity) {
+  function renderBodyCell(col: Column, row: TransactionSampleRowWithScoreAndExtra) {
     const {key} = col;
     if (key === 'score') {
       return (
@@ -125,9 +151,6 @@ export function PagePerformanceTable() {
           <PerformanceBadge score={row.score} />
         </AlignCenter>
       );
-    }
-    if (key === 'count()') {
-      return <AlignRight>{formatAbbreviatedNumber(row['count()'])}</AlignRight>;
     }
     if (key === 'transaction') {
       return (
@@ -151,33 +174,68 @@ export function PagePerformanceTable() {
     }
     if (
       [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        'measurements.fcp',
+        'measurements.lcp',
+        'measurements.ttfb',
+        'measurements.fid',
+        'transaction.duration',
       ].includes(key)
     ) {
-      return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
+      return (
+        <AlignRight>
+          {row[key] === null ? (
+            <NoValue>{t('(no value)')}</NoValue>
+          ) : (
+            getFormattedDuration((row[key] as number) / 1000)
+          )}
+        </AlignRight>
+      );
     }
-    if (['p75(measurements.cls)', 'opportunity'].includes(key)) {
+    if (['measurements.cls', 'opportunity'].includes(key)) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+    }
+    if (key === 'view') {
+      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventTarget = eventDetailsRoute({
+        orgSlug: organization.slug,
+        eventSlug,
+      });
+      const replayTarget =
+        row['transaction.duration'] !== null &&
+        replayLinkGenerator(
+          organization,
+          {
+            replayId: row.replayId,
+            id: row.id,
+            'transaction.duration': row['transaction.duration'],
+            timestamp: row.timestamp,
+          },
+          undefined
+        );
+
+      return (
+        <NoOverflow>
+          <Flex>
+            <LinkButton to={eventTarget} size="xs">
+              {t('Event')}
+            </LinkButton>
+            {row.replayId && replayTarget && (
+              <LinkButton to={replayTarget} size="xs">
+                <IconPlay size="xs" />
+              </LinkButton>
+            )}
+          </Flex>
+        </NoOverflow>
+      );
     }
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
   return (
     <span>
-      <SearchBarContainer>
-        <SearchBar
-          placeholder={t('Search for Pages')}
-          onSearch={query => {
-            setSearch(query === '' ? undefined : query);
-          }}
-        />
-      </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          isLoading={isTransactionWebVitalsQueryLoading}
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}
@@ -215,14 +273,15 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
-const SearchBarContainer = styled('div')`
-  margin-bottom: ${space(1)};
-`;
-
 const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const OpportunityHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
+const Flex = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
+const NoValue = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
