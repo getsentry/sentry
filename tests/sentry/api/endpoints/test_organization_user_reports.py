@@ -124,7 +124,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
                 "event_id": "d" * 32,
                 "message": "oh no",
                 "environment": self.env_1.name,
-                "user": {"id": 1234, "email": "alice@example.com"},
+                "user": {
+                    "id": "123",
+                    "email": "alice@example.com",
+                    "username": "haveibeenpwned",
+                    "ip_address": "8.8.8.8",
+                    "name": "Alice",
+                },
             },
             project_id=self.project_1.id,
         )
@@ -141,11 +147,20 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200
         assert response.data[0]["comments"] == "It broke"
-        assert response.data[0]["user"]["name"] == "alice@example.com"
+        assert response.data[0]["user"]["name"] == "Alice"
         assert response.data[0]["user"]["email"] == "alice@example.com"
-        # assert mock_logger.info.call_count == 1
-        mock_logger.info.assert_called_with(
+        assert mock_logger.info.call_count == 2
+        mock_logger.info.assert_any_call(
             "EventUser equal to results from Errors dataset query.",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project_id,
+                "group_id": event.group_id,
+            },
+        )
+
+        mock_logger.info.assert_any_call(
+            "EventUser equal to Event user data.",
             extra={
                 "event_id": event.event_id,
                 "project_id": event.project_id,
