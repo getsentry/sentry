@@ -2140,7 +2140,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_incident_is_latest_for_rule(original_incident)
         self.metrics.incr.assert_has_calls(
             [
-                call("incidents.alert_rules.hit_rate_limit"),
+                call(
+                    "incidents.alert_rules.hit_rate_limit",
+                    tags={
+                        "last_incident_id": original_incident.id,
+                        "project_id": self.sub.project.id,
+                        "trigger_id": trigger.id,
+                    },
+                ),
             ],
             any_order=True,
         )
