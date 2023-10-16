@@ -1,6 +1,7 @@
 import {ComponentProps, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -15,7 +16,6 @@ import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
 import {
   ContentContainer,
   HeaderContainer,
@@ -120,7 +120,7 @@ function AccordionWidget({
             <div>{t('No results found')}</div>
             <EmptySubtitle>
               {tct(
-                "Once your users start clicking around, you'll see the top selectors that were [type] clicked here.",
+                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
@@ -130,6 +130,7 @@ function AccordionWidget({
         <LeftAlignedContentContainer>
           <Accordion
             buttonOnLeft
+            collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
@@ -310,7 +311,7 @@ export const RightAlignedCell = styled('div')`
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.8em;
+  line-height: 1.6em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;

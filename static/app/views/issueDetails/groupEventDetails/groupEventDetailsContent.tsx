@@ -10,7 +10,6 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
-import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
@@ -96,9 +95,6 @@ function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
-      {!hasActionableItems && (
-        <EventErrors event={event} project={project} isShare={false} />
-      )}
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}

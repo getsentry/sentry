@@ -35,14 +35,6 @@ logger = logging.getLogger(__name__)
 STATUS_SUCCESS = "success"
 
 
-def raises(exceptions: BaseException) -> Callable[[AnyCallable], AnyCallable]:
-    def decorator(function: AnyCallable) -> AnyCallable:
-        function.__raises__ = exceptions
-        return function
-
-    return decorator
-
-
 class Service:
     __all__: Tuple[str, ...] = ()
 
@@ -335,21 +327,19 @@ class Delegator:
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
                 except Exception as e:
-                    # If this isn't the primary backend, we log any unexpected
+                    # If this isn't the primary backend, we log any
                     # exceptions so that they don't pass by unnoticed. (Any
                     # exceptions raised by the primary backend aren't logged
                     # here, since it's assumed that the caller will log them
                     # from the calling thread.)
                     if not is_primary:
-                        expected_raises = getattr(base_value, "__raises__", [])
-                        if not expected_raises or not isinstance(e, tuple(expected_raises)):
-                            logger.warning(
-                                "%s caught in executor while calling %r on %s.",
-                                type(e).__name__,
-                                attribute_name,
-                                type(backend).__name__,
-                                exc_info=True,
-                            )
+                        logger.warning(
+                            "%s caught in executor while calling %r on %s.",
+                            type(e).__name__,
+                            attribute_name,
+                            type(backend).__name__,
+                            exc_info=True,
+                        )
                     raise
                 finally:
                     type(self).__state.context = None

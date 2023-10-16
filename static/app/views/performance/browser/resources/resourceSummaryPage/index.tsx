@@ -24,6 +24,8 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION} = SpanMetricsField;
+
 function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
@@ -31,10 +33,10 @@ function ResourceSummary() {
     query: {transaction},
   } = useLocation();
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    'avg(span.self_time)',
+    `avg(${SPAN_SELF_TIME})`,
     'spm()',
-    'span.op',
-    'span.description',
+    SPAN_OP,
+    SPAN_DESCRIPTION,
   ]);
 
   return (
