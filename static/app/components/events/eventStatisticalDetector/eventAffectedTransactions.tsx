@@ -352,6 +352,18 @@ function EventAffectedTransactionsInner({
   );
 }
 
+/**
+ * Find an example pair of profile ids from before and after the breakpoint.
+ *
+ * We prioritize profile ids from outside some window around the breakpoint
+ * because the breakpoint is not 100% accurate and giving a buffer around
+ * the breakpoint to so we can more accurate get a example profile from
+ * before and after ranges.
+ *
+ * @param examples list of example profile ids
+ * @param breakpointIndex the index where the breakpoint is
+ * @param window the window around the breakpoint to deprioritize
+ */
 function findExamplePair(
   examples: string[],
   breakpointIndex,
