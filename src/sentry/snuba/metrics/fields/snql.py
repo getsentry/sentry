@@ -878,7 +878,7 @@ def max_timestamp(
 
 
 def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
-    return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
+    return Function("sumIf", [Column("value"), aggregate_filter])
 
 
 def on_demand_failure_rate_snql_factory(
@@ -901,7 +901,26 @@ def on_demand_failure_count_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
     """Count the number of transactions where the failure tag is set to true."""
-    return sum_if_column_snql(aggregate_filter, org_id, use_case_id, "failure", "true", alias)
+    return Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "failure")),
+                            resolve_tag_value(use_case_id, org_id, "true"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+        alias=alias,
+    )
 
 
 def on_demand_apdex_snql_factory(
@@ -909,12 +928,49 @@ def on_demand_apdex_snql_factory(
 ) -> Function:
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
-    satisfactory = sum_if_column_snql(
-        aggregate_filter, org_id, use_case_id, "satisfaction", "satifactory"
+    satisfactory = Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
     )
     tolerable_divided_by_2 = Function(
         "divide",
-        [sum_if_column_snql(aggregate_filter, org_id, use_case_id, "satisfaction", "tolerable"), 2],
+        [
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                                    resolve_tag_value(use_case_id, org_id, "tolerable"),
+                                ],
+                            ),
+                            aggregate_filter,
+                        ],
+                    ),
+                ],
+            ),
+            2,
+        ],
     )
 
     return Function(
