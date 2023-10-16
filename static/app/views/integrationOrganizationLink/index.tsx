@@ -183,7 +183,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // Github uses a different installation flow with the installationId as a parameter
     // We have to wrap our installation button with AddIntegration so we can get the
     // addIntegrationWithInstallationId callback.
-    // if we don't hve an installationId, we need to use the finishInstallation callback.
+    // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled}) => (
