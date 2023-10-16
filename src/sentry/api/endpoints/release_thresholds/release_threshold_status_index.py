@@ -169,7 +169,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         )  # maybe prefetch "deploy_set" as well?
 
         # ========================================================================
-        # Step 3: flatten thresholds and compile projects/releases/thresholds by type
+        # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
         thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
         for release in queryset:
