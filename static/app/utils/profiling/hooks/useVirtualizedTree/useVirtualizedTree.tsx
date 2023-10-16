@@ -180,12 +180,14 @@ export function useVirtualizedTree<T extends TreeLike>(
   >(undefined);
 
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(
-      props.tree,
-      props.expanded,
-      props.skipFunction,
-      expandedHistory.current
-    );
+    const newTree =
+      props.virtualizedTree ||
+      VirtualizedTree.fromRoots(
+        props.tree,
+        props.expanded,
+        props.skipFunction,
+        expandedHistory.current
+      );
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
@@ -222,6 +224,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     flattenedHistory.current = newTree.flattened;
   }, [
     props.tree,
+    props.virtualizedTree,
     props.expanded,
     props.skipFunction,
     props.sortFunction,
@@ -237,28 +240,55 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
+    let raf: number;
     function handleScroll(evt) {
       if (!props.scrollContainer) {
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      dispatch({type: 'set scroll top', payload: scrollTop});
+      raf !== undefined && window.cancelAnimationFrame(raf);
 
-      if (Array.isArray(props.scrollContainer)) {
-        for (let i = 0; i < props.scrollContainer.length; i++) {
-          props.scrollContainer[i].scrollTop = scrollTop;
+      raf = window.requestAnimationFrame(() => {
+        dispatch({type: 'set scroll top', payload: scrollTop});
+        if (Array.isArray(props.scrollContainer)) {
+          for (let i = 0; i < props.scrollContainer.length; i++) {
+            if (props.scrollContainer[i] === evt.target) {
+              // our scroll event is non blocking, so we only need to update the other containers
+              continue;
+            }
+            props.scrollContainer[i].scrollTop = scrollTop;
+          }
         }
-      } else {
-        props.scrollContainer.scrollTop = scrollTop;
-      }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'none';
+          });
+        } else {
+          (props.scrollContainer?.firstChild as HTMLElement).style.pointerEvents = 'none';
+        }
+      });
 
       if (scrollEndTimeoutId.current !== undefined) {
         cancelAnimationTimeout(scrollEndTimeoutId.current);
       }
 
-      evt.target.firstChild.style.pointerEvents = 'none';
       scrollEndTimeoutId.current = requestAnimationTimeout(() => {
-        evt.target.firstChild.style.pointerEvents = 'auto';
+        if (!props.scrollContainer) {
+          return;
+        }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'auto';
+          });
+        } else {
+          (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'auto';
+        }
       }, 150);
 
       if (latestStateRef.current.selectedNodeIndex !== null) {
@@ -299,6 +329,9 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     return () => {
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
       if (!scrollContainer) {
         return;
       }

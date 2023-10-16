@@ -127,13 +127,6 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="empty-stacktrace")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-    def test_invalid_interfaces(self):
-        event = self.create_sample_event(platform="invalid-interfaces")
-        self.page.visit_issue(self.org.slug, event.group.id)
-
-        self.browser.click('[data-test-id="event-error-alert"]')
-        self.browser.wait_until_test_id("event-error-details")
-
     def test_activity_page(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)

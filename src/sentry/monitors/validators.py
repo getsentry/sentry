@@ -4,7 +4,7 @@ from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.base import (
@@ -230,6 +230,7 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
+@extend_schema_serializer(exclude_fields=["project", "name", "slug", "config", "alert_rule"])
 class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(max_length=128)
@@ -287,6 +288,7 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
+@extend_schema_serializer(exclude_fields=["duration", "environment", "monitor_config", "contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(

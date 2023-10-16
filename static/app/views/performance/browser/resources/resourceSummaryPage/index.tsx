@@ -8,6 +8,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -21,15 +22,21 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
+import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION} = SpanMetricsField;
 
 function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
+  const {
+    query: {transaction},
+  } = useLocation();
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    'avg(span.self_time)',
+    `avg(${SPAN_SELF_TIME})`,
     'spm()',
-    'span.op',
-    'span.description',
+    SPAN_OP,
+    SPAN_DESCRIPTION,
   ]);
 
   return (
@@ -90,6 +97,7 @@ function ResourceSummary() {
           </HeaderContainer>
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
+          <SampleList groupId={groupId} transactionName={transaction as string} />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
