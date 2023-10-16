@@ -16,11 +16,6 @@ import {
   useReleaseStats,
 } from 'sentry/views/starfish/queries/useReleases';
 
-const ALL_RELEASES = {
-  value: 'allReleases',
-  label: t('All Releases'),
-};
-
 type Props = {
   selectorKey: string;
   selectorName?: string;
@@ -28,40 +23,49 @@ type Props = {
 };
 
 export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
-  const [activeRelease, setActiveRelease] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {data: releaseStats} = useReleaseStats();
   const location = useLocation();
-  let value = selectorValue;
 
-  if (!isLoading && !defined(value)) {
-    value = ALL_RELEASES.value;
+  const options: SelectOption<string>[] = [];
+  if (defined(selectorValue)) {
+    options.push({
+      value: selectorValue,
+      label: selectorValue,
+    });
   }
+  data
+    ?.filter(({version}) => selectorValue !== version)
+    .forEach(release => {
+      const option = {
+        value: release.version,
+        label: release.version,
+        details: (
+          <LabelDetails sessionCount={releaseStats[release.version]?.['sum(session)']} />
+        ),
+      };
 
-  const options: SelectOption<number>[] = [];
-  (data ?? [ALL_RELEASES]).forEach(release => {
-    const option = {
-      value: release.version,
-      label: release.shortVersion ?? release.version,
-      details: (
-        <LabelDetails sessionCount={releaseStats[release.version]?.['sum(session)']} />
-      ),
-    };
-
-    options.push(option);
-  });
+      options.push(option);
+    });
 
   return (
     <StyledCompactSelect
       triggerProps={{
         prefix: selectorName,
+        title: selectorValue,
       }}
+      loading={isLoading}
       searchable
-      value={activeRelease ?? selectorValue}
-      options={[{options}]}
+      value={selectorValue}
+      options={[
+        {
+          value: '_releases',
+          label: t('Sorted by date created'),
+          options,
+        },
+      ]}
       onSearch={debounce(val => {
-        setActiveRelease(activeRelease ?? selectorValue);
         setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={newValue => {
@@ -72,6 +76,9 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
             [selectorKey]: newValue.value,
           },
         });
+      }}
+      onClose={() => {
+        setSearchTerm(undefined);
       }}
     />
   );
