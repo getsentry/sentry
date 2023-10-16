@@ -151,7 +151,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
 
               return children({
                 ...traceLiteResults,
-                trace: traceTransaction ? traceTransactions : [],
+                trace: Array.isArray(traceTransactions) ? traceTransactions : [],
                 orphanErrors: orphanErrorsLite,
                 currentEvent: orphanError ?? traceTransaction ?? null,
               });
