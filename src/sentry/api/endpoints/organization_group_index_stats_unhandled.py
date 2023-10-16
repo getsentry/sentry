@@ -17,7 +17,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @region_silo_endpoint
 class OrganizationGroupIndexStatsUnhandledEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
