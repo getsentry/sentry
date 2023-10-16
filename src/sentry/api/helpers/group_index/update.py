@@ -734,11 +734,12 @@ def handle_is_bookmarked(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
-        if features.has("organizations:participants-purge", group_list[0].organization):
-            GroupSubscription.objects.filter(
-                user_id=acting_user.id,
-                group__in=group_ids,
-            ).delete()
+        if group_list:
+            if features.has("organizations:participants-purge", group_list[0].organization):
+                GroupSubscription.objects.filter(
+                    user_id=acting_user.id,
+                    group__in=group_ids,
+                ).delete()
 
 
 def handle_has_seen(
