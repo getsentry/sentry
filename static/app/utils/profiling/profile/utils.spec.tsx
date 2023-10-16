@@ -7,23 +7,26 @@ import {
 
 describe('createSentrySampleProfileFrameIndex', () => {
   it('dedupes frames', () => {
-    const frameIndex = createSentrySampleProfileFrameIndex([
-      {
-        in_app: true,
-        function: 'foo',
-        lineno: 100,
-      },
-      {
-        in_app: true,
-        function: 'bar',
-        lineno: 105,
-      },
-      {
-        in_app: true,
-        function: 'foo',
-        lineno: 100,
-      },
-    ]);
+    const frameIndex = createSentrySampleProfileFrameIndex(
+      [
+        {
+          in_app: true,
+          function: 'foo',
+          lineno: 100,
+        },
+        {
+          in_app: true,
+          function: 'bar',
+          lineno: 105,
+        },
+        {
+          in_app: true,
+          function: 'foo',
+          lineno: 100,
+        },
+      ],
+      'javascript'
+    );
 
     const fooFrame = new Frame({
       key: 0,

@@ -9,11 +9,12 @@ import {CallTreeNode} from '../callTreeNode';
 type FrameIndex = Record<string | number, Frame>;
 
 export function createSentrySampleProfileFrameIndex(
-  frames: Profiling.SentrySampledProfile['profile']['frames']
+  frames: Profiling.SentrySampledProfile['profile']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
 ): FrameIndex {
-  const framesList: Frame[] = [];
-  const framesIndex: Record<string, number> = {};
-  const indices: number[] = [];
+  const index: FrameIndex = {};
+  const insertionCache: Set<string> = new Set();
+  let idx = -1;
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
@@ -21,36 +22,32 @@ export function createSentrySampleProfileFrameIndex(
       String(frame.lineno) ?? ''
     }:${frame.instruction_addr ?? ''}`;
 
-    let index = framesIndex[frameKey];
-    if (!defined(index)) {
-      index = framesList.length;
-      framesIndex[frameKey] = index;
-      framesList.push(
-        new Frame({
-          key: i,
-          is_application: frame.in_app,
-          file: frame.filename,
-          path: frame.abs_path,
-          module: frame.module,
-          package: frame.package,
-          name: frame.function ?? 'unknown',
-          line: frame.lineno,
-          column: frame.colno,
-          instructionAddr: frame.instruction_addr,
-          symbol: frame.symbol,
-          symbolAddr: frame.sym_addr,
-          symbolicatorStatus: frame.status,
-        })
-      );
+    if (insertionCache.has(frameKey)) {
+      continue;
     }
-    indices.push(index);
+
+    index[++idx] = new Frame(
+      {
+        key: i,
+        is_application: frame.in_app,
+        file: frame.filename,
+        path: frame.abs_path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.function ?? 'unknown',
+        line: frame.lineno,
+        column: frame.colno,
+        instructionAddr: frame.instruction_addr,
+        symbol: frame.symbol,
+        symbolAddr: frame.sym_addr,
+        symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    insertionCache.add(frameKey);
   }
 
-  const frameIndex: FrameIndex = {};
-  for (let i = 0; i < indices.length; i++) {
-    frameIndex[i] = framesList[indices[i]];
-  }
-  return frameIndex;
+  return index;
 }
 
 export function createFrameIndex(

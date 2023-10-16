@@ -115,7 +115,10 @@ function importSentrySampledProfile(
   input: Readonly<Profiling.SentrySampledProfile>,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
+  const frameIndex = createSentrySampleProfileFrameIndex(
+    input.profile.frames,
+    input.platform
+  );
   const samplesByThread: Record<
     string,
     Profiling.SentrySampledProfile['profile']['samples']
