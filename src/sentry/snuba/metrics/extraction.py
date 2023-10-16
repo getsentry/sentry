@@ -612,7 +612,7 @@ def apdex_tag_spec(project: Project, arguments: Optional[List[str]]) -> List[Tag
         raise Exception("apdex requires a threshold parameter.")
 
     field = _map_field_name(metric)
-    (threshold,) = arguments
+    threshold = arguments[0]
     apdex_threshold = int(threshold)
 
     return [
