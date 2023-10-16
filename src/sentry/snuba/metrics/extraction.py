@@ -832,7 +832,7 @@ class OnDemandMetricSpec:
 
         return metric_spec
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[List[str]]]:
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[list[str]]]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
