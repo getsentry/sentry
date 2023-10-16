@@ -4,7 +4,6 @@ from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -152,7 +151,6 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         assert value1 == NotificationSettingOptionValues.DEFAULT
         assert value2 == NotificationSettingOptionValues.NEVER
 
-    @with_feature("organizations:notifications-double-write")
     def test_double_write(self):
         data = {str(self.project.id): 1, str(self.project2.id): 2}
         self.get_success_response("me", "workflow", status_code=204, **data)
@@ -333,7 +331,6 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             == set()
         )
 
-    @with_feature("organizations:notifications-double-write")
     def test_double_write_weekly_report(self):
         data = {str(self.organization.id): 1, str(self.organization2.id): "1"}
         self.get_success_response("me", "reports", status_code=204, **data)
