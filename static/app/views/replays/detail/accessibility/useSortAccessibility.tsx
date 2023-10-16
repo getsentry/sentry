@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
-import {HydratedA11yIssue} from 'sentry/utils/replays/hydrateA11yRecord';
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface SortConfig {
   asc: boolean;
-  by: keyof HydratedA11yIssue | string;
-  getValue: (row: HydratedA11yIssue) => any;
+  by: keyof HydratedA11yFrame | string;
+  getValue: (row: HydratedA11yFrame) => any;
 }
 
 const IMPACT_SORT = {
@@ -26,7 +26,7 @@ const SortStrategies: Record<string, (row) => any> = {
 const DEFAULT_ASC = 'false';
 const DEFAULT_BY = 'impact';
 
-type Opts = {items: HydratedA11yIssue[]};
+type Opts = {items: HydratedA11yFrame[]};
 
 function useSortAccessibility({items}: Opts) {
   const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
@@ -78,9 +78,9 @@ function useSortAccessibility({items}: Opts) {
 }
 
 function sortAccessibility(
-  accessibility: HydratedA11yIssue[],
+  accessibility: HydratedA11yFrame[],
   sortConfig: SortConfig
-): HydratedA11yIssue[] {
+): HydratedA11yFrame[] {
   return [...accessibility].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

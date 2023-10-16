@@ -1,7 +1,11 @@
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import replayerStepper from 'sentry/utils/replays/replayerStepper';
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {
+  getNodeId,
+  type RecordingFrame,
+  type ReplayFrame,
+} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -25,12 +29,12 @@ export default function extractDomNodes({
     rrwebEvents,
     startTimestampMs,
     shouldVisitFrame: frame => {
-      const nodeId = frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
+      const nodeId = getNodeId(frame);
       return nodeId !== undefined && nodeId !== -1;
     },
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
-      const nodeId = frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
+      const nodeId = getNodeId(frame);
       const html = extractHtml(nodeId as number, mirror);
       collection.set(frame as ReplayFrame, {
         frame,
