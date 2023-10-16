@@ -164,7 +164,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int],
+    group_ids: Sequence[int] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -711,7 +711,7 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group],
+    group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
     project_lookup: Dict[int, Project],
     acting_user: User | None,
