@@ -1468,6 +1468,15 @@ function buildRoutes() {
       >
         {releasesChildRoutes({forCustomerDomain: false})}
       </Route>
+      <Route
+        path="/organizations/:orgId/release-thresholds/"
+        component={withDomainRedirect(NoOp)}
+        key="org-releases"
+      >
+        <IndexRoute
+          component={make(() => import('sentry/views/releaseThresholds/list'))}
+        />
+      </Route>
     </Fragment>
   );
 
@@ -2272,6 +2281,15 @@ function buildRoutes() {
           redirectDeprecatedProjectRoute(
             ({orgId, projectId, router}) =>
               `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="release-thresholds/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/releases/?project=${projectId}`
           )
         )}
       />
