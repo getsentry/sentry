@@ -61,7 +61,6 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
-    on_demand_count_web_vitals_snql_factory,
     on_demand_epm_snql_factory,
     on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,

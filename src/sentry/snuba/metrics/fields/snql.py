@@ -449,13 +449,6 @@ def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Funct
     )
 
 
-def _web_vital_equivalence(org_id: int, measurement_rating: str) -> Function:
-    return Function(
-        "equals",
-        [],
-    )
-
-
 def _metric_id_equivalence(metric_condition: Function) -> Function:
     return Function(
         "equals",
@@ -914,17 +907,6 @@ def on_demand_apdex_snql_factory(
         "divide",
         [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
         alias=alias,
-    )
-
-
-def on_demand_count_web_vitals_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
-):
-    return _count_if_with_conditions(
-        [
-            _web_vital_equivalence(org_id, TransactionSatisfactionTagValue.SATISFIED.value),
-        ],
-        alias,
     )
 
 
