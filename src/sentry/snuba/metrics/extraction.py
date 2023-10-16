@@ -31,7 +31,6 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -127,7 +126,6 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
-    "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
 }
@@ -146,7 +144,6 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "count_miserable": "c",
     "failure_count": "c",
     "failure_rate": "c",
-    "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
     "eps": "c",

@@ -97,11 +97,11 @@ MetricOperationType = Literal[
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
+    "on_demand_count_miserable",
     "on_demand_epm",
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
-    "on_demand_count_web_vitals",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -290,11 +290,11 @@ DERIVED_OPERATIONS = (
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
+    "on_demand_count_miserable",
     "on_demand_epm",
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
-    "on_demand_count_web_vitals",
 )
 OPERATIONS = (
     (
