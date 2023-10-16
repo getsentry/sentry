@@ -569,7 +569,14 @@ class SubscriptionProcessor:
                 and self.subscription.project.id in last_incident_projects
                 and minutes_since_last_incident <= 10
             ):
-                metrics.incr("incidents.alert_rules.hit_rate_limit")
+                metrics.incr(
+                    "incidents.alert_rules.hit_rate_limit",
+                    tags={
+                        "last_incident_id": last_incident.id,
+                        "project_id": self.subscription.project.id,
+                        "trigger_id": trigger.id,
+                    },
+                )
                 return None
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
