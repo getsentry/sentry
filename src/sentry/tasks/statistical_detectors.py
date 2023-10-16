@@ -362,6 +362,7 @@ def query_transactions_timeseries(
             ],
             groupby=[
                 Column("transaction_name"),
+                Column("project_id"),
                 Function(
                     "toStartOfInterval",
                     (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
@@ -377,9 +378,15 @@ def query_transactions_timeseries(
                 Condition(Column("transaction_name"), Op.IN, [t for _, t in transaction_chunk]),
             ],
             orderby=[
-                OrderBy(Column("project_id"), Direction.DESC),
-                OrderBy(Column("project_id"), Direction.DESC),
-                OrderBy(Column("count"), Direction.DESC),
+                OrderBy(Column("transaction_name"), Direction.DESC),
+                OrderBy(
+                    Function(
+                        "toStartOfInterval",
+                        (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                        "time",
+                    ),
+                    Direction.ASC,
+                ),
             ],
             granularity=Granularity(interval),
             limit=Limit(10000),
@@ -418,7 +425,7 @@ def query_transactions_timeseries(
             # yield row["project_id"], row["transaction_name"], row["time"]
 
 
-def query_transactions_timeseries_cross_org(
+def query_transactions_timeseries_old(
     transactions: List[Tuple[int, int | str]],
     start: datetime,
     agg_function: str,
