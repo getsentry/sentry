@@ -15,6 +15,12 @@ from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.utils import json
 
+DECRYPT_WITH_HELP = """A path to a file containing a private key with which to decrypt a tarball
+                    previously encrypted using an `export ... --encrypt_with=<PUBLIC_KEY>` command.
+                    The private key provided via this flag should be the complement of the public
+                    key used to encrypt the tarball (this public key is included in the tarball
+                    itself)."""
+
 ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
                        enabled and points to a valid key, the output file will be a tarball
                        containing 3 constituent files: 1. An encrypted JSON file called
@@ -106,6 +112,11 @@ def import_():
 @import_.command(name="users")
 @click.argument("src", type=click.File("rb"))
 @click.option(
+    "--decrypt_with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
     "--filter_usernames",
     default="",
     type=str,
@@ -120,13 +131,14 @@ def import_():
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_users(src, filter_usernames, merge_users, silent):
+def import_users(src, decrypt_with, filter_usernames, merge_users, silent):
     """
     Import the Sentry users from an exported JSON file.
     """
 
     import_in_user_scope(
         src,
+        decrypt_with=decrypt_with,
         flags=ImportFlags(merge_users=merge_users),
         user_filter=parse_filter_arg(filter_usernames),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
@@ -135,6 +147,11 @@ def import_users(src, filter_usernames, merge_users, silent):
 
 @import_.command(name="organizations")
 @click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt_with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
 @click.option(
     "--filter_org_slugs",
     default="",
@@ -151,13 +168,14 @@ def import_users(src, filter_usernames, merge_users, silent):
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_organizations(src, filter_org_slugs, merge_users, silent):
+def import_organizations(src, decrypt_with, filter_org_slugs, merge_users, silent):
     """
     Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
     """
 
     import_in_organization_scope(
         src,
+        decrypt_with=decrypt_with,
         flags=ImportFlags(merge_users=merge_users),
         org_filter=parse_filter_arg(filter_org_slugs),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
@@ -166,6 +184,11 @@ def import_organizations(src, filter_org_slugs, merge_users, silent):
 
 @import_.command(name="config")
 @click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt_with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @click.option(
     "--merge_users",
@@ -180,13 +203,14 @@ def import_organizations(src, filter_org_slugs, merge_users, silent):
     help=OVERWRITE_CONFIGS_HELP,
 )
 @configuration
-def import_config(src, merge_users, overwrite_configs, silent):
+def import_config(src, decrypt_with, merge_users, overwrite_configs, silent):
     """
     Import all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
     import_in_config_scope(
         src,
+        decrypt_with=decrypt_with,
         flags=ImportFlags(merge_users=merge_users, overwrite_configs=overwrite_configs),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
@@ -195,6 +219,11 @@ def import_config(src, merge_users, overwrite_configs, silent):
 @import_.command(name="global")
 @click.argument("src", type=click.File("rb"))
 @click.option(
+    "--decrypt_with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
     "--overwrite_configs",
     default=False,
     is_flag=True,
@@ -202,13 +231,14 @@ def import_config(src, merge_users, overwrite_configs, silent):
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_global(src, silent, overwrite_configs):
+def import_global(src, decrypt_with, silent, overwrite_configs):
     """
     Import all Sentry data from an exported JSON file.
     """
 
     import_in_global_scope(
         src,
+        decrypt_with=decrypt_with,
         flags=ImportFlags(overwrite_configs=overwrite_configs),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
