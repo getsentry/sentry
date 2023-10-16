@@ -26,7 +26,7 @@ export default function useFetchThresholdsListData({
 
   return useApiQuery<Threshold[]>(
     [
-      `/organizations/${organization.id}/releases/thresholds/`,
+      `/organizations/${organization.id}/release-thresholds/`,
       {
         query,
       },
