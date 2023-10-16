@@ -1,27 +1,30 @@
+import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, PageFilters, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+// import {Organization, PageFilters, Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
+// import usePageFilters from 'sentry/utils/usePageFilters';
+// import useProjects from 'sentry/utils/useProjects';
+// import useRouter from 'sentry/utils/useRouter';
 import Header from '../components/header';
 
 type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
-};
+type Props = RouteComponentProps<RouteParams, {}> & {};
 
-function ReleaseThresholdList({router, organization}: Props) {
-  const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
-  if (!hasV2ReleaseUIEnabled) {
-    router.replace('/releases/');
-  }
+function ReleaseThresholdList({router}: Props) {
+  const organization = useOrganization();
+  useEffect(() => {
+    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
+    if (!hasV2ReleaseUIEnabled) {
+      router.replace('/releases/');
+    }
+  }, [router, organization]);
+  // const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  // const {selection, isReady, desyncedFilters} = usePageFilters();
 
   return (
     <div>
@@ -30,4 +33,4 @@ function ReleaseThresholdList({router, organization}: Props) {
   );
 }
 
-export default withProjects(withOrganization(withPageFilters(ReleaseThresholdList)));
+export default ReleaseThresholdList;
