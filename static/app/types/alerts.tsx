@@ -9,6 +9,7 @@ export const enum IssueAlertActionType {
   JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
   JIRA_SERVER_CREATE_TICKET = 'sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction',
   AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
+  GITHUB_CREATE_TICKET = 'sentry.integrations.github.notify_action.GitHubCreateTicketAction',
   SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
   MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',
   PAGER_DUTY = 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
