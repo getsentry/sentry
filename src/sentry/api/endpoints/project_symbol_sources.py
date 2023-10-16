@@ -43,6 +43,7 @@ def _get_sources_schema_with_optional_id() -> dict:
 SOURCE_SCHEMA_OPTIONAL_ID = _get_sources_schema_with_optional_id()
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
