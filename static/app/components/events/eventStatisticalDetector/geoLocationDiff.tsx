@@ -182,6 +182,6 @@ export default GeoLocationDiff;
 
 const GeoAnalysisEntry = styled('div')`
   display: grid;
-  grid-template-columns: 20px auto auto;
+  grid-template-columns: min-content auto min-content;
   gap: 8px;
 `;
