@@ -316,7 +316,7 @@ class ProjectSerializer(Serializer):
             return span
 
         use_notifications_v2 = should_use_notifications_v2(item_list[0].organization)
-        include_subscriptions = features.has(
+        skip_subscriptions = features.has(
             "organizations:cleanup-project-serializer", item_list[0].organization
         )
         with measure_span("preamble"):
@@ -328,7 +328,7 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                if include_subscriptions:
+                if not skip_subscriptions:
                     if use_notifications_v2:
                         subscriptions = notifications_service.get_subscriptions_for_projects(
                             user_id=user.id,
@@ -347,7 +347,7 @@ class ProjectSerializer(Serializer):
                         )
             else:
                 bookmarks = set()
-                if include_subscriptions:
+                if not skip_subscriptions:
                     if use_notifications_v2:
                         subscriptions = {}
                     else:
@@ -395,7 +395,7 @@ class ProjectSerializer(Serializer):
             else:
                 recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                if include_subscriptions:
+                if not skip_subscriptions:
                     # TODO(snigdha): why is this not included in the serializer
                     is_subscribed = False
                     if use_notifications_v2:
