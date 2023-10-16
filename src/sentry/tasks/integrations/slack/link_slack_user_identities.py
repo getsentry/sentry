@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 @instrumented_task(
     name="sentry.integrations.slack.link_users_identities",
-    queue="integrations",
+    queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
 )
 def link_slack_user_identities(
