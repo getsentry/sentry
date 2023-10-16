@@ -4,7 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 export function appendReleaseFilters(
   query: MutableSearch,
   primaryRelease: string | undefined,
-  secondaryRelease: string | undefined
+  secondaryRelease?: string
 ) {
   let queryString: string = query.formatString();
   if (

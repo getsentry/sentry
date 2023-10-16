@@ -68,6 +68,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_app_by_id(self, *, id: int) -> Optional[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
         pass
 

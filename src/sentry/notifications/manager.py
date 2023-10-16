@@ -28,7 +28,6 @@ from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
-    is_double_write_enabled,
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
     validate,
@@ -210,11 +209,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 **{id_key: actor_id},
             )
 
-        if not is_double_write_enabled(
-            user_id=user_id, organization_id_for_team=organization_id_for_team
-        ):
-            return
-
         # implement the double write now
         query_args = {
             "type": NOTIFICATION_SETTING_TYPES[type],
@@ -255,23 +249,19 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             user_id = user.id
 
         # get the actor type and actor id
-        use_double_write = is_double_write_enabled(
-            user_id=user_id, organization_id_for_team=organization_id_for_team
+        scope_type, scope_identifier = get_scope(
+            team=team_id, user=user_id, project=project, organization=organization
         )
-        if use_double_write:
-            scope_type, scope_identifier = get_scope(
-                team=team_id, user=user_id, project=project, organization=organization
-            )
-            scope_type_str = NOTIFICATION_SCOPE_TYPE[scope_type]
-            # remove the option setting
-            NotificationSettingOption.objects.filter(
-                scope_type=scope_type_str,
-                scope_identifier=scope_identifier,
-                team_id=team_id,
-                user_id=user_id,
-                type=type,
-            ).delete()
-            # the provider setting is updated elsewhere
+        scope_type_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+        # remove the option setting
+        NotificationSettingOption.objects.filter(
+            scope_type=scope_type_str,
+            scope_identifier=scope_identifier,
+            team_id=team_id,
+            user_id=user_id,
+            type=type,
+        ).delete()
+        # the provider setting is updated elsewhere
 
         self.find_settings(
             provider,
@@ -614,10 +604,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         user_id = user.id if user else None
         team_id = team.id if team else None
-        if not is_double_write_enabled(
-            user_id=user_id, organization_id_for_team=organization_id_for_team
-        ):
-            return
 
         enabled_providers = defaultdict(set)
         disabled_providers = defaultdict(set)

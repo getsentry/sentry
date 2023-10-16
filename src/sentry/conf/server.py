@@ -1361,8 +1361,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Enables actionable items alerts and endpoint
-    "organizations:actionable-items": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1477,6 +1475,8 @@ SENTRY_FEATURES = {
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
     "organizations:issue-platform-extra-logging": False,
+    # Enable issue platform status change API for crons and SD issues
+    "organizations:issue-platform-api-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1790,8 +1790,6 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
-    # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
