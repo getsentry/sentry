@@ -78,3 +78,24 @@ def test_config_relocation_scope_validity():
     # Models with a `Config` or `User` relocation scope are only allowed to transitively depend on
     # other similarly-scoped models.
     validate_dependency_scopes({RelocationScope.Config, RelocationScope.User})
+
+
+def test_all_exported_model_slug_fields_are_unique():
+    # The relocation code assumes that any field whose name ends is "slug" is included in at least
+    # one "unique set": that is, either the field itself is marked `unique=True`, or the `slug`
+    # field is included in at least one `unique_together` declaration.
+    for model_name, model_relations in dependencies().items():
+        if model_relations.relocation_scope == RelocationScope.Excluded:
+            continue
+
+        if any(field.name == "slug" for field in model_relations.model._meta.get_fields()):
+            matched = False
+            for fields in model_relations.uniques:
+                for field in fields:
+                    if field == "slug":
+                        matched = True
+
+            if not matched:
+                raise AssertionError(
+                    f"The model {model_name} has a `slug` field, but this field is neither marked `unique=True` nor included in a `Meta.unique_together` declaration."
+                )

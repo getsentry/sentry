@@ -1,15 +1,30 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from functools import lru_cache
 from typing import Generic, NamedTuple, Type, TypeVar
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 
 # Django apps we take care to never import or export from.
 EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures"))
+
+UTC_0 = timezone(timedelta(hours=0))
+
+
+class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
+    """A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
+    their implicit value is `.000`. This is necessary because the ECMA-262 compatible
+    `DjangoJSONEncoder` drops these by default."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.astimezone(UTC_0).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        return super().default(obj)
 
 
 def get_final_derivations_of(model: Type) -> set[Type]:

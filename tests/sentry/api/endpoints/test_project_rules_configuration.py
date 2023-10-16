@@ -9,6 +9,7 @@ EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
 JIRA_SERVER_ACTION = "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
+AZURE_DEV_OPS_ACTION = "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
@@ -19,6 +20,7 @@ class ProjectRuleConfigurationTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        self.ticket_actions = [JIRA_ACTION, AZURE_DEV_OPS_ACTION]
 
     def test_simple(self):
         team = self.create_team()
@@ -94,16 +96,30 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         action_ids = [action["id"] for action in response.data["actions"]]
         assert EMAIL_ACTION in action_ids
-        assert JIRA_ACTION in action_ids
-        assert JIRA_SERVER_ACTION in action_ids
+        for action in self.ticket_actions:
+            assert action in action_ids
 
     def test_ticket_rules_not_in_available_actions(self):
         with self.feature({"organizations:integrations-ticket-rules": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, includeAllTickets=True
+            )
+
             action_ids = [action["id"] for action in response.data["actions"]]
             assert EMAIL_ACTION in action_ids
-            assert JIRA_ACTION not in action_ids
-            assert JIRA_SERVER_ACTION not in action_ids
+            for action in self.ticket_actions:
+                assert action not in action_ids
+            assert "disabledTicketActions" not in response.data
+
+    @patch("sentry.api.endpoints.project_rules_configuration.rules", new=[])
+    def test_show_disabled_ticket_actions(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, includeAllTickets=True
+        )
+        disabled_ticket_actions = response.data["disabledTicketActions"]
+        assert len(disabled_ticket_actions) == 2
+        for ticket in self.ticket_actions:
+            assert ticket in disabled_ticket_actions
 
     def test_sentry_app_alertable_webhook(self):
         team = self.create_team()

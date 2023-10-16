@@ -16,14 +16,18 @@ import {useResourcesQuery} from 'sentry/views/performance/browser/resources/util
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+
+const {SPAN_DESCRIPTION, RESOURCE_RENDER_BLOCKING_STATUS, SPAN_OP, SPAN_SELF_TIME} =
+  SpanMetricsField;
 
 type Row = {
   'avg(span.self_time)': number;
-  domain: string;
   'http.decoded_response_content_length': number;
   'http.response_content_length': number;
   'resource.render_blocking_status': string;
   'span.description': string;
+  'span.domain': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
@@ -40,9 +44,9 @@ function ResourceTable({sort}: Props) {
   const {data, isLoading, pageLinks} = useResourcesQuery({sort});
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Type'},
-    {key: 'avg(span.self_time)', width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
+    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: 'Type'},
+    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
     {
       key: 'spm()',
       width: COL_WIDTH_UNDEFINED,
@@ -54,7 +58,7 @@ function ResourceTable({sort}: Props) {
       name: 'Resource size',
     },
     {
-      key: 'resource.render_blocking_status',
+      key: RESOURCE_RENDER_BLOCKING_STATUS,
       width: COL_WIDTH_UNDEFINED,
       name: 'Render blocking',
     },
@@ -71,13 +75,12 @@ function ResourceTable({sort}: Props) {
           Math.random() * (1000 - 500) + 500
         ),
         'http.response_content_length': Math.floor(Math.random() * (500 - 50) + 50),
-        domain: 's1.sentry-cdn.com',
       }))
     : [];
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    if (key === 'span.description') {
+    if (key === SPAN_DESCRIPTION) {
       return (
         <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
           {row[key]}
@@ -90,10 +93,10 @@ function ResourceTable({sort}: Props) {
     if (key === 'http.response_content_length') {
       return <FileSize bytes={row[key]} />;
     }
-    if (key === 'avg(span.self_time)') {
+    if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
     }
-    if (key === 'span.op') {
+    if (key === SPAN_OP) {
       const opNameMap = {
         'resource.script': t('Javascript'),
         'resource.img': t('Image'),
