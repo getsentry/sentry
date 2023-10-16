@@ -34,6 +34,7 @@ from django.utils import timezone
 from sentry_sdk.tracing import Span
 from typing_extensions import Self
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseModel,
@@ -536,9 +537,12 @@ class OutboxBase(Model):
                     # id seen since we started to flush has been processed.  If that is not the case in a high
                     # contention scenario, we should raise an exception to prevent breaking read after write invariance.
                     if next_shard_row is not None:
-                        raise OutboxFlushError(
-                            f"Could not flush shard category={self.category}", self
-                        ) from e
+                        # TODO: Remove me -- once we get deployed past canary, we want these exceptions to block any
+                        # contentions that is occurring to preserve the read after write invariance.
+                        if options.get("hybrid_cloud.outbox_lock.raise_on_contention"):
+                            raise OutboxFlushError(
+                                f"Could not flush shard category={self.category}", self
+                            ) from e
                 yield None
                 return
             except Exception as e:
