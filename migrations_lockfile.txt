@@ -9,5 +9,5 @@ feedback: 0003_feedback_add_env
 hybridcloud: 0004_add_cache_version
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0574_backfill_weekly_report_settings
+sentry: 0575_incident_date_added_index
 social_auth: 0002_default_auto_field
