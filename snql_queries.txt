@@ -1,1 +1,14 @@
-MATCH (generic_metrics_distributions) SELECT arrayElement(quantilesIf(0.95)(value, equals(metric_id, 9223372036854775909)), 1) AS `p95_transaction_duration` BY transaction, toStartOfInterval(timestamp, toIntervalSecond(3600), 'Universal') AS `time` WHERE transform(tags_raw[9223372036854776020], array(''), array('<< unparameterized >>')) AS `transaction` = '/{organization_slug}/' AND timestamp >= toDateTime('2023-09-28T11:00:00') AND timestamp < toDateTime('2023-10-12T11:00:00') AND project_id IN array(1) AND org_id = 1 AND metric_id IN array(9223372036854775909) ORDER BY toStartOfInterval(timestamp, toIntervalSecond(3600), 'Universal') AS `time` ASC LIMIT 10000 GRANULARITY 3600
+MATCH (generic_metrics_distributions)
+SELECT arrayElement(quantilesIf(0.95)(value, equals(metric_id, 9223372036854775909)), 1) AS `p95_transaction_duration`
+BY transaction, toStartOfInterval(timestamp, toIntervalSecond(3600), 'Universal') AS `time`
+WHERE transform(tags_raw[9223372036854776020], array(''), array('<< unparameterized >>')) AS `transaction` IN array('/{organization_slug}/', 'sentry.sentry_metrics.consumers.indexer.processing.process_messages', 'sentry.tasks.process_buffer.process_incr') AND
+timestamp >= toDateTime('2023-09-28T11:00:00') AND timestamp < toDateTime('2023-10-12T11:00:00')
+AND project_id IN array(1) AND org_id = 1 AND
+metric_id IN array(9223372036854775909)
+ORDER BY transaction, toStartOfInterval(timestamp, toIntervalSecond(3600), 'Universal') AS `time` ASC LIMIT
+10000 GRANULARITY 3600
+
+
+--- how do I do this query? First just write out the snql in SDK form
+
+-- next up: write a test just for the transactions function using the test params that already call it, test the new function against the old function, they should be the same

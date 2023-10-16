@@ -312,6 +312,118 @@ def query_transactions_timeseries(
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    use_case_id = UseCaseID.TRANSACTIONS
+    interval = 3600  # 1 hour
+    # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+    # 336 data points per transaction name, so we can safely get 25 transaction
+    # timeseries.
+    chunk_size = 25
+    for transaction_chunk in chunked(sorted(transactions), chunk_size):
+        project_ids = {p for p, _ in transaction_chunk}
+        project_objects = Project.objects.filter(id__in=project_ids)
+        org_ids = list({project.organization_id for project in project_objects})
+        duration_metric_id = indexer.resolve(
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+        )
+        transaction_name_metric_id = indexer.resolve(
+            use_case_id,
+            org_ids[0],
+            "transaction",
+        )
+
+        query = Query(
+            match=Entity(EntityKey.GenericMetricsDistributions.value),
+            select=[
+                Column("project_id"),
+                Function(
+                    "arrayElement",
+                    (
+                        CurriedFunction(
+                            "quantilesIf",
+                            [0.95],
+                            (
+                                Column("value"),
+                                Function("equals", (Column("metric_id"), duration_metric_id)),
+                            ),
+                        ),
+                        1,
+                    ),
+                    "p95",
+                ),
+                Function(
+                    "transform",
+                    (
+                        Column(f"tags_raw[{transaction_name_metric_id}]"),
+                        Function("array", ("",)),
+                        Function("array", ("<< unparameterized >>",)),
+                    ),
+                    "transaction_name",
+                ),
+            ],
+            groupby=[
+                Column("transaction_name"),
+                Function(
+                    "toStartOfInterval",
+                    (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                    "time",
+                ),
+            ],
+            where=[
+                Condition(Column("org_id"), Op.IN, list(org_ids)),
+                Condition(Column("project_id"), Op.IN, list(project_ids)),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("metric_id"), Op.EQ, duration_metric_id),
+                Condition(Column("transaction_name"), Op.IN, [t for _, t in transaction_chunk]),
+            ],
+            orderby=[
+                OrderBy(Column("project_id"), Direction.DESC),
+                OrderBy(Column("project_id"), Direction.DESC),
+                OrderBy(Column("count"), Direction.DESC),
+            ],
+            granularity=Granularity(interval),
+            limit=Limit(10000),
+        )
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id="statistical_detectors",
+            query=query,
+            tenant_ids={
+                "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
+                "cross_org_query": 1,
+                "use_case_id": use_case_id.value,
+            },
+        )
+        data = raw_snql_query(
+            request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
+        )["data"]
+        for row in data:
+            pass
+            # formatted_result = SnubaTSResult(
+            #     {
+            #         "data": zerofill(
+            #             item["data"],
+            #             params["start"],
+            #             params["end"],
+            #             interval,
+            #             "time",
+            #         ),
+            #         "project": project_id,
+            #         "order": item["order"],
+            #     },
+            #     start,
+            #     end,
+            #     interval,
+            # )
+            # yield row["project_id"], row["transaction_name"], row["time"]
+
+
+def query_transactions_timeseries_cross_org(
+    transactions: List[Tuple[int, int | str]],
+    start: datetime,
+    agg_function: str,
+) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
+    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     interval = 3600  # 1 hour
 
     # TODO: batch cross-project (and cross-org) timeseries queries
