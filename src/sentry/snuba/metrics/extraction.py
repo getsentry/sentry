@@ -608,7 +608,7 @@ def apdex_tag_spec(project: Project, arguments: Optional[List[str]]) -> List[Tag
 
     # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
     #  support that.
-    if arguments is None:
+    if not arguments:
         raise Exception("apdex requires a threshold parameter.")
 
     field = _map_field_name(metric)
