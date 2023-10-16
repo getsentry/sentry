@@ -1,6 +1,5 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -36,7 +35,6 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   gridRows?: string;
-  saveLocation?: boolean;
   showDropdownFilters?: boolean;
 };
 
@@ -47,25 +45,12 @@ function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
-  saveLocation,
   gridRows,
   showDropdownFilters,
 }: Props) {
   const routes = useRoutes();
-  const newLocation = useLocation();
+  const location = useLocation();
   const organization = useOrganization();
-
-  const location: Location = saveLocation
-    ? {
-        pathname: '',
-        search: '',
-        query: {},
-        hash: '',
-        state: '',
-        action: 'PUSH',
-        key: '',
-      }
-    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
