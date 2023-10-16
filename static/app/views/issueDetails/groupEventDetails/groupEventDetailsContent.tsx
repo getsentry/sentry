@@ -21,6 +21,7 @@ import {EventAffectedTransactions} from 'sentry/components/events/eventStatistic
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
+import GeoLocationDiff from 'sentry/components/events/eventStatisticalDetector/geoLocationDiff';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -199,9 +200,14 @@ function PerformanceDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventBreakpointChart event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventSpanOpBreakdown event={event} />
-        </ErrorBoundary>
+        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr'}}>
+          <ErrorBoundary mini>
+            <EventSpanOpBreakdown event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <GeoLocationDiff event={event} projectId={project.id} />
+          </ErrorBoundary>
+        </div>
         <ErrorBoundary mini>
           <AggregateSpanDiff event={event} projectId={project.id} />
         </ErrorBoundary>

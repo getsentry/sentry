@@ -145,32 +145,24 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
   ];
 
   if (postBreakpointIsLoading || preBreakpointIsLoading) {
-    return (
-      <Wrapper>
-        <LoadingIndicator />
-      </Wrapper>
-    );
+    return <LoadingIndicator />;
   }
 
   if (postBreakpointIsError || preBreakpointIsError) {
     return (
-      <Wrapper>
-        <EmptyStateWrapper>
-          <EmptyStateWarning withIcon>
-            <div>{t('Unable to fetch span breakdowns')}</div>
-          </EmptyStateWarning>
-        </EmptyStateWrapper>
-      </Wrapper>
+      <EmptyStateWrapper>
+        <EmptyStateWarning withIcon>
+          <div>{t('Unable to fetch span breakdowns')}</div>
+        </EmptyStateWarning>
+      </EmptyStateWrapper>
     );
   }
 
   return (
-    <Wrapper>
-      <DataSection>
-        <strong>{t('Operation Breakdown:')}</strong>
-        <PieChart data={spanOpDiffs} series={series} />
-      </DataSection>
-    </Wrapper>
+    <DataSection>
+      <strong>{t('Operation Breakdown:')}</strong>
+      <PieChart data={spanOpDiffs} series={series} />
+    </DataSection>
   );
 }
 
@@ -181,11 +173,6 @@ const EmptyStateWrapper = styled('div')`
   justify-content: center;
   align-items: center;
   margin: ${space(1.5)} ${space(4)};
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
 `;
 
 export default EventSpanOpBreakdown;
