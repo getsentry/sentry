@@ -4,16 +4,16 @@ from functools import wraps
 from typing import List
 
 import sentry_sdk
-from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import Group, GroupHistoryStatus, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
 from sentry.silo import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -22,7 +22,8 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
-ITERATOR_CHUNK = 10_000
+ITERATOR_CHUNK = 500
+CHILD_TASK_COUNT = 250
 
 
 def log_error_if_queue_has_items(func):
@@ -57,7 +58,6 @@ def log_error_if_queue_has_items(func):
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
@@ -97,7 +97,6 @@ def schedule_auto_transition_to_ongoing() -> None:
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
@@ -145,14 +144,12 @@ def schedule_auto_transition_issues_new_to_ongoing(
         id__lte=most_recent_group_first_seen_seven_days_ago.id,
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 50,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -162,20 +159,10 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -189,7 +176,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: List[int],
     **kwargs,
@@ -218,7 +204,6 @@ def run_auto_transition_issues_new_to_ongoing(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
@@ -247,14 +232,12 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 50,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -264,20 +247,10 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
                 group_ids=group_ids_with_regressed_history,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -291,7 +264,6 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: List[int],
     **kwargs,
@@ -320,7 +292,6 @@ def run_auto_transition_issues_regressed_to_ongoing(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
@@ -349,14 +320,12 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         .filter(recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc))
     )
 
-    groups_to_update_count = base_queryset._clone().count()
-
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
                 base_queryset._clone().values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * 50,
+                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -366,20 +335,10 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
                 group_ids=new_group_ids,
             )
 
-    with sentry_sdk.start_span(description="get_remaining_groups") as span:
-        remaining_groups = groups_to_update_count - total_count
-
-        span.set_tag("remaining_groups", remaining_groups)
-
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
         tags={"count": total_count},
-    )
-    metrics.incr(
-        "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
-        sample_rate=1.0,
-        tags={"count": remaining_groups},
     )
 
 
@@ -393,7 +352,6 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@retry(on=(OperationalError,))
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: List[int],
     **kwargs,

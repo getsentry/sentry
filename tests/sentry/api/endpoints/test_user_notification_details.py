@@ -1,9 +1,7 @@
-from sentry.models import (
-    NotificationSetting,
-    NotificationSettingOption,
-    NotificationSettingProvider,
-    OrganizationMemberMapping,
-)
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature

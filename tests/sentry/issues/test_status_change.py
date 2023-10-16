@@ -4,7 +4,8 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
-from sentry.models import Activity, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType

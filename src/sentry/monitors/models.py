@@ -9,7 +9,7 @@ import jsonschema
 import pytz
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -31,14 +31,15 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
-from sentry.models import Environment, Rule, RuleSource
+from sentry.models.environment import Environment
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -444,6 +445,16 @@ class MonitorCheckIn(Model):
     # what we want to happen, so kill it here
     def _update_timestamps(self):
         pass
+
+
+def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
+    if file_id := instance.attachment_id:
+        from sentry.models.files import File
+
+        File.objects.filter(id=file_id).delete()
+
+
+post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
 
 
 @region_silo_only_model

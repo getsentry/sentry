@@ -2,34 +2,127 @@ import {useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatPercentage} from 'sentry/utils/formatters';
+import type {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const MAX_REGRESSED_FUNCTIONS = 5;
-const REGRESSIONS_CURSOR = 'functionRegressionCursor';
+import {ProfilingSparklineChart} from './profilingSparklineChart';
+
+const REGRESSED_FUNCTIONS_LIMIT = 5;
+const REGRESSED_FUNCTIONS_CURSOR = 'functionRegressionCursor';
+
+function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}[] {
+  if (!trend.stats.data.length) {
+    return [];
+  }
+
+  return trend.stats.data.map(p => {
+    return {
+      timestamp: p[0],
+      value: p[1][0].count,
+    };
+  });
+}
+
+function findBreakPointIndex(
+  breakpoint: number,
+  worst: FunctionTrend['worst']
+): number | undefined {
+  let low = 0;
+  let high = worst.length - 1;
+  let mid = 0;
+  let bestMatch: number | undefined;
+
+  // eslint-disable-next-line
+  while (low <= high) {
+    mid = Math.floor((low + high) / 2);
+    const value = worst[mid][0];
+
+    if (breakpoint === value) {
+      return mid;
+    }
+
+    if (breakpoint > value) {
+      low = mid + 1;
+      bestMatch = mid;
+    } else if (breakpoint < value) {
+      high = mid - 1;
+    }
+  }
+
+  // We dont need an exact match as the breakpoint is not guaranteed to be
+  // in the worst array, so we return the closest index
+  return bestMatch;
+}
+
+function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
+  after: string;
+  before: string;
+} {
+  const breakPointIndex = findBreakPointIndex(trend.breakpoint, trend.worst);
+
+  if (breakPointIndex === undefined) {
+    throw new Error('Could not find breakpoint index');
+  }
+
+  let beforeProfileID = '';
+  let afterProfileID = '';
+
+  const STABILITY_WINDOW = 2 * 60 * 1000;
+  for (let i = breakPointIndex; i >= 0; i--) {
+    if (trend.worst[i][0] < trend.breakpoint - STABILITY_WINDOW) {
+      break;
+    }
+
+    beforeProfileID = trend.worst[i][1];
+  }
+
+  for (let i = breakPointIndex; i < trend.worst.length; i++) {
+    if (trend.worst[i][0] > trend.breakpoint + STABILITY_WINDOW) {
+      break;
+    }
+    afterProfileID = trend.worst[i][1];
+  }
+
+  return {
+    before: beforeProfileID,
+    after: afterProfileID,
+  };
+}
 
 interface MostRegressedProfileFunctionsProps {
   transaction: string;
 }
 
 export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctionsProps) {
+  const organization = useOrganization();
+  const project = useCurrentProjectFromRouteParam();
   const location = useLocation();
 
   const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[REGRESSIONS_CURSOR]),
+    () => decodeScalar(location.query[REGRESSED_FUNCTIONS_CURSOR]),
     [location.query]
   );
 
   const handleRegressedFunctionsCursor = useCallback((cursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [REGRESSIONS_CURSOR]: cursor},
+      query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
     });
   }, []);
 
@@ -44,11 +137,18 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     trendFunction: 'p95()',
     trendType: 'regression',
     query: functionQuery,
-    limit: MAX_REGRESSED_FUNCTIONS,
+    limit: REGRESSED_FUNCTIONS_LIMIT,
     cursor: fnTrendCursor,
   });
 
   const trends = trendsQuery?.data ?? [];
+
+  const onRegressedFunctionClick = useCallback(() => {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
+      organization,
+      source: `profiling_transaction.regressed_functions_table`,
+    });
+  }, [organization]);
 
   return (
     <RegressedFunctionsContainer>
@@ -73,14 +173,121 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           {t('Horay, no regressed functions detected!')}
         </RegressedFunctionsQueryState>
       ) : (
-        trends.map((f, i) => <div key={i}>{f.function}</div>)
+        trends.map((fn, i) => {
+          const {before, after} = findWorstProfileIDBeforeAndAfter(fn);
+          return (
+            <RegressedFunctionRow key={i}>
+              <RegressedFunctionMainRow>
+                <div>
+                  <Link
+                    onClick={onRegressedFunctionClick}
+                    to={generateProfileFlamechartRouteWithQuery({
+                      orgSlug: organization.slug,
+                      projectSlug: project?.slug ?? '',
+                      profileId: (fn['examples()']?.[0] as string) ?? '',
+                      query: {
+                        // specify the frame to focus, the flamegraph will switch
+                        // to the appropriate thread when these are specified
+                        frameName: fn.function as string,
+                        framePackage: fn.package as string,
+                      },
+                    })}
+                  >
+                    <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    onClick={onRegressedFunctionClick}
+                    to={generateProfileFlamechartRouteWithQuery({
+                      orgSlug: organization.slug,
+                      projectSlug: project?.slug ?? '',
+                      profileId: before,
+                      query: {
+                        // specify the frame to focus, the flamegraph will switch
+                        // to the appropriate thread when these are specified
+                        frameName: fn.function as string,
+                        framePackage: fn.package as string,
+                      },
+                    })}
+                  >
+                    <PerformanceDuration
+                      abbreviation
+                      nanoseconds={fn.aggregate_range_1 as number}
+                    />
+                  </Link>
+                  <ChangeArrow>{' \u2192 '}</ChangeArrow>
+                  <Link
+                    onClick={onRegressedFunctionClick}
+                    to={generateProfileFlamechartRouteWithQuery({
+                      orgSlug: organization.slug,
+                      projectSlug: project?.slug ?? '',
+                      profileId: after,
+                      query: {
+                        // specify the frame to focus, the flamegraph will switch
+                        // to the appropriate thread when these are specified
+                        frameName: fn.function as string,
+                        framePackage: fn.package as string,
+                      },
+                    })}
+                  >
+                    <PerformanceDuration
+                      abbreviation
+                      nanoseconds={fn.aggregate_range_2 as number}
+                    />
+                  </Link>
+                </div>
+              </RegressedFunctionMainRow>
+              <RegressedFunctionMetricsRow>
+                <div>
+                  <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
+                </div>
+                <div>
+                  {fn.aggregate_range_1 < fn.aggregate_range_2 ? '+' : '-'}
+                  {formatPercentage(
+                    relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
+                  )}
+                </div>
+              </RegressedFunctionMetricsRow>
+              <RegressedFunctionSparklineContainer>
+                <ProfilingSparklineChart points={trendToPoints(fn)} name="" />
+              </RegressedFunctionSparklineContainer>
+            </RegressedFunctionRow>
+          );
+        })
       )}
     </RegressedFunctionsContainer>
   );
 }
 
+const ChangeArrow = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
+const RegressedFunctionSparklineContainer = styled('div')``;
+
+const RegressedFunctionRow = styled('div')`
+  position: relative;
+  margin-bottom: ${space(1)};
+`;
+
+const RegressedFunctionMainRow = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const RegressedFunctionMetricsRow = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(0.25)};
+`;
+
 const RegressedFunctionsContainer = styled('div')`
-  min-height: 80px;
+  flex-basis: 80px;
   margin-top: ${space(0.5)};
 `;
 

@@ -5,7 +5,8 @@ import logging
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.models import Organization, OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 
 from .base import GithubWebhookBase
 

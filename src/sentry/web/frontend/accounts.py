@@ -13,7 +13,11 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import LostPasswordHash, NotificationSetting, Project, User, UserEmail
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service

@@ -5,14 +5,11 @@ from django.db import router
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    Integration,
-    OrganizationIntegration,
-    Repository,
-)
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send

@@ -28,10 +28,11 @@ TEST_REDIS_DB = 9
 
 
 def configure_split_db() -> None:
-    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     already_configured = "control" in settings.DATABASES
     if already_configured or SENTRY_USE_MONOLITH_DBS:
         return
+
     # Add connections for the region & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
     settings.DATABASES["control"]["NAME"] = "control"
@@ -339,7 +340,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
         discard_all()
 
-    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    from sentry.models.options.organization_option import OrganizationOption
+    from sentry.models.options.project_option import ProjectOption
+    from sentry.models.options.user_option import UserOption
 
     for model in (OrganizationOption, ProjectOption, UserOption):
         model.objects.clear_local_cache()

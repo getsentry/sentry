@@ -7,9 +7,9 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
-from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
     get_opsgenie_teams,
@@ -17,7 +17,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
 
 def build_action_response(

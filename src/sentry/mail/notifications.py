@@ -7,7 +7,9 @@ import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry import options
-from sentry.models import Project, ProjectOption, Team
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -33,7 +35,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
             {
                 "X-Sentry-Logger": group.logger,
                 "X-Sentry-Logger-Level": group.get_level_display(),
-                "X-Sentry-Reply-To": group_id_to_email(group.id),
+                "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
 

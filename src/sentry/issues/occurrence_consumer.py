@@ -13,7 +13,8 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

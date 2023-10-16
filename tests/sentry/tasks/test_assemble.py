@@ -2,11 +2,11 @@ import io
 import os
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
+from unittest import mock
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
-from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleFlatFileIndex,
@@ -17,7 +17,10 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,
@@ -667,9 +670,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         # Since the threshold is now passed, we expect the system to perform indexing.
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[bundles[0], bundles[1]],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(bundles[0], None), (bundles[1], mock.ANY)],
         )
 
     def test_bundle_flat_file_indexing(self):
@@ -888,7 +889,7 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -916,7 +917,7 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -952,14 +953,15 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=artifact_bundle_2,
+                release=release,
+                dist=dist,
+                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[artifact_bundle_1, artifact_bundle_2],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(artifact_bundle_1, None), (artifact_bundle_2, mock.ANY)],
         )
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
@@ -991,7 +993,7 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -1037,12 +1039,13 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=artifact_bundle_1,
+                release=release,
+                dist=dist,
+                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[artifact_bundle_1, artifact_bundle_2],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(artifact_bundle_1, mock.ANY), (artifact_bundle_2, None)],
         )

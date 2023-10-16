@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -321,7 +321,13 @@ def test_detect_function_change_points(
             }
             for day in reversed(range(14))
             for hour in reversed(range(24))
-        ]
+        ],
+        "meta": [
+            {"name": "time", "type": "DateTime"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "fingerprint", "type": "UInt32"},
+            {"name": "p95", "type": "Float64"},
+        ],
     }
 
     mock_detect_breakpoints.return_value = {

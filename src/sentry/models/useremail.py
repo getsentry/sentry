@@ -20,7 +20,7 @@ from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models.user import User
 
 
 class UserEmailManager(BaseManager):
@@ -45,6 +45,7 @@ class UserEmailManager(BaseManager):
 @control_silo_only_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
+    __relocation_dependencies__ = {"sentry.Email"}
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)

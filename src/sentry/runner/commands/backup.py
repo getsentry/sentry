@@ -3,12 +3,6 @@ from __future__ import annotations
 import click
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.exports import (
-    export_in_config_scope,
-    export_in_global_scope,
-    export_in_organization_scope,
-    export_in_user_scope,
-)
 from sentry.backup.findings import FindingJSONEncoder
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
@@ -21,6 +15,19 @@ from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.utils import json
 
+ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
+                       enabled and points to a valid key, the output file will be a tarball
+                       containing 3 constituent files: 1. An encrypted JSON file called
+                       `export.json`, which is encrypted using 2. An asymmetrically encrypted data
+                       encryption key (DEK) called `data.key`, which is itself encrypted by 3. The
+                       public key contained in the file supplied to this flag, called `key.pub`. To
+                       decrypt the exported JSON data, decryptors should use the private key paired
+                       with `key.pub` to decrypt the DEK, which can then be used to decrypt the
+                       export data in `export.json`."""
+
+FINDINGS_FILE_HELP = """Optional file that records comparator findings, saved in the JSON format.
+                     If left unset, no such file is written."""
+
 MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matching usernames to
                    those already in the database, the existing users are used instead and their
                    associated user scope models are not updated. If this flag is not set, new users
@@ -32,9 +39,6 @@ OVERWRITE_CONFIGS_HELP = """Imports are generally non-destructive of old data. H
                          with an existing value, the new value will overwrite the existing one. If
                          the flag is left in its (default) unset state, the old value will be
                          retained in the event of a collision."""
-
-FINDINGS_FILE_HELP = """Optional file that records comparator findings, saved in the JSON format.
-                     If left unset, no such file is written."""
 
 
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
@@ -216,13 +220,11 @@ def export():
 
 
 @export.command(name="users")
-@click.argument("dest", default="-", type=click.File("w"))
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--indent",
-    default=2,
-    type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    "--encrypt_with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
 )
 @click.option(
     "--filter_usernames",
@@ -231,14 +233,24 @@ def export():
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_users(dest, silent, indent, filter_usernames):
+def export_users(dest, encrypt_with, filter_usernames, indent, silent):
     """
     Export all Sentry users in the JSON format.
     """
 
+    from sentry.backup.exports import export_in_user_scope
+
     export_in_user_scope(
         dest,
+        encrypt_with=encrypt_with,
         indent=indent,
         user_filter=parse_filter_arg(filter_usernames),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
@@ -246,13 +258,11 @@ def export_users(dest, silent, indent, filter_usernames):
 
 
 @export.command(name="organizations")
-@click.argument("dest", default="-", type=click.File("w"))
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--indent",
-    default=2,
-    type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    "--encrypt_with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
 )
 @click.option(
     "--filter_org_slugs",
@@ -262,14 +272,24 @@ def export_users(dest, silent, indent, filter_usernames):
     "If this option is not set, all encountered organizations are exported. "
     "Users not members of at least one organization in this set will not be exported.",
 )
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_organizations(dest, silent, indent, filter_org_slugs):
+def export_organizations(dest, encrypt_with, filter_org_slugs, indent, silent):
     """
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
 
+    from sentry.backup.exports import export_in_organization_scope
+
     export_in_organization_scope(
         dest,
+        encrypt_with=encrypt_with,
         indent=indent,
         org_filter=parse_filter_arg(filter_org_slugs),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
@@ -277,44 +297,60 @@ def export_organizations(dest, silent, indent, filter_org_slugs):
 
 
 @export.command(name="config")
-@click.argument("dest", default="-", type=click.File("w"))
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt_with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
 @click.option(
     "--indent",
     default=2,
     type=int,
     help="Number of spaces to indent for the JSON output. (default: 2)",
 )
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_config(dest, silent, indent):
+def export_config(dest, encrypt_with, indent, silent):
     """
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
+    from sentry.backup.exports import export_in_config_scope
+
     export_in_config_scope(
         dest,
+        encrypt_with=encrypt_with,
         indent=indent,
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 
 
 @export.command(name="global")
-@click.argument("dest", default="-", type=click.File("w"))
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt_with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
 @click.option(
     "--indent",
     default=2,
     type=int,
     help="Number of spaces to indent for the JSON output. (default: 2)",
 )
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_global(dest, silent, indent):
+def export_global(dest, encrypt_with, indent, silent):
     """
     Export all Sentry data in the JSON format.
     """
 
+    from sentry.backup.exports import export_in_global_scope
+
     export_in_global_scope(
         dest,
+        encrypt_with=encrypt_with,
         indent=indent,
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )

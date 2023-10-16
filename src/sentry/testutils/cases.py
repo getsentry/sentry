@@ -60,37 +60,35 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules import Creator
-from sentry.models import ApiToken
-from sentry.models import AuthProvider as AuthProviderModel
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Dashboard,
+from sentry.mediators.project_rules.creator import Creator
+from sentry.models.apitoken import ApiToken
+from sentry.models.authprovider import AuthProvider as AuthProviderModel
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
-    DeletedOrganization,
-    Deploy,
-    Environment,
-    File,
-    GroupMeta,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    Project,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    Repository,
-    RuleSource,
-    User,
-    UserEmail,
-    UserOption,
 )
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import RuleSource
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
@@ -111,7 +109,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
-from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -613,10 +611,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:

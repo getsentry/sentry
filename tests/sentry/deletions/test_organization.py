@@ -2,29 +2,27 @@ from uuid import uuid4
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models import AlertRule, AlertRuleStatus
-from sentry.models import (
-    ActorTuple,
-    Commit,
-    CommitAuthor,
-    Dashboard,
+from sentry.models.actor import ActorTuple
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
-    Environment,
-    EnvironmentProject,
-    ExternalIssue,
-    Group,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    Repository,
 )
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.group import Group
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions

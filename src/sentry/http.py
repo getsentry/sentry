@@ -14,7 +14,7 @@ from requests.exceptions import ReadTimeout, RequestException, Timeout
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.net.http import SafeSession
 
 # Importing for backwards compatible API
@@ -50,7 +50,7 @@ class CannotFetch(BadSource):
     error_type = EventError.FETCH_GENERIC_ERROR
 
 
-def get_server_hostname():
+def get_server_hostname() -> str:
     return urlparse(options.get("system.url-prefix")).hostname
 
 
@@ -126,7 +126,7 @@ def expose_url(url):
     return url
 
 
-def get_domain_key(url):
+def get_domain_key(url: str) -> str:
     domain = urlparse(url).netloc
     return f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
 

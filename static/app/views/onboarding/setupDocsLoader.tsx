@@ -16,6 +16,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -142,12 +143,14 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelectionAvailabilityHook
-        organization={organization}
-        lazyLoader
-        skipLazyLoader={close}
-        platform={currentPlatform}
-      />
+      <Header>
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+          platform={currentPlatform}
+        />
+      </Header>
       <Divider />
       {projectKeyUpdateError && (
         <LoadingError
@@ -208,7 +211,7 @@ Sentry.onLoad(function() {
     hasPerformance
       ? `
     // Performance Monitoring
-    tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
+    tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }${
     hasSessionReplay
@@ -273,7 +276,7 @@ Sentry.onLoad(function() {
           <div>
             <p>
               {t(
-                "Initialise Sentry as early as possible in your application's lifecycle."
+                "Initialize Sentry as early as possible in your application's lifecycle."
               )}
             </p>
             <CodeSnippet dark language="html">
@@ -339,6 +342,12 @@ Sentry.onLoad(function() {
 }
 
 const DocsWrapper = styled(motion.div)``;
+
+const Header = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
 
 const OptionalConfigWrapper = styled('div')`
   display: flex;

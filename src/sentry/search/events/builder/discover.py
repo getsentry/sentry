@@ -53,7 +53,10 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
@@ -545,7 +548,7 @@ class BaseQueryBuilder:
     def resolve_boolean_condition(
         self, term: event_filter.ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, event_filter.ParenExpression):
+        if isinstance(term, event_search.ParenExpression):
             return self.resolve_boolean_conditions(term.children)
 
         where, having = [], []

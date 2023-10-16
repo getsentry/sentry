@@ -28,7 +28,6 @@ export function ReplayList(
       },
       project_id: '2',
       started_at: new Date('2022-09-15T06:50:03+00:00'),
-      urls: [],
       user: {
         display_name: 'testDisplayName',
         email: '',

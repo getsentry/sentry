@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.lang.native.utils import image_name, is_minidump_event
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.reprocessing import report_processing_issue
 
 FATAL_ERRORS = (

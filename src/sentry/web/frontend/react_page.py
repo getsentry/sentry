@@ -9,7 +9,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string

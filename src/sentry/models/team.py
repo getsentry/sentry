@@ -29,7 +29,9 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -65,7 +67,9 @@ class TeamManager(BaseManager):
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
-        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.project import Project
         from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
@@ -128,7 +132,8 @@ class TeamManager(BaseManager):
         self.process_resource_change(instance, **kwargs)
 
     def process_resource_change(self, instance, **kwargs):
-        from sentry.models import Organization, Project
+        from sentry.models.organization import Organization
+        from sentry.models.project import Project
         from sentry.tasks.codeowners import update_code_owners_schema
 
         def _spawn_task():
@@ -234,15 +239,13 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         """
         Transfers a team and all projects under it to the given organization.
         """
-        from sentry.models import (
-            OrganizationAccessRequest,
-            OrganizationMember,
-            OrganizationMemberTeam,
-            Project,
-            ReleaseProject,
-            ReleaseProjectEnvironment,
-        )
+        from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.project import Project
         from sentry.models.projectteam import ProjectTeam
+        from sentry.models.release import ReleaseProject
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
         try:
             with transaction.atomic(router.db_for_write(Team)):
@@ -322,7 +325,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         }
 
     def get_projects(self):
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         return Project.objects.get_for_team_ids([self.id])
 
@@ -335,6 +338,12 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         ).values_list("id", flat=True)
 
         return owner_ids
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
+    # on teams.
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
+        return q
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def normalize_before_relocation_import(

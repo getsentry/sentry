@@ -27,19 +27,17 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    AuthIdentity,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserEmail,
-    UserOption,
-    UserPermission,
-    UserRoleUser,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser

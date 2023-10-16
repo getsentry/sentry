@@ -9,7 +9,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export const useProjectWebVitalsValuesTimeseriesQuery = () => {
+type Props = {
+  transaction?: string | null;
+};
+
+export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -23,7 +27,8 @@ export const useProjectWebVitalsValuesTimeseriesQuery = () => {
         'p75(measurements.fid)',
       ],
       name: 'Web Vitals',
-      query: 'transaction.op:pageload',
+      query:
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
@@ -74,25 +79,20 @@ export const useProjectWebVitalsValuesTimeseriesQuery = () => {
   };
 
   result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
-    data.cls.push({
-      value: result?.data?.['p75(measurements.cls)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.lcp.push({
-      value: result?.data?.['p75(measurements.lcp)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.fcp.push({
-      value: result?.data?.['p75(measurements.fcp)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.ttfb.push({
-      value: result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.fid.push({
-      value: result?.data?.['p75(measurements.fid)'].data[index][1][0].count,
-      name: interval[0] * 1000,
+    const map: {key: string; series: SeriesDataUnit[]}[] = [
+      {key: 'p75(measurements.cls)', series: data.cls},
+      {key: 'p75(measurements.lcp)', series: data.lcp},
+      {key: 'p75(measurements.fcp)', series: data.fcp},
+      {key: 'p75(measurements.ttfb)', series: data.ttfb},
+      {key: 'p75(measurements.fid)', series: data.fid},
+    ];
+    map.forEach(({key, series}) => {
+      if (result?.data?.[key].data[index][1][0].count !== null) {
+        series.push({
+          value: result?.data?.[key].data[index][1][0].count,
+          name: interval[0] * 1000,
+        });
+      }
     });
   });
 

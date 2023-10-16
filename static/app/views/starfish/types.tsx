@@ -26,6 +26,7 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
 }
 
 export type SpanNumberFields = 'span.self_time' | 'span.duration';
@@ -59,8 +60,6 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
-} & {
-  'time_spent_percentage(local)': number;
 };
 
 export type MetricsFilters = {

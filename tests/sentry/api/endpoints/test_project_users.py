@@ -1,6 +1,8 @@
+from unittest import mock
+
 from django.urls import reverse
 
-from sentry.models import EventUser
+from sentry.models.eventuser import EventUser
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -35,7 +37,8 @@ class ProjectUsersTest(APITestCase):
             },
         )
 
-    def test_simple(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         self.login_as(user=self.user)
 
         response = self.client.get(self.path, format="json")
@@ -44,6 +47,11 @@ class ProjectUsersTest(APITestCase):
         assert len(response.data) == 2
         assert sorted(map(lambda x: x["id"], response.data)) == sorted(
             [str(self.euser1.id), str(self.euser2.id)]
+        )
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.project.id,
+            endpoint="sentry.api.endpoints.project_users.get",
         )
 
     def test_empty_search_query(self):

@@ -39,8 +39,10 @@ from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import OrganizationMemberTeam, Project, Rule, Team
-from sentry.models.rule import RuleSource
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleSource
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
@@ -344,7 +346,7 @@ Metric alert rule trigger actions follow the following structure:
     queryType = serializers.ChoiceField(
         required=False,
         choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
+        help_text="The type of query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),

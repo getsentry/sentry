@@ -6,7 +6,7 @@ from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
@@ -18,6 +18,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     dateCreated: datetime
     lastCheckIn: datetime
     nextCheckIn: datetime
+    nextCheckInLatest: datetime
 
 
 @register(MonitorEnvironment)
@@ -26,9 +27,10 @@ class MonitorEnvironmentSerializer(Serializer):
         return {
             "name": obj.environment.name,
             "status": obj.get_status_display(),
+            "dateCreated": obj.monitor.date_added,
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
-            "dateCreated": obj.monitor.date_added,
+            "nextCheckInLatest": obj.next_checkin_latest,
         }
 
 

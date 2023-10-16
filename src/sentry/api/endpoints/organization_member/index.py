@@ -15,8 +15,10 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.validators import AllowedEmailField
-from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
-from sentry.models.authenticator import available_authenticators
+from sentry.auth.authenticators import available_authenticators
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.user.service import user_service

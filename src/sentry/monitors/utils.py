@@ -8,9 +8,12 @@ from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.mediators import project_rules
-from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSource, User
+from sentry.mediators.project_rules.creator import Creator
+from sentry.mediators.project_rules.updater import Updater
+from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
+from sentry.models.user import User
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 from .constants import MAX_TIMEOUT, TIMEOUT
@@ -205,7 +208,7 @@ def create_alert_rule(
         "user_id": request.user.id,
     }
 
-    rule = project_rules.Creator.run(request=request, **kwargs)
+    rule = Creator.run(request=request, **kwargs)
     rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
@@ -303,7 +306,7 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
             "conditions": alert_rule.data.get("conditions", []),
         }
 
-        updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
+        updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

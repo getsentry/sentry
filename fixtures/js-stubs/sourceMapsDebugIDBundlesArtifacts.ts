@@ -15,6 +15,9 @@ export function SourceMapsDebugIDBundlesArtifacts(
         dist: ['android', 'iOS'],
       },
     ],
+    fileCount: 22,
+    date: '2023-03-08T09:53:09Z',
+    dateModified: '2021-08-25T23:10:00.000Z',
     files: [
       {
         id: 'ZmlsZXMvXy9fL21haW4uanM=',

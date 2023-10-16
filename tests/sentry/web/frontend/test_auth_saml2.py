@@ -13,7 +13,10 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature

@@ -24,7 +24,7 @@ from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
-    from sentry.models import User
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,9 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
-from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.models.activity import Activity
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 
 
