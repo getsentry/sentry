@@ -731,7 +731,7 @@ class OnDemandMetricSpec:
 
     # Private fields.
     _metric_type: str
-    _arguments: Optional[List[str]]
+    _arguments: Optional[Sequence[str]]
 
     def __init__(self, field: str, query: str):
         self.field = field
