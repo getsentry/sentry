@@ -342,12 +342,5 @@ export function generateBaseControlSiloUrl() {
 
 export function generateIntegrationInstallLink(orgSlug) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
-  return (
-    window.location.protocol +
-    '//' +
-    orgSlug +
-    '.' +
-    sentryDomain +
-    window.location.pathname
-  );
+  return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }
