@@ -1,4 +1,4 @@
-import {forwardRef, memo, useEffect, useRef} from 'react';
+import {forwardRef, memo, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -17,7 +17,7 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {useQuery} from 'sentry/utils/queryClient';
-import {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
+import countDomNodes, {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -209,11 +209,16 @@ const MemoizedDomNodesChart = memo(
 );
 
 function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? [], {
-    enabled: Boolean(replay),
-    initialData: [],
-    cacheTime: Infinity,
-  });
+  return useQuery(
+    ['countDomNodes', replay],
+    () =>
+      countDomNodes({
+        frames: replay?.getRRWebMutations(),
+        rrwebEvents: replay?.getRRWebFrames(),
+        startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
+      }),
+    {enabled: Boolean(replay), cacheTime: Infinity}
+  );
 }
 
 function DomNodesChartContainer() {
@@ -221,8 +226,13 @@ function DomNodesChartContainer() {
     useReplayContext();
   const chart = useRef<ReactEchartsRef>(null);
   const theme = useTheme();
-  const {data: datapoints} = useCountDomNodes({replay});
+  const {data: frameToCount} = useCountDomNodes({replay});
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+
+  const datapoints = useMemo(
+    () => Array.from(frameToCount?.values() || []),
+    [frameToCount]
+  );
 
   useEffect(() => {
     if (!chart.current) {
