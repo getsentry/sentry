@@ -255,7 +255,7 @@ function EventList({
                 onClick={() => {
                   trackAnalytics('profiling_views.go_to_flamegraph', {
                     organization,
-                    source: 'profiling.issue.function_regression',
+                    source: 'profiling.issue.function_regression.list',
                   });
                 }}
               >
