@@ -1479,7 +1479,7 @@ function buildRoutes() {
           key="orgless-release-thresholds-route"
         >
           <IndexRoute
-            component={make(() => import('sentry/views/releaseThresholds/list'))}
+            component={make(() => import('sentry/views/releases/thresholdsList'))}
           />
         </Route>
       )}
@@ -1489,7 +1489,7 @@ function buildRoutes() {
         key="org-release-thresholds"
       >
         <IndexRoute
-          component={make(() => import('sentry/views/releaseThresholds/list'))}
+          component={make(() => import('sentry/views/releases/thresholdsList'))}
         />
       </Route>
     </Fragment>

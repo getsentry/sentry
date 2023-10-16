@@ -5,7 +5,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import Header from './header';
+import Header from '../components/header';
 
 type RouteParams = {
   orgId: string;
@@ -20,7 +20,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 function ReleaseThresholdList({router}: Props) {
   return (
     <div>
-      <Header router={router} />
+      <Header router={router} hasV2ReleaseUIEnabled />
     </div>
   );
 }

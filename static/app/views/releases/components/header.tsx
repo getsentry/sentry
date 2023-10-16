@@ -13,10 +13,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 
 type Props = {
+  hasV2ReleaseUIEnabled: boolean;
   router: InjectedRouter;
 };
 
-function Header({router}: Props) {
+function Header({router, hasV2ReleaseUIEnabled}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
@@ -27,21 +28,23 @@ function Header({router}: Props) {
     ...queryParams
   } = location?.query ?? {};
 
-  const tabs = [
-    {
-      key: MONITOR_PATH,
-      label: t('Monitor'),
-      description: '',
-      path: MONITOR_PATH,
-    },
-    {
-      key: THRESHOLDS_PATH,
-      label: t('Thresholds'),
-      description:
-        'thresholds represent action alerts that will trigger once a threshold has been breached',
-      path: THRESHOLDS_PATH,
-    },
-  ];
+  const tabs = hasV2ReleaseUIEnabled
+    ? [
+        {
+          key: MONITOR_PATH,
+          label: t('Monitor'),
+          description: '',
+          path: MONITOR_PATH,
+        },
+        {
+          key: THRESHOLDS_PATH,
+          label: t('Thresholds'),
+          description:
+            'thresholds represent action alerts that will trigger once a threshold has been breached',
+          path: THRESHOLDS_PATH,
+        },
+      ]
+    : [];
 
   const onTabSelect = key => {
     setSelected(key);
