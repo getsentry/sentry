@@ -508,51 +508,52 @@ class OutboxBase(Model):
 
     @contextlib.contextmanager
     def process_shard(
-        self, latest_shard_row: OutboxBase | None
+        self,
+        latest_shard_row: OutboxBase | None,
+        lock_timeout: int = 5,
     ) -> Generator[OutboxBase | None, None, None]:
-        flush_all: bool = not bool(latest_shard_row)
         using: str = db.router.db_for_write(type(self))
 
         shard_lock_id = self.lock_id(self.sharding_columns)
-        obtained_lock = True
+        with connections[using].cursor() as cursor:
+            cursor.execute("show lock_timeout")
+            orig_timeout = cursor.fetchone()[0]
+            cursor.execute(f"SET local lock_timeout='{lock_timeout}s'")
 
         try:
-            with contextlib.ExitStack() as stack, connections[using].cursor() as cursor:
-                if not flush_all:
-                    stack.enter_context(metrics.timer("outbox.process_shard.acquire_lock"))
-                if flush_all:
-                    cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
-                    if not cursor.fetchone()[0]:
-                        metrics.incr(
-                            "outbox.process_shard.failed_to_acquire_lock",
-                            tags=dict(scope=OutboxScope(self.shard_scope).name),
-                        )
-                        obtained_lock = False
-                else:
+            try:
+                with metrics.timer("outbox.process_shard.acquire_lock"), connections[
+                    using
+                ].cursor() as cursor:
                     cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
+            except OperationalError as e:
+                if latest_shard_row:
+                    next_shard_row = self.selected_messages_in_shard(
+                        latest_shard_row=latest_shard_row
+                    ).first()
 
-            if obtained_lock:
-                next_shard_row: OutboxBase | None
-                next_shard_row = self.selected_messages_in_shard(
-                    latest_shard_row=latest_shard_row
-                ).first()
-                yield next_shard_row
-            else:
+                    # If performing a synchronous flush, we have an expectation that writes up to the highest
+                    # id seen since we started to flush has been processed.  If that is not the case in a high
+                    # contention scenario, we should raise an exception to prevent breaking read after write invariance.
+                    if next_shard_row is not None:
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={self.category}", self
+                        ) from e
                 yield None
-        except OperationalError as e:
+                return
+            except Exception as e:
+                raise e
+
+            next_shard_row: OutboxBase | None
             next_shard_row = self.selected_messages_in_shard(
                 latest_shard_row=latest_shard_row
             ).first()
-            if next_shard_row is None:
-                yield None
-            else:
-                raise OutboxFlushError(
-                    f"Could not flush shard category={self.category}", self
-                ) from e
+            yield next_shard_row
         finally:
             try:
                 with connections[using].cursor() as cursor:
                     cursor.execute("SELECT pg_advisory_unlock(%s)", [shard_lock_id])
+                    cursor.execute(f"SET lock_timeout='{orig_timeout}'")
             except Exception:
                 # If something strange is going on with our connection, force it closed to prevent holding the lock.
                 connections[using].close()
@@ -630,6 +631,9 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
+        # Do not waste too much time in flush_all case on a contentious lock.
+        lock_timeout = 5 if not flush_all else 1
+
         in_test_assert_no_transaction(
             "drain_shard should only be called outside of any active transaction!"
         )
@@ -645,7 +649,7 @@ class OutboxBase(Model):
 
         shard_row: OutboxBase | None
         while True:
-            with self.process_shard(latest_shard_row) as shard_row:
+            with self.process_shard(latest_shard_row, lock_timeout=lock_timeout) as shard_row:
                 if shard_row is None:
                     break
 
