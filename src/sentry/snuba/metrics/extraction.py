@@ -732,7 +732,7 @@ class OnDemandMetricSpec:
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._arguments[0]}"
 
-        return self._arguments
+        return self._arguments[0]
 
     def _query_for_hash(self):
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
