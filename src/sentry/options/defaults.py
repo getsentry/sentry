@@ -1627,3 +1627,5 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
