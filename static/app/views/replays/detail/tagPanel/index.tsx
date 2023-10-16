@@ -1,4 +1,5 @@
 import {ReactNode, useCallback} from 'react';
+import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -68,25 +69,34 @@ function TagPanel() {
     <FluidHeight>
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <FluidPanel>
-          {filteredTags.length ? (
-            <KeyValueTable noMargin>
-              {filteredTags.map(([key, values]) => (
-                <ReplayTagsTableRow
-                  key={key}
-                  name={key}
-                  values={values}
-                  generateUrl={generateUrl}
-                />
-              ))}
-            </KeyValueTable>
-          ) : (
-            <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-          )}
-        </FluidPanel>
+        <StyledPanel>
+          <FluidPanel>
+            {filteredTags.length ? (
+              <KeyValueTable noMargin>
+                {filteredTags.map(([key, values]) => (
+                  <ReplayTagsTableRow
+                    key={key}
+                    name={key}
+                    values={values}
+                    generateUrl={generateUrl}
+                  />
+                ))}
+              </KeyValueTable>
+            ) : (
+              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+            )}
+          </FluidPanel>
+        </StyledPanel>
       </TabItemContainer>
     </FluidHeight>
   );
 }
+
+const StyledPanel = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  display: grid;
+`;
 
 export default TagPanel;

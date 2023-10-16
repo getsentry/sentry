@@ -2,12 +2,10 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import DateTime from 'sentry/components/dateTime';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization, Project} from 'sentry/types';
@@ -144,7 +142,7 @@ function EventComparisonListInner({
 
   const profilesQuery = useProfileEvents({
     datetime,
-    fields: ['id', 'transaction', 'timestamp', 'profile.duration'],
+    fields: ['id', 'transaction', 'profile.duration'],
     query: `id:[${[...beforeProfileIds, ...afterProfileIds].join(', ')}]`,
     sort: {
       key: 'profile.duration',
@@ -232,7 +230,7 @@ function EventList({
         <strong>{t('Profile ID')}</strong>
       </Container>
       <Container>
-        <strong>{t('Timestamp')}</strong>
+        <strong>{t('Transaction')}</strong>
       </Container>
       <NumberContainer>
         <strong>{t('Duration')} </strong>
@@ -252,23 +250,19 @@ function EventList({
         return (
           <Fragment key={item.id}>
             <Container>
-              <Tooltip title={item.transaction} position="top">
-                <Link
-                  to={target}
-                  onClick={() => {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'profiling.issue.function_regression',
-                    });
-                  }}
-                >
-                  {getShortEventId(item.id)}
-                </Link>
-              </Tooltip>
+              <Link
+                to={target}
+                onClick={() => {
+                  trackAnalytics('profiling_views.go_to_flamegraph', {
+                    organization,
+                    source: 'profiling.issue.function_regression.list',
+                  });
+                }}
+              >
+                {getShortEventId(item.id)}
+              </Link>
             </Container>
-            <Container>
-              <DateTime date={item.timestamp} year seconds timeZone />
-            </Container>
+            <Container>{item.transaction}</Container>
             <NumberContainer>
               <PerformanceDuration nanoseconds={item['profile.duration']} abbreviation />
             </NumberContainer>

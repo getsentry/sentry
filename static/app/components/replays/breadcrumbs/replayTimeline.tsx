@@ -13,18 +13,12 @@ import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 type Props = {};
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
-  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-
-  const {setActiveTab} = useActiveReplayTab();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
@@ -58,12 +52,6 @@ function ReplayTimeline({}: Props) {
           <ReplayTimelineEvents
             durationMs={durationMs}
             frames={chapterFrames}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            onClickTimestamp={frame => {
-              onClickTimestamp(frame);
-              setActiveTab(getFrameDetails(frame).tabKey);
-            }}
             startTimestampMs={startTimestampMs}
             width={width}
           />
