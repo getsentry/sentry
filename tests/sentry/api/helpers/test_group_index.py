@@ -781,3 +781,83 @@ class TestHandleAssignedTo(TestCase):
             assigned_by=None,
             had_to_deassign=False,
         )
+
+    @patch("sentry.analytics.record")
+    def test_reassign_team_with_both_flags(self, mock_record: Mock) -> None:
+        user1 = self.create_user("foo@example.com")
+        user2 = self.create_user("bar@example.com")
+        team1 = self.create_team()
+        member1 = self.create_member(user=user1, organization=self.organization, role="member")
+        member2 = self.create_member(user=user2, organization=self.organization, role="member")
+        self.create_team_membership(team1, member1, role="admin")
+        self.create_team_membership(team1, member2, role="admin")
+
+        user3 = self.create_user("baz@example.com")
+        user4 = self.create_user("boo@example.com")
+        team2 = self.create_team()
+        member3 = self.create_member(user=user3, organization=self.organization, role="member")
+        member4 = self.create_member(user=user4, organization=self.organization, role="member")
+        self.create_team_membership(team2, member3, role="admin")
+        self.create_team_membership(team2, member4, role="admin")
+
+        # first assign the issue to team1
+        with self.feature("organizations:team-workflow-notifications"):
+            assigned_to = handle_assigned_to(
+                (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+                None,
+                None,
+                self.group_list,
+                self.project_lookup,
+                self.user,
+            )
+
+        assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            team=team1,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        # then assign it to team2
+        with self.feature("organizations:participants-purge"), self.feature(
+            "organizations:team-workflow-notifications"
+        ):
+            assigned_to = handle_assigned_to(
+                ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+                None,
+                None,
+                self.group_list,
+                self.project_lookup,
+                self.user,
+            )
+
+        assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
+        assert not GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            team=team1,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        assert GroupAssignee.objects.filter(group=self.group, team=team2.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            team=team2,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        assert assigned_to == {
+            "id": str(team2.id),
+            "name": team2.slug,
+            "type": "team",
+        }
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=False,
+        )

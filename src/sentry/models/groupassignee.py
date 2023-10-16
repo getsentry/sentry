@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class GroupAssigneeManager(BaseManager):
     def get_assigned_to_data(
         self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
-    ) -> Dict[str, str | Any | None]:
+    ) -> Dict[str, Any]:
         data = {
             "assignee": str(assigned_to.id),
             "assigneeEmail": getattr(assigned_to, "email", None),
