@@ -53,6 +53,10 @@ export function useReleaseStats() {
     allowEmptyPeriod: true,
   });
 
+  // The sessions endpoint does not support wildcard search.
+  // So we're just getting top 250 values ordered by count.
+  // Hopefully this is enough to populate session count for
+  // any releases searched in the release selector.
   const urlQuery = Object.fromEntries(
     Object.entries({
       project: projects,
@@ -63,7 +67,7 @@ export function useReleaseStats() {
       start,
       end,
       statsPeriod,
-      per_page: 100,
+      per_page: 250,
       interval: getInterval({start, end, period: statsPeriod}, 'low'),
     }).filter(([, value]) => defined(value) && value !== '')
   );
