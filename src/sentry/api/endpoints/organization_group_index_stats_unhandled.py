@@ -1,3 +1,5 @@
+from typing import List
+
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -65,7 +67,7 @@ class OrganizationGroupIndexStatsUnhandledEndpoint(OrganizationEventsEndpointBas
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
-        expand = request.GET.getlist("expand", [])
+        expand: List[str] = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
