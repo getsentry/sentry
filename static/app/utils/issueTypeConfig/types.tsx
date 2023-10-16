@@ -26,6 +26,10 @@ export type IssueTypeConfig = {
    */
   attachments: DisabledWithReasonConfig;
   /**
+   * Is the Events tab show for this issue
+   */
+  events: DisabledWithReasonConfig;
+  /**
    * Options for rendering the Evidence section - pass null to disable
    */
   evidence: {
@@ -59,6 +63,14 @@ export type IssueTypeConfig = {
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
+  /**
+   * Are group stats (counts/time series) shown for this issue.
+   */
+  stats: DisabledWithReasonConfig;
+  /**
+   * Is the Tags tab show for this issue
+   */
+  tags: DisabledWithReasonConfig;
   /**
    * Is the User Feedback tab shown for this issue
    */
