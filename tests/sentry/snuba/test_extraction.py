@@ -6,10 +6,10 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
-    apdex_tag_spec,
     cleanup_query,
     failure_tag_spec,
     query_tokens_to_string,
+    satisfaction_tag_spec,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
 )
@@ -329,7 +329,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == satisfaction_tag_spec(default_project, "10")
 
 
 @django_db_all
@@ -377,7 +377,7 @@ def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, 
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == satisfaction_tag_spec(default_project, "10")
 
 
 def test_spec_custom_tag():
