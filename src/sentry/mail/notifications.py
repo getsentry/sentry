@@ -35,7 +35,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
             {
                 "X-Sentry-Logger": group.logger,
                 "X-Sentry-Logger-Level": group.get_level_display(),
-                "X-Sentry-Reply-To": group_id_to_email(group.id),
+                "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
 

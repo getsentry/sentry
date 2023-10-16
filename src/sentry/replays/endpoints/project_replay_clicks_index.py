@@ -23,6 +23,7 @@ from snuba_sdk import (
 from snuba_sdk.orderby import Direction
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -43,6 +44,7 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 
 @region_silo_endpoint
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
+    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
