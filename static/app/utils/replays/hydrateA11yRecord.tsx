@@ -1,4 +1,4 @@
-export interface A11yIssue {
+export interface RawA11yFrame {
   elements: A11yIssueElement[];
   help: string;
   help_url: string;
@@ -20,9 +20,13 @@ interface A11yIssueElementAlternative {
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-export type HydratedA11yIssue = Overwrite<
-  A11yIssue,
+export type HydratedA11yFrame = Overwrite<
+  RawA11yFrame,
   {
+    /**
+     * Alias of `id`
+     */
+    description: string;
     /**
      * The difference in timestamp and replay.started_at, in millieseconds
      */
@@ -38,10 +42,11 @@ export type HydratedA11yIssue = Overwrite<
   }
 >;
 
-export default function hydrateA11yIssue(raw: A11yIssue): HydratedA11yIssue {
+export default function hydrateA11yFrame(raw: RawA11yFrame): HydratedA11yFrame {
   const timestamp = new Date(raw.timestamp);
   return {
     ...raw,
+    description: raw.id,
     offsetMs: 0,
     timestamp,
     timestampMs: timestamp.getTime(),
