@@ -27,6 +27,7 @@ export enum SpanMetricsField {
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
 }
 
 export type SpanNumberFields = 'span.self_time' | 'span.duration';
