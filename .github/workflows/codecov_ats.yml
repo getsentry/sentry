@@ -109,17 +109,19 @@ jobs:
               # But while pinned to codecov-cli==0.3.8 this is needed
               json_output=$(echo $output | grep -o -e "{.*}")
 
-              echo ATS_TESTS_TO_RUN=$(jq <<< $json_output '.runner_options + .ats_tests_to_run | map(@sh) | join(" ")' --raw-output) >> "$GITHUB_OUTPUT"
-              echo ATS_TESTS_TO_SKIP=$(jq <<< $json_output '.runner_options + .ats_tests_to_skip | map(@sh) | join(" ")' --raw-output) >> "$GITHUB_OUTPUT"
+              echo ATS_TESTS_TO_RUN=$(jq <<< $json_output '.runner_options + .ats_tests_to_run | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
+              echo ATS_TESTS_TO_SKIP=$(jq <<< $json_output '.runner_options + .ats_tests_to_skip | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
 
-              test_to_run_count=$(echo $json_output | jq '.ats_tests_to_run | length')
-              test_to_skip_count=$(echo $json_output | jq '.ats_tests_to_skip | length')
-              total_tests_count=$(($test_to_run_count + $test_to_skip_count))
-              echo "Selected $test_to_run_count / $total_tests_count tests to run" >> $GITHUB_STEP_SUMMARY
+              testcount() { jq <<< $json_output ".$1 | length"; }
+              run_count=$(testcount ats_tests_to_run)
+              skip_count=$(testcount ats_tests_to_skip)
+              tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
             else
               tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
-              echo "ATS_TESTS_TO_RUN=--cov-context=test" >> "$GITHUB_OUTPUT"
-              echo "ATS_TESTS_TO_SKIP=" >> "$GITHUB_OUTPUT"
+              # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
+              # These search options match what's defined in codecov.yml:105
+              echo ATS_TESTS_TO_RUN="'[\"--cov-context=test\", \"tests/sentry\", \"tests/integration\", \"--ignore=tests/sentry/eventstream/kafka\", \"--ignore=tests/sentry/post_process_forwarder\", \"--ignore=tests/sentry/snuba\", \"--ignore=tests/sentry/search/events\", \"--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py\", \"--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py\"]'" >> "$GITHUB_OUTPUT"
+              echo ATS_TESTS_TO_SKIP="'[]'" >> "$GITHUB_OUTPUT"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -133,6 +135,23 @@ jobs:
         - name: Debug ATS_TESTS_TO_RUN
           run: |
             : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }}
+            length_of_tests=$(jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }} 'length')
+            # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
+            if [ $length_of_tests -gt 1 ]; then
+              echo "Running $length_of_tests tests"
+              jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+            else
+              echo "No tests to run"
+            fi
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
             : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}
+            ATS_TESTS_TO_SKIP='${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}'
+            length_of_tests=$(jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }} 'length')
+            # The 1st value doesn't count, it's '--cov-context=test'
+            if [ $length_of_tests -gt 1 ]; then
+              echo "Running $length_of_tests tests"
+              jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+            else
+              echo "No tests to run"
+            fi
