@@ -733,6 +733,9 @@ class OnDemandMetricSpec:
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._arguments[0]}"
 
+        if not self._arguments:
+            return None
+
         return self._arguments[0]
 
     def _query_for_hash(self):
