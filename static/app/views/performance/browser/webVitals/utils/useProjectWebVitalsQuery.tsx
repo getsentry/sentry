@@ -25,7 +25,7 @@ export const useProjectWebVitalsQuery = ({transaction}: Props = {}) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:*${transaction}*` : ''),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
     },
     pageFilters.selection

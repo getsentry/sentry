@@ -23,11 +23,11 @@ import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricWidgetProps} from 'sentry/views/ddm/metricWidget';
+import {MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 type QueryBuilderProps = {
   displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
-  metricsQuery: MetricsQuery;
+  metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
   onChange: (data: Partial<MetricWidgetProps>) => void;
   projects: number[];
   powerUserMode?: boolean;
@@ -93,6 +93,7 @@ export function QueryBuilder({
                 op: selectedOp,
                 groupBy: undefined,
                 focusedSeries: undefined,
+                displayType: getWidgetDisplayType(option.value, selectedOp),
               });
             }}
           />
@@ -226,10 +227,20 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
-      defaultQuery={query}
+      query={query}
       savedSearchType={SavedSearchType.METRIC}
     />
   );
+}
+
+function getWidgetDisplayType(
+  mri: MetricsQuery['mri'],
+  op: MetricsQuery['op']
+): MetricDisplayType {
+  if (mri?.startsWith('c') || op === 'count') {
+    return MetricDisplayType.BAR;
+  }
+  return MetricDisplayType.LINE;
 }
 
 const QueryBuilderWrapper = styled('div')`

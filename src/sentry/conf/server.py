@@ -11,7 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, TypeVar, overload
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -21,9 +21,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import type_from_value
-
-T = TypeVar("T")
+from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -33,27 +31,31 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
+_EnvTypes = Union[str, float, int, list, dict]
+
+
 @overload
 def env(key: str) -> str:
     ...
 
 
 @overload
-def env(key: str, default: T, type: Callable[[Any], T] | None = None) -> T:
+def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
     ...
 
 
 def env(
     key: str,
-    default: str | T = "",
-    type: Optional[Callable[[Any], T]] = None,
-) -> T:
+    default: str | _EnvTypes = "",
+    type: Optional[Type] = None,
+) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
 
     :param key: The environment variable to be extracted.
     :param default: The value to be returned if `key` is not found.
     :param type: The type of the returned object (defaults to the type of `default`).
+       Type parsers must come from sentry.utils.types and not python stdlib.
     :return: The environment variable if it exists, else `default`.
     """
 
@@ -1391,8 +1393,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the new crons onboarding experience with platform specific options
-    "organizations:crons-new-onboarding": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
@@ -1429,6 +1429,8 @@ SENTRY_FEATURES = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable participants purge
+    "organizations:participants-purge": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1652,6 +1654,8 @@ SENTRY_FEATURES = {
     # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
+    "organizations:session-replay-count-query-optimize": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
@@ -1692,7 +1696,7 @@ SENTRY_FEATURES = {
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
-    "organizations:project-performance-settings-admin": False,
+    "organizations:project-performance-settings-admin": True,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
@@ -1908,9 +1912,6 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 0
-
-# upsampling multiplier that we'll increase in steps till we're at 100% throughout
-SENTRY_MULTIPLIER_APM_SAMPLING = 1
 
 # ----
 # end APM config
@@ -3810,3 +3811,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
+
+# Controls whether the SDK will send the metrics upstream to the S4S transport.
+SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False

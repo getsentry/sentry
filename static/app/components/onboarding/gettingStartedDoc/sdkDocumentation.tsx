@@ -1,6 +1,9 @@
 import {useEffect, useState} from 'react';
 
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {
@@ -15,10 +18,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
   organization: Organization;
-  platform: PlatformIntegration | null;
+  platform: PlatformIntegration;
+  projectId: Project['id'];
   projectSlug: Project['slug'];
   newOrg?: boolean;
-  projectId?: Project['id'];
 };
 
 export type ModuleProps = {
@@ -32,6 +35,11 @@ export type ModuleProps = {
   sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
 
+function isFunctionalComponent(obj: any): obj is React.ComponentType<ModuleProps> {
+  // As we only use function components in the docs this should suffice
+  return typeof obj === 'function';
+}
+
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({
   platform,
@@ -44,7 +52,7 @@ export function SdkDocumentation({
   const sourcePackageRegistries = useSourcePackageRegistries(organization);
 
   const [module, setModule] = useState<null | {
-    default: React.ComponentType<ModuleProps>;
+    default: Docs<any> | React.ComponentType<ModuleProps>;
   }>(null);
 
   // TODO: This will be removed once we no longer rely on sentry-docs to load platform icons
@@ -78,18 +86,15 @@ export function SdkDocumentation({
       : `${platform?.language}/${platform?.id}`;
 
   const {
-    data: projectKeys = [],
+    data: projectKeys,
     isError: projectKeysIsError,
     isLoading: projectKeysIsLoading,
+    refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
   useEffect(() => {
-    if (projectKeysIsError || projectKeysIsLoading) {
-      return;
-    }
-
     async function getGettingStartedDoc() {
       const mod = await import(
         /* webpackExclude: /.spec/ */
@@ -98,24 +103,46 @@ export function SdkDocumentation({
       setModule(mod);
     }
     getGettingStartedDoc();
-  }, [platformPath, projectKeysIsError, projectKeysIsLoading, projectKeys]);
+    return () => {
+      setModule(null);
+    };
+  }, [platformPath]);
 
-  if (!module) {
+  if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;
   }
 
-  const {default: GettingStartedDoc} = module;
+  if (projectKeysIsError) {
+    return <LoadingError onRetry={refetchProjectKeys} />;
+  }
+
+  const {default: docs} = module;
+
+  if (isFunctionalComponent(docs)) {
+    const GettingStartedDoc = docs;
+    return (
+      <GettingStartedDoc
+        dsn={projectKeys[0].dsn.public}
+        activeProductSelection={activeProductSelection}
+        newOrg={newOrg}
+        platformKey={platform.id}
+        organization={organization}
+        projectId={projectId}
+        projectSlug={projectSlug}
+        sourcePackageRegistries={sourcePackageRegistries}
+      />
+    );
+  }
 
   return (
-    <GettingStartedDoc
+    <OnboardingLayout
+      docsConfig={docs}
       dsn={projectKeys[0].dsn.public}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
-      platformKey={platform?.id}
-      organization={organization}
+      platformKey={platform.id}
       projectId={projectId}
       projectSlug={projectSlug}
-      sourcePackageRegistries={sourcePackageRegistries}
     />
   );
 }
