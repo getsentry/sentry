@@ -56,7 +56,7 @@ export default function DeadRageClickList() {
               title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
