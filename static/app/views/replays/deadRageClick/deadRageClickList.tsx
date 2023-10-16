@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -56,7 +55,6 @@ export default function DeadRageClickList() {
               title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
-            <FeatureBadge type="new" />
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
