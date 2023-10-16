@@ -115,6 +115,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                 // use the /events-trace-lite/ response below
                 scope.setExtras({
                   traceTransactions,
+                  traceFullResults,
                 });
                 Sentry.captureException(new Error(traceErrorMsg), scope);
               }
@@ -143,13 +144,14 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   traceTransaction,
                   orphanError,
                   traceTransactions,
+                  trace,
                 });
                 Sentry.captureException(new Error(traceErrorMsg), scope);
               }
 
               return children({
                 ...traceLiteResults,
-                trace: traceTransactions,
+                trace: traceTransaction ? traceTransactions : [],
                 orphanErrors: orphanErrorsLite,
                 currentEvent: orphanError ?? traceTransaction ?? null,
               });
