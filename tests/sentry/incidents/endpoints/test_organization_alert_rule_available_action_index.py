@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
@@ -121,7 +123,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_build_action_response_sentry_app_with_component(self):
         installation = self.install_new_sentry_app("foo")
-        test_settings = {"test-settings": []}
+        test_settings: Mapping[str, Any] = {"test-settings": []}
         with assume_test_silo_mode(SiloMode.CONTROL):
             SentryAppComponent.objects.create(
                 sentry_app=installation.sentry_app,
