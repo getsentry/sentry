@@ -108,10 +108,10 @@ function ResourceTable({sort}: Props) {
       return <span>{opName}</span>;
     }
     if (key === 'http.decoded_response_content_length') {
-      const isCompressed =
-        row['http.response_content_length'] !==
+      const isUncompressed =
+        row['http.response_content_length'] ===
         row['http.decoded_response_content_length'];
-      return <span>{isCompressed ? t('true') : t('false')}</span>;
+      return <span>{isUncompressed ? t('true') : t('false')}</span>;
     }
     return <span>{row[key]}</span>;
   };
