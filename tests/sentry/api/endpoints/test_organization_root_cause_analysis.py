@@ -488,11 +488,13 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "duration_before": 10.0,
                 "duration_after": 100.0,
                 "duration_delta": 90.0,
+                "score": 0.08333333333333334,
             },
             {
                 "geo.country_code": "MS",
                 "duration_before": 0.0,
                 "duration_after": 50.0,
                 "duration_delta": 50.0,
+                "score": 0.0462962962962963,
             },
         ]
