@@ -82,7 +82,6 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     organization_provisioning_service.change_organization_slug(
         organization_id=org.id, slug="sentry"
     )
-    org.handle_async_replication(org.id)
 
     if user:
         OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")
