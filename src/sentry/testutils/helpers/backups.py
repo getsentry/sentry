@@ -78,6 +78,7 @@ from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -203,7 +204,10 @@ def clear_model(model, *, reset_pks: bool):
     with unguarded_write(using=using):
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
         manager.all().delete()
-        if reset_pks:
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if reset_pks and model is not Node:
             table = model._meta.db_table
             seq = f"{table}_id_seq"
             with connections[using].cursor() as cursor:
@@ -223,17 +227,23 @@ def clear_database(*, reset_pks: bool = False):
     for model in reversed:
         if is_control_model(model):
             with assume_test_silo_mode(SiloMode.CONTROL):
-                clear_model(model, reset_pks=False)
-        else:
-            clear_model(model, reset_pks=False)
-
-    # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-    for model in set(apps.get_models()) - set(reversed):
-        if is_control_model(model):
-            with assume_test_silo_mode(SiloMode.CONTROL):
                 clear_model(model, reset_pks=reset_pks)
         else:
             clear_model(model, reset_pks=reset_pks)
+
+    # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+    for model in set(apps.get_models()) - set(reversed):
+        # We don't know which silo these models reside in, so try both.
+        try:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                clear_model(model, reset_pks=False)
+        except Exception:
+            pass
+
+        try:
+            clear_model(model, reset_pks=False)
+        except Exception:
+            pass
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:

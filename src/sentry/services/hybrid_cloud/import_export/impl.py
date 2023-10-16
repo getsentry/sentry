@@ -273,7 +273,7 @@ class UniversalImportExportService(ImportExportService):
             allowed_relocation_scopes = export_scope.value
             possible_relocation_scopes = model.get_possible_relocation_scopes()
             includable = possible_relocation_scopes & allowed_relocation_scopes
-            if not includable or model._meta.proxy:
+            if not includable:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
                     on=InstanceID(model_name),
