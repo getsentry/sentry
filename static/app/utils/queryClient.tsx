@@ -16,6 +16,7 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 };
 
 type QueryKeyEndpointOptions = {
+  headers?: Record<string, string>;
   query?: Record<string, any>;
 };
 
@@ -106,6 +107,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
     api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
+      headers: endpointOptions?.headers,
       includeAllArgs: true,
     });
 

@@ -14,8 +14,14 @@ type Props = ViewerProps & DeprecatedAsyncComponent['props'];
 type State = DeprecatedAsyncComponent['state'];
 
 class LogFileViewer extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): [string, string][] {
-    return [['attachmentText', getAttachmentUrl(this.props)]];
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    return [
+      [
+        'attachmentText',
+        getAttachmentUrl(this.props),
+        {headers: {Accept: '*/*; charset=utf-8'}},
+      ],
+    ];
   }
 
   renderBody() {

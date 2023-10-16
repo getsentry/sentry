@@ -13,8 +13,14 @@ type Props = ViewerProps & DeprecatedAsyncComponent['props'];
 type State = DeprecatedAsyncComponent['state'];
 
 export default class JsonViewer extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): [string, string][] {
-    return [['attachmentJson', getAttachmentUrl(this.props)]];
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    return [
+      [
+        'attachmentJson',
+        getAttachmentUrl(this.props),
+        {headers: {Accept: '*/*; charset=utf-8'}},
+      ],
+    ];
   }
 
   renderBody() {
