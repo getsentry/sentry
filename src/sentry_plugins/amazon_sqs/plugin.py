@@ -183,6 +183,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
 
             sqs_send_message(message)
+            log_and_increment("sentry_plugins.amazon_sqs.message_sent")
         except ClientError as e:
             if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
                 "An error occurred (AccessDenied)"
