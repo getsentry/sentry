@@ -150,7 +150,8 @@ export function SpanGroupBreakdown({
               bottom: '0',
             }}
             definedAxisTicks={6}
-            stacked
+            isLineChart={dataDisplayType !== DataDisplayType.PERCENTAGE}
+            stacked={dataDisplayType === DataDisplayType.PERCENTAGE}
             aggregateOutputFormat={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
             }
