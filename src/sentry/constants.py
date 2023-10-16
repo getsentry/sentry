@@ -294,6 +294,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
     ]
 )
 
