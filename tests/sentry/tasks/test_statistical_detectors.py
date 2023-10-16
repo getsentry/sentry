@@ -461,12 +461,13 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
 
         for project in self.projects:
             for i in range(self.num_transactions):
+                # Store metrics for a backend transaction
                 self.store_metric(
                     self.org.id,
                     project.id,
                     "distribution",
                     TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}"},
+                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     1.0,
                     UseCaseID.TRANSACTIONS,
@@ -476,7 +477,30 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     project.id,
                     "distribution",
                     TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}"},
+                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
+                    self.hour_ago_seconds,
+                    9.5,
+                    UseCaseID.TRANSACTIONS,
+                )
+
+                # Store metrics for a frontend transaction, which should be
+                # ignored by the query
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
+                    self.hour_ago_seconds,
+                    1.0,
+                    UseCaseID.TRANSACTIONS,
+                )
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     9.5,
                     UseCaseID.TRANSACTIONS,
@@ -492,7 +516,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             [p.id for p in self.projects],
             self.hour_ago,
             self.now,
-            self.num_transactions,
+            self.num_transactions + 1,  # detect if any extra transactions are returned
         )
         assert len(res) == len(self.projects) * self.num_transactions
         for trend_payload in res:
