@@ -517,9 +517,10 @@ interface GroupFiltered {
   userCount: number;
 }
 
-export interface GroupStats extends GroupFiltered {
+export interface GroupStatsUnhandled extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  isUnhandled?: boolean;
   // for issue alert previews, the last time a group triggered a rule
   lastTriggered?: string;
   lifetime?: GroupFiltered;
@@ -611,7 +612,6 @@ export interface BaseGroup {
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  isUnhandled: boolean;
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;
@@ -641,22 +641,22 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
-export interface GroupReprocessing extends BaseGroup, GroupStats {
+export interface GroupReprocessing extends BaseGroup, GroupStatsUnhandled {
   status: GroupStatus.REPROCESSING;
   statusDetails: ReprocessingStatusDetails;
 }
 
-export interface GroupResolved extends BaseGroup, GroupStats {
+export interface GroupResolved extends BaseGroup, GroupStatsUnhandled {
   status: GroupStatus.RESOLVED;
   statusDetails: ResolvedStatusDetails;
 }
 
-export interface GroupIgnored extends BaseGroup, GroupStats {
+export interface GroupIgnored extends BaseGroup, GroupStatsUnhandled {
   status: GroupStatus.IGNORED;
   statusDetails: IgnoredStatusDetails;
 }
 
-export interface GroupUnresolved extends BaseGroup, GroupStats {
+export interface GroupUnresolved extends BaseGroup, GroupStatsUnhandled {
   status: GroupStatus.UNRESOLVED;
   statusDetails: {};
 }
