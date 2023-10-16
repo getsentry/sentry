@@ -340,7 +340,7 @@ export function generateBaseControlSiloUrl() {
   return ConfigStore.get('links').sentryUrl || '';
 }
 
-export function generateIntegrationInstallLink(orgSlug) {
+export function generateOrgSlugUrl(orgSlug) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }

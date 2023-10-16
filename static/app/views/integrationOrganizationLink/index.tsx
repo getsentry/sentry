@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {generateBaseControlSiloUrl, generateIntegrationInstallLink} from 'sentry/utils';
+import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -234,7 +234,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 {organization: <strong>{organization.slug}</strong>}
               )}
             </p>
-            <InstallLink>{generateIntegrationInstallLink(selectedOrgSlug)}</InstallLink>
+            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
           </Alert>
         )}
 
