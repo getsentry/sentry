@@ -144,3 +144,4 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     app_ids: List[int]
     organization_id: int
     uuids: List[str]
+    status: int
