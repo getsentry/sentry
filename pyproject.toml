@@ -420,6 +420,7 @@ module = [
     "sentry.integrations.gitlab.integration",
     "sentry.integrations.gitlab.issues",
     "sentry.integrations.gitlab.webhooks",
+    "sentry.integrations.jira.actions.create_ticket",
     "sentry.integrations.jira.actions.form",
     "sentry.integrations.jira.client",
     "sentry.integrations.jira.endpoints.search",
