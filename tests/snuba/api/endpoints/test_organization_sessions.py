@@ -1716,23 +1716,6 @@ class OrganizationSessionsEndpointMetricsTest(
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_anr_rate_without_feature_flag(self):
-        default_request = {
-            "project": [-1],
-            "statsPeriod": "1d",
-            "interval": "1d",
-            "field": ["anr_rate()"],
-        }
-
-        def req(**kwargs):
-            return self.do_request(dict(default_request, **kwargs))
-
-        # basic test case
-        response = req()
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "This organization does not have the ANR rate feature"}
-
-    @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):
         default_request = {
             "project": [-1],
