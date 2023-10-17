@@ -96,7 +96,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         with pytest.raises(NotImplementedError):
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
-    def test_with_no_status_change(self):
+    def test_with_no_status_change(self) -> None:
         status_change = OccurrenceStatusChange(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
@@ -114,7 +114,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert not Activity.objects.filter(group=self.group).exists()
         assert not GroupHistory.objects.filter(group=self.group).exists()
 
-    def test_with_status_change_resolved(self):
+    def test_with_status_change_resolved(self) -> None:
         status_change = OccurrenceStatusChange(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
@@ -136,7 +136,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             group=self.group, status=GroupHistoryStatus.RESOLVED
         ).exists()
 
-    def test_with_status_change_archived(self):
+    def test_with_status_change_archived(self) -> None:
         for substatus in [
             GroupSubStatus.UNTIL_ESCALATING,
             GroupSubStatus.UNTIL_CONDITION_MET,
@@ -242,3 +242,40 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             )
             assert self.group.status == self.initial_status
             assert self.group.substatus == self.initial_substatus
+
+    @patch("sentry.issues.producer.logger.error")
+    def test_invalid_hashes(self, mock_logger_error) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(datetime.now()),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group
+        initial_status = group.status
+        initial_substatus = group.substatus
+
+        bad_status_change_resolve = OccurrenceStatusChange(
+            fingerprint=["wronghash"],
+            project_id=group.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=bad_status_change_resolve,
+        )
+        group.refresh_from_db()
+        mock_logger_error.assert_called_with(
+            "grouphash.not_found",
+            extra={
+                "project_id": group.project_id,
+                "fingerprint": ["wronghash"],
+            },
+        )
+        assert group.status == initial_status
+        assert group.substatus == initial_substatus
