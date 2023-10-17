@@ -294,7 +294,7 @@ def get_recommended_event_for_environments(
     return None
 
 
-class GroupManager(BaseManager):
+class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
@@ -541,7 +541,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects = GroupManager(cache_fields=("id",))
+    objects: GroupManager = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"

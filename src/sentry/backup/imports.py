@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, Optional, Tuple, Type
+from typing import BinaryIO, Iterator, Optional, Tuple, Type
 
 import click
 from django.conf import settings
@@ -11,7 +11,7 @@ from django.db.models.base import Model
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model, get_model_name
-from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
+from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
 from sentry.utils import json
@@ -25,9 +25,10 @@ __all__ = (
 
 
 def _import(
-    src,
+    src: BinaryIO,
     scope: ImportScope,
     *,
+    decrypt_with: BinaryIO | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -49,7 +50,14 @@ def _import(
     org_model_name = get_model_name(Organization)
     org_member_model_name = get_model_name(OrganizationMember)
 
-    start = src.tell()
+    # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
+    # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
+    # footprint when processing super large (>100MB) exports.
+    content = (
+        decrypt_encrypted_tarball(src, decrypt_with)
+        if decrypt_with is not None
+        else src.read().decode("utf-8")
+    )
     filters = []
     if filter_by is not None:
         filters.append(filter_by)
@@ -73,7 +81,7 @@ def _import(
             # deserializer does no such thing, and actually loads the entire JSON into memory! If we
             # don't want to choke on large imports, we'll need use a truly "chunkable" JSON
             # importing library like ijson for this.
-            for obj in serializers.deserialize("json", src, stream=True):
+            for obj in serializers.deserialize("json", content):
                 o = obj.object
                 model_name = get_model_name(o)
                 if model_name == user_model_name:
@@ -98,7 +106,7 @@ def _import(
                     break
         elif filter_by.model == User:
             seen_first_user_model = False
-            for obj in serializers.deserialize("json", src, stream=True):
+            for obj in serializers.deserialize("json", content):
                 o = obj.object
                 model_name = get_model_name(o)
                 if model_name == user_model_name:
@@ -121,13 +129,11 @@ def _import(
 
         filters.append(email_filter)
 
-    src.seek(start)
-
     # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
     # with N model kinds into N json blobs with 1 model kind each.
     def yield_json_models(src) -> Iterator[Tuple[NormalizedModelName, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.load(src)
+        models = json.loads(content)
         last_seen_model_name: Optional[NormalizedModelName] = None
         batch: list[Type[Model]] = []
         for model in models:
@@ -228,8 +234,9 @@ def _import(
 
 
 def import_in_user_scope(
-    src,
+    src: BinaryIO,
     *,
+    decrypt_with: BinaryIO | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -246,6 +253,7 @@ def import_in_user_scope(
     return _import(
         src,
         ImportScope.User,
+        decrypt_with=decrypt_with,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -253,8 +261,9 @@ def import_in_user_scope(
 
 
 def import_in_organization_scope(
-    src,
+    src: BinaryIO,
     *,
+    decrypt_with: BinaryIO | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer=click.echo,
@@ -275,6 +284,7 @@ def import_in_organization_scope(
     return _import(
         src,
         ImportScope.Organization,
+        decrypt_with=decrypt_with,
         flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
@@ -282,8 +292,9 @@ def import_in_organization_scope(
 
 
 def import_in_config_scope(
-    src,
+    src: BinaryIO,
     *,
+    decrypt_with: BinaryIO | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -305,13 +316,20 @@ def import_in_config_scope(
     return _import(
         src,
         ImportScope.Config,
+        decrypt_with=decrypt_with,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
 
-def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=click.echo):
+def import_in_global_scope(
+    src: BinaryIO,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    printer=click.echo,
+):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
@@ -319,4 +337,10 @@ def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=cli
     superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
     """
 
-    return _import(src, ImportScope.Global, flags=flags, printer=printer)
+    return _import(
+        src,
+        ImportScope.Global,
+        decrypt_with=decrypt_with,
+        flags=flags,
+        printer=printer,
+    )
