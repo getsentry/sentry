@@ -2314,6 +2314,84 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
+    def test_run_query_with_on_demand_user_misery(self):
+        field = "user_misery(300)"
+        query_s = "transaction.duration:>=10"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
+
+        events = [
+            # satisfied
+            (300, 3),
+            # tolerated
+            (400, 2),
+            # frustrated
+            (1201, 10),
+        ]
+
+        for hour in range(0, 2):
+            for (value, repeat) in events:
+                for _ in range(0, repeat):
+                    self.store_transaction_metric(
+                        value=value,
+                        metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                        internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                        entity="metrics_sets",
+                        tags={"query_hash": spec.query_hash},
+                        timestamp=self.start + datetime.timedelta(hours=hour),
+                    )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=query._on_demand_metric_spec, require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_user_misery"
+        assert metrics_query.where[0].lhs.name == "query_hash"
+        assert (
+            metrics_query.where[0].rhs == "f9a20ff3"
+        )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "user_misery_300": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "user_misery_300": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "user_misery_300": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "user_misery_300": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "user_misery_300": 0.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "user_misery_300", "type": "Float64"},
+            ],
+        )
+
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self):

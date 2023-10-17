@@ -15,6 +15,7 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_values,
     reverse_resolve_weak,
 )
+
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
@@ -877,6 +878,9 @@ def max_timestamp(
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
+def unique_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
+    return Function("uniqIf", [Column("value"), aggregate_filter], alias=alias)
+
 def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
     return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
@@ -999,8 +1003,39 @@ def on_demand_eps_snql_factory(
 def on_demand_user_misery_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ):
-    """TBD"""
     # XXX: The formula is calculated like this
     # (count_miserable(user,100) + 5.8875) / (count_unique(user) + 5.8875 + 111.8625) = 0.0575
-    # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
-    return miserable_users(org_id, use_case_id, alias)
+    # https://githf9a20ff3ub.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
+    frustrated = Function(
+        "uniqIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                            resolve_tag_value(use_case_id, org_id, "frustrated"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+    )
+    return Function(
+        "divide",
+        [
+            Function(
+                "plus",
+                [frustrated, constants.MISERY_ALPHA]
+            ),
+            Function(
+                "plus",
+                [unique_count(aggregate_filter), constants.MISERY_ALPHA + constants.MISERY_BETA]
+            )
+        ],
+        alias=alias,
+    )

@@ -146,7 +146,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "apdex": "c",
     "epm": "c",
     "eps": "c",
-    "user_misery": "c",
+    "user_misery": "s",
 }
 
 _NO_ARG_METRICS = (
@@ -154,9 +154,8 @@ _NO_ARG_METRICS = (
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
-    "on_demand_user_misery",
 )
-_MULTIPLE_ARGS_METRICS = "on_demand_apdex"
+_MULTIPLE_ARGS_METRICS = ("on_demand_apdex", "on_demand_user_misery")
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -721,6 +720,9 @@ class OnDemandMetricSpec:
         if self.op in ("on_demand_apdex"):
             return None
 
+        if self.op in ("on_demand_user_misery"):
+            return self._arguments
+
         if not self._arguments:
             return None
 
@@ -859,7 +861,7 @@ class OnDemandMetricSpec:
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[Sequence[str]]:
-        requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
+        requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex", "on_demand_user_misery"]
         if not requires_arguments:
             return None
 
@@ -867,7 +869,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in ["on_demand_apdex"]
+        map_argument = op not in ["on_demand_apdex", "on_demand_user_misery"]
 
         first_argument = arguments[0]
         return [_map_field_name(first_argument)] if map_argument else arguments
