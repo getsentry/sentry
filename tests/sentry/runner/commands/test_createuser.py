@@ -1,4 +1,5 @@
 from sentry import roles
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.models.userrole import manage_default_super_admin_role
@@ -84,6 +85,15 @@ class CreateUserTest(CliTestCase):
             assert u.email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == roles.get_top_dog().id
+
+    def test_single_org_with_specified_id(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            sentry_org = Organization.objects.get(slug="sentry")
+        with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
+            rv = self.invoke(
+                "--email=you@somewhereawesome.com", "--no-password", f"--org-id={sentry_org.id}"
+            )
+            assert rv.exit_code == 0, rv.output
 
     def test_not_single_org(self):
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False):
