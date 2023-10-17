@@ -20,7 +20,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
-from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
@@ -180,7 +180,7 @@ def test_control_processing(task_runner):
 
 
 @region_silo_test(stable=True)
-class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
+class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(region="eu", owner=self.user)
