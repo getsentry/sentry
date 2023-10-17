@@ -1713,6 +1713,10 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
+    # Enable profiling statistical detectors ema detection
+    "organizations:performance-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:performance-statistical-detectors-breakpoint": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
