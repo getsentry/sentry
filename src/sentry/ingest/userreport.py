@@ -6,7 +6,7 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
-from sentry import eventstore, features
+from sentry import analytics, eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.models.eventuser import EventUser
@@ -155,6 +155,16 @@ def find_and_compare_eventuser_data(event: Event, eventuser: EventUser):
             "event_eventuser_equality": event_eventuser_equality,
             "snuba_event_equality": snuba_event_equality,
         },
+    )
+
+    analytics.record(
+        "eventuser_equality.check",
+        event_id=event.event_id,
+        project_id=event.project_id,
+        group_id=event.group_id,
+        snuba_eventuser_equality=snuba_eventuser_equality,
+        event_eventuser_equality=event_eventuser_equality,
+        snuba_event_equality=snuba_event_equality,
     )
 
 
