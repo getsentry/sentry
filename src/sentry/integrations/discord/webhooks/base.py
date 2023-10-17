@@ -72,6 +72,15 @@ class DiscordInteractionsEndpoint(Endpoint):
                 },
             )
             return self.respond(status=e.status)
+        except Exception as e:
+            logger.error(
+                "discord.request.unexpected_error",
+                extra={
+                    "error": str(e),
+                },
+                exc_info=True,
+            )
+            return self.respond(status=500)
 
         # This isn't an interaction type that we need to worry about, so we'll
         # just return 200.
