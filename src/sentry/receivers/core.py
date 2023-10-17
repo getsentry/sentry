@@ -33,11 +33,14 @@ SELECT setval('sentry_project_id_seq', (
 DEFAULT_SENTRY_PROJECT_ID = 1
 
 
-def handle_db_failure(func, using=None):
+def handle_db_failure(func, using=None, wrap_in_transaction=True):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            with transaction.atomic(using or router.db_for_write(Organization)):
+            if wrap_in_transaction:
+                with transaction.atomic(using or router.db_for_write(Organization)):
+                    return func(*args, **kwargs)
+            else:
                 return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
             logging.exception("Failed processing signal %s", func.__name__)
@@ -165,7 +168,7 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_upgrade.connect(
-    handle_db_failure(create_default_projects),
+    handle_db_failure(create_default_projects, wrap_in_transaction=False),
     dispatch_uid="create_default_project",
     weak=False,
     sender=SiloMode.MONOLITH,
