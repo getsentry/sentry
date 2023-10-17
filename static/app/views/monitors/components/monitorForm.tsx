@@ -143,6 +143,11 @@ function transformData(_data: Record<string, any>, model: FormModel) {
   return result;
 }
 
+// TODO(davidenwang): We should look into changing the backend serializer to avoid this
+function camelToUnderscore(key: string) {
+  return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
+}
+
 /**
  * Transform config field errors from the error response
  */
@@ -154,7 +159,10 @@ function mapFormErrors(responseJson?: any) {
   // Bring nested config entries to the top
   const {config, ...responseRest} = responseJson;
   const configErrors = Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [`config.${key}`, value])
+    Object.entries(config).map(([key, value]) => [
+      `config.${camelToUnderscore(key)}`,
+      value,
+    ])
   );
 
   return {...responseRest, ...configErrors};
