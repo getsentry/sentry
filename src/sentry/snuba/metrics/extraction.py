@@ -122,12 +122,12 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
-    "count_miserable": "on_demand_count_miserable",
-    "failure_count": "on_demand_failure_count",
-    "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
+    "count_miserable": "on_demand_count_miserable",
+    "failure_count": "on_demand_failure_count",
+    "failure_rate": "on_demand_failure_rate",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -141,12 +141,12 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p95": "d",
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
-    "count_miserable": "c",
-    "failure_count": "c",
-    "failure_rate": "c",
     "apdex": "c",
     "epm": "c",
     "eps": "c",
+    "count_miserable": "c",
+    "failure_count": "c",
+    "failure_rate": "c",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -641,12 +641,12 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
 
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
-    "on_demand_count_miserable": apdex_tag_spec,
-    "on_demand_failure_count": failure_tag_spec,
-    "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
+    "on_demand_count_miserable": apdex_tag_spec,
+    "on_demand_failure_count": failure_tag_spec,
+    "on_demand_failure_rate": failure_tag_spec,
 }
 
 
@@ -781,7 +781,7 @@ class OnDemandMetricSpec:
 
         return metric_spec
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[list[str]]]:
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
@@ -837,7 +837,7 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
-    ) -> Optional[list[str]]:
+    ) -> Optional[Sequence[str]]:
         requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
         if not requires_arguments:
             return None

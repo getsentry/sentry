@@ -547,9 +547,6 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
     if not function.is_accessible(functions_acl):
         raise InvalidSearchQuery(f"{function.name}: no access to private function")
 
-    if function.deprecated:
-        raise InvalidSearchQuery(f"{function.name}: has been deprecated in discover events")
-
     arguments = function.format_as_arguments(field, columns, params)
     details = FunctionDetails(field, function, arguments)
 
