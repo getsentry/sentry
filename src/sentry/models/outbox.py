@@ -47,6 +47,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
+from sentry.db.postgres.advisory_lock import advisory_lock
 from sentry.db.postgres.transactions import enforce_constraints, in_test_assert_no_transaction
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import unguarded_write
@@ -516,52 +517,34 @@ class OutboxBase(Model):
         using: str = db.router.db_for_write(type(self))
 
         shard_lock_id = self.lock_id(self.sharding_columns)
-        with connections[using].cursor() as cursor:
-            cursor.execute("show lock_timeout")
-            orig_timeout = cursor.fetchone()[0]
-            cursor.execute(f"SET local lock_timeout='{lock_timeout}s'")
-
         try:
-            next_shard_row: OutboxBase | None
-            try:
-                with metrics.timer("outbox.process_shard.acquire_lock"), connections[
-                    using
-                ].cursor() as cursor:
-                    cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
-            except OperationalError as e:
-                if latest_shard_row:
-                    next_shard_row = self.selected_messages_in_shard(
-                        latest_shard_row=latest_shard_row
-                    ).first()
+            with advisory_lock(
+                using=using,
+                lock_id=shard_lock_id,
+                lock_timeout_seconds=lock_timeout,
+                lock_metric_name="outbox.process_shard.acquire_lock",
+            ):
+                next_shard_row = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
+                yield next_shard_row
+        except OperationalError as e:
+            if latest_shard_row:
+                next_shard_row = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
 
-                    # If performing a synchronous flush, we have an expectation that writes up to the highest
-                    # id seen since we started to flush has been processed.  If that is not the case in a high
-                    # contention scenario, we should raise an exception to prevent breaking read after write invariance.
-                    if next_shard_row is not None:
-                        # TODO: Remove me -- once we get deployed past canary, we want these exceptions to block any
-                        # contentions that is occurring to preserve the read after write invariance.
-                        if options.get("hybrid_cloud.outbox_lock.raise_on_contention"):
-                            raise OutboxFlushError(
-                                f"Could not flush shard category={self.category}", self
-                            ) from e
-                yield None
-                return
-            except Exception as e:
-                raise e
-
-            next_shard_row = self.selected_messages_in_shard(
-                latest_shard_row=latest_shard_row
-            ).first()
-            yield next_shard_row
-        finally:
-            try:
-                with connections[using].cursor() as cursor:
-                    cursor.execute("SELECT pg_advisory_unlock(%s)", [shard_lock_id])
-                    cursor.execute(f"SET lock_timeout='{orig_timeout}'")
-            except Exception:
-                # If something strange is going on with our connection, force it closed to prevent holding the lock.
-                connections[using].close()
-                raise
+                # If performing a synchronous flush, we have an expectation that writes up to the highest
+                # id seen since we started to flush has been processed.  If that is not the case in a high
+                # contention scenario, we should raise an exception to prevent breaking read after write invariance.
+                if next_shard_row is not None:
+                    # TODO: Remove me -- once we get deployed past canary, we want these exceptions to block any
+                    # contentions that is occurring to preserve the read after write invariance.
+                    if options.get("hybrid_cloud.outbox_lock.raise_on_contention"):
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={self.category}", self
+                        ) from e
+            yield None
 
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
