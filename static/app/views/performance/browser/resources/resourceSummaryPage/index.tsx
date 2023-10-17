@@ -97,7 +97,11 @@ function ResourceSummary() {
           </HeaderContainer>
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
-          <SampleList groupId={groupId} transactionName={transaction as string} />
+          <SampleList
+            isBrowser
+            groupId={groupId}
+            transactionName={transaction as string}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

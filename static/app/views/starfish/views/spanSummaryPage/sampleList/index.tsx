@@ -24,6 +24,7 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 type Props = {
   groupId: string;
   transactionName: string;
+  isBrowser?: boolean;
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
@@ -35,6 +36,7 @@ export function SampleList({
   transactionMethod,
   spanDescription,
   onClose,
+  isBrowser,
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -75,10 +77,15 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `/performance/summary/?${qs.stringify({
-    project: query.project,
-    transaction: transactionName,
-  })}`;
+  const link = isBrowser
+    ? `/performance/browser/pageloads/?${qs.stringify({
+        project: query.project,
+        transaction: transactionName,
+      })}`
+    : `/performance/summary/?${qs.stringify({
+        project: query.project,
+        transaction: transactionName,
+      })}`;
 
   function defaultOnClose() {
     router.replace({
