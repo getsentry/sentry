@@ -915,7 +915,6 @@ class MetricsQueryBuilder(QueryBuilder):
                         meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
-            self.validate_orderby_clause()
 
             # TODO: this should happen regardless of whether the metrics_layer is being used
             granularity_condition, new_granularity = self.resolve_split_granularity()
