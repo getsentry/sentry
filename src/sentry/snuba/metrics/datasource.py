@@ -777,6 +777,7 @@ def get_series(
     results = {}
     meta = []
     fields_in_entities = {}
+    primary_entity = None  # entity used for ordering
 
     if not metrics_query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
@@ -848,6 +849,7 @@ def get_series(
             # This query contains an order by clause, and so we are only interested in the
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
+            primary_entity = initial_snuba_query.match.name
 
             request = Request(
                 dataset=Dataset.Metrics.value,
@@ -954,6 +956,12 @@ def get_series(
                         _prune_extra_groups(results, group_limit_filters)
 
                 results[entity][key] = {"data": snuba_result_data}
+
+    # Make sure that order-defining entities are entered first:
+    results = {
+        k: v
+        for (k, v) in sorted(results.items(), key=(lambda p: p[0] == primary_entity), reverse=True)
+    }
 
     org_id = projects[0].organization_id
 
