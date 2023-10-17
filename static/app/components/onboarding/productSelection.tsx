@@ -18,6 +18,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+// TODO(aknaus): move to types
 export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
@@ -340,7 +341,7 @@ export function ProductSelection({
   return (
     <Fragment>
       {showPackageManagerInfo && (
-        <TextBlock>
+        <TextBlock noMargin>
           {lazyLoader
             ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
                 loaderScript: <strong>Loader Script</strong>,
@@ -473,5 +474,5 @@ const TooltipDescription = styled('div')`
 `;
 
 const AlternativeInstallationAlert = styled(Alert)`
-  margin-top: ${space(3)};
+  margin-bottom: 0px;
 `;

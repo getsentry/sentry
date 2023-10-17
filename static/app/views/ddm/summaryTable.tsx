@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
@@ -13,71 +13,69 @@ import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics'
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {Series} from 'sentry/views/ddm/metricWidget';
+import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
+import {MetricWidgetDisplayConfig, Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum';
-  order: 'asc' | 'desc';
-};
-
-const DEFAULT_SORT_STATE: SortState = {
-  name: 'name',
-  order: 'asc',
-};
+type SortState = MetricWidgetDisplayConfig['sort'];
 
 export function SummaryTable({
   series,
   operation,
-  onClick,
+  onRowClick,
+  onSortChange,
+  sort = DEFAULT_SORT_STATE as SortState,
   setHoveredLegend,
 }: {
-  onClick: (seriesName: string) => void;
+  onRowClick: (seriesName: string) => void;
+  onSortChange: (sortState: SortState) => void;
   series: Series[];
   setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
+  sort?: SortState;
 }) {
   const {selection} = usePageFilters();
   const {slug} = useOrganization();
-  const [sortState, setSortState] = useState<SortState>(DEFAULT_SORT_STATE);
 
   const hasActions = series.some(s => s.release || s.transaction);
 
   const router = useRouter();
   const {start, end, statsPeriod, project, environment} = router.location.query;
 
-  const sort = useCallback(
+  const hasMultipleSeries = series.length > 1;
+
+  const changeSort = useCallback(
     (name: SortState['name']) => {
-      if (sortState.name === name) {
-        if (sortState.order === 'desc') {
-          setSortState(DEFAULT_SORT_STATE);
-        } else if (sortState.order === 'asc') {
-          setSortState({
+      if (sort.name === name) {
+        if (sort.order === 'desc') {
+          onSortChange(DEFAULT_SORT_STATE as SortState);
+        } else if (sort.order === 'asc') {
+          onSortChange({
             name,
             order: 'desc',
           });
         } else {
-          setSortState({
+          onSortChange({
             name,
             order: 'asc',
           });
         }
       } else {
-        setSortState({
+        onSortChange({
           name,
           order: 'asc',
         });
       }
     },
-    [sortState]
+    [sort, onSortChange]
   );
 
   const releaseTo = (release: string) => {
     return {
       pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
       query: {
-        start,
-        end,
+        pageStart: start,
+        pageEnd: end,
         pageStatsPeriod: statsPeriod,
         project,
         environment,
@@ -112,7 +110,7 @@ export function SummaryTable({
       };
     })
     .sort((a, b) => {
-      const {name, order} = sortState;
+      const {name, order} = sort;
 
       if (name === 'name') {
         return order === 'asc'
@@ -128,19 +126,19 @@ export function SummaryTable({
   return (
     <SummaryTableWrapper hasActions={hasActions}>
       <HeaderCell disabled />
-      <SortableHeaderCell onClick={sort} sortState={sortState} name="name">
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
         {t('Name')}
       </SortableHeaderCell>
-      <SortableHeaderCell onClick={sort} sortState={sortState} name="avg" right>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
         {t('Avg')}
       </SortableHeaderCell>
-      <SortableHeaderCell onClick={sort} sortState={sortState} name="min" right>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
         {t('Min')}
       </SortableHeaderCell>
-      <SortableHeaderCell onClick={sort} sortState={sortState} name="max" right>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
         {t('Max')}
       </SortableHeaderCell>
-      <SortableHeaderCell onClick={sort} sortState={sortState} name="sum" right>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
       {hasActions && (
@@ -166,9 +164,21 @@ export function SummaryTable({
           return (
             <Fragment key={seriesName}>
               <CellWrapper
-                onClick={() => onClick(seriesName)}
-                onMouseEnter={() => setHoveredLegend?.(seriesName)}
-                onMouseLeave={() => setHoveredLegend?.('')}
+                onClick={() => {
+                  if (hasMultipleSeries) {
+                    onRowClick(seriesName);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.(seriesName);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.('');
+                  }
+                }}
               >
                 <Cell>
                   <ColorDot color={color} isHidden={!!hidden} />

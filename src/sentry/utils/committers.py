@@ -20,7 +20,6 @@ from typing import (
 from django.core.cache import cache
 from django.db.models import Q
 
-from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
@@ -32,7 +31,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
@@ -313,18 +311,16 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    integrations = integration_service.get_integrations(
-        organization_id=project.organization_id, providers=["github", "gitlab"]
-    )
 
-    if features.has("organizations:commit-context", project.organization) and integrations:
-        group_owners = GroupOwner.objects.filter(
-            group_id=event.group_id,
-            project=project,
-            organization_id=project.organization_id,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context__isnull=False,
-        ).order_by("-date_added")
+    group_owners = GroupOwner.objects.filter(
+        group_id=event.group_id,
+        project=project,
+        organization_id=project.organization_id,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        context__isnull=False,
+    ).order_by("-date_added")
+
+    if len(group_owners) > 0:
         owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
         if not owner:
             return []
@@ -356,7 +352,11 @@ def get_serialized_event_file_committers(
             }
         ]
 
-    # TODO(nisanthan): Delete this else block once Commit Context has GA'd
+    # TODO(nisanthan): We create GroupOwner records for
+    # legacy Suspect Commits in process_suspect_commits task.
+    # We should refactor to query GroupOwner rather than recalculate.
+    # But we need to store the commitId and a way to differentiate
+    # if the Suspect Commit came from ReleaseCommits or CommitContext.
     else:
         event_frames = get_frame_paths(event)
         sdk_name = get_sdk_name(event.data)

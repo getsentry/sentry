@@ -3,6 +3,7 @@ import {Theme} from '@emotion/react';
 import {Location} from 'history';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
@@ -47,6 +48,9 @@ export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represent
 const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
 export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
+
+const DEFAULT_CHART_HEIGHT = 200;
+const X_AXIS_MARGIN_OFFSET = 23;
 
 export enum DiscoverQueryPageSource {
   PERFORMANCE = 'performance',
@@ -579,6 +583,50 @@ export function getIntervalLine(
           ],
         ],
       }),
+      data: [],
+    });
+
+    additionalLineSeries.push({
+      seriesName: 'Baseline Axis Line',
+      type: 'line',
+      markLine:
+        MarkLine({
+          silent: true,
+          label: {
+            show: false,
+          },
+          lineStyle: {color: theme.green400, type: 'solid', width: 4},
+          data: [
+            // The line needs to be hard-coded to a pixel coordinate because
+            // the lowest y-value is dynamic and 'min' doesn't work here
+            [
+              {xAxis: 'min', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+            ],
+          ],
+        }) ?? {},
+      data: [],
+    });
+
+    additionalLineSeries.push({
+      seriesName: 'Regression Axis Line',
+      type: 'line',
+      markLine:
+        MarkLine({
+          silent: true,
+          label: {
+            show: false,
+          },
+          lineStyle: {color: theme.red300, type: 'solid', width: 4},
+          data: [
+            // The line needs to be hard-coded to a pixel coordinate because
+            // the lowest y-value is dynamic and 'min' doesn't work here
+            [
+              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+            ],
+          ],
+        }) ?? {},
       data: [],
     });
   }

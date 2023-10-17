@@ -1669,7 +1669,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
 
             assert ret_value["type"] == "replay_event"
-            assert ret_value["start_time"] == int(event.datetime.timestamp())
+            assert ret_value["start_time"]
             assert ret_value["replay_id"] == replay_id
             assert ret_value["project_id"] == self.project.id
             assert ret_value["segment_id"] is None

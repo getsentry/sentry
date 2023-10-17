@@ -17,14 +17,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ResourceSidebar} from 'sentry/views/performance/browser/resources/resourceSidebar';
 import ResourceTable from 'sentry/views/performance/browser/resources/resourceTable';
+import {useResourceDomainsQuery} from 'sentry/views/performance/browser/resources/utils/useResourceDomansQuery';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {RESOURCE_TYPE, DOMAIN, PAGE, DESCRIPTION} = BrowserStarfishFields;
+const {RESOURCE_TYPE, SPAN_DOMAIN, TRANSACTION, DESCRIPTION} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -70,9 +72,9 @@ function ResourcesLandingPage() {
           </PaddedContainer>
 
           <FilterOptionsContainer>
-            <DomainSelector value={filters[DOMAIN] || ''} />
+            <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
             <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
-            <PageSelector value={filters[PAGE] || ''} />
+            <PageSelector value={filters[TRANSACTION] || ''} />
           </FilterOptionsContainer>
 
           <ResourceTable sort={sort} />
@@ -85,12 +87,14 @@ function ResourcesLandingPage() {
 
 function DomainSelector({value}: {value?: string}) {
   const location = useLocation();
+  const {data} = useResourceDomainsQuery();
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: 'https://s1.sentry-cdn.com', label: 'https://s1.sentry-cdn.com'},
-    {value: 'https://s2.sentry-cdn.com', label: 'https://s2.sentry-cdn.com'},
-    {value: 'https://cdn.pendo.io', label: 'https://cdn.pendo.io'},
+    ...data.map(domain => ({
+      value: domain,
+      label: domain,
+    })),
   ];
 
   return (
@@ -103,7 +107,7 @@ function DomainSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [DOMAIN]: newValue?.value,
+            [SPAN_DOMAIN]: newValue?.value,
           },
         });
       }}
@@ -140,12 +144,11 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
 function PageSelector({value}: {value?: string}) {
   const location = useLocation();
+  const {data: pages} = useResourcePagesQuery();
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: '/performance', label: '/performance'},
-    {value: '/profiling', label: '/profiling'},
-    {value: '/starfish', label: '/starfish'},
+    ...pages.map(page => ({value: page, label: page})),
   ];
 
   return (
@@ -158,7 +161,7 @@ function PageSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [PAGE]: newValue?.value,
+            [TRANSACTION]: newValue?.value,
           },
         });
       }}

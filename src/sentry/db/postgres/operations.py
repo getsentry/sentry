@@ -1,4 +1,4 @@
-from django.db.backends.postgresql.base import DatabaseOperations as DjangoDatabaseOperations
+from django.db.backends.postgresql.operations import DatabaseOperations as DjangoDatabaseOperations
 
 
 class DatabaseOperations(DjangoDatabaseOperations):

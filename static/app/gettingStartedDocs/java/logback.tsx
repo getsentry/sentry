@@ -5,10 +5,8 @@ import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  PlatformOption,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t, tct} from 'sentry/locale';
 
 export enum PackageManager {

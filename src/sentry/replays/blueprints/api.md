@@ -240,6 +240,94 @@ Deletes a replay instance.
 
 - Response 204
 
+## Replay Accessibility Issues [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/accessibility-issues]
+
+This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
+
+### Fetch Replay Accessibility Issues [GET]
+
+Retrieve a collection of accessibility issues.
+
+**Attributes**
+
+Issue Type:
+
+| Column    | Type                   | Description                                         |
+| --------- | ---------------------- | --------------------------------------------------- |
+| elements  | array[IssueElement]    | Array of elements matching the accessibility issue. |
+| help      | string                 | -                                                   |
+| help_url  | string                 | -                                                   |
+| id        | string                 | -                                                   |
+| impact    | Optional[enum[string]] | One of: 'minor', 'moderate', 'serious', 'critical'  |
+| timestamp | number                 | -                                                   |
+
+IssueElement Type:
+
+| Column       | Type                           | Description                                         |
+| ------------ | ------------------------------ | --------------------------------------------------- |
+| alternatives | array[IssueElementAlternative] | Array of solutions which could solve the problem.   |
+| element      | string                         | Array of elements matching the accessibility issue. |
+| target       | array[string]                  | Array of elements matching the accessibility issue. |
+
+IssueElementAlternative Type:
+
+| Column  | Type   | Description                           |
+| ------- | ------ | ------------------------------------- |
+| id      | string | String ID of the accessibility issue. |
+| message | string | Message explaining the problem.       |
+
+- Response 200
+
+  - Headers
+
+    - X-Hits=1
+
+  - Body
+
+    ```json
+    {
+      "data": [
+        [
+          {
+            "elements": [
+              {
+                "alternatives": [
+                  {
+                    "id": "button-has-visible-text",
+                    "message": "Element does not have inner text that is visible to screen readers"
+                  },
+                  {
+                    "id": "aria-label",
+                    "message": "aria-label attribute does not exist or is empty"
+                  },
+                  {
+                    "id": "aria-labelledby",
+                    "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+                  },
+                  {
+                    "id": "non-empty-title",
+                    "message": "Element has no title attribute"
+                  },
+                  {
+                    "id": "presentational-role",
+                    "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+                  }
+                ],
+                "element": "<button class=\"svelte-19ke1iv\">",
+                "target": ["button:nth-child(1)"]
+              }
+            ],
+            "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
+            "help": "Buttons must have discernible text",
+            "id": "button-name",
+            "impact": "critical",
+            "timestamp": 1695967678108
+          }
+        ]
+      ]
+    }
+    ```
+
 ## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
 
 - Parameters
@@ -273,20 +361,20 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column             | Type           | Description                                        |
-| ------------------ | ------         | -------------------------------------------------- |
-| count_dead_clicks  | number         | The number of dead clicks for a given DOM element. |
-| count_rage_clicks  | number         | The number of rage clicks for a given DOM element. |
-| dom_element        | string         | -                                                  |
-| element.alt        | string         | -                                                  |
-| element.aria_label | string         | -                                                  |
-| element.class      | array[string]  | -                                                  |
-| element.id         | string         | -                                                  |
-| element.role       | string         | -                                                  |
-| element.tag        | string         | -                                                  |
-| element.testid     | string         | -                                                  |
-| element.title      | string         | -                                                  |
-| project_id         | string         | -                                                  |
+| Column             | Type          | Description                                        |
+| ------------------ | ------------- | -------------------------------------------------- |
+| count_dead_clicks  | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks  | number        | The number of rage clicks for a given DOM element. |
+| dom_element        | string        | -                                                  |
+| element.alt        | string        | -                                                  |
+| element.aria_label | string        | -                                                  |
+| element.class      | array[string] | -                                                  |
+| element.id         | string        | -                                                  |
+| element.role       | string        | -                                                  |
+| element.tag        | string        | -                                                  |
+| element.testid     | string        | -                                                  |
+| element.title      | string        | -                                                  |
+| project_id         | string        | -                                                  |
 
 - Response 200
 

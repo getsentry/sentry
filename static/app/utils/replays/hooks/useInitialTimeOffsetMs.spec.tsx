@@ -201,7 +201,7 @@ describe('useInitialTimeOffsetMs', () => {
       // Expecting 5 minutes difference, in ms
       expect(result.current).toStrictEqual({
         highlight: {
-          annotation: 'click.tag:button',
+          annotation: undefined,
           nodeId: 7,
           spotlight: true,
         },
@@ -246,7 +246,7 @@ describe('useInitialTimeOffsetMs', () => {
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
       expect(result.current).toStrictEqual({
         highlight: {
-          annotation: 'click.tag:button',
+          annotation: undefined,
           nodeId: 7,
           spotlight: true,
         },

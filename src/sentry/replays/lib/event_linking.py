@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import uuid
 from hashlib import md5
 from typing import TYPE_CHECKING, TypedDict, Union
@@ -127,7 +128,7 @@ def transform_event_for_linking_payload(replay_id: str, event: BaseEvent) -> Eve
 
     return {
         "type": "replay_event",
-        "start_time": int(event.datetime.timestamp()),
+        "start_time": int(time.time()),
         "replay_id": replay_id,
         "project_id": event.project.id,
         "segment_id": None,

@@ -1,7 +1,6 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
-import {MetricRule} from 'sentry-fixture/metricRule';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
@@ -158,39 +157,34 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Viewing the rule', () => {
-    const rule = MetricRule();
-
-    it('is visible without org-level alerts:write', () => {
+    it('is visible without org-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
         project: {access: []},
-        rule,
       });
 
-      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
-    it('is enabled with org-level alerts:write', () => {
+    it('is enabled with org-level alerts:write', async () => {
       createWrapper({
         organization: {access: ['alerts:write']},
         project: {access: []},
-        rule,
       });
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
 
-    it('is enabled with project-level alerts:write', () => {
+    it('is enabled with project-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
         project: {access: ['alerts:write']},
-        rule,
       });
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
   });
 
@@ -205,7 +199,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule name', function () {
+    it('gets correct rule name', async function () {
       const rule = ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
@@ -213,7 +207,7 @@ describe('IssueRuleEditor', function () {
         body: rule,
       });
       const {onChangeTitleMock} = createWrapper();
-      expect(mock).toHaveBeenCalled();
+      await waitFor(() => expect(mock).toHaveBeenCalled());
       expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
     });
 
@@ -464,7 +458,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule to duplicate and renders fields correctly', function () {
+    it('gets correct rule to duplicate and renders fields correctly', async function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],
@@ -478,8 +472,9 @@ describe('IssueRuleEditor', function () {
           },
         },
       });
+
+      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
       expect(mock).toHaveBeenCalled();
-      expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
     });
   });
 });

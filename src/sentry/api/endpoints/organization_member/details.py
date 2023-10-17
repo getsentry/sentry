@@ -66,9 +66,9 @@ Configures the team role of the member. The two roles are:
 ```
 """
 
-# Required to explictly define roles w/ descriptions because OrganizationMemberSerializer
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
 # has the wrong descriptions, includes deprecated admin, and excludes billing
-_role_choices = [
+ROLE_CHOICES = [
     ("billing", "Can manage payment and compliance details."),
     (
         "member",
@@ -172,7 +172,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             fields={
                 "orgRole": serializers.ChoiceField(
                     help_text="The organization role of the member. The options are:",
-                    choices=_role_choices,
+                    choices=ROLE_CHOICES,
                     required=False,
                 ),
                 "teamRoles": serializers.ListField(

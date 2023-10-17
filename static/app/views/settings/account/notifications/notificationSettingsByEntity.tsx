@@ -236,11 +236,15 @@ function NotificationSettingsByEntity(props: Props) {
     <Fragment>
       <Panel>
         <StyledPanelHeader>
-          <OrganizationSelectHeader
-            organizations={organizations}
-            organizationId={orgId}
-            handleOrgChange={handleOrgChange}
-          />
+          {entityType === 'project' ? (
+            <OrganizationSelectHeader
+              organizations={organizations}
+              organizationId={orgId}
+              handleOrgChange={handleOrgChange}
+            />
+          ) : (
+            t('Settings for Organizations')
+          )}
         </StyledPanelHeader>
         <Item>
           {/* TODO: enable search for sentry projects */}
