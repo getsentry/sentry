@@ -149,7 +149,10 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
 
                 # Get the org if specified, otherwise use the default.
                 if org_id:
-                    org = organization_service.get_organization_by_id(id=org_id)
+                    org_context = organization_service.get_organization_by_id(id=org_id)
+                    if org_context is None:
+                        raise Exception("Organization ID not found")
+                    org = org_context.organization
                 else:
                     org = organization_service.get_default_organization()
 
