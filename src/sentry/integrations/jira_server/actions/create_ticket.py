@@ -30,6 +30,4 @@ class JiraServerCreateTicketAction(TicketEventAction):
         )
 
     def translate_integration(self, integration: RpcIntegration) -> str:
-        name = integration.metadata.get("domain_name", integration.name)
-        customer_domain = integration.metadata.get("base_url", "")
-        return name.replace(customer_domain, "")
+        return integration.metadata.get("domain_name", integration.name)
