@@ -166,7 +166,7 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
 
                 # if we've only got a single team let's go ahead and give
                 # access to that team as its likely the desired outcome
-                team = organization_service.check_for_single_team(organization_id=org.id)
+                team = organization_service.get_single_team(organization_id=org.id)
                 if team is not None:
                     organization_service.add_team_member(
                         organization_id=org.id, team_id=team.id, organization_member_id=member.id

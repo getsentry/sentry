@@ -351,7 +351,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 )
         return serialize_member(org_member)
 
-    def check_for_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
         teams = list(Team.objects.filter(organization_id=organization_id)[0:2])
         if len(teams) == 1:
             (team,) = teams

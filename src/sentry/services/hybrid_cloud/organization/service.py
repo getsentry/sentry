@@ -216,7 +216,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def check_for_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
         """If the organization has exactly one team, return it.
 
         Return None if the organization has no teams or more than one.
