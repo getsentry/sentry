@@ -153,7 +153,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   return (
     <RegressedFunctionsContainer>
       <RegressedFunctionsTitleContainer>
-        <RegressedFunctionsTitle>{t('Most regressed functions')}</RegressedFunctionsTitle>
+        <RegressedFunctionsTitle>{t('Most Regressed Functions')}</RegressedFunctionsTitle>
         <RegressedFunctionsPagination
           pageLinks={trendsQuery.getResponseHeader?.('Link')}
           onCursor={handleRegressedFunctionsCursor}
@@ -288,11 +288,24 @@ const RegressedFunctionMetricsRow = styled('div')`
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  margin-top: ${space(0.5)};
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`
   margin: 0;
+
+  button {
+    height: 16px;
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const RegressedFunctionsTitleContainer = styled('div')`
@@ -300,6 +313,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
+  margin-top: ${space(0.5)};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`

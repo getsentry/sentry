@@ -175,7 +175,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
                     <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
                   </div>
                   <div>
-                    <Count value={fn['count()'] as number} />
+                    <Count value={fn['count()'] as number} />{' '}
+                    {typeof fn['count()'] === 'number' && fn['count()'] > 1
+                      ? t('times')
+                      : t('time')}
                     {', '}
                     <PerformanceDuration
                       nanoseconds={fn['p75()'] as number}
@@ -203,10 +206,24 @@ const SlowestFunctionsContainer = styled('div')`
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SlowestFunctionsPagination = styled(Pagination)`
   margin: 0;
+
+  button {
+    height: 16px;
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const SlowestFunctionsTitleContainer = styled('div')`
