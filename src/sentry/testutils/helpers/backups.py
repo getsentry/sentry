@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import tarfile
 import tempfile
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -10,10 +9,9 @@ from pathlib import Path
 from typing import Tuple
 from uuid import uuid4
 
-from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.conf import settings
 from django.core.management import call_command
@@ -30,6 +28,7 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
+from sentry.backup.helpers import decrypt_encrypted_tarball
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
@@ -183,45 +182,8 @@ def export_to_encrypted_tarball(
     # Read the files in the generated tarball. This bit of code assume the file names, but that is
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
-    export = None
-    encrypted_dek = None
-    pub_key = None
-    with tarfile.open(tar_file_path, "r") as tar:
-        for member in tar.getmembers():
-            if member.isfile():
-                file = tar.extractfile(member)
-                if file is None:
-                    raise AssertionError(f"Could not extract file for {member.name}")
-
-                content = file.read()
-                if member.name == "export.json":
-                    export = content.decode("utf-8")
-                elif member.name == "data.key":
-                    encrypted_dek = content
-                elif member.name == "key.pub":
-                    pub_key = content
-                else:
-                    raise AssertionError(f"Unknown tarball entity {member.name}")
-
-    if export is None or encrypted_dek is None or pub_key is None:
-        raise AssertionError("A required file was missing from the temporary test tarball")
-
-    # Decrypt the DEK, then use it to decrypt the underlying JSON.
-    private_key = serialization.load_pem_private_key(
-        private_key_pem,
-        password=None,  # Use the password here if the PEM was encrypted
-        backend=default_backend(),
-    )
-    decrypted_dek = private_key.decrypt(  # type: ignore
-        encrypted_dek,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
-    decryptor = Fernet(decrypted_dek)
-    return json.loads(decryptor.decrypt(export))
+    with open(tar_file_path, "rb") as f:
+        return json.loads(decrypt_encrypted_tarball(f, io.BytesIO(private_key_pem)))
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -278,7 +240,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
-        with open(tmp_expect) as tmp_file:
+        with open(tmp_expect, "rb") as tmp_file:
             import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
@@ -320,7 +282,7 @@ def import_export_from_fixture_then_validate(
     fixture_file_path = get_fixture_path("backup", fixture_file_name)
     with open(fixture_file_path) as backup_file:
         expect = json.load(backup_file)
-    with open(fixture_file_path) as fixture_file:
+    with open(fixture_file_path, "rb") as fixture_file:
         import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 
     res = validate(

@@ -4,13 +4,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Query = {
   sort?: string;
 };
 
-const SORTABLE_FIELDS = [`avg(${SPAN_SELF_TIME})`, SPAN_DESCRIPTION, 'spm()'] as const;
+const SORTABLE_FIELDS = [
+  `avg(${SPAN_SELF_TIME})`,
+  SPAN_DESCRIPTION,
+  'spm()',
+  `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+] as const;
 
 export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
