@@ -11,7 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
-from usageaccountant import UsageAccumulator, UsageUnit
+# from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
