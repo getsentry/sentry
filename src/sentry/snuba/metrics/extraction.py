@@ -639,12 +639,34 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
+# https://docs.sentry.io/product/reference/search/searchable-properties/events/#count_miserablefieldthreshold
+# count_miserable(field,threshold)
+#   Returns results with a matching count of unique instances of the field that fall
+#   above the miserable threshold (4x)
+def count_miserable_tag_spec(
+    _project: Project, arguments: Optional[Sequence[str]]
+) -> list[TagSpec]:
+    if len(arguments) != 2:
+        raise Exception("count miserable requires a field and a threshold.")
+
+    field = _map_field_name(arguments[0])  # e.g. users
+    threshold = int(arguments[1])
+
+    return [
+        {
+            "key": "satisfaction",
+            "value": "frustrated",
+            "condition": {"name": field, "op": "gt", "value": threshold * 4},
+        },
+    ]
+
+
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_apdex": apdex_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
-    "on_demand_count_miserable": apdex_tag_spec,
+    "on_demand_count_miserable": count_miserable_tag_spec,
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
 }

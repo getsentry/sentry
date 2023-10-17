@@ -983,15 +983,13 @@ def on_demand_apdex_snql_factory(
 def on_demand_count_miserable(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
-    metric_frustrated = resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+    metric_frustrated = resolve_tag_value(
+        constants.METRIC_FRUSTRATED_TAG_VALUE
+    )  # e.g. "frustrated"
 
     # Nobody is miserable, we can return 0
     if metric_frustrated is None:
-        return Function(
-            "toUInt64",
-            [0],
-            alias,
-        )
+        return Function("toUInt64", [0], alias)
 
     args = {}  # For now since I don't know how to go about it
 
