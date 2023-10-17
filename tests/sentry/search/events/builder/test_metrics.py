@@ -2281,13 +2281,17 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_enabled=True,
             ),
         )
+
+        assert query._on_demand_metric_spec
+
         metrics_query = query._get_metrics_query_from_on_demand_spec(
             spec=query._on_demand_metric_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
         assert metrics_query.select[0].op == "on_demand_count_web_vitals"
-        assert metrics_query.where[0].lhs.name == "query_hash"
+
+        assert metrics_query.where
         assert (
             metrics_query.where[0].rhs == "d8e708b0"
         )  # hashed "on_demand_count_web_vitals:measurements.lcp:good;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"

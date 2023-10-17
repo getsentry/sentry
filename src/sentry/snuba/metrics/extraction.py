@@ -640,8 +640,9 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
-def count_web_vitals_spec(project: Project, arguments: Optional[List[str]]) -> List[TagSpec]:
-    _, metric = _get_apdex_project_transaction_threshold(project)
+def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
+    if not arguments:
+        raise Exception("count_web_vitals requires arguments")
 
     if len(arguments) != 2:
         raise Exception("count web vitals requires a vital name and vital rating")
@@ -691,6 +692,7 @@ def count_web_vitals_spec(project: Project, arguments: Optional[List[str]]) -> L
                 "condition": {"name": field, "op": "gte", "value": 0},
             }
         ]
+    return []
 
 
 # This is used to map a metric to a function which generates a specification
@@ -744,7 +746,7 @@ class OnDemandMetricSpec:
 
         self.op = op
         self._metric_type = metric_type
-        self._arguments = arguments
+        self._arguments = arguments or []
 
     @property
     def field_to_extract(self):
@@ -792,7 +794,10 @@ class OnDemandMetricSpec:
         elif self.op == "on_demand_count_web_vitals":
             return f"{self.op}:{self._arguments[0]}:{self._arguments[1]}"
 
-        return self._arguments
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     def _query_for_hash(self):
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
