@@ -18,7 +18,7 @@
       {
         "name": "per_page",
         "in": "query",
-        "description": "The maximum number of groups to be returned (see [pagination parameters](https://docs.sentry.io/api/pagination/)). Because of internal limits, the maximum number of groups returned in a single response is `5000 / num_intervals`.\n\nFor example, a request with `&statsPeriod=90d&interval=1d&groupBy=release` will return at most `floor(5000 / 90)` == 55 releases. To get the rest of the results, use the `link` header as described [here](https://docs.sentry.io/api/pagination).",
+        "description": "The maximum number of groups to be returned (see [pagination parameters](https://docs.sentry.io/api/pagination/)). Because of internal limits, the maximum number of groups returned in a single response is `10k / num_intervals - 1`.\n\nFor example, a request with `&statsPeriod=90d&interval=1d&groupBy=release` will return at most `floor(10k / 90) - 1` == 54 releases. To get the rest of the results, use the `link` header as described [here](https://docs.sentry.io/api/pagination).",
         "required": false,
         "schema": {
           "type": "integer"
