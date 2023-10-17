@@ -6,11 +6,12 @@ import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
@@ -28,6 +29,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: self._device_class_converter,
         }
 
     @property
@@ -36,6 +38,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
             constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
             constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
+            constants.DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -377,6 +380,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
             )
 
+    def _device_class_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if value not in DEVICE_CLASS:
+            raise InvalidSearchQuery(f"{value} is not a supported device.class")
+        return Condition(self.builder.column("device.class"), Op.IN, list(DEVICE_CLASS[value]))
+
     def _resolve_span_module(self, alias: str) -> SelectType:
         return field_aliases.resolve_span_module(self.builder, alias)
 
@@ -404,6 +413,18 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         alias: Optional[str] = None,
     ) -> SelectType:
         return Function("arrayJoin", [self._resolve_span_domain()], alias)
+
+    def _resolve_device_class(self, alias: str) -> SelectType:
+        values = []
+        keys = []
+        for device_key, device_values in DEVICE_CLASS.items():
+            values.extend(device_values)
+            keys.extend([device_key] * len(device_values))
+        return Function(
+            "transform",
+            [self.builder.column("device.class"), values, keys, "Unknown"],
+            alias,
+        )
 
     # Query Functions
     def _resolve_count_if(
