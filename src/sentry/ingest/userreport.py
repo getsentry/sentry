@@ -43,14 +43,11 @@ def save_userreport(project, report, start_time=None):
 
         if features.has("organizations:eventuser-from-snuba", project.organization):
             try:
-                find_eventuser_with_snuba(event, euser)
+                find_and_compare_eventuser_data(event, euser)
             except Exception:
-                logger.exception("Error when attempting to fetch EventUser data from Snuba")
-
-            try:
-                find_eventuser_from_event(event, euser)
-            except Exception:
-                logger.exception("Error when attempting to fetch EventUser data from Error")
+                logger.exception(
+                    "Error when attempting to compare EventUser with Snuba results & Event data"
+                )
 
         if euser and not euser.name and report.get("name"):
             euser.update(name=report["name"])
@@ -127,11 +124,43 @@ def find_event_user(report_data, event):
         pass
 
 
-def find_eventuser_with_snuba(event: Event, eventuser: EventUser):
+def find_and_compare_eventuser_data(event: Event, eventuser: EventUser):
+    """
+    Compare the EventUser record, the query results from Snuba and
+    the Event data property with each other.
+    Log the results of the comparisons.
+    """
+    try:
+        snuba_eventuser = find_eventuser_with_snuba(event)
+    except Exception:
+        logger.exception("Error when attempting to fetch EventUser data from Snuba")
+
+    # Compare Snuba result with EventUser record
+    snuba_eventuser_equality = _is_snuba_result_equal_to_eventuser(snuba_eventuser, eventuser)
+    # Compare Event data result with EventUser record
+    event_eventuser_equality = _is_event_data_equal_to_eventuser(event, eventuser)
+    # Compare Snuba result with Event data
+    snuba_event_equality = _is_event_data_equal_to_snuba_result(event, snuba_eventuser)
+
+    logger.info(
+        "EventUser equality checks with Snuba and Event.",
+        extra={
+            "eventuser": serialize(eventuser),
+            "dataset_results": snuba_eventuser,
+            "event_id": event.event_id,
+            "project_id": event.project_id,
+            "group_id": event.group_id,
+            "event.data.user": event.data.get("user", {}),
+            "snuba_eventuser_equality": snuba_eventuser_equality,
+            "event_eventuser_equality": event_eventuser_equality,
+            "snuba_event_equality": snuba_event_equality,
+        },
+    )
+
+
+def find_eventuser_with_snuba(event: Event):
     """
     Query Snuba to get the EventUser information for an Event.
-    Then compare with the EventUser record and confirm that the
-    query result is equivalent.
     """
     start_date, end_date = _start_and_end_dates(event.datetime)
 
@@ -147,68 +176,20 @@ def find_eventuser_with_snuba(event: Event, eventuser: EventUser):
     data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
     if len(data_results) == 0:
-        return logger.info(
+        logger.info(
             "Errors dataset query to find EventUser did not return any results.",
             extra={
-                "eventuser": serialize(eventuser),
                 "event_id": event.event_id,
                 "project_id": event.project_id,
                 "group_id": event.group_id,
             },
         )
+        return {}
 
-    if not _is_snuba_result_equal_to_eventuser(eventuser, data_results[0]):
-        return logger.info(
-            "EventUser not the same as Errors dataset query.",
-            extra={
-                "eventuser": serialize(eventuser),
-                "dataset_results": data_results[0],
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "group_id": event.group_id,
-            },
-        )
-
-    else:
-        return logger.info(
-            "EventUser equal to results from Errors dataset query.",
-            extra={
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "group_id": event.group_id,
-            },
-        )
+    return data_results[0]
 
 
-def find_eventuser_from_event(event: Event, eventuser: EventUser):
-    """
-    Compare the Event user data with the EventUser record and confirm
-    that it is equivalent. Log successes and failures.
-    """
-    if not _is_event_data_equal_to_eventuser(eventuser, event):
-        return logger.info(
-            "EventUser not the same as Event user data.",
-            extra={
-                "eventuser": serialize(eventuser),
-                "error_user_data": event.data.get("user", {}),
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "group_id": event.group_id,
-            },
-        )
-
-    else:
-        return logger.info(
-            "EventUser equal to Event user data.",
-            extra={
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "group_id": event.group_id,
-            },
-        )
-
-
-def _is_snuba_result_equal_to_eventuser(eventuser: EventUser, snuba_result: Mapping[str, Any]):
+def _is_snuba_result_equal_to_eventuser(snuba_result: Mapping[str, Any], eventuser: EventUser):
     EVENTUSER_TO_SNUBA_KEY_MAP = {
         "project_id": ["project_id"],
         "ident": ["user_id"],
@@ -235,7 +216,7 @@ def get_nested_value(d, value):
     return d
 
 
-def _is_event_data_equal_to_eventuser(eventuser: EventUser, event: Event):
+def _is_event_data_equal_to_eventuser(event: Event, eventuser: EventUser):
     EVENTUSER_TO_EVENT_DATA_KEY_MAP = {
         "ident": ["user.id"],
         "email": ["user.email"],
@@ -245,6 +226,23 @@ def _is_event_data_equal_to_eventuser(eventuser: EventUser, event: Event):
     for eventuser_key, event_data_keys in EVENTUSER_TO_EVENT_DATA_KEY_MAP.items():
         if getattr(eventuser, eventuser_key) not in [
             get_nested_value(event.data, key) for key in event_data_keys
+        ]:
+            return False
+
+    return True
+
+
+def _is_event_data_equal_to_snuba_result(event: Event, snuba_result: Mapping[str, Any]):
+    EVENT_DATA_TO_SNUBA_KEY_MAP = {
+        "user.id": ["user_id"],
+        "user.email": ["user_email"],
+        "user.username": ["user_name"],
+        "user.ip_address": ["ip_address_v6", "ip_address_v4"],
+    }
+
+    for event_data_key, snuba_result_keys in EVENT_DATA_TO_SNUBA_KEY_MAP.items():
+        if get_nested_value(event.data, event_data_key) not in [
+            snuba_result[key] for key in snuba_result_keys
         ]:
             return False
 
