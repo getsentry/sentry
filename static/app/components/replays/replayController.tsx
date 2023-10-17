@@ -6,6 +6,7 @@ import screenfull from 'screenfull';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -185,13 +186,16 @@ function ReplayControls({
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
-      <TimeAndScrubber isCompact={isCompact}>
-        <Time>{formatTime(currentTime)}</Time>
-        <StyledScrubber ref={elem} {...mouseTrackingProps}>
-          <PlayerScrubber />
-        </StyledScrubber>
-        <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
-      </TimeAndScrubber>
+      <Container>
+        <ReplayTimeline />
+        <TimeAndScrubber isCompact={isCompact}>
+          <Time>{formatTime(currentTime)}</Time>
+          <StyledScrubber ref={elem} {...mouseTrackingProps}>
+            <PlayerScrubber />
+          </StyledScrubber>
+          <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
+        </TimeAndScrubber>
+      </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
         {showFullscreenButton ? (
@@ -214,6 +218,12 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
+`;
+
+const Container = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1;
 `;
 
 const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
