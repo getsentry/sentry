@@ -22,12 +22,9 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
 from sentry.notifications.types import (
-    NotificationScopeEnum,
-    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -38,7 +35,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 
 from . import FireTest
 
