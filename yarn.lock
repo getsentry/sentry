@@ -2417,10 +2417,10 @@
   dependencies:
     "@react-types/shared" "^3.18.1"
 
-"@sentry-internal/feedback@0.0.1-alpha.0":
-  version "0.0.1-alpha.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.0.tgz#d7c6641952ae297d8d3bd8b971e45a3219082505"
-  integrity sha512-zTg0tEWWoxPAAIK37d76NtuCF7TlT70bVifgj3bZ6BNlPY1Bhpdpn9K6b6wWwvifiN/R7CXqvgXP79V9LaaSeA==
+"@sentry-internal/feedback@0.0.1-alpha.2":
+  version "0.0.1-alpha.2"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.2.tgz#2793e6f64b65108afa9fe2ab6c4f98c98a9ca5dc"
+  integrity sha512-eJMVK5QgiyEliapwW7qhR7lnFzXhPCmn+EmU6FN0XOr1R4g7mlzwkTdQn4MtwTk9BQp+ZYmgPq/aMgVIujvU8Q==
   dependencies:
     "@sentry/browser" "7.74.1"
     "@sentry/core" "7.74.1"
