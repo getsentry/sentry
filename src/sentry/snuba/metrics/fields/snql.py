@@ -1034,14 +1034,8 @@ def on_demand_user_misery_snql_factory(
     return Function(
         "divide",
         [
-            Function(
-                "plus",
-                [miserable_users, constants.MISERY_ALPHA]
-            ),
-            Function(
-                "plus",
-                [unique_users, (constants.MISERY_ALPHA + constants.MISERY_BETA)]
-            )
+            Function("plus", [miserable_users, constants.MISERY_ALPHA]),
+            Function("plus", [unique_users, (constants.MISERY_ALPHA + constants.MISERY_BETA)]),
         ],
         alias=alias,
     )
