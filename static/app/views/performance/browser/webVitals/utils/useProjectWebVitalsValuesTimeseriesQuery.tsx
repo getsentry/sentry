@@ -25,6 +25,9 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count()',
+        'p95(transaction.duration)',
+        'failure_count()',
       ],
       name: 'Web Vitals',
       query:
@@ -64,10 +67,12 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
 
   const data: {
     cls: SeriesDataUnit[];
+    count: SeriesDataUnit[];
+    duration: SeriesDataUnit[];
+    errors: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
-    total: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
     lcp: [],
@@ -75,7 +80,9 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
     cls: [],
     ttfb: [],
     fid: [],
-    total: [],
+    count: [],
+    duration: [],
+    errors: [],
   };
 
   result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
@@ -85,6 +92,9 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
       {key: 'p75(measurements.fcp)', series: data.fcp},
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
+      {key: 'count()', series: data.count},
+      {key: 'p95(transaction.duration)', series: data.duration},
+      {key: 'failure_count()', series: data.errors},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {

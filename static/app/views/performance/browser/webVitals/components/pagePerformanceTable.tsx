@@ -142,7 +142,11 @@ export function PagePerformanceTable() {
             />
           )}
           <Link
-            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            to={{
+              ...location,
+              pathname: `${location.pathname}overview/`,
+              query: {...location.query, transaction: row.transaction},
+            }}
           >
             {row.transaction}
           </Link>

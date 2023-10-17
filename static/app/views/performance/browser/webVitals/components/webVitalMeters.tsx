@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
@@ -12,9 +13,8 @@ import {
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
-  // TODO: type
-  projectData: any;
   onClick?: (webVital: WebVitals) => void;
+  projectData?: TableData;
   projectScore?: ProjectScore;
   transaction?: string;
 };

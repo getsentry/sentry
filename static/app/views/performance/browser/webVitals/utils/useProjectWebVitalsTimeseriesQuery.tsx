@@ -26,6 +26,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count()',
       ],
       name: 'Web Vitals',
       query:

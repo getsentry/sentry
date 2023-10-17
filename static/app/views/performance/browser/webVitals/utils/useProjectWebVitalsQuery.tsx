@@ -22,6 +22,9 @@ export const useProjectWebVitalsQuery = ({transaction}: Props = {}) => {
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
+        'failure_count()',
+        'p95(transaction.duration)',
+        'epm()',
       ],
       name: 'Web Vitals',
       query:

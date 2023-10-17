@@ -1623,13 +1623,20 @@ function buildRoutes() {
             )}
           />
         </Route>
-        <Route
-          path="pageloads/"
-          component={make(
-            () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
-          )}
-        />
+        <Route path="pageloads/">
+          <IndexRoute
+            component={make(
+              () =>
+                import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+            )}
+          />
+          <Route
+            path="overview/"
+            component={make(
+              () => import('sentry/views/performance/browser/webVitals/pageOverview')
+            )}
+          />
+        </Route>
         <Route path="resources/">
           <IndexRoute
             component={make(

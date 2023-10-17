@@ -31,6 +31,8 @@ const webVitalFullNameMap = {
 
 export function WebVitalDescription({score, value, webVital}: Props) {
   const theme = useTheme();
+  let description: string = vitalDescription[WebVital[webVital.toUpperCase()]];
+  description = description.slice(0, description.indexOf('At the moment'));
   return (
     <div>
       <Header>
@@ -52,7 +54,12 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           backgroundColor={`${getScoreColor(score, theme)}33`}
         />
       </Header>
-      <p>{vitalDescription[WebVital[webVital.toUpperCase()]]}</p>
+      <p>{description}</p>
+      <p>
+        <b>
+          {`At the moment, there is support for ${webVital.toUpperCase()} in the following browsers:`}
+        </b>
+      </p>
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
