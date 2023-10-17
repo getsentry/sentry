@@ -66,6 +66,12 @@ describe('projectPerformance', function () {
       body: {},
       statusCode: 200,
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {},
+      statusCode: 200,
+    });
   });
 
   it('renders the fields', function () {
