@@ -3,84 +3,41 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install the [strong:NuGet] package:', {
-          strong: <strong />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        description: t('Package Manager:'),
-        code: `Install-Package Sentry.Google.Cloud.Functions -Version ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
-                ?.version ?? '3.34.0'
-        }`,
-      },
-      {
-        language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        description: t('Or .NET Core CLI:'),
-        code: `dotnet add package Sentry.Google.Cloud.Functions -v ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
-                ?.version ?? '3.34.0'
-        }`,
-      },
-      {
-        language: 'xml',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        description: t('Or, manually add the Sentry dependency into your csproj file:'),
-        code: `
+type Params = DocsParams;
+
+const getInstallSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Google.Cloud.Functions -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.google-cloud-function',
+  '3.34.0'
+)}`;
+
+const getInstallSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Google.Cloud.Functions -v ${getPackageVersion(
+  params,
+  'sentry.dotnet.google-cloud-function',
+  '3.34.0'
+)}`;
+
+const getInstallSnippetManual = (params: Params) => `
 <ItemGroup>
-  <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']?.version ??
-        '3.34.0'
-  }"/>
-</ItemGroup>
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Then, add Sentry to the [functionCode:Function] class through [functionStartupCode:FunctionsStartup]:',
-          {
-            functionCode: <code />,
-            functionStartupCode: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'csharp',
-        code: `
+  <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${getPackageVersion(
+    params,
+    'sentry.dotnet.google-cloud-function',
+    '3.34.0'
+  )}"/>
+</ItemGroup>`;
+
+const getConfigureCSharpSnippet = () => `
 // Add the following line:
 [assembly: FunctionsStartup(typeof(SentryStartup))]
 
@@ -90,23 +47,12 @@ public class Function : IHttpFunction
     {
         // Your function code here.
     }
-}
-        `,
-      },
-      {
-        language: 'json',
-        description: (
-          <p>
-            {tct(
-              "Additionally, you'll need to set up your [sentryCode:Sentry] settings on [appsettingsCode:appsettings.json]:",
-              {sentryCode: <code />, appsettingsCode: <code />}
-            )}
-          </p>
-        ),
-        code: `
+}`;
+
+const getConfigureJsonSnippet = (params: Params) => `
 {
   "Sentry": {
-    "Dsn": "${dsn}",
+    "Dsn": "${params.dsn}",
     // Sends Cookies, User Id when one is logged on and user IP address to sentry. It's turned off by default.
     "SendDefaultPii": true,
     // When configuring for the first time, to see what the SDK is doing:
@@ -117,18 +63,9 @@ public class Function : IHttpFunction
     // We recommend adjusting this value in production.
     "TracesSampleRate": 1
   }
-}
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.VERIFY,
-    description: t('To verify your setup, you can capture a message with the SDK:'),
-    configurations: [
-      {
-        language: 'csharp',
-        code: `
+}`;
+
+const getVerifySnippet = () => `
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Sentry;
@@ -136,57 +73,128 @@ using Sentry;
 public Task HandleAsync(HttpContext context)
 {
     SentrySdk.CaptureMessage("Hello Sentry");
-}
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Samples'),
-    description: (
-      <Fragment>
-        {t(
-          'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-        )}
-        <List symbol="bullet">
-          <ListItem>
-            {tct('[link:Google Cloud Functions sample]', {
-              link: (
-                <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Google.Cloud.Functions" />
-              ),
-            })}
-          </ListItem>
-          <ListItem>
-            {tct(
-              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-              {
-                link: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                ),
-                strong: <strong />,
-                code: <code />,
-              }
-            )}
-          </ListItem>
-          <ListItem>
-            {tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+}`;
+
+const onboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        {
+          description: tct(
+            'Install the [strong:NuGet] package with Package Manager or .NET Core CLI:',
+            {
               strong: <strong />,
-            })}
-          </ListItem>
-        </List>
-      </Fragment>
-    ),
-  },
-];
-// Configuration End
+            }
+          ),
+          partialLoading: params.sourcePackageRegistries.isLoading,
+          code: [
+            {
+              language: 'shell',
+              label: 'Package Manager',
+              value: 'packageManager',
+              code: getInstallSnippetPackageManager(params),
+            },
+            {
+              language: 'shell',
+              label: '.NET Core CLI',
+              value: 'coreCli',
+              code: getInstallSnippetCoreCli(params),
+            },
+          ],
+        },
+        {
+          language: 'xml',
+          partialLoading: params.sourcePackageRegistries?.isLoading,
+          description: t('Or, manually add the Sentry dependency into your csproj file:'),
+          code: getInstallSnippetManual(params),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Then, add Sentry to the [functionCode:Function] class through [functionStartupCode:FunctionsStartup]:',
+        {
+          functionCode: <code />,
+          functionStartupCode: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getConfigureCSharpSnippet(),
+        },
+        {
+          language: 'json',
+          description: (
+            <p>
+              {tct(
+                "Additionally, you'll need to set up your [sentryCode:Sentry] settings on [appsettingsCode:appsettings.json]:",
+                {sentryCode: <code />, appsettingsCode: <code />}
+              )}
+            </p>
+          ),
+          code: getConfigureJsonSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t('To verify your setup, you can capture a message with the SDK:'),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getVerifySnippet(),
+        },
+      ],
+    },
+    {
+      title: t('Samples'),
+      description: (
+        <Fragment>
+          {t(
+            'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
+          )}
+          <List symbol="bullet">
+            <ListItem>
+              {tct('[link:Google Cloud Functions sample]', {
+                link: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Google.Cloud.Functions" />
+                ),
+              })}
+            </ListItem>
+            <ListItem>
+              {tct(
+                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+                {
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                  ),
+                  strong: <strong />,
+                  code: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct('[link:Basic F# sample] [strong:(F#)]', {
+                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
+                strong: <strong />,
+              })}
+            </ListItem>
+          </List>
+        </Fragment>
+      ),
+    },
+  ],
+};
 
-export function GettingStartedWithGCPFunctions({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
-}
+const docs: Docs = {
+  onboarding,
+};
 
-export default GettingStartedWithGCPFunctions;
+export default docs;
