@@ -11,7 +11,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.user import User
@@ -22,7 +21,6 @@ from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
-from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
@@ -190,74 +188,95 @@ def test_control_processing(task_runner):
         assert results.exists()
 
 
+def setup_deletion_test():
+    user = Factories.create_user()
+    organization = Factories.create_organization(region="eu", owner=user)
+    project = Factories.create_project(organization=organization)
+    integration = Factories.create_integration(organization=organization, external_id="123")
+    group = Factories.create_group(project=project)
+    external_issue = Factories.create_integration_external_issue(
+        group=group, integration=integration, key="abc123"
+    )
+    saved_query = DiscoverSavedQuery.objects.create(
+        name="disco-query",
+        organization=organization,
+        created_by_id=user.id,
+    )
+    return {
+        "user": user,
+        "organization": organization,
+        "project": project,
+        "integration": integration,
+        "group": group,
+        "external_issue": external_issue,
+        "saved_query": saved_query,
+    }
+
+
+@django_db_all
 @region_silo_test(stable=True)
-class HybridCloudForeignKeyDeletionTestCase(TestCase):
-    def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization(region="eu", owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-        self.integration = self.create_integration(
-            organization=self.organization, external_id="123"
-        )
-        self.group = self.create_group(project=self.project)
-        self.external_issue = self.create_integration_external_issue(
-            group=self.group, integration=self.integration, key="abc123"
-        )
-        self.project_integration = ProjectIntegration.objects.create(
-            project=self.project, integration_id=self.integration.id
-        )
-        self.saved_query = DiscoverSavedQuery.objects.create(
-            name="disco-query",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
+def test_cascade_deletion_behavior(self):
+    data = setup_deletion_test()
+    integration = data["integration"]
+    external_issue = data["external_issue"]
 
-    def test_cascade_deletion_behavior(self):
-        integration_id = self.integration.id
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.integration.delete()
+    integration_id = integration.id
+    with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+        integration.delete()
 
-            assert not Integration.objects.filter(id=integration_id).exists()
+        assert not Integration.objects.filter(id=integration_id).exists()
 
-        with BurstTaskRunner() as burst:
-            schedule_hybrid_cloud_foreign_key_jobs()
+    with BurstTaskRunner() as burst:
+        schedule_hybrid_cloud_foreign_key_jobs()
 
-        burst()
+    burst()
 
-        # Deletion cascaded
-        assert not ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+    # Deletion cascaded
+    assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
 
-    def test_do_nothing_deletion_behavior(self):
-        integration_id = self.integration.id
-        model = DoNothingIntegrationModel.objects.create(integration_id=integration_id)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.integration.delete()
+@django_db_all
+@region_silo_test(stable=True)
+def test_do_nothing_deletion_behavior(self):
+    data = setup_deletion_test()
+    integration = data["integration"]
 
-            assert not Integration.objects.filter(id=integration_id).exists()
+    integration_id = integration.id
+    model = DoNothingIntegrationModel.objects.create(integration_id=integration_id)
 
-        with BurstTaskRunner() as burst:
-            schedule_hybrid_cloud_foreign_key_jobs()
+    with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+        integration.delete()
 
-        burst()
+        assert not Integration.objects.filter(id=integration_id).exists()
 
-        # Deletion did nothing
-        model = DoNothingIntegrationModel.objects.get(id=model.id)
-        assert model.integration_id == integration_id
+    with BurstTaskRunner() as burst:
+        schedule_hybrid_cloud_foreign_key_jobs()
 
-    def test_set_null_deletion_behavior(self):
-        user_id = self.user.id
+    burst()
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.user.delete()
+    # Deletion did nothing
+    model = DoNothingIntegrationModel.objects.get(id=model.id)
+    assert model.integration_id == integration_id
 
-            assert not User.objects.filter(id=user_id).exists()
 
-        with BurstTaskRunner() as burst:
-            schedule_hybrid_cloud_foreign_key_jobs()
+@django_db_all
+@region_silo_test(stable=True)
+def test_set_null_deletion_behavior(self):
+    data = setup_deletion_test()
+    user = data["user"]
+    saved_query = data["saved_query"]
 
-        burst()
+    user_id = user.id
+    with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+        user.delete()
 
-        # Deletion set field to null
-        saved_query = DiscoverSavedQuery.objects.get(id=self.saved_query.id)
-        assert saved_query.created_by_id is None
+        assert not User.objects.filter(id=user_id).exists()
+
+    with BurstTaskRunner() as burst:
+        schedule_hybrid_cloud_foreign_key_jobs()
+
+    burst()
+
+    # Deletion set field to null
+    saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
+    assert saved_query.created_by_id is None
