@@ -33,8 +33,8 @@ class OverwritableConfigMixin:
                     if getattr(self, uniq_field_name, None) is not None:
                         query[uniq_field_name] = getattr(self, uniq_field_name)
 
-                # If all of the fields in the unique set are NULL, we'll avoid a collision, so go
-                # ahead and write a new entry.
+                # If all of the fields in the unique set are NULL, we'll avoid a collision, so exit
+                # early and write a new entry.
                 if len(query) > 0:
                     existing = self.__class__.objects.filter(**query).first()  # type: ignore
                     if existing:
