@@ -1,4 +1,6 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {Event} from 'sentry-fixture/event';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
@@ -49,16 +51,14 @@ export const userMetaMockData = {
 };
 
 const event = {
-  ...TestStubs.Event(),
+  ...Event(),
   _meta: {
     user: userMetaMockData,
   },
 };
 
 describe('user event context', function () {
-  // Flakey test: https://sentry.sentry.io/issues/3974475742/?project=4857230
-  // eslint-disable-next-line
-  it.skip('display redacted data', async function () {
+  it('display redacted data', async function () {
     render(<UserEventContext event={event} data={userMockData} />);
 
     expect(screen.getByText('ID')).toBeInTheDocument(); // subject
@@ -73,14 +73,23 @@ describe('user event context', function () {
     ).toBeInTheDocument(); // tooltip description
 
     expect(screen.getByText('IP Address')).toBeInTheDocument(); // subject
+    await userEvent.hover(document.body);
     expect(screen.getByText('None')).toBeInTheDocument(); // value
     await userEvent.hover(screen.getByText('None'));
-    expect(
-      await screen.findByText(
+
+    // The content of the first tooltip is not removed from the DOM when it is hidden
+    // therefore we explicitly need to wait for both tooltips to be visible
+    // Fixes race condition that causes flakiness https://sentry.sentry.io/issues/3974475742/?project=4857230
+    await waitFor(() => {
+      const tooltips = screen.getAllByText(
         textWithMarkupMatcher(
           "Removed because of a data scrubbing rule in your project's settings"
-        ) // Fall back case
-      )
-    ).toBeInTheDocument(); // tooltip description
+        )
+      );
+
+      expect(tooltips).toHaveLength(2);
+      expect(tooltips[1]).toBeInTheDocument();
+      expect(tooltips[1]).toBeInTheDocument();
+    });
   });
 });

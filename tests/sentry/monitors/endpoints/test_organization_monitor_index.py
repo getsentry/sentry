@@ -192,6 +192,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
+        mock_record.assert_any_call(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
         mock_record.assert_called_with(
             "first_cron_monitor.created",
             user_id=self.user.id,

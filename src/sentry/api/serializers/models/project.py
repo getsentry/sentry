@@ -396,11 +396,15 @@ class ProjectSerializer(Serializer):
                 recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
                 if not skip_subscriptions:
-                    # TODO(snigdha): why is this not included in the serializer
                     is_subscribed = False
                     if use_notifications_v2:
-                        (_, has_enabled_subscriptions, _) = subscriptions[project.id]
-                        is_subscribed = has_enabled_subscriptions
+                        if project.id in subscriptions:
+                            (_, has_enabled_subscriptions, _) = subscriptions[project.id]
+                            is_subscribed = has_enabled_subscriptions
+                        else:
+                            # If there are no settings, default to the EMAIL default
+                            # setting, which is ALWAYS.
+                            is_subscribed = True
                     else:
                         value = get_most_specific_notification_setting_value(
                             notification_settings_by_scope,
@@ -408,8 +412,8 @@ class ProjectSerializer(Serializer):
                             parent_id=project.id,
                             type=NotificationSettingTypes.ISSUE_ALERTS,
                         )
-                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS
-                    serialized["isSubscribed"] = is_subscribed
+                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS                    
+                        serialized["isSubscribed"] = is_subscribed  
 
                 serialized.update(
                     {

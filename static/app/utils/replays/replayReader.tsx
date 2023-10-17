@@ -5,8 +5,6 @@ import {duration} from 'moment';
 
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
-import countDomNodes from 'sentry/utils/replays/countDomNodes';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -257,21 +255,6 @@ export default class ReplayReader {
       ),
       ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
     ].sort(sortFrames)
-  );
-
-  countDomNodes = memoize(() =>
-    countDomNodes({
-      frames: this.getRRWebMutations(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this._replayRecord.started_at.getTime(),
-    })
-  );
-
-  getDomNodes = memoize(() =>
-    extractDomNodes({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-    })
   );
 
   getMemoryFrames = memoize(() =>

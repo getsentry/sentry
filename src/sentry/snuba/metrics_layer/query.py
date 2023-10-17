@@ -49,6 +49,8 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
     # Process intervals
     assert metrics_query.rollup is not None
+    start = metrics_query.start
+    end = metrics_query.end
     if metrics_query.rollup.interval:
         start, end, _num_intervals = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
@@ -56,13 +58,35 @@ def run_query(request: Request) -> Mapping[str, Any]:
         metrics_query = metrics_query.set_start(start).set_end(end)
 
     # Resolves MRI or public name in metrics_query
-    resolved_metrics_query = resolve_metrics_query(metrics_query)
-    request.query = resolved_metrics_query
+    try:
+        resolved_metrics_query = resolve_metrics_query(metrics_query)
+        request.query = resolved_metrics_query
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={
+                "referrer": request.tenant_ids["referrer"] or "unknown",
+                "status": "resolve_error",
+            },
+        )
+        raise e
 
+    try:
+        snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "query_error"},
+        )
+        raise e
+
+    # If we normalized the start/end, return those values in the response so the caller is aware
+    results = {**snuba_results, "modified_start": start, "modified_end": end}
     metrics.incr(
-        "metrics_layer.query", tags={"referrer": request.tenant_ids["referrer"] or "unknown"}
+        "metrics_layer.query",
+        tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "success"},
     )
-    return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    return results
 
 
 def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:

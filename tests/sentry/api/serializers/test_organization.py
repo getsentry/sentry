@@ -88,7 +88,6 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "invite-members-rate-limits",
             "minute-resolution-sessions",
-            "notifications-double-write",
             "open-membership",
             "project-stats",
             "relay",
