@@ -7,9 +7,11 @@ from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
+from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_status_change import OccurrenceStatusChange
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
@@ -68,6 +70,10 @@ def produce_occurrence_to_kafka(
     elif payload_type == PayloadType.STATUS_CHANGE:
         if not status_change:
             raise ValueError("Status change must be provided")
+
+        organization = Project.objects.get(id=status_change.project_id).organization
+        if not features.has("organizations:issue-platform-api-crons-sd", organization):
+            return
 
         try:
             grouphash = (

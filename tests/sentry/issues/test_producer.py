@@ -13,6 +13,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.samples import load_data
@@ -62,6 +63,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
 
+    @with_feature("organizations:issue-platform-api-crons-sd")
     def test_with_status_change(self):
         event = self.store_event(
             data={
@@ -111,6 +113,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert Activity.objects.filter(group=group, type=ActivityType.SET_RESOLVED.value).exists()
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.RESOLVED).exists()
 
+    @with_feature("organizations:issue-platform-api-crons-sd")
     @patch("sentry.issues.occurrence_status_change.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
         event = self.store_event(
@@ -173,6 +176,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
+    @with_feature("organizations:issue-platform-api-crons-sd")
     def test_with_invalid_payloads(self) -> None:
         with pytest.raises(ValueError):
             produce_occurrence_to_kafka(
