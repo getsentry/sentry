@@ -183,11 +183,13 @@ function ReplayControls({
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
       <Container>
-        <ReplayTimeline />
+        {hasNewTimeline ? <ReplayTimeline /> : null}
         <TimeAndScrubber isCompact={isCompact}>
           <Time>{formatTime(currentTime)}</Time>
           <StyledScrubber ref={elem} {...mouseTrackingProps}>
