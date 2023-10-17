@@ -657,7 +657,10 @@ def run_post_process_job(job: PostProcessJob):
             issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.exception",
-                tags={"issue_category": issue_category_metric},
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline,
+                },
             )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
