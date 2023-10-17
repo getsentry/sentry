@@ -660,11 +660,21 @@ def run_post_process_job(job: PostProcessJob):
                 tags={
                     "issue_category": issue_category_metric,
                     "pipeline": pipeline,
+                    "success": False,
                 },
             )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
+            )
+        else:
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.completed",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline,
+                    "success": True,
+                },
             )
 
 
