@@ -6,5 +6,5 @@ class NelEvent(DefaultEvent):
 
     def extract_metadata(self, data):
         metadata = super().extract_metadata(data)
-        metadata["uri"] = data.get("nel").get("url")
+        metadata["uri"] = data.get("request").get("url")
         return metadata
