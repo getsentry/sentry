@@ -447,6 +447,7 @@ symbol_sources = [
         },
         "filetypes": ["pe"],
         "type": "gcs",
+        "bucket": "mybucket",
         "client_email": "honk@beep.com",
         "private_key": {"hidden-secret": True},
     },
