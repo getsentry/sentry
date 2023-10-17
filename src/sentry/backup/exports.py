@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Type
+import io
+from typing import BinaryIO, Type
 
 import click
 from django.db.models.base import Model
@@ -11,7 +12,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Filter
+from sentry.backup.helpers import Filter, create_encrypted_export_tarball
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,
@@ -41,9 +42,10 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest,
+    dest: BinaryIO,
     scope: ExportScope,
     *,
+    encrypt_with: BinaryIO | None = None,
     indent: int = 2,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -64,7 +66,7 @@ def _export(
         printer(errText, err=True)
         raise RuntimeError(errText)
 
-    final = []
+    json_export = []
     pk_map = PrimaryKeyMap()
     allowed_relocation_scopes = scope.value
     filters = []
@@ -134,13 +136,26 @@ def _export(
         # array of serialized model objects), we could probably avoid re-ingesting the JSON string
         # as a future optimization.
         for json_model in json.loads(result.json_data):
-            final.append(json_model)
+            json_export.append(json_model)
 
-    json.dump(final, dest)
+    # If no `encrypt_with` argument was passed in, this is an unencrypted export, so we can just
+    # dump the JSON into the `dest` file and exit early.
+    if encrypt_with is None:
+        dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
+        json.dump(json_export, dest_wrapper)
+        dest_wrapper.detach()
+        return
+
+    dest.write(create_encrypted_export_tarball(json_export, encrypt_with).getvalue())
 
 
 def export_in_user_scope(
-    dest, *, user_filter: set[str] | None = None, indent: int = 2, printer=click.echo
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    user_filter: set[str] | None = None,
+    indent: int = 2,
+    printer=click.echo,
 ):
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -153,6 +168,7 @@ def export_in_user_scope(
     return _export(
         dest,
         ExportScope.User,
+        encrypt_with=encrypt_with,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
         printer=printer,
@@ -160,7 +176,12 @@ def export_in_user_scope(
 
 
 def export_in_organization_scope(
-    dest, *, org_filter: set[str] | None = None, indent: int = 2, printer=click.echo
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    org_filter: set[str] | None = None,
+    indent: int = 2,
+    printer=click.echo,
 ):
     """
     Perform an export in the `Organization` scope, meaning that only models with
@@ -174,13 +195,20 @@ def export_in_organization_scope(
     return _export(
         dest,
         ExportScope.Organization,
+        encrypt_with=encrypt_with,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         indent=indent,
         printer=printer,
     )
 
 
-def export_in_config_scope(dest, *, indent: int = 2, printer=click.echo):
+def export_in_config_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
     """
     Perform an export in the `Config` scope, meaning that only models directly related to the global
     configuration and administration of an entire Sentry instance will be exported.
@@ -192,15 +220,28 @@ def export_in_config_scope(dest, *, indent: int = 2, printer=click.echo):
     return _export(
         dest,
         ExportScope.Config,
+        encrypt_with=encrypt_with,
         filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
         indent=indent,
         printer=printer,
     )
 
 
-def export_in_global_scope(dest, *, indent: int = 2, printer=click.echo):
+def export_in_global_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the
     provided source file.
     """
-    return _export(dest, ExportScope.Global, indent=indent, printer=printer)
+    return _export(
+        dest,
+        ExportScope.Global,
+        encrypt_with=encrypt_with,
+        indent=indent,
+        printer=printer,
+    )

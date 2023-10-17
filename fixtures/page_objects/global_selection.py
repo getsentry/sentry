@@ -18,24 +18,19 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="page-filter-project-selector"]')
 
     def select_project_by_slug(self, slug):
-        project_item_selector = f'//*[@data-test-id="badge-display-name" and text()="{slug}"]'
+        project_item_selector = f'//*[@data-test-id="menu-list-item-label" and text()="{slug}"]'
 
         self.open_project_selector()
         self.browser.wait_until(xpath=project_item_selector)
         self.browser.click(xpath=project_item_selector)
 
-    def lock_project_filter(self):
-        self.open_project_selector()
-        self.browser.wait_until('[aria-label="Lock filter"]')
-        self.browser.click('[aria-label="Lock filter"]')
-
     def open_environment_selector(self):
         self.browser.click('[data-test-id="page-filter-environment-selector"]')
 
     def select_environment(self, environment):
-        environment_path = f'//*[text()="{environment}"]'
+        environment_path = f'//*[@data-test-id="menu-list-item-label" and text()="{environment}"]'
 
-        self.open_project_selector()
+        self.open_environment_selector()
         self.browser.wait_until(xpath=environment_path)
         self.browser.click(xpath=environment_path)
 

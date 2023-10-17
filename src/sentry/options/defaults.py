@@ -290,6 +290,8 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether to use redis to cache `FileBlob.id` lookups
+register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Symbol server
 register(
@@ -966,6 +968,13 @@ register(
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# An option to enable reading from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
