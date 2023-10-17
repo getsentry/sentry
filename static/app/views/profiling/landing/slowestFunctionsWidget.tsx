@@ -139,7 +139,7 @@ export function SlowestFunctionsWidget({
         )}
         {hasFunctions && totalsQuery.isFetched && (
           <StyledAccordion>
-            {(functionsQuery.data?.data ?? []).map((f, i) => {
+            {(functionsQuery.data?.data ?? []).map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
               );
@@ -148,7 +148,10 @@ export function SlowestFunctionsWidget({
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
                   isExpanded={i === expandedIndex}
-                  setExpanded={() => setExpandedIndex(i)}
+                  setExpanded={() => {
+                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    setExpandedIndex(nextIndex);
+                  }}
                   func={f}
                   totalDuration={projectTotalDuration as number}
                   query={userQuery ?? ''}
@@ -237,7 +240,7 @@ function SlowestFunctionEntry({
           aria-expanded={isExpanded}
           size="zero"
           borderless
-          onClick={() => setExpanded()}
+          onClick={setExpanded}
         />
       </StyledAccordionItem>
       {isExpanded && (
