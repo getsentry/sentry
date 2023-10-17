@@ -7,15 +7,20 @@ import pytest
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_status_change import OccurrenceStatusChange
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.grouphistory import STRING_TO_STATUS_LOOKUP, GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
-from sentry.types.group import GroupSubStatus
+from sentry.types.activity import ActivityType
+from sentry.types.group import (
+    GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS,
+    IGNORED_SUBSTATUS_CHOICES,
+    GroupSubStatus,
+)
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -63,9 +68,11 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
 
-    @with_feature("organizations:issue-platform-api-crons-sd")
-    def test_with_status_change(self):
-        event = self.store_event(
+
+@apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
+class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
+    def setUp(self):
+        self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
@@ -74,109 +81,12 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             },
             project_id=self.project.id,
         )
-        group = event.group
-        group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
-        initial_status = group.status
-        initial_substatus = group.substatus
+        self.group = self.event.group
+        assert self.group
+        self.group_hash = GroupHash.objects.filter(group=self.group, project=self.project).first()
+        self.initial_status = self.group.status
+        self.initial_substatus = self.group.substatus
 
-        status_change_resolve = OccurrenceStatusChange(
-            fingerprint=[group_hash.hash],
-            project_id=group.project_id,
-            new_status=initial_status,
-            new_substatus=initial_substatus,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=status_change_resolve,
-        )
-        group.refresh_from_db()
-        assert group.status == initial_status
-        assert group.substatus == initial_substatus
-
-        assert not Activity.objects.filter(group=group).exists()
-        assert not GroupHistory.objects.filter(group=group).exists()
-
-        status_change_resolve = OccurrenceStatusChange(
-            fingerprint=[group_hash.hash],
-            project_id=group.project_id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=status_change_resolve,
-        )
-        group.refresh_from_db()
-        assert group.status == GroupStatus.RESOLVED
-        assert group.substatus is None
-
-        assert Activity.objects.filter(group=group, type=ActivityType.SET_RESOLVED.value).exists()
-        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.RESOLVED).exists()
-
-    @with_feature("organizations:issue-platform-api-crons-sd")
-    @patch("sentry.issues.occurrence_status_change.logger.error")
-    def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
-        initial_status = group.status
-        initial_substatus = group.substatus
-
-        bad_status_change_resolve = OccurrenceStatusChange(
-            fingerprint=[group_hash.hash],
-            project_id=group.project_id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=GroupSubStatus.FOREVER,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=bad_status_change_resolve,
-        )
-        group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "group.update_status.invalid_substatus",
-            extra={
-                "project_id": group.project_id,
-                "fingerprint": [group_hash.hash],
-                "new_status": GroupStatus.RESOLVED,
-                "new_substatus": GroupSubStatus.FOREVER,
-            },
-        )
-        assert group.status == initial_status
-        assert group.substatus == initial_substatus
-
-        bad_status_change_ignored = OccurrenceStatusChange(
-            fingerprint=[group_hash.hash],
-            project_id=group.project_id,
-            new_status=GroupStatus.IGNORED,
-            new_substatus=None,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=bad_status_change_ignored,
-        )
-        group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "group.update_status.missing_substatus",
-            extra={
-                "project_id": group.project_id,
-                "fingerprint": [group_hash.hash],
-                "new_status": GroupStatus.IGNORED,
-                "new_substatus": None,
-            },
-        )
-        assert group.status == initial_status
-        assert group.substatus == initial_substatus
-
-    @with_feature("organizations:issue-platform-api-crons-sd")
     def test_with_invalid_payloads(self) -> None:
         with pytest.raises(ValueError):
             produce_occurrence_to_kafka(
@@ -189,3 +99,140 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
 
         with pytest.raises(NotImplementedError):
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
+
+    def test_with_no_status_change(self):
+        status_change = OccurrenceStatusChange(
+            fingerprint=[self.group_hash.hash],
+            project_id=self.group.project_id,
+            new_status=self.initial_status,
+            new_substatus=self.initial_substatus,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=status_change,
+        )
+        self.group.refresh_from_db()
+        assert self.group.status == self.initial_status
+        assert self.group.substatus == self.initial_substatus
+
+        assert not Activity.objects.filter(group=self.group).exists()
+        assert not GroupHistory.objects.filter(group=self.group).exists()
+
+    def test_with_status_change_resolved(self):
+        status_change = OccurrenceStatusChange(
+            fingerprint=[self.group_hash.hash],
+            project_id=self.group.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=status_change,
+        )
+        self.group.refresh_from_db()
+        assert self.group.status == GroupStatus.RESOLVED
+        assert self.group.substatus is None
+
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_RESOLVED.value
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=self.group, status=GroupHistoryStatus.RESOLVED
+        ).exists()
+
+    def test_with_status_change_archived(self):
+        for substatus in IGNORED_SUBSTATUS_CHOICES:
+            status_change = OccurrenceStatusChange(
+                fingerprint=[self.group_hash.hash],
+                project_id=self.group.project_id,
+                new_status=GroupStatus.IGNORED,
+                new_substatus=substatus,
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+                status_change=status_change,
+            )
+            self.group.refresh_from_db()
+            assert self.group.status == GroupStatus.IGNORED
+            assert self.group.substatus == substatus
+
+            assert Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_IGNORED.value
+            ).exists()
+
+            gh_status = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS[substatus]
+            assert GroupHistory.objects.filter(
+                group=self.group,
+                status=STRING_TO_STATUS_LOOKUP[gh_status],
+            ).exists()
+
+    @patch("sentry.issues.occurrence_status_change.logger.error")
+    def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
+        bad_status_change = OccurrenceStatusChange(
+            fingerprint=[self.group_hash.hash],
+            project_id=self.group.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=bad_status_change,
+        )
+        self.group.refresh_from_db()
+        mock_logger_error.assert_called_with(
+            "group.update_status.unexpected_substatus",
+            extra={
+                "project_id": self.group.project_id,
+                "fingerprint": [self.group_hash.hash],
+                "new_status": GroupStatus.RESOLVED,
+                "new_substatus": GroupSubStatus.FOREVER,
+            },
+        )
+        assert self.group.status == self.initial_status
+        assert self.group.substatus == self.initial_substatus
+
+        bad_status_change = OccurrenceStatusChange(
+            fingerprint=[self.group_hash.hash],
+            project_id=self.group.project_id,
+            new_status=GroupStatus.IGNORED,
+            new_substatus=None,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=bad_status_change,
+        )
+        self.group.refresh_from_db()
+        mock_logger_error.assert_called_with(
+            "group.update_status.missing_substatus",
+            extra={
+                "project_id": self.group.project_id,
+                "fingerprint": [self.group_hash.hash],
+                "new_status": GroupStatus.IGNORED,
+                "new_substatus": None,
+            },
+        )
+        assert self.group.status == self.initial_status
+        assert self.group.substatus == self.initial_substatus
+
+        bad_status_change = OccurrenceStatusChange(
+            fingerprint=[self.group_hash.hash],
+            project_id=self.group.project_id,
+            new_status=GroupStatus.IGNORED,
+            new_substatus=GroupSubStatus.REGRESSED,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=bad_status_change,
+        )
+        self.group.refresh_from_db()
+        mock_logger_error.assert_called_with(
+            "group.update_status.invalid_substatus",
+            extra={
+                "project_id": self.group.project_id,
+                "fingerprint": [self.group_hash.hash],
+                "new_status": GroupStatus.IGNORED,
+                "new_substatus": GroupSubStatus.REGRESSED,
+            },
+        )
+        assert self.group.status == self.initial_status
+        assert self.group.substatus == self.initial_substatus
