@@ -522,6 +522,7 @@ class OutboxBase(Model):
             cursor.execute(f"SET local lock_timeout='{lock_timeout}s'")
 
         try:
+            next_shard_row: OutboxBase | None
             try:
                 with metrics.timer("outbox.process_shard.acquire_lock"), connections[
                     using
@@ -548,7 +549,6 @@ class OutboxBase(Model):
             except Exception as e:
                 raise e
 
-            next_shard_row: OutboxBase | None
             next_shard_row = self.selected_messages_in_shard(
                 latest_shard_row=latest_shard_row
             ).first()
