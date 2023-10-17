@@ -77,6 +77,9 @@ def get_conflicting_unique_columns(
     scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
+
+        if isinstance(destination, AuthIdentityReplica):
+            scope_controlled_columns.append("ident")
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
             get_foreign_key_columns(destination, Organization, AuthProvider)
