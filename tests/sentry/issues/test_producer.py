@@ -100,7 +100,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         with pytest.raises(NotImplementedError):
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
-    def test_with_no_status_change(self):
+    def test_with_no_status_change(self) -> None:
         status_change = OccurrenceStatusChange(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
@@ -118,7 +118,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert not Activity.objects.filter(group=self.group).exists()
         assert not GroupHistory.objects.filter(group=self.group).exists()
 
-    def test_with_status_change_resolved(self):
+    def test_with_status_change_resolved(self) -> None:
         status_change = OccurrenceStatusChange(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
@@ -140,7 +140,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             group=self.group, status=GroupHistoryStatus.RESOLVED
         ).exists()
 
-    def test_with_status_change_archived(self):
+    def test_with_status_change_archived(self) -> None:
         for substatus in IGNORED_SUBSTATUS_CHOICES:
             status_change = OccurrenceStatusChange(
                 fingerprint=[self.group_hash.hash],
