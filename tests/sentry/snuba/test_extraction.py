@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
-
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
@@ -44,7 +43,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
-        ("count[)", "", False) # Malformed aggregate should return false
+        ("count[)", "", False),  # Malformed aggregate should return false
     ],
 )
 def test_should_use_on_demand(agg, query, result):
