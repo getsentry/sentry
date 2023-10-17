@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
@@ -24,6 +24,8 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION} = SpanMetricsField;
+
 function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
@@ -31,10 +33,10 @@ function ResourceSummary() {
     query: {transaction},
   } = useLocation();
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    'avg(span.self_time)',
+    `avg(${SPAN_SELF_TIME})`,
     'spm()',
-    'span.op',
-    'span.description',
+    SPAN_OP,
+    SPAN_DESCRIPTION,
   ]);
 
   return (
@@ -76,7 +78,7 @@ function ResourceSummary() {
             <PaddedContainer>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
-                <DatePageFilter alignDropdown="left" />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
             <BlockContainer>

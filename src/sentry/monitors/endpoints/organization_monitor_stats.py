@@ -60,7 +60,7 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         if environments:
             check_ins = check_ins.filter(monitor_environment__environment__in=environments)
 
-        # Use postgres' `date_bin` to bucket rounded to our rolllups
+        # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",

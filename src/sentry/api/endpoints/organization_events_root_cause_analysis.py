@@ -144,13 +144,13 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             adjusted_params["start"] = regression_breakpoint + BUFFER
 
         geo_code_durations = metrics_query(
-            ["p95(transaction.duration)", "geo.country_code", "count()"],
+            ["p95(transaction.duration)", "geo.country_code", "tpm()"],
             f"event.type:transaction transaction:{transaction_name}",
             adjusted_params,
             referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
             limit=METRICS_MAX_LIMIT,
-            # Order by descending count to ensure more active countries are prioritized
-            orderby=["-count()"],
+            # Order by descending TPM to ensure more active countries are prioritized
+            orderby=["-tpm()"],
         )
 
         return geo_code_durations
@@ -170,21 +170,28 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 
     analysis_results = []
     for key in changed_keys | new_keys:
+        if key == "":
+            continue
+
         duration_before = (
             before_results[key]["p95_transaction_duration"] if before_results.get(key) else 0.0
         )
         duration_after = after_results[key]["p95_transaction_duration"]
         if duration_after > duration_before:
+            duration_delta = duration_after - duration_before
             analysis_results.append(
                 {
                     "geo.country_code": key,
                     "duration_before": duration_before,
                     "duration_after": duration_after,
-                    "duration_delta": duration_after - duration_before,
+                    "duration_delta": duration_delta,
+                    # Multiply duration delta by current TPM to prioritize largest changes
+                    # by most active countries
+                    "score": duration_delta * after_results[key]["tpm"],
                 }
             )
 
-    analysis_results.sort(key=lambda x: x["duration_delta"], reverse=True)
+    analysis_results.sort(key=lambda x: x["score"], reverse=True)
     return analysis_results
 
 

@@ -210,7 +210,7 @@ export function useTableQuery({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 10,
+    limit: 25,
     referrer,
     options: {
       refetchOnWindowFocus: false,

@@ -914,6 +914,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
+        assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
@@ -2921,7 +2922,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_non_observed_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -2982,7 +2983,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_boosts_only_latest_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3176,7 +3177,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3226,7 +3227,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
 
@@ -3296,7 +3297,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_expired_boosted_releases_are_removed(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         # We want to test with multiple platforms.
         for platform in ("python", "java", None):
@@ -3378,7 +3379,7 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(
@@ -3448,7 +3449,7 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time()
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
