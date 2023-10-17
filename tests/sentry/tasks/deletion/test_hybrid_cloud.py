@@ -5,6 +5,8 @@ import pytest
 from django.apps import apps
 from django.db.models import Max, QuerySet
 
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -27,6 +29,15 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
+
+
+@region_silo_only_model
+class DoNothingIntegrationModel(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
+
+    class Meta:
+        app_label = "fixtures"
 
 
 @pytest.fixture(autouse=True)
@@ -216,6 +227,7 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
 
     def test_do_nothing_deletion_behavior(self):
         integration_id = self.integration.id
+        model = DoNothingIntegrationModel.objects.create(integration_id=integration_id)
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.integration.delete()
@@ -226,8 +238,8 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         # Deletion did nothing
-        project_integration = ProjectIntegration.objects.get(id=self.project_integration.id)
-        assert project_integration.integration_id == integration_id
+        model = DoNothingIntegrationModel.objects.get(id=model.id)
+        assert model.integration_id == integration_id
 
     def test_set_null_deletion_behavior(self):
         user_id = self.user.id
