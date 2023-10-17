@@ -721,7 +721,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return self._arguments
+            return "event.user.id"
 
         if not self._arguments:
             return None

@@ -2334,7 +2334,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     self.store_transaction_metric(
                         value=value,
                         metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                        internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                        internal_metric=TransactionMRI.SET_ON_DEMAND.value,
                         entity="metrics_sets",
                         tags={"query_hash": spec.query_hash},
                         timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2360,28 +2360,31 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert (
             metrics_query.where[0].rhs == "f9a20ff3"
         )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+        assert (
+            metrics_query.where[0].rhs == spec.query_hash
+        )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
 
         result = query.run_query("test_query")
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "user_misery_300": 0.0,
+                "user_misery_300": 0.04875776397515528,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": 0.0,
+                "user_misery_300": 0.04875776397515528,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "user_misery_300": 0.0,
+                "user_misery_300": 0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "user_misery_300": 0.0,
+                "user_misery_300": 0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "user_misery_300": 0.0,
+                "user_misery_300": 0,
             },
         ]
         self.assertCountEqual(

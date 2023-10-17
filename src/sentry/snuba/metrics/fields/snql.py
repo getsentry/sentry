@@ -1006,7 +1006,7 @@ def on_demand_user_misery_snql_factory(
     # XXX: The formula is calculated like this
     # (count_miserable(user,100) + 5.8875) / (count_unique(user) + 5.8875 + 111.8625) = 0.0575
     # https://githf9a20ff3ub.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
-    frustrated = Function(
+    miserable_users = Function(
         "uniqIf",
         [
             Column("value"),
@@ -1025,14 +1025,23 @@ def on_demand_user_misery_snql_factory(
             ),
         ],
     )
+    unique_users = Function(
+        "uniq",
+        [
+            Column("value"),
+        ],
+    )
     return Function(
         "divide",
         [
-            Function("plus", [frustrated, constants.MISERY_ALPHA]),
             Function(
                 "plus",
-                [unique_count(aggregate_filter), constants.MISERY_ALPHA + constants.MISERY_BETA],
+                [miserable_users, constants.MISERY_ALPHA]
             ),
+            Function(
+                "plus",
+                [unique_users, (constants.MISERY_ALPHA + constants.MISERY_BETA)]
+            )
         ],
         alias=alias,
     )
