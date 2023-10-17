@@ -12,7 +12,7 @@ from sentry.tasks.integrations import logger
 
 @instrumented_task(
     name="sentry.tasks.integrations.migrate_repo",
-    queue="integrations",
+    queue="integrations.control",
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.CONTROL,

@@ -231,9 +231,10 @@ describe('ProjectPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: [],
+      memberProjects: organization.projects.filter(p => p.isMember),
+      nonMemberProjects: organization.projects.filter(p => !p.isMember),
       organization: desyncOrganization,
-      queryParams: {project: '2'},
+      queryParams: {project: ['2']},
       router: desyncRouter,
       shouldEnforceSingleProject: false,
     });
