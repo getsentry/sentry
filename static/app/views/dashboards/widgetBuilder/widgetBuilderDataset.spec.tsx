@@ -13,6 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {
   DashboardDetails,
@@ -70,6 +71,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(organization.projects);
 
   render(
     <WidgetBuilder

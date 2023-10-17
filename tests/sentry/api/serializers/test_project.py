@@ -17,6 +17,7 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
+from sentry.features.base import ProjectFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.options.project_option import ProjectOption
@@ -276,9 +277,9 @@ class ProjectSerializerTest(TestCase):
 
             return ProjectColorFeatureHandler()
 
-        test_features.add(early_flag, features.ProjectFeature)
-        test_features.add(red_flag, features.ProjectFeature)
-        test_features.add(blue_flag, features.ProjectFeature)
+        test_features.add(early_flag, ProjectFeature)
+        test_features.add(red_flag, ProjectFeature)
+        test_features.add(blue_flag, ProjectFeature)
         red_handler = create_color_handler(red_flag, [early_red, late_red])
         blue_handler = create_color_handler(blue_flag, [early_blue, late_blue])
         for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):

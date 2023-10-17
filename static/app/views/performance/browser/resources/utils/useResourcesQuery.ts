@@ -6,6 +6,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+
+const {
+  SPAN_DOMAIN,
+  SPAN_GROUP,
+  SPAN_DESCRIPTION,
+  SPAN_OP,
+  SPAN_SELF_TIME,
+  RESOURCE_RENDER_BLOCKING_STATUS,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+} = SpanMetricsField;
 
 export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const pageFilters = usePageFilters();
@@ -13,9 +24,17 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
   const queryConditions = [
-    `span.op:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
+    ...(resourceFilters[SPAN_DOMAIN]
+      ? [`${SPAN_DOMAIN}:${resourceFilters[SPAN_DOMAIN]}`]
+      : []),
+    ...(resourceFilters['resource.render_blocking_status']
+      ? [
+          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+        ]
       : []),
   ];
 
@@ -23,14 +42,15 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'span.description',
-        'span.op',
+        SPAN_DESCRIPTION,
+        SPAN_OP,
         'count()',
-        'avg(span.self_time)',
+        `avg(${SPAN_SELF_TIME})`,
         'spm()',
-        'span.group',
-        'resource.render_blocking_status',
-        'span.domain',
+        SPAN_GROUP,
+        RESOURCE_RENDER_BLOCKING_STATUS,
+        SPAN_DOMAIN,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -48,16 +68,20 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const result = useDiscoverQuery({eventView, limit: 100, location, orgSlug});
 
   const data = result?.data?.data.map(row => ({
-    'span.op': row['span.op'].toString() as 'resource.script' | 'resource.img',
-    'span.description': row['span.description'].toString(),
-    'avg(span.self_time)': row['avg(span.self_time)'] as number,
+    [SPAN_OP]: row[SPAN_OP].toString() as `resource.${string}`,
+    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION].toString(),
+    ['avg(span.self_time)']: row[`avg(${SPAN_SELF_TIME})`] as number,
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
-    'span.group': row['span.group'].toString(),
-    'resource.render_blocking_status': row['resource.render_blocking_status'] as
+    [SPAN_GROUP]: row[SPAN_GROUP].toString(),
+    [RESOURCE_RENDER_BLOCKING_STATUS]: row[RESOURCE_RENDER_BLOCKING_STATUS] as
       | ''
       | 'non-blocking'
       | 'blocking',
+    [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
+    [`avg(http.response_content_length)`]: row[
+      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
+    ] as number,
   }));
 
   return {...result, data: data || []};

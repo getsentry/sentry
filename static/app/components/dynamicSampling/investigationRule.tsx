@@ -92,6 +92,18 @@ function useGetExistingRule(
     {
       staleTime: 0,
       enabled,
+      // No retries for 4XX errors.
+      // This makes the error feedback a lot faster, and there is no unnecessary network traffic.
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) {
+          return false;
+        }
+        if (error.status && error.status >= 400 && error.status < 500) {
+          // don't retry 4xx errors (in theory 429 should be retried but not immediately)
+          return false;
+        }
+        return true;
+      },
     }
   );
 
@@ -141,6 +153,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         success: false,
       });
     },
+    retry: false,
   });
   return mutate;
 }
@@ -176,15 +189,14 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
   if (request.isLoading) {
     return null;
   }
-
-  if (request.error !== null) {
+  if (request.isError) {
     const errorResponse = t('Unable to fetch investigation rule');
     addErrorMessage(errorResponse);
     return null;
   }
 
   const rule = request.data;
-  const haveInvestigationRuleInProgress = rule !== null;
+  const haveInvestigationRuleInProgress = !!rule;
 
   if (haveInvestigationRuleInProgress) {
     // investigation rule in progress, just show a message

@@ -2,6 +2,7 @@ import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -47,7 +48,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackIt
   return feedbackId === feedbackItem.feedback_id;
 }
 
-const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
+const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
     const organization = useOrganization();
     const {projects} = useProjects();
@@ -59,56 +60,67 @@ const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
       // TODO[feedback]: Guard against invalid test data that has no valid project.
       return null;
     }
+    const slug = project?.slug;
 
     return (
-      <Wrapper
-        ref={ref}
-        className={className}
-        style={style}
-        data-selected={isSelected}
-        to={() => {
-          const location = browserHistory.getCurrentLocation();
-          return {
-            pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-            query: {
-              ...location.query,
-              referrer: 'feedback_list_page',
-              feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
-            },
-          };
-        }}
-        onClick={() => {
-          trackAnalytics('feedback_list.details_link.click', {organization});
-        }}
-      >
-        <InteractionStateLayer />
-        <Flex column style={{gridArea: 'right'}}>
-          <Checkbox
-            checked={isChecked}
-            onChange={e => onChecked(e.target.checked)}
-            onClick={e => e.stopPropagation()}
-          />
-        </Flex>
-        <strong style={{gridArea: 'user'}}>
-          <FeedbackItemUsername feedbackItem={feedbackItem} />
-        </strong>
-        <span style={{gridArea: 'time'}}>
-          <TimeSince date={feedbackItem.timestamp} />
-        </span>
-        <div style={{gridArea: 'message'}}>
-          <TextOverflow>{feedbackItem.message}</TextOverflow>
-        </div>
-        <Flex style={{gridArea: 'icons'}}>
-          {feedbackItem.replay_id ? <ReplayBadge /> : null}
-        </Flex>
-      </Wrapper>
+      <CardSpacing className={className} style={style} ref={ref}>
+        <LinkedFeedbackCard
+          data-selected={isSelected}
+          to={() => {
+            const location = browserHistory.getCurrentLocation();
+            return {
+              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+              query: {
+                ...location.query,
+                referrer: 'feedback_list_page',
+                feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
+              },
+            };
+          }}
+          onClick={() => {
+            trackAnalytics('feedback_list.details_link.click', {organization});
+          }}
+        >
+          <InteractionStateLayer />
+          <Flex column style={{gridArea: 'checkbox'}}>
+            <Checkbox
+              checked={isChecked}
+              onChange={e => onChecked(e.target.checked)}
+              onClick={e => e.stopPropagation()}
+            />
+          </Flex>
+          <Flex column style={{gridArea: 'right'}}>
+            {''}
+          </Flex>
+          <strong style={{gridArea: 'user'}}>
+            <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
+          </strong>
+          <span style={{gridArea: 'time'}}>
+            <TimeSince date={feedbackItem.timestamp} />
+          </span>
+          <div style={{gridArea: 'message'}}>
+            <TextOverflow>{feedbackItem.message}</TextOverflow>
+          </div>
+          <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
+            <Flex align="center" gap={space(0.5)}>
+              <ProjectAvatar project={project} size={12} /> {slug}
+            </Flex>
+            {feedbackItem.replay_id ? <ReplayBadge /> : null}
+          </Flex>
+        </LinkedFeedbackCard>
+      </CardSpacing>
     );
   }
 );
 
-const Wrapper = styled(Link)`
+const CardSpacing = styled('div')`
+  padding: ${space(0.25)} ${space(0.5)};
+`;
+
+const LinkedFeedbackCard = styled(Link)`
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(0.75)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1.5)};
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -123,11 +135,12 @@ const Wrapper = styled(Link)`
   grid-template-columns: max-content 1fr max-content;
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
-    'right user time'
+    'checkbox user time'
     'right message message'
     'right icons icons';
   gap: ${space(1)};
   place-items: stretch;
+  align-items: center;
 `;
 
 export default FeedbackListItem;

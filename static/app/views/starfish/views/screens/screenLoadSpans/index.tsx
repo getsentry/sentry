@@ -22,6 +22,7 @@ import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
@@ -62,7 +63,6 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -86,6 +86,7 @@ function ScreenLoadSpans() {
                     <DatePageFilter alignDropdown="left" />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
+                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreensView
@@ -96,7 +97,6 @@ function ScreenLoadSpans() {
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
@@ -129,7 +129,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

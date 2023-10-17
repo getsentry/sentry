@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
     get_opsgenie_teams,
@@ -52,11 +52,15 @@ def build_action_response(
         action_response["integrationId"] = integration.id
 
         if registered_type.type == AlertRuleTriggerAction.Type.PAGERDUTY:
+            if organization is None:
+                raise Exception("Organization is required for PAGERDUTY actions")
             action_response["options"] = [
                 {"value": id, "label": service_name}
                 for id, service_name in get_pagerduty_services(organization.id, integration.id)
             ]
         elif registered_type.type == AlertRuleTriggerAction.Type.OPSGENIE:
+            if organization is None:
+                raise Exception("Organization is required for OPSGENIE actions")
             action_response["options"] = [
                 {"value": id, "label": team}
                 for id, team in get_opsgenie_teams(organization.id, integration.id)
@@ -73,7 +77,7 @@ def build_action_response(
             installation_id=sentry_app_installation.id, component_type="alert-rule-action"
         )
         if component:
-            action_response["settings"] = component.schema.get("settings", {})
+            action_response["settings"] = component.app_schema.get("settings", {})
 
     return action_response
 
