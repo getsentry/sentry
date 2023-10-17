@@ -2,8 +2,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal, Mapping
 
 import pytest
-
-# from django.utils import timezone
 from snuba_sdk import (
     Column,
     Condition,
@@ -17,6 +15,7 @@ from snuba_sdk import (
     Timeseries,
 )
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.snuba.metrics_layer.query import run_query
@@ -37,7 +36,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
         }
-        self.now = datetime.now(tz=timezone.utc)
+        self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
         # Store a data point every 10 seconds for an hour
@@ -253,3 +252,59 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         assert rows[0]["transaction"] == "transaction_0"
         assert rows[1]["aggregate_value"] == 59
         assert rows[1]["transaction"] == "transaction_1"
+
+    def test_interval_return(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="max",
+            ),
+            start=self.hour_ago.replace(minute=16, second=59),
+            end=self.now.replace(minute=16, second=59),
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert result["modified_start"] == self.hour_ago.replace(minute=16, second=0)
+        assert result["modified_end"] == self.now.replace(minute=17, second=0)
+
+    def test_bad_query(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    "not a real MRI",
+                ),
+                aggregate="max",
+            ),
+            start=self.hour_ago.replace(minute=16, second=59),
+            end=self.now.replace(minute=16, second=59),
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+
+        with pytest.raises(InvalidParams):
+            run_query(request)

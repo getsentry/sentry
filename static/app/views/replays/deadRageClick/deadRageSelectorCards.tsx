@@ -43,7 +43,9 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have dead clicked on.')}
+                  title={t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
@@ -64,7 +66,9 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have rage clicked on.')}
+                  title={t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
