@@ -23,6 +23,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
@@ -178,19 +179,6 @@ def test_control_processing(task_runner):
         assert results.exists()
 
 
-@django_db_all
-def xtest_hybrid_cloud_foreign_keys_generate_outboxes():
-    for app_models in apps.all_models.values():
-        for model in app_models.values():
-            if not hasattr(model._meta, "silo_limit"):
-                continue
-            for field in model._meta.fields:
-                if not isinstance(field, HybridCloudForeignKey):
-                    continue
-
-    assert False
-
-
 @region_silo_test(stable=True)
 class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
     def setUp(self):
@@ -215,13 +203,8 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
 
     def test_cascade_deletion_behavior(self):
         integration_id = self.integration.id
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # Create the outboxes
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.integration.delete()
-
-            # Process the them immediately
-            for co in ControlOutbox.objects.all():
-                co.drain_shard()
 
             assert not Integration.objects.filter(id=integration_id).exists()
 
@@ -234,13 +217,8 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
     def test_do_nothing_deletion_behavior(self):
         integration_id = self.integration.id
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # Create the outboxes
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.integration.delete()
-
-            # Process the them immediately
-            for co in ControlOutbox.objects.all():
-                co.drain_shard()
 
             assert not Integration.objects.filter(id=integration_id).exists()
 
@@ -254,13 +232,8 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase, BaseTestCase):
     def test_set_null_deletion_behavior(self):
         user_id = self.user.id
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # Create the outboxes
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.delete()
-
-            # Process the them immediately
-            for co in ControlOutbox.objects.all():
-                co.drain_shard()
 
             assert not User.objects.filter(id=user_id).exists()
 
