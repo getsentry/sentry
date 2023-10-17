@@ -32,9 +32,11 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         # Run incident logic if recovery threshold is set
         if recovery_threshold:
             # Check if our incident is recovering
-            previous_checkins = MonitorCheckIn.objects.filter(
-                monitor_environment=monitor_env
-            ).values("id", "date_added", "status").order_by("-date_added")[:recovery_threshold]
+            previous_checkins = (
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                .values("id", "date_added", "status")
+                .order_by("-date_added")[:recovery_threshold]
+            )
 
             # Incident recovers when we have successive threshold check-ins
             incident_recovering = all(
