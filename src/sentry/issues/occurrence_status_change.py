@@ -6,7 +6,7 @@ from typing import Sequence
 
 from sentry.models.group import Group, GroupStatus
 from sentry.types.activity import ActivityType
-from sentry.types.group import IGNORED_SUBSTATUS_CHOICES
+from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 
 logger = logging.getLogger(__name__)
 
@@ -69,5 +69,30 @@ class OccurrenceStatusChange:
                 substatus=self.new_substatus,
                 activity_type=ActivityType.SET_IGNORED,
             )
+        elif self.new_status == GroupStatus.UNRESOLVED:
+            activity_type = None
+            if self.new_substatus == GroupSubStatus.ESCALATING:
+                activity_type = ActivityType.SET_ESCALATING
+            elif self.new_substatus == GroupSubStatus.REGRESSED:
+                activity_type = ActivityType.SET_REGRESSION
+            elif self.new_substatus == GroupSubStatus.ONGOING:
+                activity_type = ActivityType.SET_UNRESOLVED
+
+            # We don't support setting the UNRESOLVED status with substatus NEW -
+            # this is automatically set on creation and all other issues should be set to ONGOING.
+            if activity_type is None:
+                logger.error(
+                    "group.update_status.invalid_substatus",
+                    extra={**log_extra},
+                )
+                return
+
+            Group.objects.update_group_status(
+                groups=[group],
+                status=self.new_status,
+                substatus=self.new_substatus,
+                activity_type=activity_type,
+            )
+
         else:
             raise NotImplementedError(f"Unsupported status: {self.new_status} {self.new_substatus}")
