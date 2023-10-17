@@ -82,11 +82,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </div>
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(0.5)}>
-              <ProjectAvatar
-                project={feedbackItem.project}
-                size={12}
-                title={feedbackItem.project.slug}
-              />
+              <ProjectAvatar project={feedbackItem.project} size={12} />
               {feedbackItem.project.slug}
             </Flex>
 
