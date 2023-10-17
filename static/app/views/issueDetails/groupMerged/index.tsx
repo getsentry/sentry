@@ -139,6 +139,25 @@ class GroupMergedView extends Component<Props, State> {
                 count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
               })}
             </Title>
+            <br />
+            <br />
+            <small>
+              {t(
+                'Select one or more fingerprints to unmerge from the rest. This will move the corresponding events to a new issue.'
+              )}
+            </small>
+            {
+              // TODO: I'm sure all these `<br>`s aren't the best way to space things out.
+            }
+            <br />
+            <br />
+            <small>
+              {t(
+                'Note: If multiple fingerprints are selected, all events will move together into a single new issue.'
+              )}
+            </small>
+            <br />
+            <br />
             <small>
               {
                 // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
