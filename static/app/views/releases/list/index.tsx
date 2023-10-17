@@ -27,7 +27,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -50,9 +49,8 @@ import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import Header from '../components/header';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
-import {THRESHOLDS_VIEW} from '../utils/constants';
 
-import Header from './header';
+// import {THRESHOLDS_VIEW} from '../utils/constants';
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -60,7 +58,7 @@ import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
-import ThresholdsList from './thresholdsList';
+// import ThresholdsList from './thresholdsList';
 
 type RouteParams = {
   orgId: string;
@@ -183,49 +181,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
-  }
-
-  getAllSelectedProjects(): Project[] {
-    const {selection, projects} = this.props;
-    return projects.filter(project =>
-      selection.projects.some(id => id === parseInt(project.id, 10) || id === -1)
-    );
-  }
-
-  getAllEnvironments(): string[] {
-    const {selection, projects} = this.props;
-    const selectedProjects = selection.projects;
-    const {user} = ConfigStore.getState();
-    const allEnvSet = new Set(projects.flatMap(project => project.environments));
-    // NOTE: mostly taken from environmentSelector.tsx
-    const unSortedEnvs = new Set(
-      projects.flatMap(project => {
-        const projectId = parseInt(project.id, 10);
-        /**
-         * Include environments from:
-         * all projects if the user is a superuser
-         * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
-         * all projects if -1 is the only selected project.
-         */
-        if (
-          (selectedProjects.length === 1 &&
-            selectedProjects[0] === ALL_ACCESS_PROJECTS &&
-            project.hasAccess) ||
-          (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
-          selectedProjects.includes(projectId)
-        ) {
-          return project.environments;
-        }
-
-        return [];
-      })
-    );
-    const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
-
-    return Array.from(unSortedEnvs)
-      .sort()
-      .concat([...envDiff].sort());
   }
 
   get projectHasSessions() {
@@ -497,15 +452,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       return <ReleasesPromo organization={organization} project={selectedProject!} />;
     }
 
-    if (this.hasV2ReleaseUIEnabled && router.location.query.view === THRESHOLDS_VIEW) {
-      return (
-        <ThresholdsList
-          selectedEnvs={selection.environments}
-          selectedProjectIds={selection.projects}
-        />
-      );
-    }
-
     return (
       <ReleasesRequest
         releases={releases.map(({version}) => version)}
@@ -573,8 +519,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
-    const viewingThresholds =
-      this.hasV2ReleaseUIEnabled && router.location.query.view === THRESHOLDS_VIEW;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
@@ -590,19 +534,16 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                   <ProjectPageFilter />
                 </GuideAnchor>
                 <EnvironmentPageFilter />
-                {!viewingThresholds && (
-                  <DatePageFilter
-                    alignDropdown="left"
-                    disallowArbitraryRelativeRanges
-                    hint={t(
-                      'Changing this date range will recalculate the release metrics.'
-                    )}
-                  />
-                )}
+                <DatePageFilter
+                  alignDropdown="left"
+                  disallowArbitraryRelativeRanges
+                  hint={t(
+                    'Changing this date range will recalculate the release metrics.'
+                  )}
+                />
               </ReleasesPageFilterBar>
 
-              {/* TODO: Different search bar for thresholds - should be able to search for projects. don't need status/date/display filters */}
-              {this.shouldShowQuickstart || viewingThresholds ? null : (
+              {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
                   <GuideAnchor
                     target="releases_search"
