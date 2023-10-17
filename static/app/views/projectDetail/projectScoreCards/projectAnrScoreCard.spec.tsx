@@ -113,7 +113,7 @@ describe('ProjectDetail > ProjectAnr', function () {
   });
 
   it('renders open in issues CTA', async function () {
-    organization.features = ['discover-basic', 'anr-rate'];
+    organization.features = ['discover-basic'];
     render(
       <ProjectAnrScoreCard
         organization={{...organization}}
