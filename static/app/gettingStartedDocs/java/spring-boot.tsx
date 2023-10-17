@@ -10,6 +10,7 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 export enum SpringBootVersion {
   V2 = 'v2',
@@ -61,12 +62,11 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "${
-    params.sourcePackageRegistries.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries.data?.['sentry.java.android.gradle-plugin']
-          ?.version ?? '3.12.0'
-  }"
+  id "io.sentry.jvm.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '3.12.0'
+  )}"
 }
 
 sentry {
@@ -86,12 +86,11 @@ const getMavenInstallSnippet = (params: Params) =>
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-  <version>${
-    params.sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
-          ?.version ?? '6.28.0'
-  }</version>
+  <version>${getPackageVersion(
+    params,
+    'sentry.java.spring-boot.jakarta',
+    '6.28.0'
+  )}</version>
 </dependency>`
     : `
 <dependency>
@@ -109,12 +108,7 @@ const getLogbackInstallSnippet = (params: Params) => `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>${
-      params.sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : params.sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-          '6.28.0'
-    }</version>
+    <version>${getPackageVersion(params, 'sentry.java.logback', '6.28.0')}</version>
 </dependency>`;
 
 const getMavenPluginSnippet = (params: Params) => `

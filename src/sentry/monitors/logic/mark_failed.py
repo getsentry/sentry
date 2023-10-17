@@ -109,20 +109,23 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_disabled = monitor_env.monitor.status == ObjectStatus.DISABLED
 
+    fingerprint = None
+
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
         # reverse the list after slicing in order to start with oldest check-in
+        # use .values() to speed up query
         previous_checkins = list(
             reversed(
-                MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-                    "-date_added"
-                )[:failure_issue_threshold]
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                .order_by("-date_added")
+                .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
         # check for successive failed previous check-ins
         if not all(
             [
-                checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                checkin["status"] not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
                 for checkin in previous_checkins
             ]
         ):
@@ -143,8 +146,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
             MonitorIncident.objects.create(
                 monitor=monitor_env.monitor,
                 monitor_environment=monitor_env,
-                starting_checkin=starting_checkin,
-                starting_timestamp=starting_checkin.date_added,
+                starting_checkin_id=starting_checkin["id"],
+                starting_timestamp=starting_checkin["date_added"],
                 grouphash=fingerprint,
             )
     elif monitor_env.status in [
@@ -157,6 +160,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         previous_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
             .order_by("-date_added")
+            .values("id", "date_added", "status")
             .first()
         ]
 
@@ -171,7 +175,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         return True
 
     for previous_checkin in previous_checkins:
-        create_issue_platform_occurrence(previous_checkin, fingerprint)
+        checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
+        create_issue_platform_occurrence(checkin_from_db, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
