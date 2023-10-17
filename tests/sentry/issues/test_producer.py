@@ -61,4 +61,4 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             )
 
         with pytest.raises(NotImplementedError):
-            produce_occurrence_to_kafka(payload_type="invalid")
+            produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
