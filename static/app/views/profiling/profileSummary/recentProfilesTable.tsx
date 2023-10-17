@@ -1,9 +1,10 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -65,7 +66,7 @@ export function RecentProfilesTable() {
   }, [fields]);
 
   return (
-    <Fragment>
+    <ProfileEvents>
       <ProfileEventsTableContainer>
         <ProfileEventsTable
           sort={sort}
@@ -75,10 +76,17 @@ export function RecentProfilesTable() {
           {...eventsTableProps}
         />
       </ProfileEventsTableContainer>
-      <Pagination pageLinks={profiles.getResponseHeader?.('Link')} />
-    </Fragment>
+      <StyledPagination pageLinks={profiles.getResponseHeader?.('Link')} />
+    </ProfileEvents>
   );
 }
+
+const ProfileEvents = styled('div')``;
+const StyledPagination = styled(Pagination)`
+  margin-top: ${space(1)};
+  margin-right: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
 
 const ProfileEventsTableContainer = styled('div')`
   th,
@@ -89,5 +97,6 @@ const ProfileEventsTableContainer = styled('div')`
   > div {
     border-radius: 0;
     border-top: none;
+    margin-bottom: 0;
   }
 `;
