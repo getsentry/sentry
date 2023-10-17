@@ -1455,8 +1455,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable profiling statistical detectors
-    "organizations:profiling-statistical-detectors": False,
+    # Enable profiling statistical detectors ema detection
+    "organizations:profiling-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1642,6 +1644,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
+    # Enable removing the fallback for metrics compatibility
+    "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
