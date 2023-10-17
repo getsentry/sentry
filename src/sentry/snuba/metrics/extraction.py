@@ -123,9 +123,9 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "apdex": "on_demand_apdex",
+    "count_miserable": "on_demand_count_miserable",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    "count_miserable": "on_demand_count_miserable",
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
 }
@@ -142,12 +142,20 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "apdex": "c",
+    "count_miserable": "c",
     "epm": "c",
     "eps": "c",
-    "count_miserable": "c",
     "failure_count": "c",
     "failure_rate": "c",
 }
+
+_NO_ARG_METRICS = (
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+)
+_MULTIPLE_ARGS_METRICS = ("on_demand_apdex", "on_demand_count_miserable")
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -664,9 +672,9 @@ def count_miserable_tag_spec(
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_apdex": apdex_tag_spec,
+    "on_demand_count_miserable": count_miserable_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
-    "on_demand_count_miserable": count_miserable_tag_spec,
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
 }
@@ -702,12 +710,13 @@ class OnDemandMetricSpec:
     _arguments: Sequence[str]
 
     def __init__(self, field: str, query: str):
-        self.field = field
-        self.query = query
+        self.field = field  # e.g. count_miserable(users, 100)
+        self.query = query  # e.g. transaction.duration:>=1000
         self._arguments = []
         self._eager_process()
 
     def _eager_process(self):
+        # e.g. count_miserable, c, ["users", "100"]
         op, metric_type, arguments = self._process_field()
 
         self.op = op
@@ -716,7 +725,7 @@ class OnDemandMetricSpec:
 
     @property
     def field_to_extract(self):
-        if self.op in ("on_demand_apdex"):
+        if self.op in _MULTIPLE_ARGS_METRICS:
             return None
 
         if not self._arguments:
@@ -748,19 +757,15 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op in [
-            "on_demand_count_miserable",
-            "on_demand_epm",
-            "on_demand_eps",
-            "on_demand_failure_count",
-            "on_demand_failure_rate",
-        ]:
+        if self.op in _NO_ARG_METRICS:
             return self.op
-        elif self.op == "on_demand_apdex":
-            return f"{self.op}:{self._arguments[0]}"
-
-        if not self._arguments:
+        elif not self._arguments:
             return None
+        elif self.op in _MULTIPLE_ARGS_METRICS:
+            ret_val = f"{self.op}:"
+            for arg in self._arguments:
+                ret_val += arg
+            return ret_val
 
         return self._arguments[0]
 
@@ -804,12 +809,13 @@ class OnDemandMetricSpec:
         return metric_spec
 
     def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
+        """Parse field and returns metric operation (e.g. avg), metric type (c or d) and related arguments."""
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
-        op = self._get_op(parsed_field.function)
-        metric_type = self._get_metric_type(parsed_field.function)
+        op = self._get_op(parsed_field.function)  # e.g. avg
+        metric_type = self._get_metric_type(parsed_field.function)  # e.g. c or d
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
@@ -860,7 +866,7 @@ class OnDemandMetricSpec:
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[Sequence[str]]:
-        requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
+        requires_arguments = metric_type in ["s", "d"] or op in _MULTIPLE_ARGS_METRICS
         if not requires_arguments:
             return None
 
@@ -868,7 +874,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in ["on_demand_apdex"]
+        map_argument = op not in _MULTIPLE_ARGS_METRICS
 
         first_argument = arguments[0]
         return [_map_field_name(first_argument)] if map_argument else arguments
@@ -902,13 +908,15 @@ class OnDemandMetricSpec:
     #     return new_query
 
     @staticmethod
-    def _parse_field(value: str) -> Optional[FieldParsingResult]:
+    def _parse_field(field: str) -> Optional[FieldParsingResult]:
+        "Convert a string representation of a field into its function, arguments and alias"
         try:
-            match = fields.is_function(value)
+            match = fields.is_function(field)
 
             if not match:
-                raise InvalidSearchQuery(f"Invalid characters in field {value}")
+                raise InvalidSearchQuery(f"Invalid characters in field: {field}")
 
+            # e.g. count_miserable(users, 100) -> count_miserable, _, ["users", "100"]
             function, _, arguments, alias = query_builder.parse_function(match)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
         except InvalidSearchQuery:
@@ -916,6 +924,7 @@ class OnDemandMetricSpec:
 
     @staticmethod
     def _parse_query(value: str) -> Optional[QueryParsingResult]:
+        """Parse query string into our internal AST format."""
         try:
             conditions = event_search.parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))

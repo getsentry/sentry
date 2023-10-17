@@ -980,7 +980,7 @@ def on_demand_apdex_snql_factory(
     )
 
 
-def on_demand_count_miserable(
+def on_demand_count_miserable_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
     metric_frustrated = resolve_tag_value(

@@ -432,6 +432,39 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 
 
 @django_db_all
+@pytest.mark.parametrize("field", ["users"])  # The UI only allows for the users field
+@pytest.mark.parametrize("threshold", [100])  # XXX: TBD
+def test_get_metric_extraction_config_with_count_misery(default_project, field, threshold):
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            [f"count_miserable({field}, {threshold})"],
+            f"transaction.duration:>={duration}",  # XXX: TBD
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,  # XXX: Should this be users?
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "key": "satisfaction",
+                        "value": "frustrated",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+        ]
+
+
+@django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
 def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
