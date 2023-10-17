@@ -159,7 +159,8 @@ describe('EnvironmentPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: [],
+      memberProjects: organization.projects,
+      nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
       router: desyncRouter,

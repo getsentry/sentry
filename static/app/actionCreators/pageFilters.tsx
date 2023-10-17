@@ -115,6 +115,7 @@ function mergeDatetime(
 
 export type InitializeUrlStateParams = {
   memberProjects: Project[];
+  nonMemberProjects: Project[];
   organization: Organization;
   queryParams: Location['query'];
   router: InjectedRouter;
@@ -160,6 +161,7 @@ export function initializeUrlState({
   queryParams,
   router,
   memberProjects,
+  nonMemberProjects,
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   shouldPersist = true,
@@ -199,15 +201,54 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
+  // We should only check and update the desync state if the site has just been loaded
+  // (not counting route changes). To check this, we can use the `isReady` state: if it's
+  // false, then the site was just loaded. Once it's true, `isReady` stays true
+  // through route changes.
+  let shouldCheckDesyncedURLState = !PageFiltersStore.getState().isReady;
+
+  /**
+   * Check to make sure that the project ID exists in the projects list. Invalid project
+   * IDs (project was deleted/moved to another org) can still exist in local storage or
+   * shared links.
+   */
+  function validateProjectId(projectId: number) {
+    return (
+      !!memberProjects?.find(mp => String(mp.id) === String(projectId)) ||
+      !!nonMemberProjects?.find(nmp => String(nmp.id) === String(projectId))
+    );
+  }
+
+  /**
+   * Check to make sure that the environment exists. Invalid environments (due to being
+   * hidden) can still exist in local storage or shared links.
+   */
+  function validateEnvironment(env: string) {
+    return (
+      !!memberProjects?.find(mp => mp.environments.includes(env)) ||
+      !!nonMemberProjects?.find(nmp => nmp.environments.includes(env))
+    );
+  }
+
   if (hasProjectOrEnvironmentInUrl) {
-    pageFilters.projects = parsed.project || [];
-    pageFilters.environments = parsed.environment || [];
+    pageFilters.projects = parsed.project?.filter(validateProjectId) || [];
+    pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
+
+    if (
+      pageFilters.projects.length < (parsed.project?.length ?? 0) ||
+      pageFilters.environments.length < (parsed.environment?.length ?? 0)
+    ) {
+      // don't check desync state since we're going to remove invalid projects/envs from
+      // the URL query
+      shouldCheckDesyncedURLState = false;
+    }
   }
 
   const storedPageFilters = skipLoadLastUsed
     ? null
     : getPageFilterStorage(orgSlug, storageNamespace);
   let shouldUsePinnedDatetime = false;
+  let shouldUpdateLocalStorage = false;
 
   // We may want to restore some page filters from local storage. In the new
   // world when they are pinned, and in the old world as long as
@@ -216,7 +257,12 @@ export function initializeUrlState({
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
     if (!hasProjectOrEnvironmentInUrl && pinnedFilters.has('projects')) {
-      pageFilters.projects = storedState.project ?? [];
+      pageFilters.projects = storedState.project?.filter(validateProjectId) ?? [];
+
+      if (pageFilters.projects.length < (storedState.project?.length ?? 0)) {
+        shouldUpdateLocalStorage = true; // update storage to remove invalid projects
+        shouldCheckDesyncedURLState = false;
+      }
     }
 
     if (
@@ -224,7 +270,13 @@ export function initializeUrlState({
       !hasProjectOrEnvironmentInUrl &&
       pinnedFilters.has('environments')
     ) {
-      pageFilters.environments = storedState.environment ?? [];
+      pageFilters.environments =
+        storedState.environment?.filter(validateEnvironment) ?? [];
+
+      if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
+        shouldUpdateLocalStorage = true; // update storage to remove invalid environments
+        shouldCheckDesyncedURLState = false;
+      }
     }
 
     if (!hasDatetimeInUrl && pinnedFilters.has('datetime')) {
@@ -276,13 +328,10 @@ export function initializeUrlState({
     ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
     : storedPageFilters?.pinnedFilters ?? new Set();
 
-  // We should only check and update the desync state if the site has just been loaded
-  // (not counting route changes). To check this, we can use the `isReady` state: if it's
-  // false, then the site was just loaded. Once it's true, `isReady` stays true
-  // through route changes.
-  const shouldCheckDesyncedURLState = !PageFiltersStore.getState().isReady;
-
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
+  if (shouldUpdateLocalStorage) {
+    setPageFiltersStorage(organization.slug, new Set(['projects', 'environments']));
+  }
 
   if (shouldCheckDesyncedURLState) {
     checkDesyncedUrlState(router, shouldForceProject);
