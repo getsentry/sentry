@@ -50,7 +50,6 @@ import Header from '../components/header';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
-// import {THRESHOLDS_VIEW} from '../utils/constants';
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -58,7 +57,6 @@ import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
-// import ThresholdsList from './thresholdsList';
 
 type RouteParams = {
   orgId: string;
@@ -537,7 +535,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 <DatePageFilter
                   alignDropdown="left"
                   disallowArbitraryRelativeRanges
-                  hint={t(
+                  menuFooterMessage={t(
                     'Changing this date range will recalculate the release metrics.'
                   )}
                 />
