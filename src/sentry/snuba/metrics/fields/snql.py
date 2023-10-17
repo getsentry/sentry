@@ -792,7 +792,7 @@ def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -
 
 
 def operation_if_column_snql(
-    operation,
+    operation: str,
     aggregate_filter: Function,
     org_id: int,
     use_case_id: UseCaseID,
@@ -877,8 +877,8 @@ def max_timestamp(
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def total_count(aggregate_filter: Function) -> Function:
-    return Function("sumIf", [Column("value"), aggregate_filter])
+def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
+    return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
 
 def on_demand_failure_rate_snql_factory(
