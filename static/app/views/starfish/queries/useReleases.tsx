@@ -72,7 +72,7 @@ export function useReleaseStats() {
     }).filter(([, value]) => defined(value) && value !== '')
   );
 
-  const {data, isLoading} = useApiQuery<any>(
+  const result = useApiQuery<any>(
     [
       `/organizations/${organization.slug}/sessions/`,
       {
@@ -84,8 +84,8 @@ export function useReleaseStats() {
 
   const releaseStatsMap: {[release: string]: {project: number; 'sum(session)': number}} =
     {};
-  if (data && data.groups) {
-    data.groups.forEach(group => {
+  if (result.data && result.data.groups) {
+    result.data.groups.forEach(group => {
       const release = group.by.release;
       const project = group.by.project;
       const sessionCount = group.totals['sum(session)'];
@@ -95,7 +95,7 @@ export function useReleaseStats() {
   }
 
   return {
+    ...result,
     data: releaseStatsMap,
-    isLoading,
   };
 }
