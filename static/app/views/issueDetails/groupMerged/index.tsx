@@ -106,9 +106,9 @@ class GroupMergedView extends Component<Props, State> {
     GroupingStore.onUnmerge({
       groupId: params.groupId,
       orgSlug: organization.slug,
-      loadingMessage: t('Unmerging events\u2026'),
-      successMessage: t('Events successfully queued for unmerging.'),
-      errorMessage: t('Unable to queue events for unmerging.'),
+      loadingMessage: t('Unmerging fingerprints\u2026'),
+      successMessage: t('Fingerprints successfully queued for unmerging.'),
+      errorMessage: t('Unable to queue fingerprints for unmerging.'),
     });
     const unmergeKeys = [...GroupingStore.getState().unmergeList.values()];
     trackAnalytics('issue_details.merged_tab.unmerge_clicked', {
@@ -172,7 +172,7 @@ class GroupMergedView extends Component<Props, State> {
           {isLoading && <LoadingIndicator />}
           {isError && (
             <LoadingError
-              message={t('Unable to load merged events, please try again later')}
+              message={t('Unable to load issue fingerprints. Please try again later.')}
               onRetry={this.fetchData}
             />
           )}

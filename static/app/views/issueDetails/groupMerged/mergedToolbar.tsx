@@ -74,13 +74,13 @@ export function MergedToolbar({
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}
           message={t(
-            'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
+            'These fingerprints will be unmerged and their events will be grouped into a new issue. Are you sure you want to unmerge these fingerprints?'
           )}
         >
           <Button size="xs" title={unmergeDisabledReason}>
             {mergedItems.length <= 1
-              ? t('Unmerge')
-              : tct('Unmerge ([itemsSelectedQuantity])', {
+              ? t('Unmerge fingerprints') // button will always be disabled in this case
+              : tct('Unmerge [itemsSelectedQuantity] fingerprints', {
                   itemsSelectedQuantity: unmergeCount,
                 })}
           </Button>
