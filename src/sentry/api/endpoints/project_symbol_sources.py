@@ -2,6 +2,7 @@ from copy import deepcopy
 from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +22,9 @@ from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
     SOURCE_SCHEMA,
+    VALID_CASINGS,
+    VALID_FILE_TYPES,
+    VALID_LAYOUTS,
     InvalidSourcesError,
     backfill_source,
     parse_sources,
@@ -38,9 +42,147 @@ def _get_sources_schema_with_optional_id() -> dict:
     return schema
 
 
-# Version of SOURCE_SCHEMA that doesn't require "id". Used as the request schema
-# for PUT and POST.
-SOURCE_SCHEMA_OPTIONAL_ID = _get_sources_schema_with_optional_id()
+class LayoutSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=VALID_LAYOUTS, help_text="The source's layout type.", required=True
+    )
+    casing = serializers.ChoiceField(
+        choices=VALID_CASINGS, help_text="The source's casing rules.", required=True
+    )
+
+
+class SourceSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=["appStoreConnect", "http", "gcs", "s3"],
+        required=True,
+        help_text="The type of the source.",
+    )
+    id = serializers.CharField(
+        required=False,
+        help_text="The internal ID of the source. \
+        Must be distinct from all other source IDs and cannot start with 'sentry:'. \
+        If this is not provided, a new UUID will be generated.",
+    )
+    name = serializers.CharField(
+        required=True,
+        help_text="The human-readable name of the source.",
+    )
+    filetypes = serializers.ListField(
+        child=serializers.ChoiceField(choices=VALID_FILE_TYPES),
+        required=False,
+        help_text="The allowed file types for the source.",
+    )
+    layout = LayoutSerializer(
+        required=False,
+        help_text="Layout settings for the source. \
+        This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
+    )
+    appconnectIssuer = serializers.CharField(
+        min_length=36,
+        max_length=36,
+        required=False,
+        help_text="Required for AppStoreConnect sources, invalid for all others.",
+    )
+    appconnectKey = (
+        serializers.CharField(
+            min_length=2,
+            max_length=20,
+            required=False,
+            help_text="Required for AppStoreConnect sources, invalid for all others.",
+        ),
+    )
+    appconnectPrivateKey = serializers.CharField(
+        required=False, help_text="Required for AppStoreConnect sources, invalid for all others."
+    )
+    appName = (
+        serializers.CharField(
+            min_length=1,
+            max_length=512,
+            required=False,
+            help_text="Required for AppStoreConnect sources, invalid for all others.",
+        ),
+    )
+    appId = serializers.CharField(
+        min_length=1,
+        required=False,
+        help_text="Required for AppStoreConnect sources, invalid for all others.",
+    )
+    bundleId = (
+        serializers.CharField(
+            min_length=1,
+            required=False,
+            help_text="Required for AppStoreConnect sources, invalid for all others.",
+        ),
+    )
+    url = serializers.CharField(
+        required=False, help_text="Optional for HTTP sources, invalid for all others."
+    )
+    username = serializers.CharField(
+        required=False, help_text="Optional for HTTP sources, invalid for all others."
+    )
+    password = serializers.CharField(
+        required=False, help_text="Optional for HTTP sources, invalid for all others."
+    )
+    bucket = serializers.CharField(
+        required=False,
+        help_text="Required for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+    )
+    region = serializers.CharField(
+        required=False, help_text="Required for S3 sources, invalid for all others."
+    )
+    access_key = serializers.CharField(
+        required=False, help_text="Required for S3 sources, invalid for all others."
+    )
+    secret_key = serializers.CharField(
+        required=False, help_text="Required for S3 sources, invalid for all others."
+    )
+    prefix = serializers.CharField(
+        required=False,
+        help_text="Optional for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+    )
+    client_email = serializers.CharField(
+        required=False, help_text="Required for GCS sources, invalid for all others."
+    )
+    privite_key = serializers.CharField(
+        required=False, help_text="Required for GCS sources, invalid for all others."
+    )
+
+    def validate(self, data):
+        if data["type"] == "appStoreConnect":
+            required = [
+                "type",
+                "name",
+                "appconnectIssuer",
+                "appconnectKey",
+                "appconnectPrivateKey",
+                "appName",
+                "appId",
+                "bundleId",
+            ]
+            allowed = required
+        elif data["type"] == "http":
+            required = ["type", "name", "url", "layout"]
+            allowed = required + ["filetypes", "username", "password"]
+        elif data["type"] == "s3":
+            required = ["type", "name", "bucket", "region", "access_key", "secret_key", "layout"]
+            allowed = required + ["filetypes", "prefix"]
+        else:
+            required = ["type", "name", "bucket", "client_email", "private_key", "layout"]
+            allowed = required + ["filetypes", "prefix"]
+
+        missing = [field for field in required if field not in data]
+        invalid = [field for field in data if field not in allowed]
+
+        err = ""
+        if missing:
+            err += f"Missing fields: {missing}\n"
+        if invalid:
+            err += f"Invalid fields: {invalid}"
+
+        if err:
+            raise serializers.ValidationError(err)
+
+        return data
 
 
 @extend_schema(tags=["Projects"])
@@ -122,7 +264,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=SOURCE_SCHEMA_OPTIONAL_ID,
+        request=SourceSerializer,
         responses={
             201: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
@@ -165,7 +307,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
-        request=SOURCE_SCHEMA_OPTIONAL_ID,
+        request=SourceSerializer,
         responses={
             200: REDACTED_SOURCE_SCHEMA,
             400: RESPONSE_BAD_REQUEST,
