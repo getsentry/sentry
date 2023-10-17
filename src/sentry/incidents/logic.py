@@ -15,7 +15,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -38,7 +38,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.actor import Actor
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -1458,7 +1457,7 @@ def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization):
+def get_available_action_integrations_for_org(organization) -> List[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
@@ -1472,8 +1471,11 @@ def get_available_action_integrations_for_org(organization):
         if registration.type != AlertRuleTriggerAction.Type.DISCORD
         or features.has("organizations:integrations-discord-metric-alerts", organization)
     ]
-    return Integration.objects.get_active_integrations(organization.id).filter(
-        provider__in=providers
+    return integration_service.get_integrations(
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        organization_id=organization.id,
+        providers=providers,
     )
 
 

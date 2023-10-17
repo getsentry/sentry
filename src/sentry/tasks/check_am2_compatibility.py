@@ -43,6 +43,7 @@ SUPPORTED_SDK_VERSIONS = {
     # JavaScript
     "sentry-browser": "7.6.0",
     "sentry.javascript.angular": "7.6.0",
+    "sentry.javascript.astro": "7.6.0",
     "sentry.javascript.browser": "7.6.0",
     "sentry.javascript.ember": "7.6.0",
     "sentry.javascript.gatsby": "7.6.0",

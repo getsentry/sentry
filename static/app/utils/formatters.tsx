@@ -71,6 +71,33 @@ export const SECOND = 1000;
  *
  * Use `getExactDuration` for exact durations
  */
+
+const DURATION_LABELS = {
+  mo: t('mo'),
+  w: t('w'),
+  wk: t('wk'),
+  week: t('week'),
+  weeks: t('weeks'),
+  d: t('d'),
+  day: t('day'),
+  days: t('days'),
+  h: t('h'),
+  hr: t('hr'),
+  hour: t('hour'),
+  hours: t('hours'),
+  m: t('m'),
+  min: t('min'),
+  minute: t('minute'),
+  minutes: t('minutes'),
+  s: t('s'),
+  sec: t('sec'),
+  secs: t('secs'),
+  second: t('second'),
+  seconds: t('seconds'),
+  ms: t('ms'),
+  millisecond: t('millisecond'),
+  milliseconds: t('milliseconds'),
+};
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
@@ -85,16 +112,18 @@ export function getDuration(
 
   if (absValue >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
-    return `${label}${abbreviation ? t('mo') : ` ${tn('month', 'months', result)}`}`;
+    return `${label}${
+      abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`
+    }`;
   }
 
   if (absValue >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
-      return `${label}${t('w')}`;
+      return `${label}${DURATION_LABELS.w}`;
     }
     if (abbreviation) {
-      return `${label}${t('wk')}`;
+      return `${label}${DURATION_LABELS.wk}`;
     }
     return `${label} ${tn('week', 'weeks', result)}`;
   }
@@ -103,7 +132,7 @@ export function getDuration(
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
 
     if (extraShort || abbreviation) {
-      return `${label}${t('d')}`;
+      return `${label}${DURATION_LABELS.d}`;
     }
     return `${label} ${tn('day', 'days', result)}`;
   }
@@ -111,10 +140,10 @@ export function getDuration(
   if (absValue >= HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
-      return `${label}${t('h')}`;
+      return `${label}${DURATION_LABELS.h}`;
     }
     if (abbreviation) {
-      return `${label}${t('hr')}`;
+      return `${label}${DURATION_LABELS.hr}`;
     }
     return `${label} ${tn('hour', 'hours', result)}`;
   }
@@ -122,10 +151,10 @@ export function getDuration(
   if (absValue >= MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
-      return `${label}${t('m')}`;
+      return `${label}${DURATION_LABELS.m}`;
     }
     if (abbreviation) {
-      return `${label}${t('min')}`;
+      return `${label}${DURATION_LABELS.min}`;
     }
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
@@ -133,7 +162,7 @@ export function getDuration(
   if (absValue >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
-      return `${label}${t('s')}`;
+      return `${label}${DURATION_LABELS.s}`;
     }
     return `${label} ${tn('second', 'seconds', result)}`;
   }
@@ -141,7 +170,7 @@ export function getDuration(
   const {label, result} = roundWithFixed(msValue, fixedDigits);
 
   if (extraShort || abbreviation) {
-    return `${label}${t('ms')}`;
+    return `${label}${DURATION_LABELS.ms}`;
   }
 
   return `${label} ${tn('millisecond', 'milliseconds', result)}`;

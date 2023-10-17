@@ -188,7 +188,7 @@ create-superuser() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
-        sentry createuser --superuser --email admin@sentry.io --password admin
+        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
         echo "Password is admin."
     fi
 }
