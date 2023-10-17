@@ -123,7 +123,7 @@ class MarkOkTestCase(TestCase):
 
         # check that timestamp has not updated
         assert monitor_environment.last_state_change is None
-        # Incidnet has not resolved
+        # Incident has not resolved
         assert incident.resolving_checkin is None
         assert incident.resolving_timestamp is None
 
@@ -163,6 +163,6 @@ class MarkOkTestCase(TestCase):
 
         # check that monitor environment has updated timestamp used for fingerprinting
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
-        # Incident reoslved
+        # Incident resolved
         assert incident.resolving_checkin == last_checkin
         assert incident.resolving_timestamp == last_checkin.date_added
