@@ -60,11 +60,13 @@ export function MergedToolbar({
 
   const unmergeDisabledReason =
     mergedItems.length <= 1
-      ? t('To unmerge, the list must contain 2 or more items')
+      ? t('This is not a merged issue, as it contains only one fingerprint')
       : unmergeList.size === 0
-      ? t('To unmerge, 1 or more items must be selected')
+      ? t('Please select one or more fingerprints to unmerge from the rest')
       : GroupingStore.isAllUnmergedSelected()
-      ? t('We are unable to unmerge all items at once')
+      ? t(
+          'Moving all fingerprints into a new group together will have no effect. Please deselect at least one fingerprint.'
+        )
       : undefined;
 
   return (
@@ -92,7 +94,7 @@ export function MergedToolbar({
           onClick={handleShowDiff}
           title={
             !enableFingerprintCompare
-              ? t('To compare, exactly 2 items must be selected')
+              ? t('To compare issues, exactly 2 fingerprints must be selected')
               : undefined
           }
         >
