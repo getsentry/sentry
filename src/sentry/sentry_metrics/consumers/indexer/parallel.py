@@ -49,7 +49,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         assert not self.__closed
 
         # FilteredPayloads are not handled in the indexer
-        for transformed_message in cast(IndexerOutputMessageBatch, message.payload):
+        for transformed_message in cast(IndexerOutputMessageBatch, message.payload).data:
             self.__next_step.submit(transformed_message)
 
     def close(self) -> None:
