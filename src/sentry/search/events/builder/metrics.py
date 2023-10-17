@@ -622,7 +622,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise Exception("Cannot get metrics layer snql query when use_metrics_layer is false")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         return Query(
@@ -659,7 +658,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise NotImplementedError("Cannot get snql query when use_metrics_layer is true")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
@@ -792,16 +790,6 @@ class MetricsQueryBuilder(QueryBuilder):
         query_framework[primary].having = self.having
 
         return primary, query_framework
-
-    def validate_orderby_clause(self) -> None:
-        """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
-        transform it"""
-        for orderby in self.orderby:
-            if (
-                isinstance(orderby.exp, Column)
-                and orderby.exp.subscriptable in ["tags", "tags_raw"]
-            ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
-                raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def convert_metric_layer_result(self, metrics_data: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
