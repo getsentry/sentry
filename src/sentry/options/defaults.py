@@ -290,6 +290,8 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether to use redis to cache `FileBlob.id` lookups
+register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Symbol server
 register(
@@ -969,6 +971,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to enable reading from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1082,7 +1091,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1094,7 +1105,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1340,12 +1353,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=90.0,
+    default=50.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=900.0,  # ms
+    default=500.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1380,7 +1393,7 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=900,  # ms
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

@@ -105,7 +105,12 @@ async function fromListPageQuery({
 
   // Check if there is even any `click.*` fields in the query string
   const search = new MutableSearch(listPageQuery);
-  const isClickSearch = search.getFilterKeys().some(key => key.startsWith('click.'));
+  const isClickSearch = search
+    .getFilterKeys()
+    .some(
+      key =>
+        key.startsWith('click.') || key.startsWith('rage.') || key.startsWith('dead.')
+    );
   if (!isClickSearch) {
     // There was a search, but not for clicks, so lets skip this strategy.
     return undefined;
@@ -127,6 +132,7 @@ async function fromListPageQuery({
     replayId,
     query: listPageQuery,
   });
+
   if (!results.clicks.length) {
     return ZERO_OFFSET;
   }
@@ -137,7 +143,7 @@ async function fromListPageQuery({
     const firstTimestmpMs = new Date(firstTimestamp).getTime();
     return {
       highlight: {
-        annotation: listPageQuery,
+        annotation: undefined,
         nodeId,
         spotlight: true,
       },

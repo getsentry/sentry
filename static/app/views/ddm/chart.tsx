@@ -10,7 +10,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
+import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   formatMetricsUsingUnitAndOp,
@@ -31,6 +31,7 @@ type ChartProps = {
   projects: PageFilters['projects'];
   series: Series[];
   end?: string;
+  onZoom?: (start: DateString, end: DateString) => void;
   operation?: string;
   period?: string;
   start?: string;
@@ -47,6 +48,7 @@ export function MetricChart({
   operation,
   projects,
   environments,
+  onZoom,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const router = useRouter();
@@ -95,9 +97,6 @@ export function MetricChart({
         }
         return '';
       },
-      axisPointer: {
-        label: {show: true},
-      },
     },
 
     yAxis: {
@@ -111,7 +110,16 @@ export function MetricChart({
 
   return (
     <ChartWrapper>
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        onZoom={zoomPeriod => {
+          onZoom?.(zoomPeriod.start, zoomPeriod.end);
+        }}
+      >
         {zoomRenderProps => (
           <ReleaseSeries
             utc={utc}
@@ -153,7 +161,7 @@ export function MetricChart({
               ) : displayType === MetricDisplayType.AREA ? (
                 <AreaChart {...allProps} />
               ) : (
-                <BarChart stacked {...allProps} />
+                <BarChart stacked animation={false} {...allProps} />
               );
             }}
           </ReleaseSeries>

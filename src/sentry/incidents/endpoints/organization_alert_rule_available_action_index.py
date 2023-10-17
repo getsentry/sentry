@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import Any, DefaultDict, List, Mapping
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -7,9 +10,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.constants import SentryAppStatus
-from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
     get_opsgenie_teams,
@@ -17,12 +19,17 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 def build_action_response(
-    registered_type, integration=None, organization=None, sentry_app_installation=None
-):
+    registered_type,
+    integration: RpcIntegration | None = None,
+    organization: Organization | None = None,
+    sentry_app_installation: RpcSentryAppInstallation | None = None,
+) -> Mapping[str, Any]:
     """
     Build the "available action" objects for the API. Each one can have different fields.
 
@@ -45,11 +52,15 @@ def build_action_response(
         action_response["integrationId"] = integration.id
 
         if registered_type.type == AlertRuleTriggerAction.Type.PAGERDUTY:
+            if organization is None:
+                raise Exception("Organization is required for PAGERDUTY actions")
             action_response["options"] = [
                 {"value": id, "label": service_name}
                 for id, service_name in get_pagerduty_services(organization.id, integration.id)
             ]
         elif registered_type.type == AlertRuleTriggerAction.Type.OPSGENIE:
+            if organization is None:
+                raise Exception("Organization is required for OPSGENIE actions")
             action_response["options"] = [
                 {"value": id, "label": team}
                 for id, team in get_opsgenie_teams(organization.id, integration.id)
@@ -57,16 +68,16 @@ def build_action_response(
 
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
-        action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
+        action_response["sentryAppId"] = sentry_app_installation.sentry_app.id
         action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
-        action_response["status"] = SentryAppStatus.as_str(
-            sentry_app_installation.sentry_app.status
-        )
+        action_response["status"] = sentry_app_installation.sentry_app.status
 
         # Sentry Apps can be alertable but not have an Alert Rule UI Component
-        component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
+        component = app_service.prepare_sentry_app_components(
+            installation_id=sentry_app_installation.id, component_type="alert-rule-action"
+        )
         if component:
-            action_response["settings"] = component.schema.get("settings", {})
+            action_response["settings"] = component.app_schema.get("settings", {})
 
     return action_response
 
@@ -87,7 +98,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions = []
 
         # Cache Integration objects in this data structure to save DB calls.
-        provider_integrations = defaultdict(list)
+        provider_integrations: DefaultDict[str, List[RpcIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 
@@ -103,13 +114,13 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # Add all alertable SentryApps to the list.
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
+                installs = app_service.get_installed_for_organization(
+                    organization_id=organization.id
+                )
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
-                    for install in SentryAppInstallation.objects.get_installed_for_organization(
-                        organization.id
-                    ).filter(
-                        sentry_app__is_alertable=True,
-                    )
+                    for install in installs
+                    if install.sentry_app.is_alertable
                 ]
 
             else:

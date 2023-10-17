@@ -9,7 +9,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   ApiQueryKey,
@@ -18,6 +19,7 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
@@ -26,7 +28,10 @@ type Props = {
   buttonProps: BaseButtonProps;
   eventView: EventView;
   numSamples: number | null | undefined;
-  organization: OrganizationSummary;
+};
+
+type PropsInternal = Props & {
+  organization: Organization;
 };
 
 type CustomDynamicSamplingRule = {
@@ -41,7 +46,7 @@ type CustomDynamicSamplingRule = {
   startDate: string;
 };
 type CreateCustomRuleVariables = {
-  organization: OrganizationSummary;
+  organization: Organization;
   period: string | null;
   projects: number[];
   query: string;
@@ -50,7 +55,7 @@ type CreateCustomRuleVariables = {
 function makeRuleExistsQueryKey(
   query: string,
   projects: number[],
-  organization: OrganizationSummary
+  organization: Organization
 ): ApiQueryKey {
   // sort the projects to keep the query key invariant to the order of the projects
   const sortedProjects = [...projects].sort();
@@ -77,7 +82,7 @@ function hasTooFewSamples(numSamples: number | null | undefined) {
 function useGetExistingRule(
   query: string,
   projects: number[],
-  organization: OrganizationSummary,
+  organization: Organization,
   numSamples: number | null | undefined
 ) {
   const enabled = hasTooFewSamples(numSamples);
@@ -87,6 +92,18 @@ function useGetExistingRule(
     {
       staleTime: 0,
       enabled,
+      // No retries for 4XX errors.
+      // This makes the error feedback a lot faster, and there is no unnecessary network traffic.
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) {
+          return false;
+        }
+        if (error.status && error.status >= 400 && error.status < 500) {
+          // don't retry 4xx errors (in theory 429 should be retried but not immediately)
+          return false;
+        }
+        return true;
+      },
     }
   );
 
@@ -120,10 +137,23 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
       queryClient.invalidateQueries(
         makeRuleExistsQueryKey(vars.query, vars.projects, vars.organization)
       );
+      trackAnalytics('dynamic_sampling.custom_rule_add', {
+        organization: vars.organization,
+        projects: vars.projects,
+        query: vars.query,
+        success: true,
+      });
     },
     onError: (_error: Error) => {
       addErrorMessage(t('Unable to create investigation rule'));
+      trackAnalytics('dynamic_sampling.custom_rule_add', {
+        organization: vars.organization,
+        projects: vars.projects,
+        query: vars.query,
+        success: false,
+      });
     },
+    retry: false,
   });
   return mutate;
 }
@@ -138,7 +168,7 @@ const InvestigationInProgressNotification = styled('span')`
   gap: ${space(0.5)};
 `;
 
-function InvestigationRuleCreationInternal(props: Props) {
+function InvestigationRuleCreationInternal(props: PropsInternal) {
   const projects = [...props.eventView.project];
   const organization = props.organization;
   const period = props.eventView.statsPeriod || null;
@@ -159,15 +189,14 @@ function InvestigationRuleCreationInternal(props: Props) {
   if (request.isLoading) {
     return null;
   }
-
-  if (request.error !== null) {
+  if (request.isError) {
     const errorResponse = t('Unable to fetch investigation rule');
     addErrorMessage(errorResponse);
     return null;
   }
 
   const rule = request.data;
-  const haveInvestigationRuleInProgress = rule !== null;
+  const haveInvestigationRuleInProgress = !!rule;
 
   if (haveInvestigationRuleInProgress) {
     // investigation rule in progress, just show a message
@@ -220,9 +249,10 @@ function InvestigationRuleCreationInternal(props: Props) {
 }
 
 export function InvestigationRuleCreation(props: Props) {
+  const organization = useOrganization();
   return (
     <Feature features={['investigation-bias']}>
-      <InvestigationRuleCreationInternal {...props} />
+      <InvestigationRuleCreationInternal {...props} organization={organization} />
     </Feature>
   );
 }

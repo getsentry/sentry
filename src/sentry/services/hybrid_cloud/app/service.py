@@ -68,6 +68,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_app_by_id(self, *, id: int) -> Optional[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
         pass
 
@@ -138,6 +143,13 @@ class AppService(RpcService):
         integration_name: str,
         integration_scopes: List[str],
     ) -> RpcSentryAppInstallation:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def prepare_sentry_app_components(
+        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
+    ) -> Optional[RpcSentryAppComponent]:
         pass
 
 

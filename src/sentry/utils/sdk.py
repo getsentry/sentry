@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
 
 import sentry_sdk
 from django.conf import settings
-from django.urls import resolve
 from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
@@ -40,66 +39,6 @@ UNSAFE_FILES = (
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
-
-# URLs that should always be sampled
-SAMPLED_URL_NAMES = {
-    # codeowners
-    "sentry-api-0-project-codeowners": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-codeowners-details": settings.SAMPLED_DEFAULT_RATE,
-    # external teams POST, PUT, DELETE
-    "sentry-api-0-external-team": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-external-team-details": settings.SAMPLED_DEFAULT_RATE,
-    # external users POST, PUT, DELETE
-    "sentry-api-0-organization-external-user": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
-    # integration platform
-    "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
-    # integrations
-    "sentry-extensions-jira-issue-hook": 0.05,
-    "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-generic-webhook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
-    # notification platform
-    "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
-    # events
-    "sentry-api-0-organization-events": 1,
-    # releases
-    "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-releases": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-release-details": settings.SAMPLED_DEFAULT_RATE,
-    # stats
-    "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-stats": 0.05,  # lower rate because of high TPM
-    # debug files
-    "sentry-api-0-assemble-dif-files": 0.1,
-    # scim
-    "sentry-api-0-organization-scim-member-index": 0.1,
-    "sentry-api-0-organization-scim-member-details": 0.1,
-    "sentry-api-0-organization-scim-team-index": 0.1,
-    "sentry-api-0-organization-scim-team-details": 0.1,
-    # members
-    "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-join-request": settings.SAMPLED_DEFAULT_RATE,
-    # login
-    "sentry-login": 0.1,
-    "sentry-auth-organization": 0.2,
-    "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-logout": 0.1,
-    "sentry-register": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
-    # reprocessing
-    "sentry-api-0-issues-reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
-}
-if settings.ADDITIONAL_SAMPLED_URLS:
-    SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 # Tasks not included here are not sampled
 # If a parent task schedules other tasks you should add it in here or the child
@@ -265,25 +204,8 @@ def traces_sampler(sampling_context):
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
 
-    # Resolve the url, and see if we want to set our own sampling
-    if "wsgi_environ" in sampling_context:
-        try:
-            match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
-            if match and match.url_name in SAMPLED_URL_NAMES:
-                return SAMPLED_URL_NAMES[match.url_name]
-        except Exception:
-            # On errors or 404, continue to default sampling decision
-            pass
-
     # Default to the sampling rate in settings
-    rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
-
-    # multiply everything with the overall multiplier
-    # till we get to 100% client sampling throughout
-    if settings.SENTRY_MULTIPLIER_APM_SAMPLING:
-        rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
-
-    return rate
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
 def before_send_transaction(event, _):
@@ -422,15 +344,20 @@ def configure_sdk():
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
                 s4s_args = args
-                if method_name == "capture_envelope":
+                # We want to control whether we want to send metrics at the s4s upstream.
+                if (
+                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                    and method_name == "capture_envelope"
+                ):
                     args_list = list(args)
                     envelope = args_list[0]
-                    # Do not forward metrics to s4s
+                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     safe_items = [x for x in envelope.items if x.data_category != "statsd"]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items
                         s4s_args = (relay_envelope, *args_list[1:])
+
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
@@ -495,6 +422,7 @@ def configure_sdk():
         "flush-buffers",
         "sync-options",
         "schedule-digests",
+        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     # turn on minimetrics

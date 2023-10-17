@@ -8,12 +8,17 @@ from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.mediators import project_rules
+from sentry.mediators.project_rules.creator import Creator
+from sentry.mediators.project_rules.updater import Updater
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.models.user import User
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.signals import (
+    cron_monitor_created,
+    first_cron_checkin_received,
+    first_cron_monitor_created,
+)
 
 from .constants import MAX_TIMEOUT, TIMEOUT
 from .models import CheckInStatus, Monitor, MonitorCheckIn
@@ -22,7 +27,7 @@ from .models import CheckInStatus, Monitor, MonitorCheckIn
 def signal_first_checkin(project: Project, monitor: Monitor):
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
-        signal_first_monitor_created(project, None, False)
+        check_and_signal_first_monitor_created(project, None, False)
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
@@ -31,11 +36,18 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         )
 
 
-def signal_first_monitor_created(project: Project, user, from_upsert: bool):
+def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
     if not project.flags.has_cron_monitors:
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+def signal_monitor_created(project: Project, user, from_upsert: bool):
+    cron_monitor_created.send_robust(
+        project=project, user=user, from_upsert=from_upsert, sender=Project
+    )
+    check_and_signal_first_monitor_created(project, user, from_upsert)
 
 
 # Generates a timeout_at value for new check-ins
@@ -207,7 +219,7 @@ def create_alert_rule(
         "user_id": request.user.id,
     }
 
-    rule = project_rules.Creator.run(request=request, **kwargs)
+    rule = Creator.run(request=request, **kwargs)
     rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
@@ -305,7 +317,7 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
             "conditions": alert_rule.data.get("conditions", []),
         }
 
-        updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
+        updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

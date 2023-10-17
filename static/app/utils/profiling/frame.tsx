@@ -24,6 +24,7 @@ export class Frame {
 
   totalWeight: number = 0;
   selfWeight: number = 0;
+  aggregateDuration: number = 0;
 
   static Root = new Frame({
     key: ROOT_KEY,
@@ -78,6 +79,10 @@ export class Frame {
       if (this.line === undefined && this.column === undefined) {
         this.name += ` ${t('[native code]')}`;
         this.is_application = false;
+      }
+
+      if (!this.file && this.path) {
+        this.file = this.path;
       }
 
       // Doing this on the frontend while we figure out how to do this on the backend/client properly

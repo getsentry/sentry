@@ -16,7 +16,7 @@ class MetricAlertExamples:
                     "aggregate": "count()",
                     "thresholdType": 0,
                     "resolveThreshold": None,
-                    "timeWindow": "1440",
+                    "timeWindow": 1440,
                     "environment": "prod",
                     "triggers": [
                         {
@@ -69,7 +69,7 @@ class MetricAlertExamples:
                 "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
                 "thresholdType": 0,
                 "resolveThreshold": 80.0,
-                "timeWindow": "120",
+                "timeWindow": 120,
                 "environment": None,
                 "triggers": [
                     {
@@ -118,6 +118,93 @@ class MetricAlertExamples:
                 },
             },
             status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
+    GET_METRIC_ALERT_RULE = [
+        OpenApiExample(
+            "Get detailed view about a metric alert rule",
+            value={
+                "id": "177412243058",
+                "name": "My Metric Alert Rule",
+                "organizationId": "4505676595200000",
+                "queryType": 0,
+                "dataset": "events",
+                "query": "",
+                "aggregate": "count_unique(user)",
+                "thresholdType": 0,
+                "resolveThreshold": None,
+                "timeWindow": 60,
+                "environment": None,
+                "triggers": [
+                    {
+                        "id": "294385908",
+                        "alertRuleId": "177412243058",
+                        "label": "critical",
+                        "thresholdType": 0,
+                        "alertThreshold": 31.0,
+                        "resolveThreshold": None,
+                        "dateCreated": "2023-09-26T22:14:17.557579Z",
+                        "actions": [],
+                    }
+                ],
+                "projects": ["my-coolest-project"],
+                "owner": "team:29508397892374892",
+                "dateModified": "2023-09-26T22:14:17.522166Z",
+                "dateCreated": "2023-09-26T22:14:17.522196Z",
+                "createdBy": {
+                    "id": 2834985497897,
+                    "name": "Somebody That I Used to Know",
+                    "email": "anon@sentry.io",
+                },
+                "eventTypes": ["default", "error"],
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_METRIC_ALERT_RULE = [
+        OpenApiExample(
+            "Update a metric alert rule",
+            value={
+                "id": "345989573",
+                "name": "P30 Transaction Duration",
+                "organizationId": "02403489017",
+                "queryType": 1,
+                "dataset": "transactions",
+                "query": "",
+                "aggregate": "percentile(transaction.duration,0.3)",
+                "thresholdType": 1,
+                "resolveThreshold": None,
+                "timeWindow": 60,
+                "environment": None,
+                "triggers": [
+                    {
+                        "id": "0543809890",
+                        "alertRuleId": "345989573",
+                        "label": "critical",
+                        "thresholdType": 1,
+                        "alertThreshold": 70.0,
+                        "resolveThreshold": None,
+                        "dateCreated": "2023-09-25T23:35:31.832084Z",
+                        "actions": [],
+                    }
+                ],
+                "projects": ["backend"],
+                "owner": "team:9390258908",
+                "originalAlertRuleId": None,
+                "comparisonDelta": 10080.0,
+                "dateModified": "2023-09-25T23:35:31.787866Z",
+                "dateCreated": "2023-09-25T23:35:31.787875Z",
+                "createdBy": {
+                    "id": 902843590658,
+                    "name": "Spongebob Squarepants",
+                    "email": "spongebob.s@example.com",
+                },
+            },
+            status_codes=["200"],
             response_only=True,
         )
     ]

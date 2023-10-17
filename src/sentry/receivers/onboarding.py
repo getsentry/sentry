@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
+    cron_monitor_created,
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
@@ -40,6 +41,7 @@ from sentry.signals import (
 )
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry")
 
@@ -147,6 +149,7 @@ def record_first_event(project, event, **kwargs):
         project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
+        sdk_name=get_path(event, "sdk", "name"),
     )
 
     if rows_affected or created:
@@ -263,6 +266,17 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
             project_id=project.id,
             from_upsert=from_upsert,
         )
+
+
+@cron_monitor_created.connect(weak=False)
+def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+    analytics.record(
+        "cron_monitor.created",
+        user_id=user.id if user else project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        from_upsert=from_upsert,
+    )
 
 
 @first_cron_checkin_received.connect(weak=False)

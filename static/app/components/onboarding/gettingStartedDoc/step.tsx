@@ -112,6 +112,7 @@ type ConfigurationType = {
   partialLoading?: boolean;
 };
 
+// TODO(aknaus): move to types
 interface BaseStepProps {
   /**
    * Additional information to be displayed below the configurations
@@ -121,7 +122,7 @@ interface BaseStepProps {
   /**
    * A brief description of the step
    */
-  description?: React.ReactNode;
+  description?: React.ReactNode | React.ReactNode[];
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -227,7 +228,7 @@ const Configurations = styled(Configuration)`
   margin-top: ${space(2)};
 `;
 
-const Description = styled(Configuration)`
+const Description = styled('div')`
   code {
     color: ${p => p.theme.pink400};
   }

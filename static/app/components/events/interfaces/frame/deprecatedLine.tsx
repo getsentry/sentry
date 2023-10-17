@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -15,7 +15,7 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconFlag, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconOpen, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -366,43 +366,50 @@ export class DeprecatedLine extends Component<Props, State> {
             ) : null}
             {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
             {shouldShowSourceMapDebuggerToggle ? (
-              <SourceMapDebuggerToggle
-                icon={<IconFlag />}
-                to=""
-                tooltipText={t(
-                  'Learn how to show the original source code for this stack frame.'
-                )}
-                onClick={e => {
-                  e.stopPropagation();
+              <Fragment>
+                <SourceMapDebuggerModalButton
+                  size="zero"
+                  priority="primary"
+                  title={t(
+                    'Click to learn how to show the original source code for this stack frame.'
+                  )}
+                  onClick={e => {
+                    e.stopPropagation();
 
-                  trackAnalytics(
-                    'source_map_debug_blue_thunder.modal_opened',
-                    sourceMapDebuggerAmplitudeData
-                  );
+                    trackAnalytics(
+                      'source_map_debug_blue_thunder.modal_opened',
+                      sourceMapDebuggerAmplitudeData
+                    );
 
-                  openModal(
-                    modalProps => (
-                      <SourceMapsDebuggerModal
-                        analyticsParams={sourceMapDebuggerAmplitudeData}
-                        sourceResolutionResults={this.props.frameSourceResolutionResults!}
-                        {...modalProps}
-                      />
-                    ),
-                    {
-                      onClose: () => {
-                        trackAnalytics(
-                          'source_map_debug_blue_thunder.modal_closed',
-                          sourceMapDebuggerAmplitudeData
-                        );
-                      },
-                    }
-                  );
-                }}
-              >
-                {hasContextSource(data)
-                  ? t('Not your source code?')
-                  : t('No source code?')}
-              </SourceMapDebuggerToggle>
+                    openModal(
+                      modalProps => (
+                        <SourceMapsDebuggerModal
+                          analyticsParams={sourceMapDebuggerAmplitudeData}
+                          sourceResolutionResults={
+                            this.props.frameSourceResolutionResults!
+                          }
+                          {...modalProps}
+                        />
+                      ),
+                      {
+                        onClose: () => {
+                          trackAnalytics(
+                            'source_map_debug_blue_thunder.modal_closed',
+                            sourceMapDebuggerAmplitudeData
+                          );
+                        },
+                      }
+                    );
+                  }}
+                >
+                  <SourceMapDebuggerButtonText>
+                    {hasContextSource(data)
+                      ? t('Not your source code?')
+                      : t('No source code?')}
+                  </SourceMapDebuggerButtonText>
+                  <IconOpen size="xs" />
+                </SourceMapDebuggerModalButton>
+              </Fragment>
             ) : null}
             {!data.inApp ? (
               stacktraceChangesEnabled ? null : (
@@ -675,14 +682,13 @@ const ToggleButton = styled(Button)`
   }
 `;
 
-const SourceMapDebuggerToggle = styled(Tag)`
-  cursor: pointer;
-  span {
-    color: ${p => p.theme.gray300};
+const SourceMapDebuggerButtonText = styled('span')`
+  margin-right: ${space(0.5)};
+`;
 
-    &:hover {
-      text-decoration: underline;
-      text-decoration-color: ${p => p.theme.gray200};
-    }
-  }
+const SourceMapDebuggerModalButton = styled(Button)`
+  font-weight: normal;
+  height: 20px;
+  padding: 0 ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

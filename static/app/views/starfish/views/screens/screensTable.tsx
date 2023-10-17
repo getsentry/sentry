@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -25,7 +24,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -68,7 +66,6 @@ export function ScreensTable() {
     dataset: DiscoverDatasets.METRICS,
     version: 2,
     projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
   };
   newQuery.orderby = orderby;
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
@@ -213,7 +210,7 @@ export function useTableQuery({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 10,
+    limit: 25,
     referrer,
     options: {
       refetchOnWindowFocus: false,

@@ -15,6 +15,7 @@ export default function MetricsExplorer() {
     powerUserMode: true,
     showSummaryTable: true,
     onChange: () => {},
+    sort: {name: 'name', order: 'asc'},
   });
 
   return (
