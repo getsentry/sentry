@@ -387,8 +387,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         response = req()
         assert response.status_code == 200
@@ -1677,8 +1676,7 @@ class OrganizationSessionsEndpointMetricsTest(
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         # basic test case
         response = req()
