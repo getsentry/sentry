@@ -129,14 +129,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user_id=self.user.id,
             project=self.project,
         )
-        NotificationSettingProvider.objects.create_or_update(
-            user_id=self.user.id,
-            scope_type=NotificationScopeEnum.PROJECT.value,
-            scope_identifier=self.project.id,
-            provider=ExternalProviderEnum.EMAIL.value,
-            type=NotificationSettingEnum.ISSUE_ALERTS.value,
-            defaults={"value": "never"},
-        )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
@@ -197,28 +189,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user_id=self.user.id,
             project=self.project,
         )
-        NotificationSettingProvider.objects.create_or_update(
-            user_id=self.user.id,
-            scope_type=NotificationScopeEnum.PROJECT.value,
-            scope_identifier=self.project.id,
-            provider=ExternalProviderEnum.EMAIL.value,
-            type=NotificationSettingEnum.ISSUE_ALERTS.value,
-            defaults={"value": "never"},
-        )
         disabled_user = self.create_user()
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
             user_id=disabled_user.id,
-        )
-        NotificationSettingProvider.objects.create_or_update(
-            user_id=disabled_user.id,
-            scope_type=NotificationScopeEnum.USER.value,
-            scope_identifier=disabled_user.id,
-            provider=ExternalProviderEnum.EMAIL.value,
-            type=NotificationSettingEnum.ISSUE_ALERTS.value,
-            defaults={"value": "never"},
         )
 
         new_user = self.create_user()
