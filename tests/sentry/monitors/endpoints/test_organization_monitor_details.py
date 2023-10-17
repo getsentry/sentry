@@ -232,7 +232,7 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor=monitor)
 
-        status = CheckInStatus.IN_PROGRESS
+        status = getattr(CheckInStatus, "IN_PROGRESS")
 
         check_in = MonitorCheckIn.objects.create(
             monitor=monitor,
