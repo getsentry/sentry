@@ -16,6 +16,7 @@ FRONTEND = [
     "javascript-remix",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-astro",
     "unity",
 ]
 

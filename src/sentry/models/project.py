@@ -92,6 +92,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "java-spring-boot",
     "javascript",
     "javascript-angular",
+    "javascript-astro",
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",

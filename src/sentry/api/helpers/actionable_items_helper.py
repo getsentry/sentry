@@ -10,6 +10,7 @@ class ActionPriority:
 
 
 sourcemap_sdks = [
+    "sentry.javascript.astro",
     "sentry.javascript.browser",
     "sentry.javascript.node",
     "sentry.javascript.react",

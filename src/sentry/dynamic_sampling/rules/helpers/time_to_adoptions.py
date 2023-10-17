@@ -60,6 +60,7 @@ LATEST_RELEASE_TTAS = {
     "javascript": 11035,
     "javascript-angular": 5156,
     "javascript-angularjs": 11592,
+    "javascript-astro": 5943,
     "javascript-backbone": 3463,
     "javascript-browser": 3552,
     "javascript-ember": 10246,
