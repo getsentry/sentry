@@ -7,7 +7,7 @@ import {
 
 describe('createSentrySampleProfileFrameIndex', () => {
   it('dedupes frames', () => {
-    const frameIndex = createSentrySampleProfileFrameIndex([
+    const frames = [
       {
         in_app: true,
         function: 'foo',
@@ -23,20 +23,22 @@ describe('createSentrySampleProfileFrameIndex', () => {
         function: 'foo',
         lineno: 100,
       },
-    ]);
+    ];
+    const frameIndex = createSentrySampleProfileFrameIndex(frames, 'javascript');
 
     const fooFrame = new Frame({
+      ...frames[0],
       key: 0,
-      is_application: true,
-      name: 'foo',
-      line: 100,
+      name: frames[0].function!,
+      line: frames[0].lineno,
+      is_application: frames[0].in_app,
     });
-
     const barFrame = new Frame({
+      ...frames[1],
       key: 1,
-      is_application: true,
-      name: 'bar',
-      line: 105,
+      name: frames[1].function!,
+      line: frames[1].lineno,
+      is_application: frames[1].in_app,
     });
 
     expect(frameIndex).toEqual({
@@ -44,6 +46,7 @@ describe('createSentrySampleProfileFrameIndex', () => {
       1: barFrame,
       2: fooFrame,
     });
+    expect(frameIndex[0]).toBe(frameIndex[2]);
   });
 });
 
