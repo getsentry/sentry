@@ -1,6 +1,5 @@
 {% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
     var lazy = _lazy;
-    var forceLoad = false;
     for (var i = 0; i < document.scripts.length; i++) {
         if (document.scripts[i].src.indexOf(_publicKey) > -1) {
             // If lazy was set to true above, we need to check if the user has set data-lazy="no"
@@ -47,6 +46,32 @@
                     : e,
         });
     }
+    function onSentryScriptLoaded() {
+        try {
+            _window.removeEventListener(_errorEvent, onError);
+            _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
+            // Add loader as SDK source
+            _window.SENTRY_SDK_SOURCE = 'loader';
+            var SDK_1 = _window[_namespace];
+            var oldInit_1 = SDK_1.init;
+            // Configure it using provided DSN and config object
+            SDK_1.init = function (options) {
+                var target = _config;
+                for (var key in options) {
+                    if (Object.prototype.hasOwnProperty.call(options, key)) {
+                        target[key] = options[key];
+                    }
+                }
+                setupDefaultIntegrations(target, SDK_1);
+                oldInit_1(target);
+            };
+            // Wait a tick to ensure that all `Sentry.onLoad()` callbacks have been registered
+            setTimeout(function () { return setupSDK(SDK_1); });
+        }
+        catch (o_O) {
+            console.error(o_O);
+        }
+    }
     function injectSdk() {
         if (injected) {
             return;
@@ -63,32 +88,9 @@
         _newScriptTag.src = _sdkBundleUrl;
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
-        _newScriptTag.addEventListener('load', function () {
-            setTimeout(function () {
-                try {
-                    _window.removeEventListener(_errorEvent, onError);
-                    _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
-                    // Add loader as SDK source
-                    _window.SENTRY_SDK_SOURCE = 'loader';
-                    var SDK_1 = _window[_namespace];
-                    var oldInit_1 = SDK_1.init;
-                    // Configure it using provided DSN and config object
-                    SDK_1.init = function (options) {
-                        var target = _config;
-                        for (var key in options) {
-                            if (Object.prototype.hasOwnProperty.call(options, key)) {
-                                target[key] = options[key];
-                            }
-                        }
-                        setupDefaultIntegrations(target, SDK_1);
-                        oldInit_1(target);
-                    };
-                    sdkLoaded(SDK_1);
-                }
-                catch (o_O) {
-                    console.error(o_O);
-                }
-            });
+        _newScriptTag.addEventListener('load', onSentryScriptLoaded, {
+            once: true,
+            passive: true,
         });
         _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
     }
@@ -117,7 +119,7 @@
             __sentry.hub &&
             __sentry.hub.getClient());
     }
-    function sdkLoaded(SDK) {
+    function setupSDK(SDK) {
         try {
             // We have to make sure to call all callbacks first
             for (var i = 0; i < onLoadCallbacks.length; i++) {
@@ -170,18 +172,11 @@
     _window[_namespace] = _window[_namespace] || {};
     _window[_namespace].onLoad = function (callback) {
         onLoadCallbacks.push(callback);
-        if (lazy && !forceLoad) {
-            return;
-        }
-        injectSdk();
     };
     _window[_namespace].forceLoad = function () {
-        forceLoad = true;
-        if (lazy) {
-            setTimeout(function () {
-                injectSdk();
-            });
-        }
+        setTimeout(function () {
+            injectSdk();
+        });
     };
     [
         'init',

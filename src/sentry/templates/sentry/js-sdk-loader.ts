@@ -15,7 +15,6 @@ declare const __LOADER__IS_LAZY__: any;
   _lazy
 ) {
   let lazy = _lazy;
-  let forceLoad = false;
 
   for (let i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
@@ -71,6 +70,38 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
+  function onSentryScriptLoaded() {
+    try {
+      _window.removeEventListener(_errorEvent, onError);
+      _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
+
+      // Add loader as SDK source
+      _window.SENTRY_SDK_SOURCE = 'loader';
+
+      const SDK = _window[_namespace];
+
+      const oldInit = SDK.init;
+
+      // Configure it using provided DSN and config object
+      SDK.init = function (options) {
+        const target = _config;
+        for (const key in options) {
+          if (Object.prototype.hasOwnProperty.call(options, key)) {
+            target[key] = options[key];
+          }
+        }
+
+        setupDefaultIntegrations(target, SDK);
+        oldInit(target);
+      };
+
+      // Wait a tick to ensure that all `Sentry.onLoad()` callbacks have been registered
+      setTimeout(() => setupSDK(SDK));
+    } catch (o_O) {
+      console.error(o_O);
+    }
+  }
+
   function injectSdk() {
     if (injected) {
       return;
@@ -89,39 +120,10 @@ declare const __LOADER__IS_LAZY__: any;
     _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
-    _newScriptTag.addEventListener('load', function () {
-      setTimeout(() => {
-        try {
-          _window.removeEventListener(_errorEvent, onError);
-          _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
-
-          // Add loader as SDK source
-          _window.SENTRY_SDK_SOURCE = 'loader';
-
-          const SDK = _window[_namespace];
-
-          const oldInit = SDK.init;
-
-          // Configure it using provided DSN and config object
-          SDK.init = function (options) {
-            const target = _config;
-            for (const key in options) {
-              if (Object.prototype.hasOwnProperty.call(options, key)) {
-                target[key] = options[key];
-              }
-            }
-
-            setupDefaultIntegrations(target, SDK);
-            oldInit(target);
-          };
-
-          sdkLoaded(SDK);
-        } catch (o_O) {
-          console.error(o_O);
-        }
-      });
+    _newScriptTag.addEventListener('load', onSentryScriptLoaded, {
+      once: true,
+      passive: true,
     });
-
     _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
   }
 
@@ -161,7 +163,7 @@ declare const __LOADER__IS_LAZY__: any;
     );
   }
 
-  function sdkLoaded(SDK) {
+  function setupSDK(SDK) {
     try {
       // We have to make sure to call all callbacks first
       for (let i = 0; i < onLoadCallbacks.length; i++) {
@@ -220,19 +222,12 @@ declare const __LOADER__IS_LAZY__: any;
 
   _window[_namespace].onLoad = function (callback) {
     onLoadCallbacks.push(callback);
-    if (lazy && !forceLoad) {
-      return;
-    }
-    injectSdk();
   };
 
   _window[_namespace].forceLoad = function () {
-    forceLoad = true;
-    if (lazy) {
-      setTimeout(function () {
-        injectSdk();
-      });
-    }
+    setTimeout(function () {
+      injectSdk();
+    });
   };
 
   [
