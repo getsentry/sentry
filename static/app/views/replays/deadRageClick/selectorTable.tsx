@@ -82,7 +82,7 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
       selector: constructSelector(d.element).selector,
       projectId: d.project_id,
     },
-    element: d.dom_element.split(/[#.]+/)[0],
+    element: d.dom_element.split(/[#.[]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
     project_id: d.project_id,
   }));
