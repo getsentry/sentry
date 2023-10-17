@@ -1,10 +1,16 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PanelTable from 'sentry/components/panels/panelTable';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -116,11 +122,17 @@ function ReleaseThresholdList({}: Props) {
   }
 
   return (
-    <div>
-      <Header router={router} hasV2ReleaseUIEnabled />
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Wrapper>
+    <PageFiltersContainer>
+      <NoProjectMessage organization={organization}>
+        <Header router={router} hasV2ReleaseUIEnabled />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ReleaseThresholdsPageFilterBar condensed>
+              <GuideAnchor target="release_projects">
+                <ProjectPageFilter />
+              </GuideAnchor>
+              <EnvironmentPageFilter />
+            </ReleaseThresholdsPageFilterBar>
             <StyledPanelTable
               isLoading={isLoading}
               isEmpty={filteredThresholds.length === 0 && !isError}
@@ -143,18 +155,14 @@ function ReleaseThresholdList({}: Props) {
                   ));
                 })}
             </StyledPanelTable>
-          </Wrapper>
-        </Layout.Main>
-      </Layout.Body>
-    </div>
+          </Layout.Main>
+        </Layout.Body>
+      </NoProjectMessage>
+    </PageFiltersContainer>
   );
 }
 
 export default ReleaseThresholdList;
-
-const Wrapper = styled('div')`
-  margin: ${space(2)} 0;
-`;
 
 const StyledPanelTable = styled(PanelTable)`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -166,4 +174,8 @@ const StyledPanelTable = styled(PanelTable)`
     auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ReleaseThresholdsPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
 `;
