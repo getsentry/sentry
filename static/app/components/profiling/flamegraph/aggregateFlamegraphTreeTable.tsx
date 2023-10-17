@@ -644,8 +644,12 @@ export function AggregateFlamegraphTreeTable({
       handleScrollTo(el => el.node === frame.node);
     }
 
+    canvasScheduler.on('zoom at frame', onShowInTableView);
     canvasScheduler.on('show in table view', onShowInTableView);
-    return () => canvasScheduler.off('show in table view', onShowInTableView);
+    return () => {
+      canvasScheduler.off('show in table view', onShowInTableView);
+      canvasScheduler.off('zoom at frame', onShowInTableView);
+    };
   }, [canvasScheduler, handleScrollTo]);
 
   const onSortBySampleCount = useCallback(() => {
