@@ -90,7 +90,7 @@ class MissedMarginField(EmptyIntegerField):
         return value
 
 
-class ConfigValidator(serializers.Serializer):
+class ConfigValidator(CamelSnakeSerializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
         help_text='Currently supports "crontab" or "interval"',
