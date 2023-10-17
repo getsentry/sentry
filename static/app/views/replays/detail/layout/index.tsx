@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
@@ -34,6 +36,9 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width, height} = useDimensions({elementRef: measureRef});
 
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+
   const timeline = (
     <ErrorBoundary mini>
       <ReplayTimeline />
@@ -48,11 +53,18 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     </VideoSection>
   );
 
+  const controller = hasNewTimeline ? (
+    <ErrorBoundary>
+      <ReplayController toggleFullscreen={toggleFullscreen} />
+    </ErrorBoundary>
+  ) : null;
+
   if (layout === LayoutKey.VIDEO_ONLY) {
     return (
       <BodyContent>
         {timeline}
         {video}
+        {controller}
       </BodyContent>
     );
   }
@@ -97,6 +109,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
             />
           ) : null}
         </FluidHeight>
+        {controller}
       </BodyContent>
     );
   }
@@ -120,6 +133,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
           />
         ) : null}
       </FluidHeight>
+      {controller}
     </BodyContent>
   );
 }

@@ -15,7 +15,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction

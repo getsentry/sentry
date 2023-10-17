@@ -18,6 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
+import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -44,15 +45,17 @@ export default function WebVitalsLandingPage() {
     webVital: null,
   });
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = isLoading
+    ? undefined
+    : calculatePerformanceScore({
+        lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+        fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+        cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+        ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+        fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+      });
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
@@ -103,6 +106,7 @@ export default function WebVitalsLandingPage() {
             transaction={transaction}
           />
           {!transaction && <PagePerformanceTable />}
+          {transaction && <PageSamplePerformanceTable transaction={transaction} />}
         </Layout.Main>
       </Layout.Body>
       <WebVitalsDetailPanel

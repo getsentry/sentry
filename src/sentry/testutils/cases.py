@@ -60,7 +60,7 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules import Creator
+from sentry.mediators.project_rules.creator import Creator
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -109,7 +109,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
-from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -1747,6 +1747,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
+        "http.response_content_length": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",

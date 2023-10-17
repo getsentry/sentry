@@ -11,7 +11,8 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Optional
+from string import Template
+from typing import Optional, Tuple
 
 import pytest
 import requests
@@ -331,9 +332,24 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
         return True
 
 
+def read_snapshot_file(reference_file: str) -> Tuple[str, str]:
+    with open(reference_file, encoding="utf-8") as f:
+        match = _yaml_snap_re.match(f.read())
+        if match is None:
+            raise OSError()
+
+        header, refval = match.groups()
+        return (header, refval)
+
+
 @pytest.fixture
 def insta_snapshot(request, log):
-    def inner(output, reference_file=None, subname=None):
+    def inner(
+        output,
+        reference_file=None,
+        subname=None,
+        inequality_comparator=lambda refval, output: refval != output,
+    ):
         if reference_file is None:
             name = request.node.name
             for c in UNSAFE_PATH_CHARS:
@@ -362,18 +378,15 @@ def insta_snapshot(request, log):
             )
 
         try:
-            with open(reference_file, encoding="utf-8") as f:
-                match = _yaml_snap_re.match(f.read())
-                if match is None:
-                    raise OSError()
-                _header, refval = match.groups()
+            _, refval = read_snapshot_file(reference_file)
         except OSError:
             refval = ""
 
         refval = refval.rstrip()
         output = output.rstrip()
+        is_unequal = inequality_comparator(refval, output)
 
-        if _snapshot_writeback is not None and refval != output:
+        if _snapshot_writeback is not None and is_unequal:
             if not os.path.isdir(os.path.dirname(reference_file)):
                 os.makedirs(os.path.dirname(reference_file))
             source = os.path.realpath(str(request.node.fspath))
@@ -397,25 +410,45 @@ def insta_snapshot(request, log):
                         output,
                     )
                 )
-        elif refval != output:
+        elif is_unequal:
             __tracebackhide__ = True
-            _print_insta_diff(reference_file, refval, output)
+            if isinstance(is_unequal, str):
+                _print_custom_insta_diff(reference_file, is_unequal)
+            else:
+                _print_insta_diff(reference_file, refval, output)
 
     yield inner
+
+
+INSTA_DIFF_TEMPLATE = Template(
+    """~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Snapshot $reference_file changed!
+
+
+Re-run pytest with SENTRY_SNAPSHOTS_WRITEBACK=new and then use 'make review-python-snapshots' to review.
+
+Or: Use SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots directly.
+
+
+$diff_text
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""
+)
 
 
 def _print_insta_diff(reference_file, a, b):
     __tracebackhide__ = True
     pytest.fail(
-        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-        "Snapshot {} changed!\n\n"
-        "Re-run pytest with SENTRY_SNAPSHOTS_WRITEBACK=new and then use 'make review-python-snapshots' to review.\n"
-        "Or: Use SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots directly.\n\n"
-        "{}\n"
-        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(
-            reference_file, "\n".join(difflib.unified_diff(a.splitlines(), b.splitlines()))
+        INSTA_DIFF_TEMPLATE.substitute(
+            reference_file=reference_file,
+            diff_text="\n".join(difflib.unified_diff(a.splitlines(), b.splitlines())),
         )
     )
+
+
+def _print_custom_insta_diff(reference_file, diff_text):
+    __tracebackhide__ = True
+    pytest.fail(INSTA_DIFF_TEMPLATE.substitute(reference_file=reference_file, diff_text=diff_text))
 
 
 @pytest.fixture

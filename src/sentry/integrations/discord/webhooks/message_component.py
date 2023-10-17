@@ -128,6 +128,14 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             }
         )
 
+        logger.info(
+            "discord.assign.dialog",
+            extra={
+                "assignee": assignee,
+                "user": self.request.user,
+            },
+        )
+
         assert self.request.user is not None
 
         analytics.record(
