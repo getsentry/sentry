@@ -52,18 +52,17 @@ function ReleaseThresholdList({}: Props) {
 
   // const _getAllSelectedProjects = (): Project[] => {
   //   return projects.filter(project =>
-  //     selection.projects.some(id => id === parseInt(project.id, 10) || id === -1)
+  //     selection.projects.some(id => String(id) === project.id || id === -1)
   //   );
   // };
 
   // const _getAllEnvironments = (): string[] => {
-  //   const selectedProjects = selection.projects;
+  //   const selectedProjects = selection.projects.map(id => String(id));
   //   const {user} = ConfigStore.getState();
   //   const allEnvSet = new Set(projects.flatMap(project => project.environments));
   //   // NOTE: mostly taken from environmentSelector.tsx
   //   const unSortedEnvs = new Set(
   //     projects.flatMap(project => {
-  //       const projectId = parseInt(project.id, 10);
   //       /**
   //        * Include environments from:
   //        * all projects if the user is a superuser
@@ -76,7 +75,7 @@ function ReleaseThresholdList({}: Props) {
   //           selectedProjects[0] === ALL_ACCESS_PROJECTS &&
   //           project.hasAccess) ||
   //         (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
-  //         selectedProjects.includes(projectId)
+  //         selectedProjects.includes(project.id)
   //       ) {
   //         return project.environments;
   //       }
