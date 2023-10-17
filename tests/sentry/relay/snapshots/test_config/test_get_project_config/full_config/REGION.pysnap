@@ -1,5 +1,5 @@
 ---
-created: '2023-10-17T11:02:55.699366Z'
+created: '2023-10-17T11:07:17.137208Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -92,7 +92,8 @@ config:
       - live
       - live[z/-]*
       - '*[/-]live'
-      - '*[/-]live[z/-]*ready'
+      - '*[/-]live[z/-]*'
+      - ready
       - ready[z/-]*
       - '*[/-]ready'
       - '*[/-]ready[z/-]*'
