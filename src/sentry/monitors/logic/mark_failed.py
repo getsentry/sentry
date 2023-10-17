@@ -158,8 +158,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # check-in and send occurrence
         previous_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
-            .values("id", "date_added", "status")
             .order_by("-date_added")
+            .values("id", "date_added", "status")
             .first()
         ]
 
