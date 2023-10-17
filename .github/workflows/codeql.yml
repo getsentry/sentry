@@ -38,6 +38,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@0116bc2df50751f9724a2e35ef1f24d22f90e4e1 # v2.22.3
         with:
+          trap-caching: false
           config-file: ./.github/codeql/codeql-config.yml
           languages: ${{ matrix.language }}
           # If you wish to specify custom queries, you can do so here or in a config file.
