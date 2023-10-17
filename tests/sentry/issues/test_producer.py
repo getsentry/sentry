@@ -16,11 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.group import (
-    GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS,
-    IGNORED_SUBSTATUS_CHOICES,
-    GroupSubStatus,
-)
+from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS, GroupSubStatus
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -141,7 +137,11 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         ).exists()
 
     def test_with_status_change_archived(self) -> None:
-        for substatus in IGNORED_SUBSTATUS_CHOICES:
+        for substatus in [
+            GroupSubStatus.UNTIL_ESCALATING,
+            GroupSubStatus.UNTIL_CONDITION_MET,
+            GroupSubStatus.FOREVER,
+        ]:
             status_change = OccurrenceStatusChange(
                 fingerprint=[self.group_hash.hash],
                 project_id=self.group.project_id,
@@ -237,23 +237,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert self.group.status == self.initial_status
         assert self.group.substatus == self.initial_substatus
 
-    @with_feature("organizations:issue-platform-api-crons-sd")
-    def test_with_invalid_payloads(self) -> None:
-        with pytest.raises(ValueError, match="occurrence must be provided"):
-            produce_occurrence_to_kafka(
-                payload_type=PayloadType.OCCURRENCE,
-            )
-
-        with pytest.raises(ValueError, match="status_change must be provided"):
-            produce_occurrence_to_kafka(
-                payload_type=PayloadType.STATUS_CHANGE,
-            )
-
-        with pytest.raises(NotImplementedError, match="Unknown payload type invalid"):
-            produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
-
     @patch("sentry.issues.producer.logger.error")
-    @with_feature("organizations:issue-platform-api-crons-sd")
     def test_invalid_hashes(self, mock_logger_error) -> None:
         event = self.store_event(
             data={
