@@ -66,7 +66,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
-    key: 'p95()',
+    key: 'count()',
     order: 'desc',
   });
 

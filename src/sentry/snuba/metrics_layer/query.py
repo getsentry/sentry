@@ -19,6 +19,7 @@ from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.metrics.fields.base import _get_entity_of_metric_mri, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.utils import to_intervals
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
 FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
@@ -48,6 +49,8 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
     # Process intervals
     assert metrics_query.rollup is not None
+    start = metrics_query.start
+    end = metrics_query.end
     if metrics_query.rollup.interval:
         start, end, _num_intervals = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
@@ -55,10 +58,35 @@ def run_query(request: Request) -> Mapping[str, Any]:
         metrics_query = metrics_query.set_start(start).set_end(end)
 
     # Resolves MRI or public name in metrics_query
-    resolved_metrics_query = resolve_metrics_query(metrics_query)
-    request.query = resolved_metrics_query
+    try:
+        resolved_metrics_query = resolve_metrics_query(metrics_query)
+        request.query = resolved_metrics_query
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={
+                "referrer": request.tenant_ids["referrer"] or "unknown",
+                "status": "resolve_error",
+            },
+        )
+        raise e
 
-    return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    try:
+        snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "query_error"},
+        )
+        raise e
+
+    # If we normalized the start/end, return those values in the response so the caller is aware
+    results = {**snuba_results, "modified_start": start, "modified_end": end}
+    metrics.incr(
+        "metrics_layer.query",
+        tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "success"},
+    )
+    return results
 
 
 def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:

@@ -224,7 +224,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
         projects = data["projects"]
         assert projects == [self.project.id]
         org_id = data["orgId"]
@@ -252,7 +252,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)  # hard coded at 2 days
         projects = data["projects"]
         assert projects == [self.project.id]
         org_id = data["orgId"]
@@ -289,7 +289,7 @@ class CustomRulesEndpoint(APITestCase):
         rule_id = data["ruleId"]
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
 
         request_data = {
             "query": "event.type:transaction",
@@ -306,7 +306,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date >= timedelta(hours=2)
+        assert end_date - start_date >= timedelta(days=2)
 
         projects = data["projects"]
         assert projects == [self.project.id]

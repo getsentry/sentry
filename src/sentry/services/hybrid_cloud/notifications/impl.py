@@ -11,7 +11,7 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
-from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
+from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -88,8 +88,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     skip_provider_updates=True,
                 )
             # update the providers at the end
-            if is_double_write_enabled(user_id=user_id):
-                NotificationSetting.objects.update_provider_settings(user_id, None)
+            NotificationSetting.objects.update_provider_settings(user_id, None)
 
     # TODO(snigdha): This can be removed in V2.
     def get_settings_for_users(
@@ -225,6 +224,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: List[int],
         type: NotificationSettingEnum,
     ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        """
+        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
+        """
         user = user_service.get_user(user_id)
         if not user:
             return {}

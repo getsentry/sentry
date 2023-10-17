@@ -22,6 +22,7 @@ import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
@@ -31,6 +32,7 @@ type Query = {
   spanGroup: string;
   transaction: string;
   [QueryParameterNames.SPANS_SORT]: string;
+  spanDescription?: string;
 };
 
 function ScreenLoadSpans() {
@@ -61,8 +63,8 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
+    spanDescription,
   } = location.query;
 
   return (
@@ -84,22 +86,23 @@ function ScreenLoadSpans() {
                     <DatePageFilter alignDropdown="left" />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
+                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreensView
-                yAxes={[YAxis.THROUGHPUT, YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
                   groupId={spanGroup}
                   transactionName={transactionName}
+                  spanDescription={spanDescription}
                   onClose={() => {
                     router.replace({
                       pathname: router.location.pathname,
@@ -126,7 +129,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

@@ -43,6 +43,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        ("count[)", "", False),  # Malformed aggregate should return false
     ],
 )
 def test_should_use_on_demand(agg, query, result):
@@ -79,6 +80,10 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
             (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals supported by on demand
+            (
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
@@ -108,10 +113,6 @@ class TestCreatesOndemandMetricSpec:
                 "transaction.duration:>0",
             ),  # equation not supported by on demand
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals not supported by on demand
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
@@ -304,7 +305,7 @@ def test_spec_failure_count(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_count"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, ["not_used"])
 
 
 @django_db_all
@@ -315,7 +316,7 @@ def test_spec_failure_rate(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, ["not_used"])
 
 
 @django_db_all
@@ -329,7 +330,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
 
 
 @django_db_all
@@ -377,7 +378,7 @@ def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, 
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
 
 
 def test_spec_custom_tag():

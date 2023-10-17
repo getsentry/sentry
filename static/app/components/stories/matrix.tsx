@@ -81,11 +81,16 @@ export default function Matrix<P extends RenderProps>({
 function item(Component, props, sizingWindowProps) {
   const hasChildren = 'children' in props;
 
-  return hasChildren ? (
-    <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
-      <Component {...props}>{props.children}</Component>
-    </SizingWindow>
-  ) : (
+  if (hasChildren) {
+    const {children, ...otherProps} = props;
+    return (
+      <SizingWindow key={JSON.stringify(otherProps)} {...sizingWindowProps}>
+        <Component {...otherProps}>{children}</Component>
+      </SizingWindow>
+    );
+  }
+
+  return (
     <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
       <Component {...props} />
     </SizingWindow>

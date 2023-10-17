@@ -29,6 +29,13 @@ class ProjectKeyService(RpcService):
     ) -> Optional[RpcProjectKey]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_default_project_key(
+        self, *, organization_id: int, project_id: str
+    ) -> Optional[RpcProjectKey]:
+        pass
+
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_project_key_by_region(

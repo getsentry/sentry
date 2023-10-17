@@ -217,7 +217,7 @@ export function HybridFilter<Value extends React.Key>({
         ? menuFooterMessage(hasStagedChanges)
         : menuFooterMessage;
 
-    return menuFooter || hasStagedChanges || showModifierTip
+    return menuFooter || footerMessage || hasStagedChanges || showModifierTip
       ? ({closeOverlay}) => (
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
@@ -375,6 +375,11 @@ const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   gap: ${space(2)};
+
+  /* If there's FooterMessage above */
+  &:not(:first-child) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const FooterMessage = styled('p')`

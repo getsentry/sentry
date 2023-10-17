@@ -56,22 +56,40 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 
 
 @click.command()
-@click.option("--reload/--no-reload", default=True, help="Autoreloading of python files.")
 @click.option(
-    "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
+    "--reload/--no-reload",
+    default=True,
+    help="Autoreloading of python files.",
 )
 @click.option(
-    "--workers/--no-workers", default=False, help="Run celery workers (excluding celerybeat)."
+    "--watchers/--no-watchers",
+    default=True,
+    help="Watch static files and recompile on changes.",
 )
-@click.option("--celery-beat/--no-celery-beat", default=False, help="Run celerybeat workers.")
-@click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
+@click.option(
+    "--workers/--no-workers",
+    default=False,
+    help="Run celery workers (excluding celerybeat).",
+)
+@click.option(
+    "--celery-beat/--no-celery-beat",
+    default=False,
+    help="Run celerybeat workers.",
+)
+@click.option(
+    "--ingest/--no-ingest",
+    default=False,
+    help="Run ingest services (including Relay).",
+)
 @click.option(
     "--occurrence-ingest/--no-occurrence-ingest",
     default=False,
     help="Run ingest services for occurrences.",
 )
 @click.option(
-    "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
+    "--prefix/--no-prefix",
+    default=True,
+    help="Show the service name prefix and timestamp",
 )
 @click.option(
     "--dev-consumer/--no-dev-consumer",
@@ -79,9 +97,15 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="Fold multiple kafka consumers into one process using 'sentry run dev-consumer'.",
 )
 @click.option(
-    "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
+    "--pretty/--no-pretty",
+    default=False,
+    help="Stylize various outputs from the devserver",
 )
-@click.option("--environment", default="development", help="The environment name.")
+@click.option(
+    "--environment",
+    default="development",
+    help="The environment name.",
+)
 @click.option(
     "--debug-server/--no-debug-server",
     default=False,
@@ -99,7 +123,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The hostname that clients will use. Useful for ngrok workflows eg `--client-hostname=alice.ngrok.io`",
 )
 @click.argument(
-    "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
+    "bind",
+    default=None,
+    metavar="ADDRESS",
+    envvar="SENTRY_DEVSERVER_BIND",
+    required=False,
 )
 @log_options()  # needs this decorator to be typed
 @configuration  # needs this decorator to be typed

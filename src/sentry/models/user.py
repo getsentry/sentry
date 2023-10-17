@@ -403,22 +403,26 @@ class User(BaseModel, AbstractBaseUser):
         if old_pk is None:
             return None
 
-        # New users are always unclaimed.
-        self.is_unclaimed = True
-
-        # Give the user a cryptographically secure random password. The purpose here is to have a
-        # password that NO ONE knows - the only way to log into this account is to use the "claim
-        # your account" flow to create a new password (or to click "lost password" and end up there
-        # anyway), at which point we'll detect the user's `is_unclaimed`` status and prompt them to
-        # change their `username` as well.
-        self.set_password(
-            "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
-        )
-
         if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
+
+        # No need to mark users newly "unclaimed" when doing a global backup/restore.
+        if scope != ImportScope.Global or self.is_unclaimed:
+            # New users are marked unclaimed.
+            self.is_unclaimed = True
+
+            # Give the user a cryptographically secure random password. The purpose here is to have
+            # a password that NO ONE knows - the only way to log into this account is to use the
+            # "claim your account" flow to create a new password (or to click "lost password" and
+            # end up there anyway), at which point we'll detect the user's `is_unclaimed` status and
+            # prompt them to change their `username` as well.
+            self.set_password(
+                "".join(
+                    secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH)
+                )
+            )
 
         return old_pk
 

@@ -1,58 +1,46 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  BasePlatformOptions,
+  PlatformOption,
+  SelectedPlatformOptions,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
-
-export interface PlatformOption<K extends string = string> {
-  /**
-   * Array of items for the option. Each one representing a selectable value.
-   */
-  items: {
-    label: string;
-    value: K;
-  }[];
-  /**
-   * The name of the option
-   */
-  label: string;
-  /**
-   * The default value to be used on initial render
-   */
-  defaultValue?: string;
-}
 
 /**
  * Hook that returns the currently selected platform option values from the URL
  * it will fallback to the defaultValue or the first option value if the value in the URL is not valid or not present
  */
-export function useUrlPlatformOptions<K extends string>(
-  platformOptions: Record<K, PlatformOption>
-): Record<K, string> {
+export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOptions>(
+  platformOptions?: PlatformOptions
+): SelectedPlatformOptions<PlatformOptions> {
   const router = useRouter();
   const {query} = router.location;
 
-  return useMemo(
-    () =>
-      Object.keys(platformOptions).reduce(
-        (acc, key) => {
-          const defaultValue = platformOptions[key as K].defaultValue;
-          const values = platformOptions[key as K].items.map(({value}) => value);
-          acc[key] = values.includes(query[key]) ? query[key] : defaultValue ?? values[0];
-          return acc;
-        },
-        {} as Record<K, string>
-      ),
-    [platformOptions, query]
-  );
+  return useMemo(() => {
+    if (!platformOptions) {
+      return {} as SelectedPlatformOptions<PlatformOptions>;
+    }
+
+    return Object.keys(platformOptions).reduce((acc, key) => {
+      const defaultValue = platformOptions[key].defaultValue;
+      const values = platformOptions[key].items.map(({value}) => value);
+      acc[key as keyof PlatformOptions] = values.includes(query[key])
+        ? query[key]
+        : defaultValue ?? values[0];
+      return acc;
+    }, {} as SelectedPlatformOptions<PlatformOptions>);
+  }, [platformOptions, query]);
 }
 
 type OptionControlProps = {
   /**
    * The platform options for which the control is rendered
    */
-  option: PlatformOption;
+  option: PlatformOption<any>;
   /**
    * Value of the currently selected item
    */
@@ -113,7 +101,6 @@ export function PlatformOptionsControl({platformOptions}: PlatformOptionsControl
 }
 
 const Options = styled('div')`
-  padding-top: ${space(2)};
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};

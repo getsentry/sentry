@@ -4,6 +4,9 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from rest_framework import status
 
+from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
+    MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndex,
@@ -27,20 +30,47 @@ pytestmark = [requires_snuba]
 def create_exception_with_frame(frame):
     return {
         "type": "Error",
-        "stacktrace": {"frames": [frame]},
+        "raw_stacktrace": {"frames": [frame]},
     }
 
 
-def create_event(exceptions=None, debug_meta_images=None, sdk=None, release=None, dist=None):
+def create_exception_with_frames(raw_frames=None, frames=None):
+    ex = {
+        "type": "Error",
+    }
+
+    if raw_frames is not None:
+        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore
+
+    if frames is not None:
+        ex["stacktrace"] = {"frames": frames}  # type: ignore
+
+    return ex
+
+
+def create_event(
+    exceptions=None,
+    debug_meta_images=None,
+    sdk=None,
+    release=None,
+    dist=None,
+    scraping_attempts=None,
+):
     exceptions = [] if exceptions is None else exceptions
-    return {
+    event = {
         "event_id": "a" * 32,
         "release": release,
         "dist": dist,
         "exception": {"values": exceptions},
         "debug_meta": None if debug_meta_images is None else {"images": debug_meta_images},
         "sdk": sdk,
+        "scraping_attempts": scraping_attempts,
     }
+
+    if scraping_attempts is not None:
+        event["scraping_attempts"] = scraping_attempts
+
+    return event
 
 
 @region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
@@ -171,7 +201,9 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                 self.project.slug,
                 event.event_id,
             )
-            assert resp.data["sdk_debug_id_support"] == "needs-upgrade"
+            assert (
+                resp.data["sdk_debug_id_support"] == "needs-upgrade"
+            ), MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
 
     def test_sdk_debug_id_support_unsupported(self):
         with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
@@ -1639,3 +1671,181 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
             assert release_process_result["source_file_lookup_result"] == "wrong-dist"
             assert release_process_result["source_map_lookup_result"] == "unsuccessful"
+
+    def test_has_scraping_data_flag_true(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[],
+                    scraping_attempts=[
+                        {
+                            "url": "https://example.com/bundle0.js",
+                            "status": "success",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["has_scraping_data"]
+
+    def test_has_scraping_data_flag_false(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(exceptions=[]),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert not resp.data["has_scraping_data"]
+
+    def test_scraping_result_source_file(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frames(
+                            [
+                                {"abs_path": "https://example.com/bundle0.js"},
+                                {"abs_path": "https://example.com/bundle1.js"},
+                                {"abs_path": "https://example.com/bundle2.js"},
+                                {"abs_path": "https://example.com/bundle3.js"},
+                            ]
+                        ),
+                    ],
+                    scraping_attempts=[
+                        {
+                            "url": "https://example.com/bundle0.js",
+                            "status": "success",
+                        },
+                        {
+                            "url": "https://example.com/bundle1.js",
+                            "status": "not_attempted",
+                        },
+                        {
+                            "url": "https://example.com/bundle2.js",
+                            "status": "failure",
+                            "reason": "not_found",
+                            "details": "Did not find source",
+                        },
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["exceptions"][0]["frames"][0]["scraping_process"]["source_file"] == {
+                "url": "https://example.com/bundle0.js",
+                "status": "success",
+            }
+            assert resp.data["exceptions"][0]["frames"][1]["scraping_process"]["source_file"] == {
+                "url": "https://example.com/bundle1.js",
+                "status": "not_attempted",
+            }
+            assert resp.data["exceptions"][0]["frames"][2]["scraping_process"]["source_file"] == {
+                "url": "https://example.com/bundle2.js",
+                "status": "failure",
+                "reason": "not_found",
+                "details": "Did not find source",
+            }
+            assert (
+                resp.data["exceptions"][0]["frames"][3]["scraping_process"]["source_file"] is None
+            )
+
+    def test_scraping_result_source_map(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frames(
+                            frames=[
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle0.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle1.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle2.js.map"},
+                                },
+                                {
+                                    "abs_path": "./app/index.ts",
+                                    "data": {"sourcemap": "https://example.com/bundle3.js.map"},
+                                },
+                            ],
+                            raw_frames=[
+                                {
+                                    "abs_path": "https://example.com/bundle0.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle1.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle2.js",
+                                },
+                                {
+                                    "abs_path": "https://example.com/bundle3.js",
+                                },
+                            ],
+                        )
+                    ],
+                    scraping_attempts=[
+                        {
+                            "url": "https://example.com/bundle0.js.map",
+                            "status": "success",
+                        },
+                        {
+                            "url": "https://example.com/bundle1.js.map",
+                            "status": "not_attempted",
+                        },
+                        {
+                            "url": "https://example.com/bundle2.js.map",
+                            "status": "failure",
+                            "reason": "not_found",
+                            "details": "Did not find source",
+                        },
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["exceptions"][0]["frames"][0]["scraping_process"]["source_map"] == {
+                "url": "https://example.com/bundle0.js.map",
+                "status": "success",
+            }
+            assert resp.data["exceptions"][0]["frames"][1]["scraping_process"]["source_map"] == {
+                "url": "https://example.com/bundle1.js.map",
+                "status": "not_attempted",
+            }
+            assert resp.data["exceptions"][0]["frames"][2]["scraping_process"]["source_map"] == {
+                "url": "https://example.com/bundle2.js.map",
+                "status": "failure",
+                "reason": "not_found",
+                "details": "Did not find source",
+            }
+            assert resp.data["exceptions"][0]["frames"][3]["scraping_process"]["source_map"] is None

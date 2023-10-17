@@ -56,7 +56,11 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -168,7 +172,7 @@ def get_features_for_projects(
     ]
 
     batch_checked = set()
-    for (organization, projects) in projects_by_org.items():
+    for organization, projects in projects_by_org.items():
         batch_features = features.batch_has(
             project_features, actor=user, projects=projects, organization=organization
         )
@@ -188,9 +192,9 @@ def get_features_for_projects(
         if feature_name in batch_checked:
             continue
         abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
-        for (organization, projects) in projects_by_org.items():
+        for organization, projects in projects_by_org.items():
             result = features.has_for_batch(feature_name, organization, projects, user)
-            for (project, flag) in result.items():
+            for project, flag in result.items():
                 if flag:
                     features_by_project[project].append(abbreviated_feature)
 
@@ -276,9 +280,15 @@ class ProjectSerializer(Serializer):
         expand: Iterable[str] | None = None,
         expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
+        dataset: Any | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
+
+        if dataset is None:
+            self.dataset = discover
+        else:
+            self.dataset = dataset
 
         self.environment_id = environment_id
         self.stats_period = stats_period
@@ -319,7 +329,7 @@ class ProjectSerializer(Serializer):
                     subscriptions = notifications_service.get_subscriptions_for_projects(
                         user_id=user.id,
                         project_ids=project_ids,
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                        type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
@@ -381,8 +391,13 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    (_, has_enabled_subscriptions, _) = subscriptions[project.id]
-                    is_subscribed = has_enabled_subscriptions
+                    if project.id in subscriptions:
+                        (_, has_enabled_subscriptions, _) = subscriptions[project.id]
+                        is_subscribed = has_enabled_subscriptions
+                    else:
+                        # If there are no settings, default to the EMAIL default
+                        # setting, which is ALWAYS.
+                        is_subscribed = True
                 else:
                     value = get_most_specific_notification_setting_value(
                         notification_settings_by_scope,
@@ -425,7 +440,7 @@ class ProjectSerializer(Serializer):
 
         # Generate a query result to skip the top_events.find query
         top_events = {"data": [{"project_id": p} for p in project_ids]}
-        stats = discover.top_events_timeseries(
+        stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,

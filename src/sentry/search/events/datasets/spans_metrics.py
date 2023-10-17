@@ -141,7 +141,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "span.self_time",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
+                                    constants.SPAN_METRIC_BYTES_COLUMNS
+                                ),
                             ),
                         ),
                     ],

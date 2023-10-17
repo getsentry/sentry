@@ -42,6 +42,8 @@ export function SummaryTable({
   const router = useRouter();
   const {start, end, statsPeriod, project, environment} = router.location.query;
 
+  const hasMultipleSeries = series.length > 1;
+
   const changeSort = useCallback(
     (name: SortState['name']) => {
       if (sort.name === name) {
@@ -72,8 +74,8 @@ export function SummaryTable({
     return {
       pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
       query: {
-        start,
-        end,
+        pageStart: start,
+        pageEnd: end,
         pageStatsPeriod: statsPeriod,
         project,
         environment,
@@ -162,9 +164,21 @@ export function SummaryTable({
           return (
             <Fragment key={seriesName}>
               <CellWrapper
-                onClick={() => onRowClick(seriesName)}
-                onMouseEnter={() => setHoveredLegend?.(seriesName)}
-                onMouseLeave={() => setHoveredLegend?.('')}
+                onClick={() => {
+                  if (hasMultipleSeries) {
+                    onRowClick(seriesName);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.(seriesName);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.('');
+                  }
+                }}
               >
                 <Cell>
                   <ColorDot color={color} isHidden={!!hidden} />

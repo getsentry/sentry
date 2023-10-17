@@ -7,6 +7,7 @@ export const enum IssueAlertActionType {
   NOTIFY_EMAIL = 'sentry.mail.actions.NotifyEmailAction',
   DISCORD = 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction',
   JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
+  JIRA_SERVER_CREATE_TICKET = 'sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction',
   AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
   SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
   MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',

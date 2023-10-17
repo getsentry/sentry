@@ -23,7 +23,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
@@ -384,8 +384,9 @@ class VercelIntegrationTest(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             installation = integration.get_installation(org.id)
 
-        dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
-        dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
+        with assume_test_silo_mode(SiloMode.REGION):
+            dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
         with pytest.raises(ValidationError):
             installation.update_organization_config(data)
 

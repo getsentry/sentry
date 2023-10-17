@@ -582,10 +582,10 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
+TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
     """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
@@ -707,7 +707,7 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
 @dataclass(frozen=True)
 class FieldParsingResult:
     function: str
-    arguments: List[str]
+    arguments: Sequence[str]
     alias: str
 
 
@@ -731,11 +731,12 @@ class OnDemandMetricSpec:
 
     # Private fields.
     _metric_type: str
-    _arguments: Optional[Sequence[str]]
+    _arguments: Sequence[str]
 
     def __init__(self, field: str, query: str):
         self.field = field
         self.query = query
+        self._arguments = []
         self._eager_process()
 
     def _eager_process(self):
@@ -832,7 +833,7 @@ class OnDemandMetricSpec:
 
         return metric_spec
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[list[str]]]:
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
@@ -888,7 +889,7 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
-    ) -> Optional[List[str]]:
+    ) -> Optional[Sequence[str]]:
         requires_arguments = metric_type in ["s", "d"] or op in [
             "on_demand_apdex",
             "on_demand_count_web_vitals",

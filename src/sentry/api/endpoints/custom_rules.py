@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, cast
+from typing import List, Optional
 
 import sentry_sdk
 from django.db import DatabaseError
@@ -127,12 +127,11 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
-        period = serializer.validated_data.get("period")
         try:
             condition = get_condition(query)
 
-            # the parsing must succeed (it passed validation)
-            delta = cast(timedelta, parse_stats_period(period))
+            # for now delta it is fixed at 2 days (maybe in the future will base it on the query period)
+            delta = timedelta(days=2)
             now = datetime.now(tz=timezone.utc)
             start = now
             end = now + delta

@@ -379,9 +379,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           <ProfileVisualizationContainer>
             <ProfileVisualization>
               <ProfileGroupProvider
+                traceID=""
                 type="flamegraph"
                 input={data ?? null}
-                traceID=""
                 frameFilter={flamegraphFrameFilter}
               >
                 <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
@@ -513,7 +513,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 }
 
 const ViewSelectContainer = styled('div')`
-  min-width: 140px;
+  min-width: 160px;
 `;
 
 const AggregateFlamegraphToolbarContainer = styled('div')`
@@ -622,7 +622,7 @@ function ProfileDigest() {
 
       {percentiles.map(p => {
         return (
-          <div key={p}>
+          <ProfileDigestColumn key={p}>
             <ProfileDigestLabel>{p}</ProfileDigestLabel>
             <div>
               {profiles.isLoading ? (
@@ -633,10 +633,10 @@ function ProfileDigest() {
                 <PerformanceDuration nanoseconds={data?.[p] as number} abbreviation />
               )}
             </div>
-          </div>
+          </ProfileDigestColumn>
         );
       })}
-      <div>
+      <ProfileDigestColumn>
         <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
         <div>
           {profiles.isLoading ? (
@@ -647,10 +647,14 @@ function ProfileDigest() {
             <Count value={data?.['count()'] as number} />
           )}
         </div>
-      </div>
+      </ProfileDigestColumn>
     </ProfileDigestHeader>
   );
 }
+
+const ProfileDigestColumn = styled('div')`
+  text-align: right;
+`;
 
 const ProfileDigestHeader = styled('div')`
   display: flex;
