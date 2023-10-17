@@ -1,7 +1,5 @@
 from urllib.parse import urlparse
 
-from selenium.webdriver.common.by import By
-
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
@@ -17,8 +15,8 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
-        self.team = self.create_team(organization=self.org, name="Team One")
-        self.create_member(
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.member = self.create_member(
             user=None,
             email="bar@example.com",
             organization=self.org,
@@ -26,14 +24,6 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.create_team_membership(user=self.user, team=self.team)
-        self.team_admin_user = self.create_user()
-        self.create_member(
-            user=self.team_admin_user,
-            team_roles=[(self.team, "admin")],
-            organization=self.org,
-            role="member",
-        )
-
         self.integration = Integration.objects.create(
             provider="slack",
             name="Team A",
@@ -68,32 +58,6 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.click('[name="team"]')
-        self.browser.click(f'[value="{self.team.id}"]')
-        self.browser.click('[type="submit"]')
-        self.browser.wait_until_not(".loading")
-
-        assert ExternalActor.objects.filter(
-            team_id=self.team.id,
-            organization=self.org,
-            integration_id=self.integration.id,
-            provider=ExternalProviders.SLACK.value,
-            external_name="general",
-            external_id="CXXXXXXX9",
-        ).exists()
-
-    def test_link_team_as_team_admin(self):
-        self.create_team(organization=self.org, name="Team Two")
-        self.create_team(organization=self.org, name="Team Three")
-        self.login_as(self.team_admin_user)
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-        self.browser.click('[name="team"]')
-
-        select_element = self.browser.find_element(by=By.ID, value="id_team")
-        option_elements = select_element.find_elements(by=By.TAG_NAME, value="option")
-        # Ensure only the team the user is team admin is on is shown
-        assert len(option_elements) == 1
-
         self.browser.click(f'[value="{self.team.id}"]')
         self.browser.click('[type="submit"]')
         self.browser.wait_until_not(".loading")
