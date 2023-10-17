@@ -46,7 +46,7 @@ def produce_occurrence_to_kafka(
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
         if not occurrence:
-            raise ValueError("Occurrence must be provided")
+            raise ValueError("occurrence must be provided")
         if event_data and occurrence.event_id != event_data["event_id"]:
             raise ValueError("Event id on occurrence and event_data must be the same")
         if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
@@ -69,40 +69,30 @@ def produce_occurrence_to_kafka(
         _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
     elif payload_type == PayloadType.STATUS_CHANGE:
         if not status_change:
-            raise ValueError("Status change must be provided")
+            raise ValueError("status_change must be provided")
 
         organization = Project.objects.get(id=status_change.project_id).organization
         if not features.has("organizations:issue-platform-api-crons-sd", organization):
             return
 
-        try:
-            grouphash = (
-                GroupHash.objects.filter(
-                    project=status_change.project_id,
-                    hash__in=status_change.fingerprint,  # assume single fingerprint
-                )
-                .select_related("group")
-                .first()
+        grouphash = (
+            GroupHash.objects.filter(
+                project=status_change.project_id,
+                hash__in=status_change.fingerprint,
             )
-            if not grouphash:
-                logger.error(
-                    "grouphash.not_found",
-                    extra={
-                        "project_id": status_change.project_id,
-                        "fingerprint": status_change.fingerprint,
-                    },
-                )
-                return
-
-            status_change.update_status_for_occurrence(grouphash.group)
-        except GroupHash.DoesNotExist:
+            .select_related("group")
+            .first()
+        )
+        if not grouphash:
             logger.error(
-                "grouphash.missing",
+                "grouphash.not_found",
                 extra={
                     "project_id": status_change.project_id,
                     "fingerprint": status_change.fingerprint,
                 },
             )
             return
+
+        status_change.update_status_for_occurrence(grouphash.group)
     else:
         raise NotImplementedError(f"Unknown payload type {payload_type}")

@@ -236,3 +236,56 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         assert self.group.status == self.initial_status
         assert self.group.substatus == self.initial_substatus
+
+    @with_feature("organizations:issue-platform-api-crons-sd")
+    def test_with_invalid_payloads(self) -> None:
+        with pytest.raises(ValueError, match="occurrence must be provided"):
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+            )
+
+        with pytest.raises(ValueError, match="status_change must be provided"):
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+            )
+
+        with pytest.raises(NotImplementedError, match="Unknown payload type invalid"):
+            produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
+
+    @patch("sentry.issues.producer.logger.error")
+    @with_feature("organizations:issue-platform-api-crons-sd")
+    def test_invalid_hashes(self, mock_logger_error) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(datetime.now()),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group
+        initial_status = group.status
+        initial_substatus = group.substatus
+
+        bad_status_change_resolve = OccurrenceStatusChange(
+            fingerprint=["wronghash"],
+            project_id=group.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=bad_status_change_resolve,
+        )
+        group.refresh_from_db()
+        mock_logger_error.assert_called_with(
+            "grouphash.not_found",
+            extra={
+                "project_id": group.project_id,
+                "fingerprint": ["wronghash"],
+            },
+        )
+        assert group.status == initial_status
+        assert group.substatus == initial_substatus
