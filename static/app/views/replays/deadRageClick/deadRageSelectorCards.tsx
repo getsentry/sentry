@@ -43,7 +43,9 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have dead clicked on.')}
+                  title={t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
@@ -64,7 +66,9 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have rage clicked on.')}
+                  title={t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
@@ -120,7 +124,7 @@ function AccordionWidget({
             <div>{t('No results found')}</div>
             <EmptySubtitle>
               {tct(
-                "Once your users start clicking around, you'll see the top selectors that were [type] clicked here.",
+                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
@@ -311,7 +315,7 @@ export const RightAlignedCell = styled('div')`
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.8em;
+  line-height: 1.6em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;

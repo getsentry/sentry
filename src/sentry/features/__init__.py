@@ -65,7 +65,6 @@ default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrateg
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:actionable-items", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -97,6 +96,7 @@ default_manager.add("organizations:issue-details-tag-improvements", Organization
 default_manager.add("organizations:issue-details-stacktrace-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform-extra-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:issue-platform-api-crons-sd", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -200,6 +200,7 @@ default_manager.add("organizations:session-replay-ui", OrganizationFeature, Feat
 default_manager.add("organizations:session-replay-new-event-counts", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-weekly-email", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-rage-dead-selectors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-new-timeline", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -245,7 +246,6 @@ default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", Organi
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:notifications-double-write", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -264,6 +264,7 @@ default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandl
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-all-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)

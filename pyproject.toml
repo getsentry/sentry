@@ -384,7 +384,6 @@ module = [
     "sentry.identity.vsts.provider",
     "sentry.incidents.action_handlers",
     "sentry.incidents.endpoints.bases",
-    "sentry.incidents.endpoints.organization_alert_rule_available_action_index",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
     "sentry.incidents.endpoints.organization_incident_comment_details",

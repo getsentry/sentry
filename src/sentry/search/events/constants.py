@@ -280,6 +280,7 @@ SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "http.response_content_length": "d:spans/http.response_content_length@byte",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
@@ -302,6 +303,11 @@ SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_BYTES_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@byte") and value.startswith("d:")
 }
 METRIC_PERCENTILES = {
     0.25,

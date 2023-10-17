@@ -7,7 +7,7 @@ from typing import Any, Mapping, Optional, Tuple
 
 from django.db import router, transaction
 
-from sentry import eventstore, similarity, tsdb
+from sentry import analytics, eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.eventstore.models import BaseEvent
@@ -374,7 +374,12 @@ def repair_group_release_data(caches, project, events):
             instance.update(first_seen=first_seen)
 
 
-def get_event_user_from_interface(value):
+def get_event_user_from_interface(value, project):
+    analytics.record(
+        "eventuser_endpoint.request",
+        project_id=project.id,
+        endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+    )
     return EventUser(
         ident=value.get("id"),
         email=value.get("email"),
@@ -399,7 +404,7 @@ def collect_tsdb_data(caches, project, events):
         if user:
             sets[event.datetime][TSDBModel.users_affected_by_group][
                 (event.group_id, environment.id)
-            ].add(get_event_user_from_interface(user).tag_value)
+            ].add(get_event_user_from_interface(user, project).tag_value)
 
         frequencies[event.datetime][TSDBModel.frequent_environments_by_group][event.group_id][
             environment.id

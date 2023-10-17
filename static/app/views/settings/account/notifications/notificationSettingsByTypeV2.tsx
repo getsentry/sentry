@@ -332,14 +332,16 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             fields={this.getFields()}
           />
         </Form>
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notification-providers/"
-          initialData={this.getProviderInitialData()}
-        >
-          <BottomJsonForm fields={this.getProviderFields()} />
-        </Form>
+        {notificationType !== 'reports' ? (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notification-providers/"
+            initialData={this.getProviderInitialData()}
+          >
+            <BottomJsonForm fields={this.getProviderFields()} />
+          </Form>
+        ) : null}
         <NotificationSettingsByEntity
           notificationType={notificationType}
           notificationOptions={notificationOptions}
