@@ -11,14 +11,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PanelTable from 'sentry/components/panels/panelTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+// import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+// import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+// import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+// import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import Header from '../components/header';
@@ -38,7 +38,7 @@ function ReleaseThresholdList({}: Props) {
       router.replace('/releases/');
     }
   }, [router, organization]);
-  const {projects} = useProjects();
+  // const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {
     data: thresholds = [],
@@ -50,46 +50,46 @@ function ReleaseThresholdList({}: Props) {
     selectedProjectIds: selection.projects,
   });
 
-  const _getAllSelectedProjects = (): Project[] => {
-    return projects.filter(project =>
-      selection.projects.some(id => id === parseInt(project.id, 10) || id === -1)
-    );
-  };
+  // const _getAllSelectedProjects = (): Project[] => {
+  //   return projects.filter(project =>
+  //     selection.projects.some(id => id === parseInt(project.id, 10) || id === -1)
+  //   );
+  // };
 
-  const _getAllEnvironments = (): string[] => {
-    const selectedProjects = selection.projects;
-    const {user} = ConfigStore.getState();
-    const allEnvSet = new Set(projects.flatMap(project => project.environments));
-    // NOTE: mostly taken from environmentSelector.tsx
-    const unSortedEnvs = new Set(
-      projects.flatMap(project => {
-        const projectId = parseInt(project.id, 10);
-        /**
-         * Include environments from:
-         * all projects if the user is a superuser
-         * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
-         * all projects if -1 is the only selected project.
-         */
-        if (
-          (selectedProjects.length === 1 &&
-            selectedProjects[0] === ALL_ACCESS_PROJECTS &&
-            project.hasAccess) ||
-          (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
-          selectedProjects.includes(projectId)
-        ) {
-          return project.environments;
-        }
+  // const _getAllEnvironments = (): string[] => {
+  //   const selectedProjects = selection.projects;
+  //   const {user} = ConfigStore.getState();
+  //   const allEnvSet = new Set(projects.flatMap(project => project.environments));
+  //   // NOTE: mostly taken from environmentSelector.tsx
+  //   const unSortedEnvs = new Set(
+  //     projects.flatMap(project => {
+  //       const projectId = parseInt(project.id, 10);
+  //       /**
+  //        * Include environments from:
+  //        * all projects if the user is a superuser
+  //        * the requested projects
+  //        * all member projects if 'my projects' (empty list) is selected.
+  //        * all projects if -1 is the only selected project.
+  //        */
+  //       if (
+  //         (selectedProjects.length === 1 &&
+  //           selectedProjects[0] === ALL_ACCESS_PROJECTS &&
+  //           project.hasAccess) ||
+  //         (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
+  //         selectedProjects.includes(projectId)
+  //       ) {
+  //         return project.environments;
+  //       }
 
-        return [];
-      })
-    );
-    const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
+  //       return [];
+  //     })
+  //   );
+  //   const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
 
-    return Array.from(unSortedEnvs)
-      .sort()
-      .concat([...envDiff].sort());
-  };
+  //   return Array.from(unSortedEnvs)
+  //     .sort()
+  //     .concat([...envDiff].sort());
+  // };
 
   // NOTE: currently no way to filter for 'None' environments
   const filteredThresholds = selection.environments.length
