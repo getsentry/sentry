@@ -11,26 +11,17 @@ updates:
     reviewers:
       - '@getsentry/owners-js-deps'
     labels: []
+    # Group dependency updates together in one PR
+    # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
+    groups:
+      # The name of the group, it will be used in PR titles and branch
+      babel-dependencies:
+        patterns:
+          - "@babel/*"
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'
         update-types: ['version-update:semver-patch']
-
-      # Babel updates all really should happen in unison, so let's keep these
-      # ignored for now and manually handle it
-      #
-      # XXX(epurkhiser): Explicitly don't ignore core so we can be reminded to
-      # upgrade all of them.
-      #
-      # - dependency-name: "@babel/core"
-      - dependency-name: '@babel/plugin-proposal-decorators'
-      - dependency-name: '@babel/plugin-transform-react-jsx'
-      - dependency-name: '@babel/plugin-transform-react-jsx-source'
-      - dependency-name: '@babel/plugin-transform-runtime'
-      - dependency-name: '@babel/preset-env'
-      - dependency-name: '@babel/preset-react'
-      - dependency-name: '@babel/preset-typescript'
-      - dependency-name: '@babel/runtime'
 
       # Sentry updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
