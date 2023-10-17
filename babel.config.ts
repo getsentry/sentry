@@ -21,11 +21,7 @@ const config: TransformOptions = {
     '@babel/preset-typescript',
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-transform-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
       plugins: [
