@@ -17,6 +17,7 @@ import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -254,10 +255,14 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
         onClick: () => {
-          router.push({
-            pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-            query,
-          });
+          router.push(
+            normalizeUrl({
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(release.version)}/`,
+              query,
+            })
+          );
         },
         label: {
           formatter: () => formatVersion(release.version, true),

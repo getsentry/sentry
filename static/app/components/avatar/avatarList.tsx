@@ -9,7 +9,6 @@ import {AvatarUser, Team} from 'sentry/types';
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
-  users: AvatarUser[];
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
@@ -17,6 +16,7 @@ type Props = {
   teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
+  users?: AvatarUser[];
 };
 
 function AvatarList({
@@ -25,16 +25,16 @@ function AvatarList({
   typeAvatars = 'users',
   tooltipOptions = {},
   className,
-  users,
-  teams,
+  users = [],
+  teams = [],
   renderTooltip,
 }: Props) {
-  const numTeams = teams ? teams.length : 0;
+  const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
   const maxVisibleUsers =
     maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
   // Reverse the order since css flex-reverse is used to display the avatars
-  const visibleTeamAvatars = teams?.slice(0, numVisibleTeams).reverse();
+  const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
   const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
   const numCollapsedAvatars = users.length - visibleUserAvatars.length;
 
@@ -62,7 +62,7 @@ function AvatarList({
           hasTooltip
         />
       ))}
-      {visibleTeamAvatars?.map(team => (
+      {visibleTeamAvatars.map(team => (
         <StyledTeamAvatar
           key={`${team.id}-${team.name}`}
           team={team}
