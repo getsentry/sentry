@@ -20,6 +20,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
@@ -33,6 +34,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -45,6 +47,7 @@ from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
+    serialize_rpc_team,
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
@@ -348,9 +351,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 )
         return serialize_member(org_member)
 
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+        teams = list(Team.objects.filter(organization_id=organization_id)[0:2])
+        if len(teams) == 1:
+            (team,) = teams
+            return serialize_rpc_team(team)
+        return None
+
+    def add_team_member(
+        self, *, organization_id: int, team_id: int, organization_member_id: int
+    ) -> None:
         OrganizationMemberTeam.objects.create(
-            team_id=team_id, organizationmember_id=organization_member.id
+            team_id=team_id, organizationmember_id=organization_member_id
         )
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
