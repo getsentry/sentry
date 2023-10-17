@@ -81,6 +81,10 @@ export class Frame {
         this.is_application = false;
       }
 
+      if (!this.file && this.path) {
+        this.file = this.path;
+      }
+
       // Doing this on the frontend while we figure out how to do this on the backend/client properly
       // @TODO Our old node.js incorrectly sends file instead of path (fixed in SDK, but not all SDK's are upgraded :rip:)
       const pathOrFile = this.path || this.file;
