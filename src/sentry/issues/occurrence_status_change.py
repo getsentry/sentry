@@ -6,7 +6,6 @@ from typing import Sequence
 
 from sentry.models.group import Group, GroupStatus
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +14,8 @@ logger = logging.getLogger(__name__)
 class OccurrenceStatusChange:
     fingerprint: Sequence[str]
     project_id: int
-    new_status: GroupStatus
-    new_substatus: GroupSubStatus | None
+    new_status: int
+    new_substatus: int | None
 
     def update_status_for_occurrence(self, group):
         if group.status == self.new_status and group.substatus == self.new_substatus:

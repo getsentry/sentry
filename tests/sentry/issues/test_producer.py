@@ -7,7 +7,7 @@ import pytest
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_status_change import OccurrenceStatusChange
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
@@ -15,6 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -75,6 +76,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
         group = event.group
+        assert group
         group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
         initial_status = group.status
         initial_substatus = group.substatus
@@ -126,6 +128,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
         group = event.group
+        assert group
         group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
         initial_status = group.status
         initial_substatus = group.substatus
