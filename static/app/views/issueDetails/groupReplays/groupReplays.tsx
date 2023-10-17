@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {Group, Organization} from 'sentry/types';
+import {type Event, type Group, IssueType, type Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
@@ -16,6 +16,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
   group: Group;
+  event?: Event;
 };
 
 const VISIBLE_COLUMNS = [
@@ -27,7 +28,7 @@ const VISIBLE_COLUMNS = [
   ReplayColumn.ACTIVITY,
 ];
 
-function GroupReplays({group}: Props) {
+function GroupReplays({group, event}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
@@ -35,6 +36,10 @@ function GroupReplays({group}: Props) {
     group,
     location,
     organization,
+    transaction:
+      organization.features.includes('performance-duration-regression-visible') &&
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+      event?.occurrence?.evidenceData?.transaction,
   });
 
   useEffect(() => {

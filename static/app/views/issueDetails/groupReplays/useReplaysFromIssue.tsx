@@ -15,10 +15,12 @@ function useReplayFromIssue({
   group,
   location,
   organization,
+  transaction,
 }: {
   group: Group;
   location: Location;
   organization: Organization;
+  transaction?: string;
 }) {
   const api = useApi();
 
@@ -36,19 +38,21 @@ function useReplayFromIssue({
         {
           query: {
             returnIds: true,
-            query: `issue.id:[${group.id}]`,
+            query: transaction
+              ? `transaction:["${transaction}"]`
+              : `issue.id:[${group.id}]`,
             data_source: dataSource,
             statsPeriod: '14d',
             project: ALL_ACCESS_PROJECTS,
           },
         }
       );
-      setReplayIds(response[group.id] || []);
+      setReplayIds(response[transaction ?? group.id] || []);
     } catch (error) {
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource]);
+  }, [api, organization.slug, group.id, dataSource, transaction]);
 
   const eventView = useMemo(() => {
     if (!replayIds) {
