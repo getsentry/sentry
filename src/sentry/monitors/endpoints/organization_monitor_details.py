@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.db import router, transaction
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
@@ -23,11 +25,18 @@ from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+)
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
 from sentry.monitors.validators import MonitorValidator
 
+from ..constants import MAX_TIMEOUT, TIMEOUT
 from .base import MonitorEndpoint
 
 
@@ -87,6 +96,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor.
         """
+        # set existing values as validator will overwrite
+        existing_config = monitor.config
+        existing_margin = existing_config.get("checkin_margin")
+        existing_max_runtime = existing_config.get("max_runtime")
+
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -114,6 +128,27 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["status"] = result["status"]
         if "config" in result:
             params["config"] = result["config"]
+
+            # update timeouts + expected next check-in, as appropriate
+            checkin_margin = result["config"].get("checkin_margin")
+            if checkin_margin != existing_margin:
+                for monitor_environment in MonitorEnvironment.objects.filter(monitor_id=monitor.id):
+                    monitor_environment.next_checkin_latest = (
+                        monitor_environment.next_checkin
+                        + timedelta(minutes=int(checkin_margin or 1))
+                    )
+                    monitor_environment.save(update_fields=["next_checkin_latest"])
+
+            max_runtime = result["config"].get("max_runtime")
+            if max_runtime != existing_max_runtime:
+                for in_progress_checkin in MonitorCheckIn.objects.filter(
+                    monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
+                ):
+                    in_progress_checkin.timeout_at = in_progress_checkin.date_added.replace(
+                        second=0, microsecond=0
+                    ) + timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
+                    in_progress_checkin.save(update_fields=["timeout_at"])
+
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
         if "alert_rule" in result:

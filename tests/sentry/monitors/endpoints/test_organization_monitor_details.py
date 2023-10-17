@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
@@ -5,8 +7,18 @@ from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
+from sentry.monitors.constants import TIMEOUT
+from sentry.monitors.logic.mark_ok import mark_ok
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    ScheduleType,
+)
+from sentry.monitors.utils import get_timeout_at
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
@@ -65,6 +77,7 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
 
 
 @region_silo_test(stable=True)
+@freeze_time()
 class UpdateMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-details"
 
@@ -172,6 +185,22 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_checkin_margin(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor=monitor)
+
+        check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.OK,
+        )
+        mark_ok(check_in, check_in.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert (
+            monitor_environment.next_checkin + timedelta(minutes=1)
+            == monitor_environment.next_checkin_latest
+        )
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -192,8 +221,31 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["checkin_margin"] == 30
 
+        # check that next_checkin_latest was updated appropriately
+        monitor_environment.refresh_from_db()
+        assert (
+            monitor_environment.next_checkin + timedelta(minutes=30)
+            == monitor_environment.next_checkin_latest
+        )
+
     def test_max_runtime(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor=monitor)
+
+        status = CheckInStatus.IN_PROGRESS
+
+        check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=status,
+            timeout_at=get_timeout_at(monitor.get_validated_config(), status, monitor.date_added),
+        )
+
+        assert check_in.timeout_at == check_in.date_added.replace(
+            second=0, microsecond=0
+        ) + timedelta(minutes=TIMEOUT)
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -204,12 +256,17 @@ class UpdateMonitorTest(MonitorTestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
+            self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 15}}
         )
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.config["max_runtime"] == 30
+        assert monitor.config["max_runtime"] == 15
+
+        check_in.refresh_from_db()
+        assert check_in.timeout_at == check_in.date_added.replace(
+            second=0, microsecond=0
+        ) + timedelta(minutes=15)
 
     def test_existing_alert_rule(self):
         monitor = self._create_monitor()
