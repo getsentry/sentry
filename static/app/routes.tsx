@@ -1470,6 +1470,30 @@ function buildRoutes() {
       </Route>
     </Fragment>
   );
+  const releaseThresholdRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/release-thresholds/"
+          component={withDomainRequired(NoOp)}
+          key="orgless-release-thresholds-route"
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/releases/thresholdsList'))}
+          />
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/release-thresholds/"
+        component={withDomainRedirect(NoOp)}
+        key="org-release-thresholds"
+      >
+        <IndexRoute
+          component={make(() => import('sentry/views/releases/thresholdsList'))}
+        />
+      </Route>
+    </Fragment>
+  );
 
   const activityRoutes = (
     <Fragment>
@@ -2291,6 +2315,7 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
+      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
