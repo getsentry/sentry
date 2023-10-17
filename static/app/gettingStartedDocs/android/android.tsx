@@ -11,6 +11,7 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -46,12 +47,11 @@ const isAutoInstall = (params: Params) =>
 const getManualInstallSnippet = (params: Params) => `
 plugins {
   id "com.android.application" // should be in the same module
-  id "io.sentry.android.gradle" version "${
-    params.sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']
-          ?.version ?? '3.12.0'
-  }"
+  id "io.sentry.android.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '3.12.0'
+  )}"
 }`;
 
 const getConfigurationSnippet = (params: Params) => `
