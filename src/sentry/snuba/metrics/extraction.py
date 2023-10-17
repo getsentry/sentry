@@ -581,10 +581,10 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
+TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
     """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
@@ -677,11 +677,12 @@ class OnDemandMetricSpec:
 
     # Private fields.
     _metric_type: str
-    _arguments: Optional[Sequence[str]]
+    _arguments: Sequence[str]
 
     def __init__(self, field: str, query: str):
         self.field = field
         self.query = query
+        self._arguments = []
         self._eager_process()
 
     def _eager_process(self):
@@ -689,7 +690,7 @@ class OnDemandMetricSpec:
 
         self.op = op
         self._metric_type = metric_type
-        self._arguments = arguments
+        self._arguments = arguments or []
 
     @property
     def field_to_extract(self):
@@ -736,7 +737,10 @@ class OnDemandMetricSpec:
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._arguments[0]}"
 
-        return self._arguments
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     def _query_for_hash(self):
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This

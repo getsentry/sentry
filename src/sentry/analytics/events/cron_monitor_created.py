@@ -1,9 +1,7 @@
 from sentry import analytics
 
 
-class FirstCronMonitorCreated(analytics.Event):
-    type = "first_cron_monitor.created"
-
+class CronMonitorEvent(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
@@ -12,4 +10,13 @@ class FirstCronMonitorCreated(analytics.Event):
     )
 
 
+class CronMonitorCreated(CronMonitorEvent):
+    type = "cron_monitor.created"
+
+
+class FirstCronMonitorCreated(CronMonitorEvent):
+    type = "first_cron_monitor.created"
+
+
 analytics.register(FirstCronMonitorCreated)
+analytics.register(CronMonitorCreated)

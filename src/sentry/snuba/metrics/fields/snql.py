@@ -878,7 +878,7 @@ def max_timestamp(
 
 
 def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
-    return Function("sumIf", [Column("value"), aggregate_filter])
+    return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
 
 def on_demand_failure_rate_snql_factory(
