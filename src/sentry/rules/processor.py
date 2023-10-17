@@ -27,6 +27,8 @@ from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
+from sentry.rules.actions.base import EventAction
+from sentry.rules.conditions.base import EventCondition
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -150,8 +152,12 @@ class RuleProcessor:
             return None
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        if not isinstance(condition_inst, EventCondition):
+            self.logger.warning("Unregistered action %r", condition["id"])
+            return None
+
         passes: bool = safe_execute(
-            condition_inst.passes,  # type: ignore # passes changes depending on the condition type, which each have their own class that inherits from EventCondition, which itself inherits from RuleBase
+            condition_inst.passes,
             self.event,
             state,
             _with_transaction=False,
@@ -276,9 +282,12 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+            if not isinstance(action_inst, EventAction):
+                self.logger.warning("Unregistered action %r", action["id"])
+                continue
 
             results = safe_execute(
-                action_inst.after,  # type: ignore # passes changes depending on the action type, which each have their own class that inherits from EventAction, which itself inherits from RuleBase
+                action_inst.after,
                 event=self.event,
                 state=state,
                 _with_transaction=False,
