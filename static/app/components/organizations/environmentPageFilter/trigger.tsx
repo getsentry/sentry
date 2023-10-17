@@ -41,6 +41,7 @@ function BaseEnvironmentPageFilterTrigger(
     <DropdownButton
       {...props}
       ref={forwardedRef}
+      data-test-id="page-filter-environment-selector"
       icon={
         <TriggerIconWrap>
           <IconWindow />
