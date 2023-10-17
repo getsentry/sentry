@@ -73,7 +73,9 @@ class ImportExportService(RpcService):
         model: Type[Model],
     ) -> Callable:
         """
-        Called should resolve their implementation of `export_by_model` by calling this method first, rather than calling `export_by_model` directly. See this class' comment for more information.
+        Called should resolve their implementation of `export_by_model` by calling this method
+        first, rather than calling `export_by_model` directly. See this class' comment for more
+        information.
         """
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
@@ -104,7 +106,9 @@ class ImportExportService(RpcService):
         model: Type[Model],
     ) -> Callable:
         """
-        Called should resolve their implementation of `export_by_model` by calling this method first, rather than calling `export_by_model` directly. See this class' comment for more information.
+        Called should resolve their implementation of `export_by_model` by calling this method
+        first, rather than calling `export_by_model` directly. See this class' comment for more
+        information.
         """
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
@@ -117,7 +121,8 @@ class ImportExportService(RpcService):
         """
         Retrieves all of the "administrators" of the current instance.
 
-        A user is defined as a "globally privileged" administrator if one of the following is true about them:
+        A user is defined as a "globally privileged" administrator if one of the following is true
+        about them:
 
             - Their `User` model has the `is_staff` flag set to `True`.
             - Their `User` model has the `is_superuser` flag set to `True`.

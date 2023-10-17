@@ -23,10 +23,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import (
-    ImportExportService,
-    import_export_service,
-)
+from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -177,11 +174,6 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (last_seen_model_name, json.dumps(batch))
 
-    def get_importer_for_model(model: Type[Model]):
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
-            return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore
-
     # Extract some write logic into its own internal function, so that we may call it irrespective
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
@@ -195,7 +187,7 @@ def _import(
             dep_models = {
                 get_model_name(d) for d in model_relations.get_dependencies_for_relocation()
             }
-            import_by_model = get_importer_for_model(model_relations.model)
+            import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
             result = import_by_model(
                 model_name=str(model_name),
                 scope=RpcImportScope.into_rpc(scope),
