@@ -660,7 +660,6 @@ def run_post_process_job(job: PostProcessJob):
                 tags={
                     "issue_category": issue_category_metric,
                     "pipeline": pipeline,
-                    "success": False,
                 },
             )
             logger.exception(
@@ -673,7 +672,6 @@ def run_post_process_job(job: PostProcessJob):
                 tags={
                     "issue_category": issue_category_metric,
                     "pipeline": pipeline,
-                    "success": True,
                 },
             )
 
