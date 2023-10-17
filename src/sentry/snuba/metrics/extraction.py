@@ -861,7 +861,10 @@ class OnDemandMetricSpec:
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[Sequence[str]]:
-        requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex", "on_demand_user_misery"]
+        requires_arguments = metric_type in ["s", "d"] or op in [
+            "on_demand_apdex",
+            "on_demand_user_misery",
+        ]
         if not requires_arguments:
             return None
 

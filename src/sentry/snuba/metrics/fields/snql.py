@@ -15,7 +15,6 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_values,
     reverse_resolve_weak,
 )
-
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
@@ -881,6 +880,7 @@ def max_timestamp(
 def unique_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
     return Function("uniqIf", [Column("value"), aggregate_filter], alias=alias)
 
+
 def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
     return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
@@ -1028,14 +1028,11 @@ def on_demand_user_misery_snql_factory(
     return Function(
         "divide",
         [
+            Function("plus", [frustrated, constants.MISERY_ALPHA]),
             Function(
                 "plus",
-                [frustrated, constants.MISERY_ALPHA]
+                [unique_count(aggregate_filter), constants.MISERY_ALPHA + constants.MISERY_BETA],
             ),
-            Function(
-                "plus",
-                [unique_count(aggregate_filter), constants.MISERY_ALPHA + constants.MISERY_BETA]
-            )
         ],
         alias=alias,
     )
