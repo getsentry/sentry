@@ -191,7 +191,7 @@ def test_control_processing(task_runner):
 
 
 @region_silo_test(stable=True)
-class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
+class HybridCloudForeignKeyDeletionTestCase(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(region="eu", owner=self.user)
@@ -219,8 +219,10 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
 
             assert not Integration.objects.filter(id=integration_id).exists()
 
-        with self.tasks():
+        with BurstTaskRunner() as burst:
             schedule_hybrid_cloud_foreign_key_jobs()
+
+        burst()
 
         # Deletion cascaded
         assert not ExternalIssue.objects.filter(id=self.external_issue.id).exists()
@@ -234,8 +236,10 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
 
             assert not Integration.objects.filter(id=integration_id).exists()
 
-        with self.tasks():
+        with BurstTaskRunner() as burst:
             schedule_hybrid_cloud_foreign_key_jobs()
+
+        burst()
 
         # Deletion did nothing
         model = DoNothingIntegrationModel.objects.get(id=model.id)
@@ -249,8 +253,10 @@ class E2EHybridCloudForeignKeyDeletionTestCase(TestCase):
 
             assert not User.objects.filter(id=user_id).exists()
 
-        with self.tasks():
+        with BurstTaskRunner() as burst:
             schedule_hybrid_cloud_foreign_key_jobs()
+
+        burst()
 
         # Deletion set field to null
         saved_query = DiscoverSavedQuery.objects.get(id=self.saved_query.id)
