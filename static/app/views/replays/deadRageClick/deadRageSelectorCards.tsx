@@ -44,7 +44,7 @@ function DeadRageSelectorCards() {
                   size="xs"
                   position="top"
                   title={t(
-                    'The top selectors your users have dead clicked on (i.e. a user click that does not result in any page activity after 7 seconds).'
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
                   )}
                   isHoverable
                 />
