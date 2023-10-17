@@ -31,6 +31,7 @@ type InitializeUrlStateProps = Omit<
   | 'queryParams'
   | 'router'
   | 'shouldEnforceSingleProject'
+  | 'organization'
 >;
 
 interface Props extends InitializeUrlStateProps {
