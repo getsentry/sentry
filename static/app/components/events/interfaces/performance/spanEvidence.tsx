@@ -45,8 +45,6 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
   const issueTitle = event.occurrence?.issueTitle;
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
-  const hasConfigurableThresholds =
-    organization.features.includes('project-performance-settings-admin') && issueType;
 
   return (
     <EventDataSection
@@ -56,7 +54,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
       actions={
-        hasConfigurableThresholds && (
+        issueType && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
             to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}

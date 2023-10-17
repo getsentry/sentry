@@ -10,7 +10,7 @@ export interface FeedbackItemResponse {
     name: null | string;
     version: null | string;
   };
-  contact_email: string;
+  contact_email: null | string;
   device: {
     brand: null | string;
     family: null | string;
@@ -25,6 +25,7 @@ export interface FeedbackItemResponse {
     timezone: string;
   };
   message: string;
+  name: null | string;
   os: {
     name: null | string;
     version: null | string;
@@ -42,10 +43,10 @@ export interface FeedbackItemResponse {
   timestamp: string;
   url: string;
   user: {
-    display_name: null | string;
     email: null | string;
     id: null | string;
     ip: null | string;
+    name: null | string;
     username: null | string;
   };
 }

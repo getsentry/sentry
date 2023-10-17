@@ -232,6 +232,12 @@ const mockGroupApis = (
     method: 'GET',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
+    body: {
+      errors: [],
+    },
+  });
 
   // Sentry related mocks
   MockApiClient.addMockResponse({
