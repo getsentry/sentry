@@ -722,6 +722,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending the flag to the microservice to tell it to purposefully take longer than our
+# timeout, to see the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.timeout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable sending the flag to the microservice to tell it to purposefully send back an error, to see
+# the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.error",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #

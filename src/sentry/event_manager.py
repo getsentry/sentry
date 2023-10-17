@@ -2101,6 +2101,12 @@ def _get_severity_score(event: Event) -> float | None:
         # we should update the model to account for three values: True, False, and None
         "handled": 0 if is_handled(event.data) is False else 1,
     }
+
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+
     logger_data["payload"] = payload
 
     with metrics.timer(op):
