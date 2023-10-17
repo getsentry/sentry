@@ -44,12 +44,12 @@ describe('useActiveReplayTab', () => {
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
-  it('should use DOM as a default, when there is a click search in the url', () => {
+  it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
     const {result} = reactHooks.renderHook(useActiveReplayTab);
 
-    expect(result.current.getActiveTab()).toBe(TabKey.DOM);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
   it('should allow case-insensitive tab names', () => {
