@@ -234,11 +234,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'crashed', release: '1'},
         totals: {
-          'sum(sentry.sessions.session)': 34,
+          'session.all': 34,
           'count_unique(sentry.sessions.user)': 1,
         },
         series: {
-          'sum(sentry.sessions.session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
+          'session.all': [0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
           ],
@@ -247,11 +247,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'abnormal', release: '1'},
         totals: {
-          'sum(sentry.sessions.session)': 1,
+          'session.all': 1,
           'count_unique(sentry.sessions.user)': 1,
         },
         series: {
-          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           ],
@@ -260,11 +260,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'errored', release: '1'},
         totals: {
-          'sum(sentry.sessions.session)': 451,
+          'session.all': 451,
           'count_unique(sentry.sessions.user)': 2,
         },
         series: {
-          'sum(sentry.sessions.session)': [0, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
+          'session.all': [0, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 2, 0, 0, 0,
           ],
@@ -273,13 +273,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'healthy', release: '1'},
         totals: {
-          'sum(sentry.sessions.session)': 5058,
+          'session.all': 5058,
           'count_unique(sentry.sessions.user)': 3,
         },
         series: {
-          'sum(sentry.sessions.session)': [
-            0, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0,
-          ],
+          'session.all': [0, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             0, 0, 0, 0, 0, 3, 3, 0, 0, 1, 1, 0, 0, 0,
           ],
@@ -288,11 +286,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'crashed', release: '2'},
         totals: {
-          'sum(sentry.sessions.session)': 35,
+          'session.all': 35,
           'count_unique(sentry.sessions.user)': 2,
         },
         series: {
-          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
+          'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0,
           ],
@@ -301,11 +299,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'abnormal', release: '2'},
         totals: {
-          'sum(sentry.sessions.session)': 1,
+          'session.all': 1,
           'count_unique(sentry.sessions.user)': 1,
         },
         series: {
-          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           ],
@@ -314,11 +312,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'errored', release: '2'},
         totals: {
-          'sum(sentry.sessions.session)': 452,
+          'session.all': 452,
           'count_unique(sentry.sessions.user)': 1,
         },
         series: {
-          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
+          'session.all': [1, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0,
           ],
@@ -327,13 +325,11 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
       {
         by: {'session.status': 'healthy', release: '2'},
         totals: {
-          'sum(sentry.sessions.session)': 5059,
+          'session.all': 5059,
           'count_unique(sentry.sessions.user)': 10,
         },
         series: {
-          'sum(sentry.sessions.session)': [
-            1, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0,
-          ],
+          'session.all': [1, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
             1, 0, 0, 0, 0, 10, 3, 0, 0, 4, 3, 0, 0, 0,
           ],
