@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -213,9 +214,19 @@ class OrganizationService(RpcService):
     ) -> RpcOrganizationMember:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+        """If the organization has exactly one team, return it.
+
+        Return None if the organization has no teams or more than one.
+        """
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def add_team_member(
+        self, *, organization_id: int, team_id: int, organization_member_id: int
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
