@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.testutils.cases import TestCase
@@ -51,3 +53,12 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
+
+    def test_with_invalid_payloads(self) -> None:
+        with pytest.raises(ValueError):
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+            )
+
+        with pytest.raises(NotImplementedError):
+            produce_occurrence_to_kafka(payload_type="invalid")
