@@ -2417,6 +2417,17 @@
   dependencies:
     "@react-types/shared" "^3.18.1"
 
+"@sentry-internal/feedback@0.0.1-alpha.0":
+  version "0.0.1-alpha.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.0.tgz#d7c6641952ae297d8d3bd8b971e45a3219082505"
+  integrity sha512-zTg0tEWWoxPAAIK37d76NtuCF7TlT70bVifgj3bZ6BNlPY1Bhpdpn9K6b6wWwvifiN/R7CXqvgXP79V9LaaSeA==
+  dependencies:
+    "@sentry/browser" "7.74.1"
+    "@sentry/core" "7.74.1"
+    "@sentry/types" "7.74.1"
+    "@sentry/utils" "7.74.1"
+    tslib "^2.4.1 || ^1.9.3"
+
 "@sentry-internal/global-search@^0.5.7":
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.5.7.tgz#2749d24b01123b5d92f6326a33c5d4c81ec8c239"
