@@ -1,42 +1,64 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs, {InstallationMode} from './android';
 
-import {GettingStartedWithAndroid, InstallationMode, steps} from './android';
-
-describe('GettingStartedWithAndroid', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithAndroid dsn="test-dsn" projectSlug="test-project" />);
-
-    // Steps
-    for (const step of steps({
-      dsn: 'test-dsn',
-      hasPerformance: true,
-      hasProfiling: true,
-      installationMode: InstallationMode.AUTO,
-    })) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
-  });
-  it('renders Manual mode for Windows by default', function () {
-    Object.defineProperty(window.navigator, 'userAgent', {
-      value:
-        'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7.12) Gecko/20050915 Firefox/1.0.7',
+describe('java-spring-boot onboarding docs', function () {
+  it('renders gradle docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.java.android.gradle-plugin': {
+          version: '1.99.9',
+        },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL,
+      },
     });
-    render(<GettingStartedWithAndroid dsn="test-dsn" projectSlug="test-project" />);
 
-    // Steps
-    for (const step of steps({
-      dsn: 'test-dsn',
-      hasPerformance: true,
-      hasProfiling: true,
-      installationMode: InstallationMode.MANUAL,
-    })) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders SDK version from registry
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/id "io\.sentry\.android\.gradle" version "1\.99\.9"/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders wizard docs', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.java.spring-boot.jakarta': {
+          version: '2.99.9',
+        },
+        'sentry.java.mavenplugin': {
+          version: '3.99.9',
+        },
+      },
+      selectedOptions: {
+        installationMode: InstallationMode.AUTO,
+      },
+    });
+
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Configure SDK'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Verify'})).not.toBeInTheDocument();
+
+    // Renders SDK version from registry
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Add Sentry automatically to your app with the Sentry wizard/m
+        )
+      )
+    ).toBeInTheDocument();
   });
 });
