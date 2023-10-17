@@ -412,8 +412,8 @@ class ProjectSerializer(Serializer):
                             parent_id=project.id,
                             type=NotificationSettingTypes.ISSUE_ALERTS,
                         )
-                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS                    
-                        serialized["isSubscribed"] = is_subscribed  
+                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+                        serialized["isSubscribed"] = is_subscribed
 
                 serialized.update(
                     {
