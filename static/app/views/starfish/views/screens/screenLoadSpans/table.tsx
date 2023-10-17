@@ -34,15 +34,10 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
 
 type Props = {
   primaryRelease?: string;
-  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function ScreenLoadSpansTable({
-  transaction,
-  primaryRelease,
-  secondaryRelease,
-}: Props) {
+export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -54,11 +49,7 @@ export function ScreenLoadSpansTable({
     `transaction:${transaction}`,
     'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT, {
     kind: 'desc',
@@ -73,8 +64,7 @@ export function ScreenLoadSpansTable({
       SPAN_GROUP,
       SPAN_DESCRIPTION,
       `avg(${SPAN_SELF_TIME})`, // TODO: Update these to avgIf with primary release when available
-      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      'spm()',
+      'count()',
       'time_spent_percentage(local)',
       `sum(${SPAN_SELF_TIME})`,
     ],
@@ -98,10 +88,8 @@ export function ScreenLoadSpansTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'spm()': DataTitles.throughput,
+    'count()': DataTitles.count,
     [`avg(${SPAN_SELF_TIME})`]: DataTitles.avg,
-    [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
     'time_spent_percentage(local)': DataTitles.timeSpent,
   };
 

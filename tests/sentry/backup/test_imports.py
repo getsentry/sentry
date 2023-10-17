@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import io
+import tarfile
 import tempfile
 from copy import deepcopy
-from datetime import datetime
+from datetime import date, datetime
 from functools import cached_property
+from os import environ
 from pathlib import Path
+from typing import Tuple
 from unittest.mock import patch
 
 import pytest
+import urllib3.exceptions
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
@@ -46,7 +55,9 @@ from sentry.testutils.helpers.backups import (
     BackupTestCase,
     clear_database,
     export_to_file,
+    generate_rsa_key_pair,
 )
+from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.utils import json
 from tests.sentry.backup import get_matching_exportable_models, mark, targets
 
@@ -116,7 +127,7 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
@@ -149,7 +160,7 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
@@ -182,7 +193,7 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
@@ -222,7 +233,7 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
@@ -268,7 +279,7 @@ class SanitizationTests(ImportTestCase):
             # Note that we have created an organization with the same name as one we are about to
             # import.
             self.create_organization(owner=self.user, name="some-org")
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 2
@@ -292,7 +303,7 @@ class SanitizationTests(ImportTestCase):
                 )
                 json.dump(same_username_user + copy_of_same_username_user, tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert User.objects.count() == 3
@@ -312,7 +323,7 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["username"] = "x" * 129
                 json.dump(models, tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ValidationError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
@@ -335,7 +346,7 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["ip_address"] = "8.8.8.8"
                 json.dump(models, tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert UserIP.objects.count() == 1
@@ -366,7 +377,7 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["ip_address"] = "8.8.8.8"
                 json.dump(models, tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert UserIP.objects.count() == 1
@@ -390,7 +401,7 @@ class SanitizationTests(ImportTestCase):
                         m["fields"]["ip_address"] = "0.1.2.3.4.5.6.7.8.9.abc.def"
                 json.dump(list(models), tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ValidationError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
@@ -406,7 +417,7 @@ class SanitizationTests(ImportTestCase):
                         m["fields"]["value"] = '"MiddleEarth/Gondor"'
                 json.dump(list(models), tmp_file)
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ValidationError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
@@ -427,7 +438,7 @@ class SignalingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 1
@@ -447,7 +458,7 @@ class SignalingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 1
@@ -499,7 +510,7 @@ class ScopingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.User)
 
@@ -508,7 +519,7 @@ class ScopingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Organization)
 
@@ -517,7 +528,7 @@ class ScopingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Config)
 
@@ -526,9 +537,121 @@ class ScopingTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
                 self.verify_model_inclusion(ImportScope.Global)
+
+
+class DecryptionTests(ImportTestCase):
+    """
+    Ensures that decryption actually works. We only test one model for each scope, because it's
+    extremely unlikely that a failed decryption will leave only part of the data unmangled.
+    """
+
+    @staticmethod
+    def encrypt_json_fixture(tmp_dir) -> Tuple[Path, Path]:
+        good_file_path = get_fixture_path("backup", "fresh-install.json")
+        (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
+
+        tmp_priv_key_path = Path(tmp_dir).joinpath("key")
+        with open(tmp_priv_key_path, "wb") as f:
+            f.write(priv_key_pem)
+
+        tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+        with open(tmp_pub_key_path, "wb") as f:
+            f.write(pub_key_pem)
+
+        with open(good_file_path) as f:
+            json_data = json.load(f)
+
+        tmp_tarball_path = Path(tmp_dir).joinpath("input.tar")
+        with open(tmp_tarball_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
+            pem = p.read()
+            data_encryption_key = Fernet.generate_key()
+            backup_encryptor = Fernet(data_encryption_key)
+            encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_data).encode("utf-8"))
+
+            dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
+            sha256 = hashes.SHA256()
+            mgf = padding.MGF1(algorithm=sha256)
+            oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
+            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+
+            tar_buffer = io.BytesIO()
+            with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
+                json_info = tarfile.TarInfo("export.json")
+                json_info.size = len(encrypted_json_export)
+                tar.addfile(json_info, fileobj=io.BytesIO(encrypted_json_export))
+                key_info = tarfile.TarInfo("data.key")
+                key_info.size = len(encrypted_dek)
+                tar.addfile(key_info, fileobj=io.BytesIO(encrypted_dek))
+                pub_info = tarfile.TarInfo("key.pub")
+                pub_info.size = len(pem)
+                tar.addfile(pub_info, fileobj=io.BytesIO(pem))
+
+            i.write(tar_buffer.getvalue())
+
+        return (tmp_tarball_path, tmp_priv_key_path)
+
+    def test_user_import_decryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
+            assert User.objects.count() == 0
+
+            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
+                tmp_priv_key_path, "rb"
+            ) as tmp_priv_key_file:
+                import_in_user_scope(
+                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                )
+
+            assert User.objects.count() > 0
+
+    def test_organization_import_decryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
+            assert Organization.objects.count() == 0
+
+            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
+                tmp_priv_key_path, "rb"
+            ) as tmp_priv_key_file:
+                import_in_organization_scope(
+                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                )
+
+            assert Organization.objects.count() > 0
+
+    def test_config_import_decryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
+            assert UserRole.objects.count() == 0
+
+            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
+                tmp_priv_key_path, "rb"
+            ) as tmp_priv_key_file:
+                import_in_config_scope(
+                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                )
+
+            assert UserRole.objects.count() > 0
+
+    def test_global_import_decryption(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
+            assert Organization.objects.count() == 0
+            assert User.objects.count() == 0
+            assert UserRole.objects.count() == 0
+
+            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
+                tmp_priv_key_path, "rb"
+            ) as tmp_priv_key_file:
+                import_in_global_scope(
+                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                )
+
+            assert Organization.objects.count() > 0
+            assert User.objects.count() > 0
+            assert UserRole.objects.count() > 0
 
 
 class FilterTests(ImportTestCase):
@@ -542,7 +665,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, user_filter={"user_2"}, printer=NOOP_PRINTER)
 
         # Count users, but also count a random model naively derived from just `User` alone, like
@@ -565,7 +688,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(
                     tmp_file, user_filter={"user_1", "user_2", "user_3"}, printer=NOOP_PRINTER
                 )
@@ -586,7 +709,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, user_filter=set(), printer=NOOP_PRINTER)
 
         assert User.objects.count() == 0
@@ -607,7 +730,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, org_filter={"org-b"}, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 1
@@ -642,7 +765,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(
                     tmp_file, org_filter={"org-a", "org-c"}, printer=NOOP_PRINTER
                 )
@@ -679,7 +802,7 @@ class FilterTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, org_filter=set(), printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 0
@@ -763,7 +886,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
             # Ensure that old tokens have not been mutated.
@@ -783,7 +906,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, Monitor))
@@ -808,13 +931,13 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.count() == 1
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert Monitor.objects.count() == 2
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, OrgAuthToken))
@@ -847,7 +970,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert OrgAuthToken.objects.count() == 2
@@ -859,7 +982,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, ProjectKey))
@@ -885,16 +1008,22 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
             assert ProjectKey.objects.count() == 4
             assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
+    @pytest.mark.xfail(
+        not use_split_dbs(),
+        reason="Preexisting failure: getsentry/team-ospo#206",
+        raises=urllib3.exceptions.MaxRetryError,
+        strict=True,
+    )
     @targets(mark(COLLISION_TESTED, QuerySubscription))
     def test_colliding_query_subscription(self):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
@@ -931,7 +1060,7 @@ class CollisionTests(ImportTestCase):
                     == 1
                 )
 
-                with open(tmp_path) as tmp_file:
+                with open(tmp_path, "rb") as tmp_file:
                     import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
                 assert SnubaQuery.objects.count() > 1
@@ -943,7 +1072,7 @@ class CollisionTests(ImportTestCase):
                     == 1
                 )
 
-                with open(tmp_path) as tmp_file:
+                with open(tmp_path, "rb") as tmp_file:
                     return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
@@ -986,7 +1115,7 @@ class CollisionTests(ImportTestCase):
             assert RelayUsage.objects.count() == 1
             assert UserRole.objects.count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_config_scope(
                     tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
                 )
@@ -1008,7 +1137,7 @@ class CollisionTests(ImportTestCase):
             for i, actual_permission in enumerate(actual_user_role.permissions):
                 assert actual_permission == old_user_role_permissions[i]
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
@@ -1047,7 +1176,7 @@ class CollisionTests(ImportTestCase):
             assert RelayUsage.objects.count() == 1
             assert UserRole.objects.count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_config_scope(
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
@@ -1069,7 +1198,7 @@ class CollisionTests(ImportTestCase):
             assert len(actual_user_role.permissions) == 1
             assert actual_user_role.permissions[0] == "other.admin"
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
@@ -1112,7 +1241,7 @@ class CollisionTests(ImportTestCase):
             assert RelayUsage.objects.count() == 1
             assert UserRole.objects.count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(
                     tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
                 )
@@ -1134,7 +1263,7 @@ class CollisionTests(ImportTestCase):
             for i, actual_permission in enumerate(actual_user_role.permissions):
                 assert actual_permission == old_user_role_permissions[i]
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
@@ -1173,7 +1302,7 @@ class CollisionTests(ImportTestCase):
             assert RelayUsage.objects.count() == 1
             assert UserRole.objects.count() == 1
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
@@ -1195,7 +1324,7 @@ class CollisionTests(ImportTestCase):
             assert len(actual_user_role.permissions) == 1
             assert actual_user_role.permissions[0] == "other.admin"
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
@@ -1204,7 +1333,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 self.create_exhaustive_user(username="owner", email="existing@example.com")
                 import_in_user_scope(
                     tmp_file,
@@ -1227,7 +1356,7 @@ class CollisionTests(ImportTestCase):
             assert UserEmail.objects.filter(email__icontains="existing@").exists()
             assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
@@ -1236,7 +1365,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 self.create_exhaustive_user(username="owner", email="existing@example.com")
                 import_in_user_scope(
                     tmp_file,
@@ -1259,7 +1388,7 @@ class CollisionTests(ImportTestCase):
             assert UserEmail.objects.filter(email__icontains="existing@").exists()
             assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(
@@ -1271,7 +1400,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
                 self.create_organization("some-org", owner=owner)
                 import_in_organization_scope(
@@ -1324,7 +1453,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(
@@ -1336,7 +1465,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
                 self.create_organization("some-org", owner=owner)
                 import_in_organization_scope(
@@ -1394,7 +1523,7 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
@@ -1403,7 +1532,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 self.create_exhaustive_user(
                     username="owner", email="existing@example.com", is_admin=True
                 )
@@ -1429,7 +1558,7 @@ class CollisionTests(ImportTestCase):
             assert UserEmail.objects.filter(email__icontains="existing@").exists()
             assert not UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
     @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
@@ -1438,7 +1567,7 @@ class CollisionTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 self.create_exhaustive_user(
                     username="owner", email="existing@example.com", is_admin=True
                 )
@@ -1464,5 +1593,18 @@ class CollisionTests(ImportTestCase):
             assert UserEmail.objects.filter(email__icontains="existing@").exists()
             assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
-            with open(tmp_path) as tmp_file:
+            with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
+
+
+@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+class TestLegacyTestSuite:
+    def test_deleteme(self):
+        """
+        The monolith-dbs test suite should only exist until relocation code
+        handles monolith- and hybrid-database modes with the same code path,
+        which is planned work.
+        """
+        assert date.today() <= date(
+            2023, 11, 11
+        ), "Please delete the monolith-dbs test suite!"  # or else bump the date

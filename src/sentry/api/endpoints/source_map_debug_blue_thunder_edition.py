@@ -40,10 +40,11 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
+MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.1"
+MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS = "4.6.0"
 
 NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
-    "sentry.javascript.react-native",
     "sentry.javascript.wasm",
     "sentry.javascript.cordova",
     "sentry.javascript.nextjs",
@@ -118,6 +119,7 @@ class SourceMapDebugResponse(TypedDict):
     release: Optional[str]
     exceptions: List[SourceMapDebugException]
     has_debug_ids: bool
+    min_debug_id_sdk_version: Optional[str]
     sdk_version: Optional[str]
     project_has_some_artifact_bundle: bool
     release_has_some_artifact: bool
@@ -243,9 +245,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             for exception_value in exception_values:
                 processed_frames = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
-                frames = frames or get_path(exception_value, "stacktrace", "frames")
+                stacktrace_frames = get_path(exception_value, "stacktrace", "frames")
                 if frames is not None:
-                    for frame in frames:
+                    for frame_index, frame in enumerate(frames):
                         abs_path = get_path(frame, "abs_path")
                         debug_id = next(
                             (
@@ -267,11 +269,13 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                 },
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
-                                    scraping_attempt_map, frame
+                                    scraping_attempt_map, frame, frame_index, stacktrace_frames
                                 ),
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
+
+        sdk_debug_id_support, min_debug_id_sdk_version = get_sdk_debug_id_support(event_data)
 
         return Response(
             {
@@ -284,27 +288,36 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                 "release_has_some_artifact": has_uploaded_release_bundle_with_release
                 or has_uploaded_artifact_bundle_with_release,
                 "has_uploaded_some_artifact_with_a_debug_id": has_uploaded_some_artifact_with_a_debug_id,
-                "sdk_debug_id_support": get_sdk_debug_id_support(event_data),
+                "sdk_debug_id_support": sdk_debug_id_support,
+                "min_debug_id_sdk_version": min_debug_id_sdk_version,
                 "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
 
 
-def get_scraping_data_for_frame(scraping_attempt_map, frame):
-    abs_path = get_path(frame, "abs_path")
+def get_scraping_data_for_frame(
+    scraping_attempt_map, raw_frame, raw_frame_index, stacktrace_frames
+):
+    scraping_data = {"source_file": None, "source_map": None}
+
+    abs_path = get_path(raw_frame, "abs_path")
     if abs_path is None:
-        return {"source_file": None, "source_map": None}
+        return scraping_data
 
-    source_file_data = scraping_attempt_map.get(abs_path)
-    source_map_data = None
+    scraping_data["source_file"] = scraping_attempt_map.get(abs_path)
 
-    data = frame.get("data", {})
-    source_map_url = data.get("sourcemap")
+    frame = None
+    if stacktrace_frames is not None:
+        try:
+            frame = stacktrace_frames[raw_frame_index]
+        except IndexError:
+            pass
 
+    source_map_url = get_path(frame, "data", "sourcemap")
     if source_map_url is not None:
-        source_map_data = scraping_attempt_map.get(source_map_url)
+        scraping_data["source_map"] = scraping_attempt_map.get(source_map_url)
 
-    return {"source_file": source_file_data, "source_map": source_map_data}
+    return scraping_data
 
 
 class ReleaseLookupData:
@@ -632,6 +645,7 @@ def get_sdk_debug_id_support(event_data):
         official_sdks = [
             "sentry.javascript.angular",
             "sentry.javascript.angular-ivy",
+            "sentry.javascript.astro",
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",
@@ -649,18 +663,36 @@ def get_sdk_debug_id_support(event_data):
         ]
 
     if sdk_name not in official_sdks or sdk_name is None:
-        return "unofficial-sdk"
-    elif sdk_name in NO_DEBUG_ID_SDKS:
-        return "not-supported"
+        return "unofficial-sdk", None
+
+    if sdk_name in NO_DEBUG_ID_SDKS:
+        return "not-supported", None
 
     sdk_version = get_path(event_data, "sdk", "version")
     if sdk_version is None:
-        return "unofficial-sdk"
+        return "unofficial-sdk", None
+
+    if sdk_name == "sentry.javascript.react-native":
+        return (
+            "full"
+            if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade",
+            MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS,
+        )
+
+    if sdk_name == "sentry.javascript.electron":
+        return (
+            "full"
+            if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade",
+            MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
+        )
 
     return (
         "full"
         if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
-        else "needs-upgrade"
+        else "needs-upgrade",
+        MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     )
 
 
@@ -669,10 +701,7 @@ def get_abs_paths_in_event(event_data):
     exception_values = get_path(event_data, "exception", "values")
     if exception_values is not None:
         for exception_value in exception_values:
-            stacktrace = get_path(exception_value, "raw_stacktrace") or get_path(
-                exception_value, "stacktrace"
-            )
-            frames = get_path(stacktrace, "frames")
+            frames = get_path(exception_value, "raw_stacktrace", "frames")
             if frames is not None:
                 for frame in frames:
                     abs_path = get_path(frame, "abs_path")

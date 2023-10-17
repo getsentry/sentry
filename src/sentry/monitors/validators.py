@@ -4,7 +4,7 @@ from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.base import (
@@ -17,7 +17,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_TIMEOUT
+from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -142,6 +142,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
         min_value=1,
+        max_value=MAX_THRESHOLD,
     )
 
     recovery_threshold = EmptyIntegerField(
@@ -150,6 +151,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How many successful check-ins in a row before resolving an issue.",
         min_value=1,
+        max_value=MAX_THRESHOLD,
     )
 
     def bind(self, *args, **kwargs):
@@ -230,9 +232,13 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
+@extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
 class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField(max_length=128)
+    name = serializers.CharField(
+        max_length=128,
+        help_text="Name of the monitor. Used for notifications.",
+    )
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
         max_length=MAX_SLUG_LENGTH,
@@ -240,10 +246,12 @@ class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
         error_messages={
             "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
         },
+        help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
+        help_text="Status of the monitor. Disabled monitors do not generate events or notifications.",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
@@ -287,21 +295,28 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
+@extend_schema_serializer(exclude_fields=["monitor_config", "contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
             ("ok", CheckInStatus.OK),
             ("error", CheckInStatus.ERROR),
             ("in_progress", CheckInStatus.IN_PROGRESS),
-        )
+        ),
+        help_text="The status of the job run.",
     )
     duration = EmptyIntegerField(
         required=False,
         allow_null=True,
         max_value=BoundedPositiveIntegerField.MAX_VALUE,
         min_value=0,
+        help_text="Duration of the job run, in milliseconds.",
     )
-    environment = serializers.CharField(required=False, allow_null=True)
+    environment = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment.",
+    )
     monitor_config = ConfigValidator(required=False)
     contexts = ContextsValidator(required=False, allow_null=True)
 

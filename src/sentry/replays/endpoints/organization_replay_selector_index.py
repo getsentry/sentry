@@ -41,10 +41,10 @@ from sentry.utils.snuba import raw_snql_query
 
 @region_silo_endpoint
 class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.REPLAY
 
     def get_replay_filter_params(self, request, organization):
         filter_params = self.get_filter_params(request, organization)

@@ -34,11 +34,11 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
             # Check if our incident is recovering
             previous_checkins = MonitorCheckIn.objects.filter(
                 monitor_environment=monitor_env
-            ).order_by("-date_added")[:recovery_threshold]
+            ).values("id", "date_added", "status").order_by("-date_added")[:recovery_threshold]
 
             # Incident recovers when we have successive threshold check-ins
             incident_recovering = all(
-                previous_checkin.status == CheckInStatus.OK
+                previous_checkin["status"] == CheckInStatus.OK
                 for previous_checkin in previous_checkins
             )
 

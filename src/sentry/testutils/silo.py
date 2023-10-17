@@ -249,7 +249,7 @@ run twice as both REGION and MONOLITH modes.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -262,7 +262,7 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
     given test mode.
     """
     # Only swapping the silo mode if we are already in a silo mode.
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+    if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
     overrides: MutableMapping[str, Any] = {}

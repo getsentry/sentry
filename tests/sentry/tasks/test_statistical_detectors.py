@@ -321,7 +321,13 @@ def test_detect_function_change_points(
             }
             for day in reversed(range(14))
             for hour in reversed(range(24))
-        ]
+        ],
+        "meta": [
+            {"name": "time", "type": "DateTime"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "fingerprint", "type": "UInt32"},
+            {"name": "p95", "type": "Float64"},
+        ],
     }
 
     mock_detect_breakpoints.return_value = {

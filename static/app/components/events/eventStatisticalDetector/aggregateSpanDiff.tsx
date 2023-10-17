@@ -1,7 +1,5 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -16,6 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -197,17 +196,17 @@ function renderBodyCell({
 function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  const now = useMemo(() => Date.now(), []);
-  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
-  const {transaction, dataStart, breakpoint} = event?.occurrence?.evidenceData ?? {};
-
-  const start = new Date(Math.max(dataStart * 1000, retentionPeriodMs)).toISOString();
-  const end = new Date(now).toISOString();
+  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
+
+  const {start, end} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 7,
+  });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
-    start,
-    end,
+    start: (start as Date).toISOString(),
+    end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
     projectId,
   });
@@ -247,8 +246,8 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
               transaction,
               projectId,
               location,
-              start,
-              end,
+              start: (start as Date).toISOString(),
+              end: (end as Date).toISOString(),
             }),
         }}
       />

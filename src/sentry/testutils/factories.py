@@ -43,7 +43,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators import token_exchange
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
@@ -102,8 +102,11 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
@@ -1039,7 +1042,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
 
-                token_exchange.GrantExchanger.run(
+                GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,

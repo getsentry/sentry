@@ -52,7 +52,8 @@ class MailgunInboundWebhookView(View):
         from_email = request.POST["sender"]
 
         try:
-            group_id = email_to_group_id(to_email)
+            # This needs to return a tuple of orgid, groupid
+            group_id, org_id = email_to_group_id(to_email)
         except Exception:
             logger.info("mailgun.invalid-email", extra={"email": to_email})
             return HttpResponse(status=200)
@@ -62,6 +63,8 @@ class MailgunInboundWebhookView(View):
             # If there's no body, we don't need to go any further
             return HttpResponse(status=200)
 
+        # TODO(hybridcloud) This needs to become an outbox message for the payload
+        # that is delivered to the correct region/org
         process_inbound_email.delay(from_email, group_id, payload)
 
         return HttpResponse(status=201)
