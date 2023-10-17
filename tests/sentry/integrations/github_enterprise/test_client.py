@@ -5,7 +5,7 @@ import pytest
 import responses
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
