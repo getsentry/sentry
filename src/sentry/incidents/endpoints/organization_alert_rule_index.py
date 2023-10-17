@@ -66,6 +66,10 @@ class AlertRuleIndexMixin(Endpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
+        datasets = request.GET.getlist("dataset", [])
+        if len(datasets) > 0:
+            alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
+
         return self.paginate(
             request,
             queryset=alert_rules,
