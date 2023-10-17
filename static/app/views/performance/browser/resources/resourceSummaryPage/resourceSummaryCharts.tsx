@@ -64,23 +64,23 @@ function ResourceSummaryCharts(props: {groupId: string}) {
  * @returns a reference to the initial series filled
  */
 export const fillSeries = (series: Series): Series => {
-  const data = series.data;
-
-  if (!data.length) {
+  if (!series.data.length) {
     return series;
   }
 
-  let lastSeenValue = data[0].value;
-  for (const dataPoint of data) {
-    const value = dataPoint.value;
-    if (value !== lastSeenValue && value !== 0) {
-      lastSeenValue = value;
-    } else {
-      dataPoint.value = lastSeenValue;
-    }
-  }
-  series.data = series.data.filter(dataPoint => dataPoint.value > 0);
-  return series;
+  let lastSeenValue = series.data[0].value;
+
+  return {
+    ...series,
+    data: series.data.map(dataPoint => {
+      const value = dataPoint.value;
+      if (value !== lastSeenValue && value !== 0) {
+        lastSeenValue = value;
+        return {...dataPoint};
+      }
+      return {...dataPoint, value: lastSeenValue};
+    }),
+  };
 };
 
 export default ResourceSummaryCharts;
