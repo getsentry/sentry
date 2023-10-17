@@ -365,7 +365,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                if "transaction.status" in row:
+                if "transaction.status" in row and type(row["transaction.status"]) is int:
                     row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
                         row["transaction.status"]
                     )

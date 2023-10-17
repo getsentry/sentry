@@ -8,6 +8,7 @@ import {
   Project,
   SessionFieldWithOperation,
 } from 'sentry/types';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';
 import ProjectApdexScoreCard from './projectApdexScoreCard';
@@ -62,7 +63,7 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {organization.features.includes('anr-rate') && project?.platform === 'android' ? (
+      {isPlatformANRCompatible(project?.platform) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}

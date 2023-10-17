@@ -9,7 +9,6 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
 import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -66,13 +65,33 @@ export default function FeedbackItem({feedbackItem}: Props) {
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <ResolveButton feedbackItem={feedbackItem} />
+              <DropdownMenu
+                position="bottom-end"
+                triggerLabel="Unresolved"
+                triggerProps={{
+                  'aria-label': t('Resolve or Archive Menu'),
+                  showChevron: true,
+                  size: 'xs',
+                }}
+                items={[
+                  {
+                    key: 'resolve',
+                    label: t('Resolve'),
+                    onAction: () => {},
+                  },
+                  {
+                    key: 'archive',
+                    label: t('Archive'),
+                    onAction: () => {},
+                  },
+                ]}
+              />
             </ErrorBoundary>
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
                 triggerProps={{
-                  'aria-label': t('Feedback Actions Menu'),
+                  'aria-label': t('Read or Delete Menu'),
                   icon: <IconEllipsis size="xs" />,
                   showChevron: false,
                   size: 'xs',
