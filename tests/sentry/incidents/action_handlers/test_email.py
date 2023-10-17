@@ -22,17 +22,23 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
-from sentry.types.integrations import ExternalProviders
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 from . import FireTest
 
@@ -88,16 +94,21 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == [(self.user.id, self.user.email)]
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_rule_snoozed_by_user(self):
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
+
         handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == []
 
     def test_user_rule_snoozed(self):
         action = self.create_alert_rule_trigger_action(
@@ -106,7 +117,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == []
 
     def test_user_alerts_disabled(self):
         NotificationSetting.objects.update_settings(
@@ -116,12 +129,22 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user_id=self.user.id,
             project=self.project,
         )
+        NotificationSettingProvider.objects.create_or_update(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            defaults={"value": "never"},
+        )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == [(self.user.id, self.user.email)]
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_team(self):
         new_user = self.create_user()
@@ -130,11 +153,13 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
-        handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {
-            (self.user.id, self.user.email),
-            (new_user.id, new_user.email),
-        }
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                handler = EmailActionHandler(action, self.incident, self.project)
+                assert set(handler.get_targets()) == {
+                    (self.user.id, self.user.email),
+                    (new_user.id, new_user.email),
+                }
 
     def test_rule_snoozed_by_one_user_in_team(self):
         new_user = self.create_user()
@@ -145,9 +170,11 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(user_id=new_user.id, alert_rule=self.incident.alert_rule)
-        assert set(handler.get_targets()) == {
-            (self.user.id, self.user.email),
-        }
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert set(handler.get_targets()) == {
+                    (self.user.id, self.user.email),
+                }
 
     def test_team_rule_snoozed(self):
         new_user = self.create_user()
@@ -158,7 +185,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(alert_rule=self.incident.alert_rule)
-        assert handler.get_targets() == []
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == []
 
     def test_team_alert_disabled(self):
         NotificationSetting.objects.update_settings(
@@ -168,12 +197,28 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user_id=self.user.id,
             project=self.project,
         )
+        NotificationSettingProvider.objects.create_or_update(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            defaults={"value": "never"},
+        )
         disabled_user = self.create_user()
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
             user_id=disabled_user.id,
+        )
+        NotificationSettingProvider.objects.create_or_update(
+            user_id=disabled_user.id,
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=disabled_user.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            defaults={"value": "never"},
         )
 
         new_user = self.create_user()
@@ -183,7 +228,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
 
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
@@ -201,7 +248,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
 
-        assert handler.get_targets() == [(self.user.id, new_email)]
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert handler.get_targets() == [(self.user.id, new_email)]
 
     def test_team_email_routing(self):
         new_email = "marcos@sentry.io"
@@ -225,10 +274,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == {
-            (self.user.id, new_email),
-            (new_user.id, new_email),
-        }
+        for flag in (True, False):
+            with Feature({"organizations:notification-settings-v2", flag}):
+                assert set(handler.get_targets()) == {
+                    (self.user.id, new_email),
+                    (new_user.id, new_email),
+                }
 
 
 @freeze_time()
