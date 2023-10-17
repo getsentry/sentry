@@ -877,6 +877,10 @@ def max_timestamp(
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
+def unique_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
+    return Function("uniqIf", [Column("value"), aggregate_filter], alias=alias)
+
+
 def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
     return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
