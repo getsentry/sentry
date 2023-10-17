@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {type Group, IssueCategory, type Organization} from 'sentry/types';
+import {DateString, type Group, IssueCategory, type Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
@@ -16,10 +16,16 @@ function useReplayFromIssue({
   location,
   organization,
   transaction,
+  datetime,
 }: {
   group: Group;
   location: Location;
   organization: Organization;
+  datetime?: {
+    end: DateString;
+    start: DateString;
+    statsPeriod: undefined;
+  };
   transaction?: string;
 }) {
   const api = useApi();
@@ -44,6 +50,7 @@ function useReplayFromIssue({
             data_source: dataSource,
             statsPeriod: '14d',
             project: ALL_ACCESS_PROJECTS,
+            ...datetime,
           },
         }
       );
@@ -52,7 +59,7 @@ function useReplayFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource, transaction]);
+  }, [api, organization.slug, group.id, dataSource, transaction, datetime]);
 
   const eventView = useMemo(() => {
     if (!replayIds) {

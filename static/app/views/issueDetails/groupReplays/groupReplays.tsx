@@ -29,17 +29,34 @@ const VISIBLE_COLUMNS = [
 ];
 
 function GroupReplays({group, event}: Props) {
+  const now = useMemo(() => Date.now(), []);
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
+
+  const durationRegressionPayload = useMemo(
+    () =>
+      organization.features.includes('performance-duration-regression-visible') &&
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+      event?.occurrence
+        ? {
+            transaction: event?.occurrence?.evidenceData?.transaction,
+            datetime: {
+              statsPeriod: undefined,
+              start: new Date(
+                event?.occurrence?.evidenceData?.breakpoint * 1000
+              ).toISOString(),
+              end: new Date(now).toISOString(),
+            },
+          }
+        : undefined,
+    [now, event?.occurrence, group.issueType, organization.features]
+  );
 
   const {eventView, fetchError, pageLinks} = useReplaysFromIssue({
     group,
     location,
     organization,
-    transaction:
-      organization.features.includes('performance-duration-regression-visible') &&
-      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
-      event?.occurrence?.evidenceData?.transaction,
+    ...durationRegressionPayload,
   });
 
   useEffect(() => {
