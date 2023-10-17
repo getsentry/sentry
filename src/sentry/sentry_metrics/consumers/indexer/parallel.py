@@ -11,7 +11,6 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
-# from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
@@ -30,6 +29,9 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+
+# from usageaccountant import UsageAccumulator, UsageUnit
+
 
 logger = logging.getLogger(__name__)
 
