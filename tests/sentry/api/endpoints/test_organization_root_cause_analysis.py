@@ -498,3 +498,43 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "score": 0.0462962962962963,
             },
         ]
+
+    def test_geo_code_anaysis_ignores_empty_string_country_code(self):
+        breakpoint_timestamp = self.now - timedelta(days=1)
+
+        # Before
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": ""},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=10,
+            days_before_now=2,
+        )
+
+        # After
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": ""},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=100,
+            hours_before_now=6,
+        )
+
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "bar",
+                    "project": self.project.id,
+                    "breakpoint": breakpoint_timestamp,
+                    "start": self.now - timedelta(days=3),
+                    "end": self.now,
+                    "type": "geo",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0

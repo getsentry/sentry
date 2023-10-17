@@ -40,7 +40,7 @@ from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
-    signal_first_monitor_created,
+    signal_monitor_created,
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
@@ -107,7 +107,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
             },
         )
-        signal_first_monitor_created(project, None, True)
+        signal_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:

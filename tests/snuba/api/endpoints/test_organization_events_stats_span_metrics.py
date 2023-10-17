@@ -192,6 +192,30 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
+    def test_resource_size(self):
+        self.store_span_metric(
+            4,
+            metric="http.response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert data == [(1697364000, [{"count": 0}]), (1697364060, [{"count": 4.0}])]
+
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
