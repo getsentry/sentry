@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.views.generic import View
 from rest_framework.request import Request
 
+from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.utils import json
@@ -16,7 +17,9 @@ logger = logging.getLogger("sentry.webhooks")
 class GitHubIntegrationsInstallationEndpoint(View):
     def get(self, request: Request, installation_id):
         try:
-            integration = Integration.objects.get(external_id=installation_id, status=0)
+            integration = Integration.objects.get(
+                external_id=installation_id, status=ObjectStatus.ACTIVE
+            )
             OrganizationIntegration.objects.get(integration_id=integration.id)
             return HttpResponse(status=404)
         except Integration.DoesNotExist:
