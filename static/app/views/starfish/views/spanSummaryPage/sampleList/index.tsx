@@ -27,6 +27,7 @@ type Props = {
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
+  transactionRoute?: string;
 };
 
 export function SampleList({
@@ -35,6 +36,7 @@ export function SampleList({
   transactionMethod,
   spanDescription,
   onClose,
+  transactionRoute = '/performance/summary/',
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -75,7 +77,7 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `/performance/summary/?${qs.stringify({
+  const link = `${transactionRoute}?${qs.stringify({
     project: query.project,
     transaction: transactionName,
   })}`;
