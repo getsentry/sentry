@@ -181,7 +181,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         </RegressedFunctionsQueryState>
       ) : !trends.length ? (
         <RegressedFunctionsQueryState>
-          {t('Horay, no regressed functions detected!')}
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
         </RegressedFunctionsQueryState>
       ) : (
         trends.map((fn, i) => {
