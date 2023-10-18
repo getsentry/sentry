@@ -339,7 +339,7 @@ def test_process_messages() -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
     expected_new_batch = []
     for i, m in enumerate(message_batch):
         assert isinstance(m.value, BrokerValue)
@@ -478,7 +478,7 @@ def test_process_messages_invalid_messages(
     outer_message = Message(Value(message_batch, last.committable))
 
     with caplog.at_level(logging.ERROR):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -543,7 +543,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = message_processor.process_messages(outer_message=outer_message)
+        new_batch = message_processor.process_messages(outer_message=outer_message).data
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
@@ -615,7 +615,7 @@ def test_process_messages_cardinality_limited(
         outer_message = Message(Value(message_batch, last.committable))
 
         with caplog.at_level(logging.ERROR):
-            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
 
         compare_message_batches_ignoring_metadata(new_batch, [])
 

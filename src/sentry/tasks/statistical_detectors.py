@@ -216,7 +216,7 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -694,6 +694,31 @@ def all_function_timeseries(
             continue
 
 
+BACKEND_TRANSACTION_OPS = [
+    # Common
+    "function.aws",
+    "function.aws.lambda",
+    "http.server",
+    "queue.process",
+    "serverless.function",
+    "task",
+    "websocket.server",
+    # Python
+    "asgi.server",
+    "celery.task",
+    "queue.task.celery",
+    "queue.task.rq",
+    "rq.task",
+    # Ruby
+    "queue.active_job",
+    "queue.delayed_job",
+    "queue.sidekiq",
+    "rails.action_cable",
+    "rails.request",
+    "sidekiq",
+]
+
+
 def query_transactions(
     org_ids: List[int],
     project_ids: List[int],
@@ -712,6 +737,11 @@ def query_transactions(
         use_case_id,
         org_ids[0],
         "transaction",
+    )
+    transaction_op_metric_id = indexer.resolve(
+        use_case_id,
+        org_ids[0],
+        "transaction.op",
     )
 
     # if our time range is more than an hour, use the hourly granularity
@@ -765,6 +795,11 @@ def query_transactions(
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("metric_id"), Op.EQ, duration_metric_id),
+            Condition(
+                Column(f"tags_raw[{transaction_op_metric_id}]"),
+                Op.IN,
+                list(BACKEND_TRANSACTION_OPS),
+            ),
         ],
         limitby=LimitBy([Column("project_id")], transactions_per_project),
         orderby=[
