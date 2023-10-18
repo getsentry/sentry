@@ -327,11 +327,11 @@ def symbolicate(
     symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> Any:
     if profile["platform"] in SHOULD_SYMBOLICATE_JS:
-        return process_js_stacktraces(
-            symbolicator=symbolicator,
-            profile=profile,
-            modules=modules,
+        return symbolicator.process_js(
             stacktraces=stacktraces,
+            modules=modules,
+            release=profile.get("release"),
+            dist=profile.get("dist"),
             apply_source_context=False,
         )
     return symbolicator.process_payload(
@@ -753,19 +753,3 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
         reason="profiling_failed_vroom_insertion",
     )
     return False
-
-
-def process_js_stacktraces(
-    symbolicator: Symbolicator,
-    profile: Profile,
-    modules: List[Any],
-    stacktraces: List[Any],
-    apply_source_context: bool = False,
-) -> Any:
-    return symbolicator.process_js(
-        stacktraces=stacktraces,
-        modules=modules,
-        release=profile.get("release"),
-        dist=profile.get("dist"),
-        apply_source_context=apply_source_context,
-    )

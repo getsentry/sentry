@@ -129,14 +129,17 @@ export function FunctionTrendsWidget({
         )}
         {hasTrends && (
           <Accordion>
-            {(trendsQuery.data ?? []).map((f, i) => {
+            {(trendsQuery.data ?? []).map((f, i, l) => {
               return (
                 <FunctionTrendsEntry
                   key={`${f.project}-${f.function}-${f.package}`}
                   trendFunction={trendFunction}
                   trendType={trendType}
                   isExpanded={i === expandedIndex}
-                  setExpanded={() => setExpandedIndex(i)}
+                  setExpanded={() => {
+                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    setExpandedIndex(nextIndex);
+                  }}
                   func={f}
                 />
               );
