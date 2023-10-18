@@ -46,6 +46,7 @@ def test_send_regressions_to_plaform(mock_produce_occurrence_to_kafka):
                     "value": "foo duration increased from 14.0ms to 28.0ms (P95)",
                     "important": True,
                 },
+                {"name": "Transaction", "value": "foo", "important": True},
             ],
             "type": PerformanceDurationRegressionGroupType.type_id,
             "level": "info",
