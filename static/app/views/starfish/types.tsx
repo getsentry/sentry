@@ -33,8 +33,8 @@ export enum SpanMetricsField {
 }
 
 export type SpanNumberFields =
-  | 'span.self_time'
-  | 'span.duration'
+  | SpanMetricsField.SPAN_SELF_TIME
+  | SpanMetricsField.SPAN_DURATION
   | SpanMetricsField.HTTP_DECODED_RESPONSE_BODY_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
