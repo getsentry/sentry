@@ -237,7 +237,6 @@ default_manager.add("organizations:escalating-issues-msteams", OrganizationFeatu
 default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-gh-invite", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:getting-started-doc-with-product-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

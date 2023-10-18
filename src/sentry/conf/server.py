@@ -1748,8 +1748,6 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
-    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
-    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
