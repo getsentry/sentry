@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -71,6 +71,4 @@ class UserSocialAuthService(RpcService):
         pass
 
 
-usersocialauth_service: UserSocialAuthService = cast(
-    UserSocialAuthService, UserSocialAuthService.create_delegation()
-)
+usersocialauth_service = UserSocialAuthService.create_delegation()

@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, Mapping, Optional, Union, cast
+from typing import Any, Iterable, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -355,4 +355,4 @@ _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     }
 )
 
-organization_service = cast(OrganizationService, OrganizationService.create_delegation())
+organization_service = OrganizationService.create_delegation()

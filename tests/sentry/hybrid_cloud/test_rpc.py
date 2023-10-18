@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -207,8 +207,6 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_early_halt_from_null_region_resolution(self):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            org_service_delgn = cast(
-                OrganizationService, OrganizationService.create_delegation(use_test_client=False)
-            )
+            org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None

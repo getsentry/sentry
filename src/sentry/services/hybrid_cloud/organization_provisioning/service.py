@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import Optional
 
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.region import ByRegionName
@@ -59,6 +59,4 @@ class OrganizationProvisioningService(RpcService):
         return DatabaseBackedOrganizationProvisioningService()
 
 
-organization_provisioning_service: OrganizationProvisioningService = cast(
-    OrganizationProvisioningService, OrganizationProvisioningService.create_delegation()
-)
+organization_provisioning_service = OrganizationProvisioningService.create_delegation()

@@ -3,7 +3,6 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import cast
 
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
@@ -47,9 +46,5 @@ class RegionTombstoneService(RpcService):
         pass
 
 
-region_tombstone_service: RegionTombstoneService = cast(
-    RegionTombstoneService, RegionTombstoneService.create_delegation()
-)
-control_tombstone_service: ControlTombstoneService = cast(
-    ControlTombstoneService, ControlTombstoneService.create_delegation()
-)
+region_tombstone_service = RegionTombstoneService.create_delegation()
+control_tombstone_service = ControlTombstoneService.create_delegation()

@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -63,4 +63,4 @@ class ProjectService(RpcService):
         pass
 
 
-project_service = cast(ProjectService, ProjectService.create_delegation())
+project_service = ProjectService.create_delegation()

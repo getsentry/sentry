@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud.auth import (
     AuthenticationContext,
@@ -118,4 +118,4 @@ class AuthService(RpcService):
         pass
 
 
-auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
+auth_service = AuthService.create_delegation()

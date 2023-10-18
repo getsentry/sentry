@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sentry.models.integrations.organization_integration import (
     OrganizationIntegration,
@@ -287,6 +287,4 @@ class IntegrationService(RpcService):
         pass
 
 
-integration_service: IntegrationService = cast(
-    IntegrationService, IntegrationService.create_delegation()
-)
+integration_service = IntegrationService.create_delegation()

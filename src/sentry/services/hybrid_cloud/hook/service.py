@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
 from sentry.services.hybrid_cloud.region import ByOrganizationId
@@ -50,4 +50,4 @@ class HookService(RpcService):
         pass
 
 
-hook_service: HookService = cast(HookService, HookService.create_delegation())
+hook_service = HookService.create_delegation()
