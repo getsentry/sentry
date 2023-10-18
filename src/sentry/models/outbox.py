@@ -542,7 +542,8 @@ class OutboxBase(Model):
                     # contentions that is occurring to preserve the read after write invariance.
                     if options.get("hybrid_cloud.outbox_lock.raise_on_contention"):
                         raise OutboxFlushError(
-                            f"Could not flush shard category={self.category} due to lock contention.", self
+                            f"Could not flush shard category={self.category} due to lock contention.",
+                            self,
                         ) from e
             yield None
 
