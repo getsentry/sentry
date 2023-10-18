@@ -711,6 +711,39 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         # Did not increment from the last assertion because we early out on the validation error
         assert mock_get_channel_id.call_count == 3
 
+    def test_performance_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+            ]
+        ):
+            test_params = {**self.alert_rule_dict, "dataset": "generic_metrics"}
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **test_params,
+            )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            test_params = {**self.alert_rule_dict, "dataset": "transactions"}
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["dataset"][0]
+                == "Performance alerts must use the `generic_metrics` dataset"
+            )
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
