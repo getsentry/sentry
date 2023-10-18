@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -452,7 +452,7 @@ def query_transactions_timeseries(
                     "data": [datapoint],
                 }
             else:
-                data = cast(List, results[key]["data"])
+                data = results[key]["data"]
                 data.append(datapoint)
 
         for key, item in results.items():
