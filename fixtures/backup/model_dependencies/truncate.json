@@ -49,6 +49,8 @@
   "sentry_userpermission",
   "sentry_userrole",
   "sentry_userrole_users",
+  "django_session",
+  "django_site",
   "social_auth_usersocialauth",
   "sentry_savedsearch",
   "sentry_release",
