@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -41,7 +41,7 @@ def save_userreport(project, report, start_time=None):
         # exist, and ideally we'd also associate that with the event
         euser = find_event_user(report, event)
 
-        if features.has("organizations:eventuser-from-snuba", project.organization):
+        if features.has("organizations:eventuser-from-snuba", project.organization) and event:
             try:
                 find_and_compare_eventuser_data(event, euser)
             except Exception:
@@ -260,14 +260,24 @@ def _is_event_data_equal_to_snuba_result(event: Event, snuba_result: Mapping[str
 
 
 def _generate_entity_dataset_query(
-    project_id: int,
-    group_id: int,
+    project_id: Optional[int],
+    group_id: Optional[int],
     event_id: str,
     start_date: datetime,
     end_date: datetime,
 ) -> Query:
 
     """This simply generates a query based on the passed parameters"""
+    where_conditions = [
+        Condition(Column("event_id"), Op.EQ, event_id),
+        Condition(Column("timestamp"), Op.GTE, start_date),
+        Condition(Column("timestamp"), Op.LT, end_date),
+    ]
+    if project_id:
+        where_conditions.append(Condition(Column("project_id"), Op.EQ, project_id))
+
+    if group_id:
+        where_conditions.append(Condition(Column("group_id"), Op.EQ, group_id))
 
     return Query(
         match=Entity(EntityKey.Events.value),
@@ -282,13 +292,7 @@ def _generate_entity_dataset_query(
             Column("user_name"),
             Column("user_email"),
         ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("group_id"), Op.EQ, group_id),
-            Condition(Column("event_id"), Op.EQ, event_id),
-            Condition(Column("timestamp"), Op.GTE, start_date),
-            Condition(Column("timestamp"), Op.LT, end_date),
-        ],
+        where=where_conditions,
     )
 
 
