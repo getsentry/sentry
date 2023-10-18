@@ -336,7 +336,8 @@ def query_transactions_timeseries(
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    start = end - timedelta(days=14)
+    days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
+    start = end - timedelta(days=days_to_query)
     use_case_id = UseCaseID.TRANSACTIONS
     interval = 3600  # 1 hour
     # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
