@@ -116,7 +116,13 @@ function AllEventsTable(props: Props) {
     <EventsTable
       eventView={eventView}
       location={location}
-      issueId={issueId}
+      issueId={
+        // Unset the issueId for regressions because we want to
+        // link to events in the Transaction page
+        group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+          ? undefined
+          : issueId
+      }
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
