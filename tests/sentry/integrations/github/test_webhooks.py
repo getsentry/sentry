@@ -2,7 +2,11 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
+import responses
+
 from fixtures.github import (
+    INSTALLATION_API_RESPONSE,
+    INSTALLATION_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
@@ -61,9 +65,37 @@ class WebhookTest(APITestCase):
 
 
 @region_silo_test(stable=True)
-class PushEventWebhookTest(APITestCase):
+class InstallationEventWebhook(APITestCase):
     base_url = "https://api.github.com"
 
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/app/installations/2",
+            body=INSTALLATION_API_RESPONSE,
+            status=200,
+            content_type="application/json",
+        )
+
+    @responses.activate
+    def test_installation_created(self):
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 200
+
+
+@region_silo_test(stable=True)
+class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
