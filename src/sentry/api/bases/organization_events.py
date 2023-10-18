@@ -336,6 +336,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "units": units,
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
+                    "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")

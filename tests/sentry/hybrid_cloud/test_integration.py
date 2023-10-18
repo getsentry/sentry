@@ -167,9 +167,11 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             integration_ids=[i.id for i in integrations], metadata=new_metadata
         )
         for i in integrations:
+            original_time = i.date_updated
             assert i.metadata != new_metadata
             i.refresh_from_db()
             assert i.metadata == new_metadata
+            assert original_time != i.date_updated, "date_updated should change"
 
     def test_get_installation(self):
         api_integration1 = serialize_integration(integration=self.integration1)
