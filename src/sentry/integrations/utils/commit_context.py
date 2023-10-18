@@ -335,7 +335,14 @@ def _get_blames_from_all_integrations(
             blames = install.get_commit_context_all_frames(files)
             file_blames.extend(blames)
         except ApiError as e:
-            sentry_sdk.capture_exception(e)
+            logger.exception(
+                "process_commit_context_all_frames.api_error",
+                extra={
+                    **extra,
+                    "provider": integration.provider,
+                    "integration_id": integration.id,
+                },
+            )
             analytics.record(
                 "integrations.failed_to_fetch_commit_context_all_frames",
                 organization_id=organization_id,
@@ -345,14 +352,6 @@ def _get_blames_from_all_integrations(
                 num_frames=len(files),
                 provider=integration.provider,
                 error_message=e.text,
-            )
-            logger.error(
-                "process_commit_context_all_frames.failed_to_fetch_commit_context",
-                extra={
-                    **extra,
-                    "integration_organization_id": integration_organziation_id,
-                    "error_message": e.text,
-                },
             )
 
     return file_blames, integration_to_install_mapping
