@@ -65,10 +65,10 @@ class AlertRuleIndexMixin(Endpoint):
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
-        datasets = request.GET.getlist("dataset", [])
-        if len(datasets) > 0:
-            alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
+        else:
+            datasets = request.GET.getlist("dataset", [])
+            if len(datasets) > 0:
+                alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
 
         return self.paginate(
             request,

@@ -103,6 +103,32 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
+    def test_dataset_filter(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(dataset=Dataset.Metrics)
+        transaction_rule = self.create_alert_rule(dataset=Dataset.Transactions)
+        events_rule = self.create_alert_rule(dataset=Dataset.Events)
+        self.login_as(self.user)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            transactions_resp = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Transactions.value]
+            )
+            assert transactions_resp.data == serialize([transaction_rule])
+
+            all_resp = self.get_success_response(self.organization.slug)
+            both_resp = self.get_success_response(
+                self.organization.slug,
+                dataset=[Dataset.Transactions.value, Dataset.Metrics.value, Dataset.Events.value],
+            )
+
+            assert all_resp.data == both_resp.data
+
+        with self.feature("organizations:incidents"):
+            # without performance-view, we should only see events rules
+            resp = self.get_success_response(self.organization.slug)
+            assert resp.data == serialize([events_rule])
+
 
 @region_silo_test(stable=True)
 @freeze_time()

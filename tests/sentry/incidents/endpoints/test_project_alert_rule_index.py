@@ -56,28 +56,6 @@ class AlertRuleListEndpointTest(APITestCase):
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 404
 
-    def test_dataset_filter(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(dataset=Dataset.Metrics)
-        transaction_rule = self.create_alert_rule(dataset=Dataset.Transactions)
-
-        self.login_as(self.user)
-
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            transactions_resp = self.get_success_response(
-                self.organization.slug, self.project.slug, dataset=[Dataset.Transactions.value]
-            )
-            assert transactions_resp.data == serialize([transaction_rule])
-
-            all_resp = self.get_success_response(self.organization.slug, self.project.slug)
-            both_resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                dataset=[Dataset.Transactions.value, Dataset.Metrics.value],
-            )
-
-            assert all_resp.data == both_resp.data
-
 
 @region_silo_test(stable=True)
 @freeze_time()
