@@ -3,7 +3,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {LocationDescriptor} from 'history';
-import debounce from 'lodash/debounce';
 
 import {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
@@ -12,7 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -34,31 +33,6 @@ type Props = {
   otherUrl?: LocationDescriptor;
   project?: Project;
 };
-
-const _debounceTrackHover = debounce(
-  ({
-    tag,
-    value,
-    platform,
-    is_mobile,
-    organization,
-  }: {
-    is_mobile: boolean;
-    organization: Organization;
-    tag: string;
-    value: string;
-    platform?: string;
-  }) => {
-    trackAnalytics('issue_group_details.tags.bar.hovered', {
-      tag,
-      value,
-      platform,
-      is_mobile,
-      organization,
-    });
-  },
-  300
-);
 
 function TagFacetsDistributionMeter({
   colors = COLORS,
@@ -142,13 +116,6 @@ function TagFacetsDistributionMeter({
               style={{width: pct + '%'}}
               onMouseOver={() => {
                 setHoveredValue(value);
-                _debounceTrackHover({
-                  tag: title,
-                  value: value.value,
-                  platform: project?.platform,
-                  is_mobile: isMobilePlatform(project?.platform),
-                  organization,
-                });
               }}
               onMouseLeave={() => setHoveredValue(null)}
             >
