@@ -58,7 +58,7 @@ export default function WebVitalsLandingPage() {
       });
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
+    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -69,7 +69,7 @@ export default function WebVitalsLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Page Loads',
+                label: 'Web Vitals',
               },
               ...(transaction ? [{label: 'Page Overview'}] : []),
             ]}
@@ -77,7 +77,7 @@ export default function WebVitalsLandingPage() {
 
           <Layout.Title>
             {transaction && project && <ProjectAvatar project={project} size={24} />}
-            {transaction ?? t('Page Loads')}
+            {transaction ?? t('Web Vitals')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
