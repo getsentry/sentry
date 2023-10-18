@@ -1703,7 +1703,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 event=event,
             )
             assert kafka_producer.return_value.publish.call_count == 0
-            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
     def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
 
