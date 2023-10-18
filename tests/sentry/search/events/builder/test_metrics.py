@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List
+from typing import List, Tuple
 from unittest import mock
 
 import pytest
@@ -29,6 +29,12 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+def _user_misery_formula(miserable_users: int, unique_users: int) -> int:
+    return (miserable_users + constants.MISERY_ALPHA) / (
+        unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
+    )
 
 
 def _metric_percentile_definition(
@@ -2314,25 +2320,23 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
-    def test_run_query_with_on_demand_user_misery(self):
+    @pytest.mark.parametrize(
+        "user_to_frustration, expected_user_misery",
+        [
+            ([("happy user", False), ("saddd user", True)], _user_misery_formula(1, 2)),
+            ([("happy user", False), ("happy user", False)], _user_misery_formula(0, 2)),
+        ],
+    )
+    def test_run_query_with_on_demand_user_misery(
+        self: object, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+    ) -> None:
         threshold = 300
         field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
         spec = OnDemandMetricSpec(field=field, query=query_s)
 
-        transaction_duration_repeats = [
-            ("happy user", False),
-            ("sad user 1", True),
-            ("sad user 2", True),
-            ("sad user 3", True),
-            ("sad user 4", True),
-            ("sad user 5", True),
-            ("sad user 6", True),
-            ("sad user 7", True),
-        ]
-
         for hour in range(0, 2):
-            for name, frustrated in transaction_duration_repeats:
+            for name, frustrated in user_to_frustration:
                 tags = (
                     {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
                     if frustrated
@@ -2374,11 +2378,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:3] == [
             {
                 "time": self.start.isoformat(),
-                "user_misery_300": 0.10248508946322067,
+                "user_misery_300": expected_user_misery,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": 0.10248508946322067,
+                "user_misery_300": expected_user_misery,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
