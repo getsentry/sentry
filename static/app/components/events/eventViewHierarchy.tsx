@@ -47,6 +47,11 @@ function EventViewHierarchyContent({event, project}: Props) {
             projectSlug: project.slug,
           })
         : '',
+      {
+        headers: {
+          Accept: '*/*; charset=utf-8',
+        },
+      },
     ],
     {staleTime: Infinity, enabled: defined(hierarchyMeta)}
   );

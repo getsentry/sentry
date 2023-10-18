@@ -1,25 +1,23 @@
-import {
-  FeedbackItemResponse,
-  HydratedFeedbackItem,
-} from 'sentry/utils/feedback/item/types';
+import type {BaseGroup, GroupStats} from 'sentry/types';
 
-export type FeedbackListResponse = FeedbackItemResponse[];
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-export type HydratedFeedbackList = HydratedFeedbackItem[];
+export type RawFeedbackListResponse = Overwrite<
+  BaseGroup & GroupStats,
+  {
+    issueCategory: 'feedback';
+    issueType: 'feedback';
+    metadata: {
+      contact_email: null | string;
+      message: string;
+      title: string;
+      value: string;
+    };
+    owners: null | unknown;
+  }
+>[];
 
-export type QueryView = {
-  queryReferrer: string;
-  end?: string;
-  environment?: string[];
-  field?: string[];
-  per_page?: string;
-  project?: string[];
-  query?: string;
-  start?: string;
-  statsPeriod?: string;
-  utc?: string;
-};
-
-export const EMPTY_QUERY_VIEW: QueryView = {
-  queryReferrer: '',
-};
+export type HydratedFeedbackList = Overwrite<
+  RawFeedbackListResponse,
+  {feedback_id: string; replay_id: undefined; timestamp: Date}
+>[];
