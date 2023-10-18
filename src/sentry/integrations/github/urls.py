@@ -11,7 +11,7 @@ urlpatterns = [
         name="sentry-integration-github-webhook",
     ),
     re_path(
-        r"^installation/(?P<installation_id>\w+)/$",
+        r"^installation/(?P<installation_id>\d+)/$",
         GitHubIntegrationsInstallationEndpoint.as_view(),
         name="sentry-integration-github-installation",
     ),
