@@ -20,7 +20,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -468,7 +468,7 @@ export function Actions(props: Props) {
         size="sm"
       />
       <div className="hidden-xs">
-        <EnvironmentPageFilter alignDropdown="right" size="sm" />
+        <EnvironmentPageFilter position="bottom-end" size="sm" />
       </div>
       <Feature
         hookName="feature-disabled:open-in-discover"

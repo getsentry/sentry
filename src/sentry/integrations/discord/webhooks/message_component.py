@@ -30,7 +30,7 @@ NO_IDENTITY = "You need to link your Discord account to your Sentry account to d
 NOT_IN_ORG = "You must be a member of the org this issue belongs to in order to act on it."
 ASSIGNEE_UPDATED = "Assignee has been updated."
 RESOLVE_DIALOG_OPTIONS = [
-    DiscordSelectMenuOption("Immediately", ""),
+    DiscordSelectMenuOption("Immediately", "immediately"),
     DiscordSelectMenuOption("In the next release", "inNextRelease"),
     DiscordSelectMenuOption("In the current release", "inCurrentRelease"),
 ]
