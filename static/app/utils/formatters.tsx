@@ -200,7 +200,7 @@ const SUFFIX_ABBR = {
 export function getExactDuration(
   seconds: number,
   abbreviation: boolean = false,
-  minDuration = 'milliseconds'
+  minDuration: string = 'milliseconds'
 ) {
   const operation = seconds < 0 ? Math.ceil : Math.floor;
   const levels = [
