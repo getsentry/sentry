@@ -192,6 +192,8 @@ const SUFFIX_ABBR = {
  *
  * NOTE: seconds input can be a decimal
  * @param  {number} seconds The number of seconds to be processed
+ * @param  {boolean} abbreviation abbreviates the suffix
+ * @param  {string} minDuration pins the response to desired suffix
  * @return {string}         The phrase describing the amount of time
  */
 export function getExactDuration(
