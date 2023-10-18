@@ -346,6 +346,7 @@ export function TimeRangeSelector({
                   isOpen={isOpen}
                   size={selectProps.size}
                   icon={<IconCalendar />}
+                  data-test-id="page-filter-timerange-selector"
                 >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>

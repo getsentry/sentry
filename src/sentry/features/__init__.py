@@ -70,6 +70,7 @@ default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeatur
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:crons-new-monitor-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -164,6 +165,7 @@ default_manager.add("organizations:performance-metrics-backed-transaction-summar
 default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-database-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -174,7 +176,8 @@ default_manager.add("organizations:profiling-cpu-chart", OrganizationFeature, Fe
 default_manager.add("organizations:profiling-memory-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-battery-usage-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:profiling-statistical-detectors", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:profiling-statistical-detectors-ema", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:profiling-statistical-detectors-breakpoint", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -264,6 +267,7 @@ default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandl
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-all-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
