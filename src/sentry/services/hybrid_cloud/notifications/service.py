@@ -151,9 +151,9 @@ class NotificationsService(RpcService):
         self,
         *,
         recipients: List[RpcActor],
-        project_ids: Optional[List[int]],
-        organization_id: Optional[int],
         type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
     ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 

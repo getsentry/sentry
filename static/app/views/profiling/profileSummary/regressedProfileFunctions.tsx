@@ -1,7 +1,9 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -11,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
-import type {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
+import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -133,9 +135,10 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     return conditions.formatString();
   }, [props.transaction]);
 
+  const [trendType, setTrendType] = useState<TrendType>('regression');
   const trendsQuery = useProfileFunctionTrends({
     trendFunction: 'p95()',
-    trendType: 'regression',
+    trendType,
     query: functionQuery,
     limit: REGRESSED_FUNCTIONS_LIMIT,
     cursor: fnTrendCursor,
@@ -150,10 +153,18 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     });
   }, [organization]);
 
+  const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
+
   return (
     <RegressedFunctionsContainer>
       <RegressedFunctionsTitleContainer>
-        <RegressedFunctionsTitle>{t('Most regressed functions')}</RegressedFunctionsTitle>
+        <RegressedFunctionsTypeSelect
+          value={trendType}
+          options={TREND_FUNCTION_OPTIONS}
+          onChange={onChangeTrendType}
+          triggerProps={TRIGGER_PROPS}
+          offset={4}
+        />
         <RegressedFunctionsPagination
           pageLinks={trendsQuery.getResponseHeader?.('Link')}
           onCursor={handleRegressedFunctionsCursor}
@@ -170,7 +181,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         </RegressedFunctionsQueryState>
       ) : !trends.length ? (
         <RegressedFunctionsQueryState>
-          {t('Horay, no regressed functions detected!')}
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
         </RegressedFunctionsQueryState>
       ) : (
         trends.map((fn, i) => {
@@ -243,7 +258,13 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                   <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
                 </div>
                 <div>
-                  {fn.aggregate_range_1 < fn.aggregate_range_2 ? '+' : '-'}
+                  {/* We dont handle improvements as formatPercentage and relativeChange
+                  on lines below dont return absolute values, else we end up with a double sign */}
+                  {trendType === 'regression'
+                    ? fn.aggregate_range_1 < fn.aggregate_range_2
+                      ? '+'
+                      : '-'
+                    : null}
                   {formatPercentage(
                     relativeChange(fn.aggregate_range_2, fn.aggregate_range_1)
                   )}
@@ -264,6 +285,13 @@ const ChangeArrow = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
+const RegressedFunctionsTypeSelect = styled(CompactSelect)`
+  button {
+    margin: 0;
+    padding: 0;
+  }
+`;
+
 const RegressedFunctionSparklineContainer = styled('div')``;
 
 const RegressedFunctionRow = styled('div')`
@@ -275,6 +303,12 @@ const RegressedFunctionMainRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  > div:first-child {
+    min-width: 0;
+  }
+  > div:last-child {
+    white-space: nowrap;
+  }
 `;
 
 const RegressedFunctionMetricsRow = styled('div')`
@@ -288,11 +322,24 @@ const RegressedFunctionMetricsRow = styled('div')`
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  margin-top: ${space(0.5)};
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`
   margin: 0;
+
+  button {
+    height: 16px;
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const RegressedFunctionsTitleContainer = styled('div')`
@@ -300,6 +347,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
+  margin-top: ${space(0.5)};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
@@ -308,8 +356,14 @@ const RegressedFunctionsQueryState = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const RegressedFunctionsTitle = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.form.md.fontSize};
-  font-weight: 700;
-`;
+const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
+const TREND_FUNCTION_OPTIONS: SelectOption<TrendType>[] = [
+  {
+    label: t('Most Regressed Functions'),
+    value: 'regression' as const,
+  },
+  {
+    label: t('Most Improved Functions'),
+    value: 'improvement' as const,
+  },
+];

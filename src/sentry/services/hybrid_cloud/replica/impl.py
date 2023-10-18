@@ -77,6 +77,11 @@ def get_conflicting_unique_columns(
     scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
+        if isinstance(destination, AuthIdentityReplica):
+            # TODO: Unique columns along the auth identity shard are safe but not provably safe with this
+            # logic at the moment.  This scope_controlled_column override is an adhoc statement of the safety
+            # of this particular unique indexed column.
+            scope_controlled_columns.append("ident")
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
             get_foreign_key_columns(destination, Organization, AuthProvider)
