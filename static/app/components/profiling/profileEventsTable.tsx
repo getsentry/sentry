@@ -162,7 +162,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
     return (
       <Container>
-        <Link to={`/performance/trace/${traceId}`}>{traceId}</Link>
+        <Link to={`/performance/trace/${getShortEventId(traceId)}`}>{traceId}</Link>
       </Container>
     );
   }
@@ -177,7 +177,9 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
     return (
       <Container>
-        <Link to={`/performance/${project.slug}:${transactionId}`}>{transactionId}</Link>
+        <Link to={`/performance/${project.slug}:${getShortEventId(transactionId)}`}>
+          {transactionId}
+        </Link>
       </Container>
     );
   }
