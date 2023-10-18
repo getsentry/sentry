@@ -327,6 +327,21 @@ describe('userDisplayName', function () {
 describe('getExactDuration', () => {
   it('should provide default value', () => {
     expect(getExactDuration(0)).toEqual('0 milliseconds');
+    expect(getExactDuration(0, false, 'seconds')).toEqual('0 seconds');
+    expect(getExactDuration(0, false, 'hours')).toEqual('0 hours');
+  });
+
+  it('should pin to the minimum duration value', () => {
+    expect(getExactDuration(65)).toEqual('1 minute 5 seconds');
+    expect(getExactDuration(65, false, 'minutes')).toEqual('1 minute');
+    expect(getExactDuration(3610, false, 'hours')).toEqual('1 hour');
+    expect(getExactDuration(234235435.123)).toEqual(
+      '387 weeks 2 days 1 hour 23 minutes 55 seconds 123 milliseconds'
+    );
+    expect(getExactDuration(234235435.123, false, 'minutes')).toEqual(
+      '387 weeks 2 days 1 hour 23 minutes'
+    );
+    expect(getExactDuration(234235435.123, true, 'min')).toEqual('387wk 2d 1hr 23min');
   });
 
   it('should format in the right way', () => {

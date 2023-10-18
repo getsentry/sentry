@@ -154,7 +154,11 @@ export function getDuration(
  * @param  {number} seconds The number of seconds to be processed
  * @return {string}         The phrase describing the amount of time
  */
-export function getExactDuration(seconds: number, abbreviation: boolean = false) {
+export function getExactDuration(
+  seconds: number,
+  abbreviation: boolean = false,
+  minDuration = 'milliseconds'
+) {
   const operation = seconds < 0 ? Math.ceil : Math.floor;
   const levels = [
     [operation(seconds / 604800), abbreviation ? 'wk' : ' weeks'],
@@ -169,19 +173,20 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
       abbreviation ? 's' : ' seconds',
     ],
     [
-      operation(
-        (((((seconds % 604800) % 86400) % 3600) % 60) -
-          operation(((((seconds % 31536000) % 604800) % 86400) % 3600) % 60)) *
-          1000
-      ),
+      operation((((((seconds * 1000) % 604800000) % 86400000) % 3600000) % 60000) % 1000),
       abbreviation ? 'ms' : ' milliseconds',
     ],
   ];
   let returntext = '';
 
   for (let i = 0, max = levels.length; i < max; i++) {
-    if (i === max - 1 && !returntext && !levels[i][0]) {
+    if (
+      (i === max - 1 || minDuration === (levels[i][1] as string).trim()) &&
+      !returntext &&
+      !levels[i][0]
+    ) {
       returntext = '0' + levels[i][1];
+      break;
     }
     if (levels[i][0] === 0) {
       continue;
@@ -189,9 +194,12 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
     returntext +=
       ' ' +
       levels[i][0] +
-      (!abbreviation && Math.abs(levels[i][0]) === 1
+      (!abbreviation && Math.abs(levels[i][0] as number) === 1
         ? (levels[i][1] as string).substring(0, (levels[i][1] as string).length - 1) // strip the 's' from the end if its singular
         : levels[i][1]);
+    if (minDuration === (levels[i][1] as string).trim()) {
+      break;
+    }
   }
   return returntext.trim();
 }
