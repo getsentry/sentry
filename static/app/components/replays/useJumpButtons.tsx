@@ -1,63 +1,65 @@
 import {useCallback, useMemo, useState} from 'react';
-import type {IndexRange, SectionRenderedParams} from 'react-virtualized';
+import {ScrollParams} from 'react-virtualized';
 
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {ReplayFrame} from 'sentry/utils/replays/types';
+
+/**
+ * The range (`[startIndex, endIndex]`) of table rows that are visible,
+ * not including the table header.
+ */
+type VisibleRange = [number, number];
 
 interface Props {
   currentTime: number;
   frames: ReplayFrame[];
-  isTable: boolean;
+  rowHeight: number;
   setScrollToRow: (row: number) => void;
 }
 
 export default function useJumpButtons({
   currentTime,
   frames,
-  isTable,
+  rowHeight,
   setScrollToRow,
 }: Props) {
-  const [visibleRange, setVisibleRange] = useState<IndexRange>({
-    startIndex: 0,
-    stopIndex: 0,
-  });
+  const [visibleRange, setVisibleRange] = useState<VisibleRange>([0, 0]);
 
-  const frameIndex = useMemo(() => {
+  const indexOfCurrentRow = useMemo(() => {
     const frame = getNextReplayFrame({
       frames,
       targetOffsetMs: currentTime,
       allowExact: true,
     });
-    const index = frames.findIndex(spanFrame => frame === spanFrame);
-    // index is -1 at end of replay, so use last index
-    return index === -1 ? frames.length - 1 : index;
+    const frameIndex = frames.findIndex(spanFrame => frame === spanFrame);
+    // frameIndex is -1 at end of replay, so use last index
+    const index = frameIndex === -1 ? frames.length - 1 : frameIndex;
+    return index;
   }, [currentTime, frames]);
 
-  // Tables have a header row, so we need to adjust for that.
-  const rowIndex = isTable ? frameIndex + 1 : frameIndex;
-
   const handleClick = useCallback(() => {
-    // When Jump Down, ensures purple line is visible and index needs to be 1 to jump to top of the list
-    const jumpDownFurther =
-      isTable && (rowIndex > visibleRange.stopIndex || rowIndex === 0);
+    // When Jump Down, ensures purple line is visible and index needs to be 1 to jump to top of network list
+    if (indexOfCurrentRow > visibleRange[1] || indexOfCurrentRow === 0) {
+      setScrollToRow(indexOfCurrentRow + 1);
+    } else {
+      setScrollToRow(indexOfCurrentRow);
+    }
+  }, [indexOfCurrentRow, setScrollToRow, visibleRange]);
 
-    setScrollToRow(rowIndex + (jumpDownFurther ? 1 : 0));
-  }, [isTable, rowIndex, setScrollToRow, visibleRange]);
-
-  const onRowsRendered = setVisibleRange;
-
-  const onSectionRendered = useCallback(
-    ({rowStartIndex, rowStopIndex}: SectionRenderedParams) => {
-      setVisibleRange({startIndex: rowStartIndex, stopIndex: rowStopIndex});
+  const handleScroll = useCallback(
+    ({clientHeight, scrollTop}: ScrollParams) => {
+      setVisibleRange([
+        Math.floor(scrollTop / rowHeight),
+        Math.floor(scrollTop + clientHeight / rowHeight),
+      ]);
     },
-    []
+    [rowHeight]
   );
 
   return {
+    showJumpUpButton: indexOfCurrentRow < visibleRange[0],
+    showJumpDownButton: indexOfCurrentRow > visibleRange[1],
     handleClick,
-    onRowsRendered,
-    onSectionRendered,
-    showJumpDownButton: rowIndex > visibleRange.stopIndex,
-    showJumpUpButton: rowIndex < visibleRange.startIndex,
+    handleScroll,
   };
 }

@@ -1,6 +1,6 @@
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import hydrateA11yFrame, {RawA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import hydrateA11yFrame, {RawA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
