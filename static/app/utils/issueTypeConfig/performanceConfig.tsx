@@ -189,6 +189,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   },
   [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
     stats: {enabled: false},
+    replays: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
