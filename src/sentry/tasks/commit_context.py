@@ -211,8 +211,9 @@ def process_commit_context(
             if munged:
                 frames = munged[1]
 
+            in_app_frames = [f for f in frames if f.get("in_app", True)][::-1]
             # First frame in the stacktrace that is "in_app"
-            frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
+            frame = next(iter(in_app_frames), None)
 
             if not frame:
                 # When we could not find the in_app frame for the event, we will debounce the task for 1 day.
@@ -260,7 +261,7 @@ def process_commit_context(
                 try:
                     blame, installation = find_commit_context_for_event_all_frames(
                         code_mappings=code_mappings,
-                        frames=frames,
+                        frames=in_app_frames,
                         organization_id=project.organization_id,
                         project_id=project_id,
                         extra=basic_logging_details,

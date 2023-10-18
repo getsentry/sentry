@@ -495,10 +495,10 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
         self.blame_existing_commit = FileBlameInfo(
             repo=self.repo,
-            path="sentry/tasks.py",
+            path="sentry/models/release.py",
             ref="master",
             code_mapping=self.code_mapping,
-            lineno=30,
+            lineno=39,
             commit=CommitInfo(
                 commitId="asdfwreqr",
                 committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=7),
@@ -567,10 +567,10 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=len(event_frames),
+            num_frames=1,
             num_unique_commits=1,
             num_unique_commit_authors=1,
-            num_successfully_mapped_frames=2,
+            num_successfully_mapped_frames=1,
             selected_frame_index=0,
             selected_provider="github",
             selected_code_mapping_id=self.code_mapping.id,
@@ -779,8 +779,8 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=len(event_frames),
-            num_successfully_mapped_frames=len(event_frames),
+            num_frames=1,
+            num_successfully_mapped_frames=1,
             reason="no_commit_found",
         )
 
@@ -826,8 +826,8 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=len(event_frames),
-            num_successfully_mapped_frames=len(event_frames),
+            num_frames=1,
+            num_successfully_mapped_frames=1,
             reason="commit_too_old",
         )
 
