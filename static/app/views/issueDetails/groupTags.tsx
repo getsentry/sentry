@@ -1,195 +1,167 @@
-import {RouteComponentProps} from 'react-router';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
+import {Tag} from 'sentry/actionCreators/events';
+import {GroupTagsResponse, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
-import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {sumTagFacetsForTopValues} from 'sentry/components/group/tagFacets';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, TagWithTopValues} from 'sentry/types';
-import {percent} from 'sentry/utils';
-import withOrganization from 'sentry/utils/withOrganization';
+import {Event, Group, IssueType} from 'sentry/types';
+import {defined, percent} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = DeprecatedAsyncComponent['props'] & {
+type GroupTagsProps = {
   baseUrl: string;
   environments: string[];
   group: Group;
-  organization: Organization;
   event?: Event;
-} & RouteComponentProps<{}, {}>;
-
-type State = DeprecatedAsyncComponent['state'] & {
-  now: number;
-  tagList: null | TagWithTopValues[];
 };
 
-class GroupTags extends DeprecatedAsyncComponent<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      tagList: null,
-      now: Date.now(),
-    };
+type SimpleTag = {
+  key: string;
+  topValues: Array<{
+    count: number;
+    name: string;
+    value: string;
+    query?: string;
+  }>;
+  totalValues: number;
+};
+
+function isTagFacetsResponse(
+  _: GroupTagsResponse | Tag[] | undefined,
+  shouldUseTagFacetsEndpoint: boolean
+): _ is Tag[] {
+  return shouldUseTagFacetsEndpoint;
+}
+
+function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const now = useMemo(() => Date.now(), []);
+
+  const {transaction, aggregateRange2, breakpoint} =
+    event?.occurrence?.evidenceData ?? {};
+
+  const shouldUseTagFacetsEndpoint =
+    organization.features.includes('performance-duration-regression-visible') &&
+    defined(event) &&
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
+
+  const {data, isLoading, isError, refetch} = useFetchIssueTags({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    environment: environments,
+    isStatisticalDetector: shouldUseTagFacetsEndpoint,
+    statisticalDetectorParameters: shouldUseTagFacetsEndpoint
+      ? {
+          transaction,
+          start: new Date(breakpoint * 1000).toISOString(),
+          end: new Date(now).toISOString(),
+          durationBaseline: aggregateRange2,
+        }
+      : undefined,
+  });
+
+  // useFetchIssueTags can return two different types of responses, depending on shouldUseTagFacetsEndpoint
+  // This line will convert the response to a common type for rendering
+  const tagList: SimpleTag[] =
+    (isTagFacetsResponse(data, shouldUseTagFacetsEndpoint)
+      ? data?.filter(({key}) => key !== 'transaction')?.map(sumTagFacetsForTopValues)
+      : data) ?? [];
+  const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {group, environments, organization, event} = this.props;
-
-    if (
-      organization.features.includes('performance-duration-regression-visible') &&
-      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
-      this.state
-    ) {
-      if (!event) {
-        // We need the event for its occurrence data to get the timestamps
-        // for querying
-        return [];
-      }
-
-      const {transaction, aggregateRange2, breakpoint} =
-        event.occurrence?.evidenceData ?? {};
-      return [
-        [
-          'tagFacets',
-          `/organizations/${organization.slug}/events-facets/`,
-          {
-            query: {
-              environment: environments,
-              transaction,
-              includeAll: true,
-              query: getSampleEventQuery({
-                transaction,
-                durationBaseline: aggregateRange2,
-                addUpperBound: false,
-              }),
-              start: new Date(breakpoint * 1000).toISOString(),
-              end: new Date(this.state.now).toISOString(),
-            },
-          },
-        ],
-      ];
-    }
-
-    return [
-      [
-        'tagList',
-        `/organizations/${organization.slug}/issues/${group.id}/tags/`,
-        {
-          query: {environment: environments},
-        },
-      ],
-    ];
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      !isEqual(prevProps.environments, this.props.environments) ||
-      !isEqual(prevProps.event, this.props.event)
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  onRequestSuccess({stateKey, data}: {data: any; stateKey: string}): void {
-    if (stateKey === 'tagFacets') {
-      this.setState({
-        tagList: data
-          .filter(({key}) => key !== 'transaction')
-          .map(sumTagFacetsForTopValues),
-        tagFacets: undefined,
-      });
-    }
-  }
-
-  renderTags() {
-    const {baseUrl, location} = this.props;
-    const {tagList} = this.state;
-
-    const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
-
+  if (isError) {
     return (
-      <Container>
-        {alphabeticalTags.map((tag, tagIdx) => (
-          <TagItem key={tagIdx}>
-            <StyledPanel>
-              <PanelBody withPadding>
-                <TagHeading>
-                  <Link
-                    to={{
-                      pathname: `${baseUrl}tags/${tag.key}/`,
-                      query: extractSelectionParameters(location.query),
-                    }}
-                  >
-                    <span data-test-id="tag-title">{tag.key}</span>
-                  </Link>
-                </TagHeading>
-                <UnstyledUnorderedList>
-                  {tag.topValues.map((tagValue, tagValueIdx) => (
-                    <li key={tagValueIdx} data-test-id={tag.key}>
-                      <TagBarGlobalSelectionLink
-                        to={{
-                          pathname: `${baseUrl}events/`,
-                          query: {
-                            query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                          },
-                        }}
-                      >
-                        <TagBarBackground
-                          widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
-                        />
-                        <TagBarLabel>
-                          {tag.key === 'release' ? (
-                            <Version version={tagValue.name} anchor={false} />
-                          ) : (
-                            <DeviceName value={tagValue.name} />
-                          )}
-                        </TagBarLabel>
-                        <TagBarCount>
-                          <Count value={tagValue.count} />
-                        </TagBarCount>
-                      </TagBarGlobalSelectionLink>
-                    </li>
-                  ))}
-                </UnstyledUnorderedList>
-              </PanelBody>
-            </StyledPanel>
-          </TagItem>
-        ))}
-      </Container>
+      <LoadingError
+        message={t('There was an error loading issue tags.')}
+        onRetry={refetch}
+      />
     );
   }
 
-  renderBody() {
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Alert type="info">
-            {tct(
-              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
-                ),
-              }
-            )}
-          </Alert>
-          {this.renderTags()}
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Alert type="info">
+          {tct(
+            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
+              ),
+            }
+          )}
+        </Alert>
+        <Container>
+          {alphabeticalTags.map((tag, tagIdx) => (
+            <TagItem key={tagIdx}>
+              <StyledPanel>
+                <PanelBody withPadding>
+                  <TagHeading>
+                    <Link
+                      to={{
+                        pathname: `${baseUrl}tags/${tag.key}/`,
+                        query: extractSelectionParameters(location.query),
+                      }}
+                    >
+                      <span data-test-id="tag-title">{tag.key}</span>
+                    </Link>
+                  </TagHeading>
+                  <UnstyledUnorderedList>
+                    {tag.topValues.map((tagValue, tagValueIdx) => (
+                      <li key={tagValueIdx} data-test-id={tag.key}>
+                        <TagBarGlobalSelectionLink
+                          to={{
+                            pathname: `${baseUrl}events/`,
+                            query: {
+                              query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
+                            },
+                          }}
+                        >
+                          <TagBarBackground
+                            widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
+                          />
+                          <TagBarLabel>
+                            {tag.key === 'release' ? (
+                              <Version version={tagValue.name} anchor={false} />
+                            ) : (
+                              <DeviceName value={tagValue.name} />
+                            )}
+                          </TagBarLabel>
+                          <TagBarCount>
+                            <Count value={tagValue.count} />
+                          </TagBarCount>
+                        </TagBarGlobalSelectionLink>
+                      </li>
+                    ))}
+                  </UnstyledUnorderedList>
+                </PanelBody>
+              </StyledPanel>
+            </TagItem>
+          ))}
+        </Container>
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
 const Container = styled('div')`
@@ -266,4 +238,4 @@ const TagBarCount = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-export default withOrganization(GroupTags);
+export default GroupTags;
