@@ -22,7 +22,7 @@ def new_issue_occurrence(
     evidence_data: Optional[Dict[str, Any]] = None,
     evidence_display: Optional[List[IssueEvidence]] = None,
 ) -> None:
-    """Produce a new issue occurence to Kafka."""
+    """Produce a new issue occurrence to Kafka."""
     event_id = uuid.uuid4().hex
     extra_event_data["event_id"] = event_id
 
