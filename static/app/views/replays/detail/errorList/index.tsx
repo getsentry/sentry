@@ -54,15 +54,15 @@ function ErrorList() {
     });
 
   const {
-    handleClick: onClickToJump,
-    onSectionRendered,
-    showJumpDownButton,
     showJumpUpButton,
+    showJumpDownButton,
+    handleClick: onClickToJump,
+    handleScroll,
   } = useJumpButtons({
     currentTime,
     frames: filteredItems,
-    isTable: true,
     setScrollToRow,
+    rowHeight: BODY_HEIGHT,
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
@@ -139,22 +139,22 @@ function ErrorList() {
                     </NoRowRenderer>
                   )}
                   onScrollbarPresenceChange={onScrollbarPresenceChange}
-                  onScroll={() => {
+                  onScroll={scrollParams => {
                     if (scrollToRow !== undefined) {
                       setScrollToRow(undefined);
                     }
+                    handleScroll(scrollParams);
                   }}
-                  onSectionRendered={onSectionRendered}
+                  scrollToRow={scrollToRow}
                   overscanColumnCount={COLUMN_COUNT}
                   overscanRowCount={5}
                   rowCount={items.length + 1}
                   rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                  scrollToRow={scrollToRow}
                   width={width}
                 />
               )}
             </AutoSizer>
-            {sortConfig.by === 'timestamp' && items.length ? (
+            {sortConfig.by === 'timestamp' && errorFrames?.length ? (
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                 onClick={onClickToJump}
