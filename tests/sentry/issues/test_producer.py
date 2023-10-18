@@ -196,30 +196,20 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
 
     @patch("sentry.issues.occurrence_status_change.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
-        for testcase in [
-            {
-                "status": GroupStatus.RESOLVED,
-                "substatus": GroupSubStatus.FOREVER,
-                "error_msg": "group.update_status.unexpected_substatus",
-            },
-            {
-                "status": GroupStatus.IGNORED,
-                "substatus": None,
-                "error_msg": "group.update_status.missing_substatus",
-            },
-            {
-                "status": GroupStatus.IGNORED,
-                "substatus": GroupSubStatus.REGRESSED,
-                "error_msg": "group.update_status.invalid_substatus",
-            },
-            {
-                "status": GroupStatus.UNRESOLVED,
-                "substatus": GroupSubStatus.NEW,
-                "error_msg": "group.update_status.invalid_substatus",
-            },
+        for status, substatus, error_msg in [
+            (
+                GroupStatus.RESOLVED,
+                GroupSubStatus.FOREVER,
+                "group.update_status.unexpected_substatus",
+            ),
+            (GroupStatus.IGNORED, None, "group.update_status.missing_substatus"),
+            (
+                GroupStatus.IGNORED,
+                GroupSubStatus.REGRESSED,
+                "group.update_status.invalid_substatus",
+            ),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW, "group.update_status.invalid_substatus"),
         ]:
-            status = testcase["status"]
-            substatus = testcase["substatus"]
             bad_status_change = OccurrenceStatusChange(
                 fingerprint=[self.group_hash.hash],
                 project_id=self.group.project_id,
@@ -232,7 +222,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             )
             self.group.refresh_from_db()
             mock_logger_error.assert_called_with(
-                testcase["error_msg"],
+                error_msg,
                 extra={
                     "project_id": self.group.project_id,
                     "fingerprint": [self.group_hash.hash],
