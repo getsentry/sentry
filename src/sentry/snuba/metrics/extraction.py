@@ -30,6 +30,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
+from sentry.search.events.builder import UnresolvedQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -174,6 +175,10 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 Variables = Dict[str, Any]
 
+query_builder = UnresolvedQuery(
+    dataset=Dataset.Discover, params={}
+)  # Workaround to get all updated discover functions instead of using the deprecated events fields.
+
 
 class ComparingRuleCondition(TypedDict):
     """RuleCondition that compares a named field to a reference value."""
@@ -289,8 +294,12 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             # TODO(Ogi): Implement support for equations
             return SupportedBy.neither()
 
-        function, args, _ = fields.parse_function(aggregate)
+        match = fields.is_function(aggregate)
 
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+
+        function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function)
         args_support = _get_args_support(function, args)
 
@@ -570,10 +579,10 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
+TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
     """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
@@ -591,16 +600,17 @@ def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
     ]
 
 
-def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
+def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
     _, metric = _get_apdex_project_transaction_threshold(project)
 
     # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
     #  support that.
-    if argument is None:
+    if not arguments:
         raise Exception("apdex requires a threshold parameter.")
 
     field = _map_field_name(metric)
-    apdex_threshold = int(argument)
+    threshold = arguments[0]
+    apdex_threshold = int(threshold)
 
     return [
         {
@@ -640,7 +650,7 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
 @dataclass(frozen=True)
 class FieldParsingResult:
     function: str
-    arguments: List[str]
+    arguments: Sequence[str]
     alias: str
 
 
@@ -664,26 +674,30 @@ class OnDemandMetricSpec:
 
     # Private fields.
     _metric_type: str
-    _argument: Optional[str]
+    _arguments: Sequence[str]
 
     def __init__(self, field: str, query: str):
         self.field = field
         self.query = query
+        self._arguments = []
         self._eager_process()
 
     def _eager_process(self):
-        op, metric_type, argument = self._process_field()
+        op, metric_type, arguments = self._process_field()
 
         self.op = op
         self._metric_type = metric_type
-        self._argument = argument
+        self._arguments = arguments or []
 
     @property
     def field_to_extract(self):
-        if self.op == "on_demand_apdex":
+        if self.op in ("on_demand_apdex"):
             return None
 
-        return self._argument
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     @cached_property
     def mri(self) -> str:
@@ -717,9 +731,12 @@ class OnDemandMetricSpec:
         ]:
             return self.op
         elif self.op == "on_demand_apdex":
-            return f"{self.op}:{self._argument}"
+            return f"{self.op}:{self._arguments[0]}"
 
-        return self._argument
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     def _query_for_hash(self):
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
@@ -739,7 +756,7 @@ class OnDemandMetricSpec:
         if tags_specs_generator is None:
             return []
 
-        return tags_specs_generator(project, self._argument)
+        return tags_specs_generator(project, self._arguments)
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
@@ -760,7 +777,7 @@ class OnDemandMetricSpec:
 
         return metric_spec
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[str]]:
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
@@ -768,7 +785,7 @@ class OnDemandMetricSpec:
         op = self._get_op(parsed_field.function)
         metric_type = self._get_metric_type(parsed_field.function)
 
-        return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
+        return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
     def _process_query(self) -> Optional[RuleCondition]:
         parsed_field = self._parse_field(self.field)
@@ -814,20 +831,21 @@ class OnDemandMetricSpec:
         return None
 
     @staticmethod
-    def _parse_argument(
+    def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
-    ) -> Optional[str]:
-        requires_single_argument = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
-        if not requires_single_argument:
+    ) -> Optional[Sequence[str]]:
+        requires_arguments = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
+        if not requires_arguments:
             return None
 
-        if len(parsed_field.arguments) != 1:
-            raise Exception(f"The operation {op} supports only a single parameter")
+        if len(parsed_field.arguments) == 0:
+            raise Exception(f"The operation {op} supports one or more parameters")
 
-        argument = parsed_field.arguments[0]
+        arguments = parsed_field.arguments
         map_argument = op not in ["on_demand_apdex"]
 
-        return _map_field_name(argument) if map_argument else argument
+        first_argument = arguments[0]
+        return [_map_field_name(first_argument)] if map_argument else arguments
 
     @staticmethod
     def _get_op(function: str) -> MetricOperationType:
@@ -860,7 +878,12 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
-            function, arguments, alias = fields.parse_function(value)
+            match = fields.is_function(value)
+
+            if not match:
+                raise InvalidSearchQuery(f"Invalid characters in field {value}")
+
+            function, _, arguments, alias = query_builder.parse_function(match)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
         except InvalidSearchQuery:
             return None
