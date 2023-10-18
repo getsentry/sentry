@@ -637,7 +637,7 @@ def get_function_for_token(frame, token, previous_frame=None):
 
 def fold_function_name(function_name):
     """
-    Fold multiple consecutive occurences of the same property name into a single group, excluding the last component.
+    Fold multiple consecutive occurrences of the same property name into a single group, excluding the last component.
 
     foo | foo
     foo.foo | foo.foo

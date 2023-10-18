@@ -94,6 +94,7 @@ export interface FlamegraphTheme {
     FRAME_FONT: string;
   };
   SIZES: {
+    AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: number;
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
@@ -153,6 +154,7 @@ const SPANS_LCH_DARK = {
 };
 
 const SIZES: FlamegraphTheme['SIZES'] = {
+  AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: 4,
   BAR_FONT_SIZE: 11,
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,

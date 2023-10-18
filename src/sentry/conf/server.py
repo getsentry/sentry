@@ -1363,6 +1363,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Enables transaction to metric dataset migration UI for alert rules
+    "organizations:alert-migration-ui": False,
+    # Enables the migration of alerts (checked in a migration script).
+    "organizations:alerts-migration-enabled": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1393,6 +1397,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable the new crons monitor form
+    "organizations:crons-new-monitor-form": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
@@ -1423,6 +1429,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable querying Snuba to get the EventUser
+    "organizations:eventuser-from-snuba": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1455,8 +1463,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable profiling statistical detectors
-    "organizations:profiling-statistical-detectors": False,
+    # Enable profiling statistical detectors ema detection
+    "organizations:profiling-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1487,6 +1497,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable issue stream performance improvements
+    "organizations:issue-stream-performance": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1497,6 +1509,8 @@ SENTRY_FEATURES = {
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
     "organizations:on-demand-metrics-extraction-experimental": False,
+    # Display on demand metrics related UI elements
+    "organizations:on-demand-metrics-ui": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1580,7 +1594,7 @@ SENTRY_FEATURES = {
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
-    "organizations:new-page-filter": False,
+    "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
     "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1642,6 +1656,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
+    # Enable removing the fallback for metrics compatibility
+    "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1691,6 +1707,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable browser starfish view
+    "organizations:starfish-browser-webvitals": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1699,8 +1717,6 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
-    # Enable performance issues detector threshold configuration
-    "organizations:project-performance-settings-admin": True,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
@@ -1709,6 +1725,10 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
+    # Enable profiling statistical detectors ema detection
+    "organizations:performance-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:performance-statistical-detectors-breakpoint": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1738,8 +1758,6 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
-    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
-    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
@@ -1748,8 +1766,6 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
-    # Enable updates to the stacktrace ui
-    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
