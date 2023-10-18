@@ -52,6 +52,28 @@ describe('GroupTags', function () {
     });
   });
 
+  it('navigates to performance tags summary heatmap when tag key is clicked', async function () {
+    render(
+      <GroupTags
+        {...routerProps}
+        group={group}
+        environments={['dev']}
+        baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
+      />,
+      {context: routerContext, organization}
+    );
+
+    await screen.findAllByTestId('tag-title');
+    await userEvent.click(screen.getByText('browser'));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/summary/tags/',
+      query: expect.objectContaining({
+        tagKey: 'browser',
+      }),
+    });
+  });
+
   it('shows an error message when the request fails', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',

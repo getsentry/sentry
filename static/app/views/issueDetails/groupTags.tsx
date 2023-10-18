@@ -21,8 +21,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {generateTagsRoute} from '../performance/transactionSummary/transactionTags/utils';
 
 type GroupTagsProps = {
   baseUrl: string;
@@ -56,6 +59,11 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
 
   const {transaction, aggregateRange2, breakpoint} =
     event?.occurrence?.evidenceData ?? {};
+
+  const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 14,
+  });
 
   const shouldUseTagFacetsEndpoint =
     organization.features.includes('performance-duration-regression-visible') &&
@@ -102,6 +110,20 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
     );
   }
 
+  const getTagKeyTarget = (tag: SimpleTag) => {
+    return {
+      pathname: generateTagsRoute({orgSlug: organization.slug}),
+      query: {
+        ...extractSelectionParameters(location.query),
+        start: (beforeDateTime as Date).toISOString(),
+        end: (afterDateTime as Date).toISOString(),
+        statsPeriod: undefined,
+        tagKey: tag.key,
+        transaction,
+      },
+    };
+  };
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -121,12 +143,7 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
               <StyledPanel>
                 <PanelBody withPadding>
                   <TagHeading>
-                    <Link
-                      to={{
-                        pathname: `${baseUrl}tags/${tag.key}/`,
-                        query: extractSelectionParameters(location.query),
-                      }}
-                    >
+                    <Link to={getTagKeyTarget(tag)}>
                       <span data-test-id="tag-title">{tag.key}</span>
                     </Link>
                   </TagHeading>
