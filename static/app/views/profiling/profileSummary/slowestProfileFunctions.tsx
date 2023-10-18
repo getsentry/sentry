@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -176,9 +176,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
                   </div>
                   <div>
                     <Count value={fn['count()'] as number} />{' '}
-                    {typeof fn['count()'] === 'number' && fn['count()'] > 1
-                      ? t('times')
-                      : t('time')}
+                    {tn('time', 'times', fn['count()'])}
                     {', '}
                     <PerformanceDuration
                       nanoseconds={fn['p75()'] as number}
