@@ -196,12 +196,16 @@ export function getExactDuration(
     if (levels[i][0] === 0) {
       continue;
     }
+    const singular = levels[i][1].substring(0, levels[i][1].length - 1);
+    const duration = levels[i][1];
+    const quotient = levels[i][0];
+
     returntext +=
-      ' ' +
-      levels[i][0] +
-      (!abbreviation && Math.abs(levels[i][0]) === 1
-        ? (levels[i][1] as string).substring(0, levels[i][1].length - 1) // strip the 's' from the end if its singular
-        : levels[i][1]);
+      ' ' + quotient + abbreviation
+        ? // eslint-disable-next-line sentry/no-dynamic-translations
+          t(duration)
+        : // eslint-disable-next-line sentry/no-dynamic-translations
+          tn(singular, duration, levels[i][0]);
     if (minDuration === levels[i][1].trim()) {
       break;
     }
