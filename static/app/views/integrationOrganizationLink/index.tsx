@@ -105,18 +105,13 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
 
     try {
-      const {installationId} = this.props.params;
-      const [organization, {providers}, installation_data]: [
+      const [organization, {providers}]: [
         Organization,
         {providers: IntegrationProvider[]},
-        string,
       ] = await Promise.all([
         this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
         this.controlSiloApi.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
-        ),
-        this.controlSiloApi.requestPromise(
-          `/../../extensions/github/installation/${installationId}/`
         ),
       ]);
       // should never happen with a valid provider
@@ -124,7 +119,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         throw new Error('Invalid provider');
       }
       this.setState(
-        {organization, reloading: false, provider: providers[0], installation_data},
+        {organization, reloading: false, provider: providers[0]},
         this.trackOpened
       );
     } catch (_err) {
@@ -265,7 +260,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   }
 
   renderBody() {
-    const {selectedOrgSlug, installation_data} = this.state;
+    const {selectedOrgSlug} = this.state;
     const options = this.state.organizations.map((org: Organization) => ({
       value: org.slug,
       label: (
@@ -281,14 +276,6 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     return (
       <NarrowLayout>
         <h3>{t('Finish integration installation')}</h3>
-        <Alert type="info" showIcon>
-          {tct(
-            `Nice message mentioning that SENDER requested to install GitHub app to ACCOUNT_TYPE ACCOUNT_NAME: [installation_data]`,
-            {
-              installation_data: <strong>{installation_data}</strong>,
-            }
-          )}
-        </Alert>
         <p>
           {tct(
             `Please pick a specific [organization:organization] to link with
