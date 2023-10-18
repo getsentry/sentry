@@ -8,7 +8,7 @@ import {Orientation} from '@react-types/shared';
 
 import {tabsShouldForwardProp} from './utils';
 
-export {TabList, TabListProps} from './tabList';
+export {TabList, type TabListProps} from './tabList';
 export {TabPanels} from './tabPanels';
 
 export interface TabsProps<T>
