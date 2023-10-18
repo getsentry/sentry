@@ -305,7 +305,6 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    can_add = True
     features = frozenset([IntegrationFeatures.COMMITS])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
