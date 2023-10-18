@@ -1123,8 +1123,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     needs_default_identity = True
 
-    can_add = True
-
     features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
 
     setup_dialog_config = {"width": 1030, "height": 1000}

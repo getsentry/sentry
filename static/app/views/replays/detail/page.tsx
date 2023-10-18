@@ -67,7 +67,11 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
               {replayRecord ? (
                 <TimeContainer>
                   <IconCalendar color="gray300" size="xs" />
-                  <StyledTimeSince date={replayRecord.started_at} unitStyle="regular" />
+                  <StyledTimeSince
+                    date={replayRecord.started_at}
+                    isTooltipHoverable
+                    unitStyle="regular"
+                  />
                 </TimeContainer>
               ) : (
                 <HeaderPlaceholder width="80px" height="16px" />

@@ -72,39 +72,43 @@ describe('TransactionThresholdModal', function () {
   it('can update threshold', async function () {
     mountModal(eventView, organization, onApply);
 
-    await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.clear(await screen.findByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '1000{enter}');
 
     await userEvent.click(screen.getByTestId('apply-threshold'));
 
-    expect(postTransactionThresholdMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/project-transaction-threshold-override/',
-      expect.objectContaining({
-        data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
-      })
-    );
+    await waitFor(() => {
+      expect(postTransactionThresholdMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/project-transaction-threshold-override/',
+        expect.objectContaining({
+          data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
+        })
+      );
+    });
   });
 
   it('can update metric', async function () {
     mountModal(eventView, organization, onApply);
 
     await selectEvent.select(
-      screen.getByText('Largest Contentful Paint'),
+      await screen.findByText('Largest Contentful Paint'),
       'Transaction Duration'
     );
 
     await userEvent.click(screen.getByTestId('apply-threshold'));
 
-    expect(postTransactionThresholdMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/project-transaction-threshold-override/',
-      expect.objectContaining({
-        data: {
-          metric: 'duration',
-          threshold: 400,
-          transaction: 'transaction/threshold',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(postTransactionThresholdMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/project-transaction-threshold-override/',
+        expect.objectContaining({
+          data: {
+            metric: 'duration',
+            threshold: 400,
+            transaction: 'transaction/threshold',
+          },
+        })
+      );
+    });
   });
 
   it('can clear metrics', async function () {
@@ -124,7 +128,7 @@ describe('TransactionThresholdModal', function () {
       },
     });
 
-    await userEvent.click(screen.getByTestId('reset-all'));
+    await userEvent.click(await screen.findByTestId('reset-all'));
 
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
     // Replace with project fallback
