@@ -10,6 +10,7 @@ from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.models.projectteam import ProjectTeam
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -121,5 +122,18 @@ def resolve_span_module(builder, alias: str) -> SelectType:
                 ],
             ),
         ],
+        alias,
+    )
+
+
+def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectType:
+    values = []
+    keys = []
+    for device_key, device_values in DEVICE_CLASS.items():
+        values.extend(device_values)
+        keys.extend([device_key] * len(device_values))
+    return Function(
+        "transform",
+        [builder.column("device.class"), values, keys, "Unknown"],
         alias,
     )

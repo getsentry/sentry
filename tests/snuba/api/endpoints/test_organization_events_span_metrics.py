@@ -924,3 +924,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_unique_values_span_domain_with_filter(self):
         super().test_unique_values_span_domain_with_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class_filter(self):
+        super().test_device_class_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class(self):
+        super().test_device_class()
