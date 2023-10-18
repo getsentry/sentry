@@ -217,7 +217,7 @@ describe('WidgetBuilder', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('sum(sentry.sessions.session)'),
+      body: MetricsField('session.all'),
     });
 
     MockApiClient.addMockResponse({
