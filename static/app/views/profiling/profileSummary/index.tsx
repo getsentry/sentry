@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -28,6 +28,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -63,10 +64,24 @@ import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSumma
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
+import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
+
+function decodeViewOrDefault(
+  value: string | string[] | null | undefined,
+  defaultValue: 'flamegraph' | 'profiles'
+): 'flamegraph' | 'profiles' {
+  if (!value || Array.isArray(value)) {
+    return defaultValue;
+  }
+  if (value === 'flamegraph' || value === 'profiles') {
+    return value;
+  }
+  return defaultValue;
+}
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
@@ -75,10 +90,12 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 interface ProfileSummaryHeaderProps {
   location: Location;
+  onViewChange: (newVie: 'flamegraph' | 'profiles') => void;
   organization: Organization;
   project: Project | null;
   query: string;
   transaction: string;
+  view: 'flamegraph' | 'profiles';
 }
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
@@ -138,6 +155,12 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
           </LinkButton>
         </Layout.HeaderActions>
       )}
+      <Tabs onChange={props.onViewChange} value={props.view}>
+        <TabList hideBorder>
+          <TabList.Item key="flamegraph">Flamegraph</TabList.Item>
+          <TabList.Item key="profiles">profiles</TabList.Item>
+        </TabList>
+      </Tabs>
     </ProfilingHeader>
   );
 }
@@ -147,6 +170,8 @@ const ProfilingHeader = styled(Layout.Header)`
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: ${space(1)};
+
   h1 {
     line-height: normal;
   }
@@ -245,6 +270,7 @@ interface ProfileSummaryPageProps {
     projectId?: Project['slug'];
   };
   selection: PageFilters;
+  view: 'flamegraph' | 'profile list';
 }
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
@@ -339,6 +365,25 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
+  const location = useLocation();
+  const [view, setView] = useState<'flamegraph' | 'profiles'>(
+    decodeViewOrDefault(location.query.view, 'flamegraph')
+  );
+
+  const onSetView = useCallback(
+    (newView: 'flamegraph' | 'profiles') => {
+      setView(newView);
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          view: newView,
+        },
+      });
+    },
+    [location]
+  );
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -356,6 +401,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           }
         >
           <ProfileSummaryHeader
+            view={view}
+            onViewChange={onSetView}
             organization={organization}
             location={props.location}
             project={project}
@@ -376,56 +423,60 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             query={query}
             hideCount
           />
-          <ProfileVisualizationContainer>
-            <ProfileVisualization>
-              <ProfileGroupProvider
-                traceID=""
-                type="flamegraph"
-                input={data ?? null}
-                frameFilter={flamegraphFrameFilter}
-              >
-                <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
-                  <FlamegraphThemeProvider>
-                    <FlamegraphProvider>
-                      <AggregateFlamegraphContainer>
-                        <AggregateFlamegraphToolbar
-                          scheduler={scheduler}
-                          canvasPoolManager={canvasPoolManager}
-                          visualization={visualization}
-                          onVisualizationChange={onVisualizationChange}
-                          frameFilter={frameFilter}
-                          onFrameFilterChange={onFrameFilterChange}
-                          hideSystemFrames={false}
-                          setHideSystemFrames={() => void 0}
-                        />
-                        {visualization === 'flamegraph' ? (
-                          <AggregateFlamegraph
-                            canvasPoolManager={canvasPoolManager}
+          {view === 'profiles' ? (
+            <ProfilesTable />
+          ) : (
+            <ProfileVisualizationContainer>
+              <ProfileVisualization>
+                <ProfileGroupProvider
+                  traceID=""
+                  type="flamegraph"
+                  input={data ?? null}
+                  frameFilter={flamegraphFrameFilter}
+                >
+                  <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
+                    <FlamegraphThemeProvider>
+                      <FlamegraphProvider>
+                        <AggregateFlamegraphContainer>
+                          <AggregateFlamegraphToolbar
                             scheduler={scheduler}
-                          />
-                        ) : (
-                          <AggregateFlamegraphTreeTable
-                            recursion={null}
-                            expanded={false}
-                            frameFilter={frameFilter}
-                            canvasScheduler={scheduler}
                             canvasPoolManager={canvasPoolManager}
+                            visualization={visualization}
+                            onVisualizationChange={onVisualizationChange}
+                            frameFilter={frameFilter}
+                            onFrameFilterChange={onFrameFilterChange}
+                            hideSystemFrames={false}
+                            setHideSystemFrames={() => void 0}
                           />
-                        )}
-                      </AggregateFlamegraphContainer>
-                    </FlamegraphProvider>
-                  </FlamegraphThemeProvider>
-                </FlamegraphStateProvider>
-              </ProfileGroupProvider>
-            </ProfileVisualization>
-            <ProfileDigestContainer>
-              <ProfileDigestScrollContainer>
-                <ProfileDigest />
-                <MostRegressedProfileFunctions transaction={transaction} />
-                <SlowestProfileFunctions transaction={transaction} />
-              </ProfileDigestScrollContainer>
-            </ProfileDigestContainer>
-          </ProfileVisualizationContainer>
+                          {visualization === 'flamegraph' ? (
+                            <AggregateFlamegraph
+                              canvasPoolManager={canvasPoolManager}
+                              scheduler={scheduler}
+                            />
+                          ) : (
+                            <AggregateFlamegraphTreeTable
+                              recursion={null}
+                              expanded={false}
+                              frameFilter={frameFilter}
+                              canvasScheduler={scheduler}
+                              canvasPoolManager={canvasPoolManager}
+                            />
+                          )}
+                        </AggregateFlamegraphContainer>
+                      </FlamegraphProvider>
+                    </FlamegraphThemeProvider>
+                  </FlamegraphStateProvider>
+                </ProfileGroupProvider>
+              </ProfileVisualization>
+              <ProfileDigestContainer>
+                <ProfileDigestScrollContainer>
+                  <ProfileDigest />
+                  <MostRegressedProfileFunctions transaction={transaction} />
+                  <SlowestProfileFunctions transaction={transaction} />
+                </ProfileDigestScrollContainer>
+              </ProfileDigestContainer>
+            </ProfileVisualizationContainer>
+          )}
         </PageFiltersContainer>
       </ProfileSummaryContainer>
     </SentryDocumentTitle>
