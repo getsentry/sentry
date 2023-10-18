@@ -22,7 +22,6 @@ const FIELDS = [
   'os.version',
 ] as const;
 
-// user misery is only available with the profiling-using-transactions feature
 type FieldType = (typeof FIELDS)[number];
 
 export function ProfilesTable() {
