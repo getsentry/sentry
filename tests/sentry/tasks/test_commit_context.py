@@ -583,7 +583,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
     @with_feature("organizations:suspect-commits-all-frames")
     def test_success_create_commit(self, mock_get_commit_context, mock_record):
         """
-        A simple success case where a new commit
+        A simple success case where a new commit needs to be created.
         """
         mock_get_commit_context.return_value = [self.blame_no_existing_commit]
         with self.tasks():
