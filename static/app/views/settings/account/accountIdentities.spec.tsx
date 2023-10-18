@@ -3,7 +3,6 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
@@ -57,8 +56,6 @@ describe('AccountIdentities', function () {
 
     expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
     expect(await screen.findByText('GitHub')).toBeInTheDocument();
     expect(await screen.findByText('Google')).toBeInTheDocument();
   });
@@ -105,11 +102,16 @@ describe('AccountIdentities', function () {
     const mock = MockApiClient.addMockResponse(disconnectRequest);
 
     expect(mock).not.toHaveBeenCalled();
-
     await userEvent.click(await screen.findByRole('button', {name: 'Disconnect'}));
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
+
+    expect(
+      await screen.findByText(
+        'There are no organization identities associated with your Sentry account'
+      )
+    ).toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(

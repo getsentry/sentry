@@ -19,12 +19,13 @@ import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const EMPTY_ARRAY = [];
+const IDENTITIES_ENDPOINT = '/users/me/user-identities/';
 
 function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
   function categoryRank(c: UserIdentityConfig) {
@@ -41,10 +42,9 @@ function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
   if (a.category !== b.category) {
     return categoryRank(a) - categoryRank(b);
   }
-  if ((a.organization?.name ?? '') !== (b.organization?.name ?? '')) {
-    return (a.organization?.name ?? '') < (b.organization?.name ?? '') ? -1 : 1;
-  }
-  return 0;
+  const nameA = a.organization?.name ?? '';
+  const nameB = b.organization?.name ?? '';
+  return nameA.localeCompare(nameB);
 }
 
 interface IdentityItemProps {
@@ -122,12 +122,13 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
 }
 
 function AccountIdentities() {
+  const queryClient = useQueryClient();
   const {
     data: identities = EMPTY_ARRAY,
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>(['/users/me/user-identities/'], {
+  } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
     staleTime: 0,
   });
 
@@ -149,9 +150,17 @@ function AccountIdentities() {
 
   const handleDisconnect = useCallback(
     (identity: UserIdentityConfig) => {
-      disconnectIdentity(identity, () => refetch());
+      disconnectIdentity(identity, () => {
+        setApiQueryData(queryClient, [IDENTITIES_ENDPOINT], oldData => {
+          if (!Array.isArray(oldData)) {
+            return oldData;
+          }
+
+          return oldData.filter(i => i.id !== identity.id);
+        });
+      });
     },
-    [refetch]
+    [queryClient]
   );
 
   if (isLoading) {
