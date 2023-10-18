@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
@@ -10,7 +11,6 @@ import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 const ENDPOINT = '/users/me/user-identities/';
 
 describe('AccountIdentities', function () {
-  const router = TestStubs.router();
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -22,19 +22,10 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    render(
-      <AccountIdentities
-        route={router.routes[0]}
-        routeParams={router.params}
-        location={router.location}
-        params={router.params}
-        router={router}
-        routes={router.routes}
-      />
-    );
+    render(<AccountIdentities />);
   });
 
-  it('renders list', function () {
+  it('renders list', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -49,19 +40,41 @@ describe('AccountIdentities', function () {
           status: 'can_disconnect',
           organization: null,
         },
+        {
+          category: 'org-identity',
+          id: '2',
+          provider: {
+            key: 'google',
+            name: 'Google',
+          },
+          status: 'needed_for_global_auth',
+          organization: null,
+        },
       ],
     });
 
-    render(
-      <AccountIdentities
-        route={router.routes[0]}
-        routeParams={router.params}
-        location={router.location}
-        params={router.params}
-        router={router}
-        routes={router.routes}
-      />
-    );
+    render(<AccountIdentities />);
+
+    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    expect(await screen.findByText('GitHub')).toBeInTheDocument();
+    expect(await screen.findByText('Google')).toBeInTheDocument();
+  });
+
+  it('renders loading error', async function () {
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+    render(<AccountIdentities />);
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
   });
 
   it('disconnects identity', async function () {
@@ -82,16 +95,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    render(
-      <AccountIdentities
-        route={router.routes[0]}
-        routeParams={router.params}
-        location={router.location}
-        params={router.params}
-        router={router}
-        routes={router.routes}
-      />
-    );
+    render(<AccountIdentities />);
 
     const disconnectRequest = {
       url: `${ENDPOINT}social-identity/1/`,
@@ -102,7 +106,7 @@ describe('AccountIdentities', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Disconnect'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Disconnect'}));
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
