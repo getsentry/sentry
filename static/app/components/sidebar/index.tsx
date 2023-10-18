@@ -46,6 +46,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
 import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -219,8 +220,11 @@ function Sidebar({location, organization}: Props) {
       organization={organization}
     >
       {(() => {
-        // If Database View is enabled, show a Performance accordion with a Database sub-item
-        if (organization.features.includes('performance-database-view')) {
+        // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
+        if (
+          organization.features.includes('performance-database-view') ||
+          organization.features.includes('starfish-browser-webvitals')
+        ) {
           return (
             <SidebarAccordion
               {...sidebarItemProps}
@@ -229,18 +233,44 @@ function Sidebar({location, organization}: Props) {
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
             >
-              <SidebarItem
-                {...sidebarItemProps}
-                isAlpha={RELEASE_LEVEL === 'alpha'}
-                isBeta={RELEASE_LEVEL === 'beta'}
-                isNew={RELEASE_LEVEL === 'new'}
-                label={
-                  <GuideAnchor target="performance-database">{t('Queries')}</GuideAnchor>
-                }
-                to={`/organizations/${organization.slug}/performance/database/`}
-                id="performance-database"
-                icon={<SubitemDot collapsed={collapsed} />}
-              />
+              <Feature
+                features={['performance-database-view']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isAlpha={RELEASE_LEVEL === 'alpha'}
+                  isBeta={RELEASE_LEVEL === 'beta'}
+                  isNew={RELEASE_LEVEL === 'new'}
+                  label={
+                    <GuideAnchor target="performance-database">
+                      {t('Queries')}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/database/`}
+                  id="performance-database"
+                  icon={<SubitemDot collapsed={collapsed} />}
+                />
+              </Feature>
+              <Feature
+                features={['starfish-browser-webvitals']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
+                  isBeta={WEBVITALS_RELEASE_LEVEL === 'beta'}
+                  isNew={WEBVITALS_RELEASE_LEVEL === 'new'}
+                  label={
+                    <GuideAnchor target="performance-webvitals">
+                      {t('Web Vitals')}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
+                  id="performance-webvitals"
+                  icon={<SubitemDot collapsed={collapsed} />}
+                />
+              </Feature>
             </SidebarAccordion>
           );
         }
@@ -294,13 +324,6 @@ function Sidebar({location, organization}: Props) {
           to={`/organizations/${organization.slug}/performance/browser/resources`}
           id="performance-browser-resources"
           icon={<IconFile />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Page Loads')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/pageloads`}
-          id="performance-browser-page-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
         />
         <SidebarItem
           {...sidebarItemProps}

@@ -8,7 +8,7 @@ const durationFormatter = makeFormatter('nanoseconds', 0);
 function asSeries(seriesName: string, data: {timestamp: number; value: number}[]) {
   return {
     data: data.map(p => ({
-      name: p.timestamp,
+      name: p.timestamp * 1e3,
       value: p.value ?? 0,
     })),
     seriesName,
