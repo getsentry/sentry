@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -157,8 +157,8 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
-          <TabList.Item key="flamegraph">Flamegraph</TabList.Item>
-          <TabList.Item key="profiles">profiles</TabList.Item>
+          <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
+          <TabList.Item key="profiles">{t('Sampled Profiles')}</TabList.Item>
         </TabList>
       </Tabs>
     </ProfilingHeader>
@@ -369,6 +369,13 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const [view, setView] = useState<'flamegraph' | 'profiles'>(
     decodeViewOrDefault(location.query.view, 'flamegraph')
   );
+
+  useEffect(() => {
+    const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
+    if (newView !== view) {
+      setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
+    }
+  }, [location.query.view, view]);
 
   const onSetView = useCallback(
     (newView: 'flamegraph' | 'profiles') => {

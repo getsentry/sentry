@@ -155,31 +155,28 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   }
 
   if (key === 'trace') {
-    const traceId = props.dataRow[key];
+    const traceId = getShortEventId(props.dataRow[key] ?? '');
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
 
     return (
       <Container>
-        <Link to={`/performance/trace/${getShortEventId(traceId)}`}>{traceId}</Link>
+        <Link to={`/performance/trace/${traceId}`}>{traceId}</Link>
       </Container>
     );
   }
 
   if (key === 'trace.transaction') {
     const project = getProjectForRow(props.baggage, props.dataRow);
-
-    const transactionId = props.dataRow[key];
+    const transactionId = getShortEventId(props.dataRow[key] ?? '');
     if (!project) {
       return <Container>{transactionId}</Container>;
     }
 
     return (
       <Container>
-        <Link to={`/performance/${project.slug}:${getShortEventId(transactionId)}`}>
-          {transactionId}
-        </Link>
+        <Link to={`/performance/${project.slug}:${transactionId}`}>{transactionId}</Link>
       </Container>
     );
   }
