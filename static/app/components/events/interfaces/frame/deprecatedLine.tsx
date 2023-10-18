@@ -305,9 +305,6 @@ export class DeprecatedLine extends Component<Props, State> {
       hiddenFrameCount,
     } = this.props;
     const organization = this.props.organization;
-    const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-improvements'
-    );
     const anrCulprit =
       isANR &&
       analyzeFrameForRootCause(
@@ -339,12 +336,8 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
-          isNotInApp={!data.inApp}
         >
-          <DefaultLineTitleWrapper
-            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-          >
+          <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
               <div>
                 {this.renderLeadHint()}
@@ -364,7 +357,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
-            {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerToggle ? (
               <Fragment>
                 <SourceMapDebuggerModalButton
@@ -411,13 +404,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {!data.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
-            )}
+            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {this.renderExpander()}
           </DefaultLineTagWrapper>
         </DefaultLine>
@@ -443,20 +430,14 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
-    const organization = this.props.organization;
-    const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-improvements'
-    );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
           className="title as-table"
           data-test-id="title"
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
-          isNotInApp={!data.inApp}
         >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
@@ -497,19 +478,11 @@ export class DeprecatedLine extends Component<Props, State> {
             />
           </NativeLineContent>
           <DefaultLineTagWrapper>
-            <DefaultLineTitleWrapper
-              stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-            >
+            <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
               {this.renderExpander()}
             </DefaultLineTitleWrapper>
 
-            {!data.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
-            )}
+            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
           </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
@@ -584,12 +557,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')<{stacktraceChangesEnabled: boolean}>`
+const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
-  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
+  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
+  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
@@ -626,15 +599,12 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')<{
   hasToggle: boolean;
-  isNotInApp: boolean;
   isSubFrame: boolean;
-  stacktraceChangesEnabled: boolean;
 }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
+  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : '')};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
