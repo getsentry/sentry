@@ -328,6 +328,7 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   text-align: right;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 1px ${space(0.5)} 0 0;
+  user-select: none;
 `;
 
 const LegendAnimateContainer = styled(motion.div, {
