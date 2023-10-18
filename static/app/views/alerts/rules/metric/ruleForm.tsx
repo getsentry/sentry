@@ -636,7 +636,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.state.dataset,
+          dataset: this.determinePerformanceDataset(),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -809,6 +809,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       return dataset;
     }
     return Dataset.GENERIC_METRICS;
+  };
+
+  // We are not allowing the creation of new transaction alerts
+  determinePerformanceDataset = () => {
+    // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
+    // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
+    const {dataset} = this.state;
+    const {ruleId, organization} = this.props;
+    const hasMetricsFeatureFlags =
+      organization.features.includes('mep-rollout-flag') ||
+      organization.features.includes('on-demand-metrics-extraction');
+
+    const isCreatingRule = !ruleId;
+
+    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+      return Dataset.GENERIC_METRICS;
+    }
+    return dataset;
   };
 
   renderLoading() {
