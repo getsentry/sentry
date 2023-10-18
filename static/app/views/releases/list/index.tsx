@@ -101,10 +101,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
-        'releases',
-        `/organizations/${organization.slug}/releases/`,
-        {query},
-        {disableEntireQuery: true},
+        'releases', // stateKey
+        `/organizations/${organization.slug}/releases/`, // endpoint
+        {query}, // params
+        {disableEntireQuery: true}, // options
       ],
     ];
 
