@@ -125,9 +125,6 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-# --cov-context=test is used to annotate what tests are being executed in the coverage info
-# And it's used to power Codecov Automated Test Selection
-# (see .github/workflows/codecov_ats.yml)
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
@@ -136,7 +133,7 @@ test-python-ci: create-db
 		tests/sentry \
 		tests/sentry_plugins \
 		tests/symbolicator \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --cov-context=test
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
 
