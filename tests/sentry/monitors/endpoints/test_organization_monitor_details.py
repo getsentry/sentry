@@ -228,6 +228,24 @@ class UpdateMonitorTest(MonitorTestCase):
             == monitor_environment.next_checkin_latest
         )
 
+        # check that unsetting the parameter works
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"config": {"checkin_margin": None}},
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.config["checkin_margin"] is None
+
+        monitor_environment.refresh_from_db()
+        assert (
+            monitor_environment.next_checkin + timedelta(minutes=1)
+            == monitor_environment.next_checkin_latest
+        )
+
     def test_max_runtime(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor=monitor)
@@ -263,10 +281,25 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["max_runtime"] == 15
 
+        # check that check-in timeout was updated properly
         check_in.refresh_from_db()
         assert check_in.timeout_at == check_in.date_added.replace(
             second=0, microsecond=0
         ) + timedelta(minutes=15)
+
+        # check that unsetting the parameter works
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": None}}
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.config["max_runtime"] is None
+
+        check_in.refresh_from_db()
+        assert check_in.timeout_at == check_in.date_added.replace(
+            second=0, microsecond=0
+        ) + timedelta(minutes=TIMEOUT)
 
     def test_existing_alert_rule(self):
         monitor = self._create_monitor()
