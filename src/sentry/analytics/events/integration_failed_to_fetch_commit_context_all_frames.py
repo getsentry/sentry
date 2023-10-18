@@ -11,7 +11,7 @@ class IntegrationsFailedToFetchCommitContextAllFrames(analytics.Event):
         analytics.Attribute("event_id"),
         analytics.Attribute("num_frames", type=int),
         analytics.Attribute("num_successfully_mapped_frames", type=int),
-        analytics.Attribute("reason", type=str),
+        analytics.Attribute("reason"),
     )
 
 
