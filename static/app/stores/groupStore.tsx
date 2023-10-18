@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {Activity, BaseGroup, Group, GroupStatsUnhandled} from 'sentry/types';
+import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 import toArray from 'sentry/utils/toArray';
 
@@ -70,7 +70,7 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   onMergeError: (changeId: string, itemIds: ItemIds, response: any) => void;
   onMergeSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
-  onPopulateStatsUnhandled: (itemIds: ItemIds, response: GroupStatsUnhandled[]) => void;
+  onPopulateStats: (itemIds: ItemIds, response: GroupStats[]) => void;
 
   onUpdate: (changeId: string, itemIds: ItemIds, data: any) => void;
   onUpdateError: (changeId: string, itemIds: ItemIds, silent: boolean) => void;
@@ -460,10 +460,10 @@ const storeConfig: GroupStoreDefinition = {
     this.updateItems(ids);
   },
 
-  onPopulateStatsUnhandled(itemIds, response) {
+  onPopulateStats(itemIds, response) {
     // Organize stats by id
-    const groupStatsUnhandledMap = response.reduce<Record<string, GroupStatsUnhandled>>(
-      (map, data) => ({...map, [data.id]: data}),
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
+      (map, stats) => ({...map, [stats.id]: stats}),
       {}
     );
 
@@ -471,7 +471,7 @@ const storeConfig: GroupStoreDefinition = {
       if (itemIds?.includes(item.id)) {
         this.items[idx] = {
           ...item,
-          ...groupStatsUnhandledMap[item.id],
+          ...groupStatsMap[item.id],
         };
       }
     });

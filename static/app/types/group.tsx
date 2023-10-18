@@ -517,7 +517,7 @@ interface GroupFiltered {
   userCount: number;
 }
 
-export interface GroupStatsUnhandled extends GroupFiltered {
+export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
   isUnhandled?: boolean;
@@ -641,22 +641,22 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
-export interface GroupReprocessing extends BaseGroup, GroupStatsUnhandled {
+export interface GroupReprocessing extends BaseGroup, GroupStats {
   status: GroupStatus.REPROCESSING;
   statusDetails: ReprocessingStatusDetails;
 }
 
-export interface GroupResolved extends BaseGroup, GroupStatsUnhandled {
+export interface GroupResolved extends BaseGroup, GroupStats {
   status: GroupStatus.RESOLVED;
   statusDetails: ResolvedStatusDetails;
 }
 
-export interface GroupIgnored extends BaseGroup, GroupStatsUnhandled {
+export interface GroupIgnored extends BaseGroup, GroupStats {
   status: GroupStatus.IGNORED;
   statusDetails: IgnoredStatusDetails;
 }
 
-export interface GroupUnresolved extends BaseGroup, GroupStatsUnhandled {
+export interface GroupUnresolved extends BaseGroup, GroupStats {
   status: GroupStatus.UNRESOLVED;
   statusDetails: {};
 }

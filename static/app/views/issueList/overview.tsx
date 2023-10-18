@@ -138,7 +138,7 @@ type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & 
   query: string[];
 };
 
-type StatUnhandledEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
+type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
 };
@@ -264,7 +264,7 @@ class IssueListOverview extends Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
-  private _lastStatsUnhandledRequest: any;
+  private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
   getQueryFromSavedSearchOrLocation({
@@ -379,12 +379,12 @@ class IssueListOverview extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
-  fetchStatsUnhandled = (groups: string[]) => {
+  fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
       return;
     }
-    const requestParams: StatUnhandledEndpointParams = {
+    const requestParams: StatEndpointParams = {
       ...this.getEndpointParams(),
       groups,
     };
@@ -393,35 +393,32 @@ class IssueListOverview extends Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    this._lastStatsUnhandledRequest = this.props.api.request(
-      this.groupStatsUnhandledEndpoint,
-      {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-        success: data => {
-          if (!data) {
-            return;
-          }
-          GroupStore.onPopulateStatsUnhandled(groups, data);
-          this.trackTabViewed(groups, data);
-        },
-        error: err => {
-          this.setState({
-            error: parseApiError(err),
-          });
-        },
-        complete: () => {
-          this._lastStatsUnhandledRequest = null;
+    this._lastStatsRequest = this.props.api.request(this.groupStatsEndpoint, {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: data => {
+        if (!data) {
+          return;
+        }
+        GroupStore.onPopulateStats(groups, data);
+        this.trackTabViewed(groups, data);
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      },
+      complete: () => {
+        this._lastStatsRequest = null;
 
-          // End navigation transaction to prevent additional page requests from impacting page metrics.
-          // Other transactions include stacktrace preview request
-          const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-          if (currentTransaction?.op === 'navigation') {
-            currentTransaction.finish();
-          }
-        },
-      }
-    );
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
+      },
+    });
   };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
@@ -548,8 +545,8 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
-    if (this._lastStatsUnhandledRequest) {
-      this._lastStatsUnhandledRequest.cancel();
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
     }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
@@ -593,7 +590,7 @@ class IssueListOverview extends Component<Props, State> {
         }
         GroupStore.add(data);
 
-        this.fetchStatsUnhandled(data.map((group: BaseGroup) => group.id));
+        this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
@@ -670,9 +667,9 @@ class IssueListOverview extends Component<Props, State> {
     return `/organizations/${organization.slug}/issues-count/`;
   }
 
-  get groupStatsUnhandledEndpoint(): string {
+  get groupStatsEndpoint(): string {
     const {organization} = this.props;
-    return `/organizations/${organization.slug}/issues-stats-unhandled/`;
+    return `/organizations/${organization.slug}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -955,8 +952,8 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
-    if (this._lastStatsUnhandledRequest) {
-      this._lastStatsUnhandledRequest.cancel();
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
     }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
