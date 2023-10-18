@@ -75,13 +75,14 @@ class SlackLinkTeamView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:
-            return render_error_page(request, body_text="HTTP 405: Method not allowed")
+            return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
+                status=400,
                 request=request,
             )
 
@@ -92,18 +93,26 @@ class SlackLinkTeamView(BaseView):
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )
-        # Filter to organizations where we have sufficient role.
-        organizations = [
-            organization_membership.organization
-            for organization_membership in organization_memberships
-            if is_valid_role(organization_membership)
-        ]
+        # Filter to teams where we have write access to, either through having a sufficient
+        # organization role (owner/manager/admin) or by being a team admin on at least one team.
+        teams_by_id = {}
+        for org_membership in organization_memberships:
+            for team in Team.objects.get_for_user(
+                org_membership.organization,
+                request.user,
+                # Setting is_team_admin to True only returns teams that member is team admin on.
+                # We only want to filter for this when the user does not have a sufficient
+                # role in the org, which is checked using is_valid_role.
+                is_team_admin=not is_valid_role(org_membership),
+            ):
+                teams_by_id[team.id] = team
 
-        teams_by_id = {
-            team.id: team
-            for organization in organizations
-            for team in Team.objects.get_for_user(organization, request.user)
-        }
+        if not teams_by_id:
+            return render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: No teams found in your organizations to link. You must be a Sentry organization admin/manager/owner or a team admin to link a team in your respective organization.",
+            )
 
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
@@ -121,25 +130,31 @@ class SlackLinkTeamView(BaseView):
             )
 
         if not form.is_valid():
-            return render_error_page(request, body_text="HTTP 400: Bad request")
+            return render_error_page(request, status=400, body_text="HTTP 400: Bad request")
 
         team_id = int(form.cleaned_data["team"])
         team = teams_by_id.get(team_id)
         if not team:
-            return render_error_page(request, body_text="HTTP 404: Team does not exist")
+            return render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: Team does not exist or you do not have sufficient permission to link a team",
+            )
 
         idp = identity_service.get_provider(
             provider_type="slack", provider_ext_id=integration.external_id
         )
         if idp is None:
             logger.info("slack.action.invalid-team-id", extra={"slack_id": integration.external_id})
-            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+            return render_error_page(request, status=403, body_text="HTTP 403: Invalid team ID")
 
         ident = identity_service.get_identity(
             filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         )
         if not ident:
-            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+            return render_error_page(
+                request, status=403, body_text="HTTP 403: User identity does not exist"
+            )
 
         external_team, created = ExternalActor.objects.get_or_create(
             team_id=team.id,
