@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef, useState} from 'react';
+import {memo, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -9,7 +9,6 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
@@ -36,8 +35,6 @@ function Console() {
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
   const frames = replay?.getConsoleFrames();
 
-  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-
   const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
@@ -55,18 +52,6 @@ function Console() {
     cache,
     listRef,
     expandPathsRef,
-  });
-
-  const {
-    handleClick: onClickToJump,
-    onRowsRendered,
-    showJumpDownButton,
-    showJumpUpButton,
-  } = useJumpButtons({
-    currentTime,
-    frames: items,
-    isTable: false,
-    setScrollToRow,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
@@ -99,6 +84,9 @@ function Console() {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
       <ConsoleFilters frames={frames} {...filterProps} />
@@ -117,18 +105,11 @@ function Console() {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
-                onRowsRendered={onRowsRendered}
-                onScroll={() => {
-                  if (scrollToRow !== undefined) {
-                    setScrollToRow(undefined);
-                  }
-                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
-                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -136,13 +117,11 @@ function Console() {
         ) : (
           <Placeholder height="100%" />
         )}
-        {frames?.length ? (
-          <JumpButtons
-            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
-            onClick={onClickToJump}
-            tableHeaderHeight={0}
-          />
-        ) : null}
+        <JumpButtons
+          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+          onClick={() => {}}
+          tableHeaderHeight={0}
+        />
       </TabItemContainer>
     </FluidHeight>
   );
