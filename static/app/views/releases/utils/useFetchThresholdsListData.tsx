@@ -4,19 +4,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Threshold, ThresholdQuery} from './types';
 
 export type HookProps = {
-  selectedEnvs?: string[];
-  selectedProjectIds?: number[];
+  selectedEnvs: string[];
+  selectedProjects: number[];
 };
 
 export default function useFetchThresholdsListData({
-  selectedEnvs = [],
-  selectedProjectIds = [],
+  selectedEnvs,
+  selectedProjects,
 }: HookProps) {
   const organization = useOrganization();
 
   const query: ThresholdQuery = {};
-  if (selectedProjectIds.length) {
-    query.project = selectedProjectIds;
+  if (selectedProjects.length) {
+    query.project = selectedProjects;
   } else {
     query.project = [-1];
   }
