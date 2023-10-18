@@ -139,9 +139,13 @@ def get_email_avatar(
 def get_platform_avatar(
     display_name: Optional[str],
     size: Optional[int] = None,
-) -> str:
+) -> SafeString:
     # TODO: @taylangocmen add platformicons from package when available
-    return f'<img class="avatar" src="https://raw.githubusercontent.com/getsentry/platformicons/master/svg/{display_name}.svg" height={size}>'
+    return format_html(
+        '<img class="avatar" src="https://raw.githubusercontent.com/getsentry/platformicons/master/svg/{display_name}.svg" height={size}>',
+        display_name=display_name,
+        size=size,
+    )
 
 
 def is_black_alpha_only(data: IO[bytes]) -> bool:

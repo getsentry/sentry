@@ -1,5 +1,4 @@
 from django import template
-from django.utils.safestring import mark_safe
 
 from sentry.utils.avatar import get_letter_avatar, get_platform_avatar
 
@@ -20,4 +19,4 @@ def letter_platform_svg(context, display_name, identifier, size=None, rounded=Fa
 
 @register.simple_tag(takes_context=True)
 def platform_avatar(context, display_name, size=36):
-    return mark_safe(get_platform_avatar(display_name, size))
+    return get_platform_avatar(display_name, size)
