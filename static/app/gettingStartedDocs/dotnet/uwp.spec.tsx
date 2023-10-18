@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './uwp';
 
-describe('wup onboarding docs', function () {
+describe('uwp onboarding docs', function () {
   it('renders docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
