@@ -149,12 +149,13 @@ export function getDuration(
 
 /**
  * Translates seconds into human readable format of seconds, minutes, hours, days, and years
+ * e.g. 1 hour 25 minutes 15 seconds
  *
- * NOTE: seconds input can be a decimal
- * @param  {number} seconds The number of seconds to be processed
- * @param  {boolean} abbreviation abbreviates the suffix
- * @param  {string} minDuration pins the response to desired suffix
- * @return {string}         The phrase describing the amount of time
+ * NOTE: seconds input can be a provided as a decimal
+ * @param  seconds      The number of seconds to be processed
+ * @param  abbreviation abbreviates the suffix
+ * @param  minDuration  pins the response to desired suffix
+ * @return {string}     The phrase describing the amount of time
  */
 export function getExactDuration(
   seconds: number,
