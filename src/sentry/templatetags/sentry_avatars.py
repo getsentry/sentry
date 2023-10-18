@@ -42,7 +42,7 @@ def profile_photo_url(context, user_id, size=None):
 # than 1-2 avatars. It will make a request for every user!
 @register.simple_tag(takes_context=True)
 def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
-    return mark_safe(get_email_avatar(display_name, identifier, size, try_gravatar))
+    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.inclusion_tag("sentry/partial/avatar.html")

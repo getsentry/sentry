@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 from django.utils.html import format_html
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.safestring import SafeString
 
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
@@ -47,6 +47,6 @@ def avatar_as_html(user: User | RpcUser) -> SafeString:
     if avatar_type == "upload":
         return format_html('<img class="avatar" src="{}" />', get_user_avatar_url(user))
     elif avatar_type == "letter_avatar":
-        return mark_safe(get_email_avatar(user.get_display_name(), user.get_label(), 20, False))
+        return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
     else:
-        return mark_safe(get_email_avatar(user.get_display_name(), user.get_label(), 20, True))
+        return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)

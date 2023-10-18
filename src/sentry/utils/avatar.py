@@ -11,7 +11,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_str
-from django.utils.html import escape
+from django.utils.html import escape, format_html
+from django.utils.safestring import SafeString, mark_safe
 from PIL import Image
 
 from sentry.http import safe_urlopen
@@ -114,7 +115,7 @@ def get_email_avatar(
     identifier: str,
     size: Optional[int] = None,
     try_gravatar: Optional[bool] = True,
-) -> str:
+) -> SafeString:
     if try_gravatar:
         try:
             validate_email(identifier)
@@ -129,8 +130,8 @@ def get_email_avatar(
                 if resp.status_code == 200:
                     # default to mm if including in emails
                     gravatar_url = get_gravatar_url(identifier, size=size)
-                    return f'<img class="avatar" src="{gravatar_url}">'
-    return get_letter_avatar(display_name, identifier, size, use_svg=False)
+                    return format_html('<img class="avatar" src="{}">', gravatar_url)
+    return mark_safe(get_letter_avatar(display_name, identifier, size, use_svg=False))
 
 
 def get_platform_avatar(
