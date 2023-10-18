@@ -15,7 +15,7 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
 
 /**
  * Extra breadcrumb types not included in `@sentry/replay`

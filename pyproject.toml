@@ -604,7 +604,6 @@ module = [
     "sentry.services.smtp",
     "sentry.shared_integrations.client.base",
     "sentry.shared_integrations.client.proxy",
-    "sentry.silo.base",
     "sentry.similarity.backends.dummy",
     "sentry.similarity.features",
     "sentry.snuba.discover",
