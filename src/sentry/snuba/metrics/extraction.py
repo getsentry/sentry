@@ -592,13 +592,11 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def _get_field_and_threshold(project: Project, argument: Optional[str]):
-    # The widget does not allow NOT passing an argument but just in case
-    if argument is None:
+def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+    if not arguments:
         raise Exception("Threshold parameter required.")
 
-    _, metric = _get_threshold_and_metric(project)
-    return _map_field_name(metric), int(argument)
+    return int(arguments[0])
 
 
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
@@ -620,7 +618,8 @@ def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
 
 
 def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
-    field, apdex_threshold = _get_field_and_threshold(project, arguments[0])
+    apdex_threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_threshold_and_metric(project)[1])
 
     return [
         {
@@ -647,11 +646,12 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
-def user_misery_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
+def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> List[TagSpec]:
     """A metric that counts the number of unique users who were frustrated; "frustration" is
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
-    field, threshold = _get_field_and_threshold(project, argument)
+    threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_threshold_and_metric(project)[1])
 
     return [
         {
@@ -755,9 +755,9 @@ class OnDemandMetricSpec:
         if self.op in _NO_ARG_METRICS:
             return self.op
         elif self.op in _MULTIPLE_ARGS_METRICS:
-            ret_val = f"{self.op}:"
+            ret_val = f"{self.op}"
             for arg in self._arguments:
-                ret_val += arg
+                ret_val += f":{arg}"
             return ret_val
 
         if not self._arguments:
@@ -861,10 +861,7 @@ class OnDemandMetricSpec:
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[Sequence[str]]:
-        requires_arguments = metric_type in ["s", "d"] or op in [
-            "on_demand_apdex",
-            "on_demand_user_misery",
-        ]
+        requires_arguments = metric_type in ["s", "d"] or op in _MULTIPLE_ARGS_METRICS
         if not requires_arguments:
             return None
 
@@ -872,7 +869,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in ["on_demand_apdex", "on_demand_user_misery"]
+        map_argument = op not in _MULTIPLE_ARGS_METRICS
 
         first_argument = arguments[0]
         return [_map_field_name(first_argument)] if map_argument else arguments
