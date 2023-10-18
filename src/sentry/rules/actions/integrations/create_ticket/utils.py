@@ -108,4 +108,6 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             )
             return
         response = installation.create_issue(data)
-        create_link(integration, installation, event, response)
+
+        if not event.get_tag("sample_event") == "yes":
+            create_link(integration, installation, event, response)
