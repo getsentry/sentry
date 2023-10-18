@@ -66,7 +66,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
             raise ParseError(detail=str(e))
 
         expand = request.GET.getlist("expand", [])
-        collapse = request.GET.getlist("collapse", ["base", "unhandled"])
+        collapse = request.GET.getlist("collapse", ["base"])
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 

@@ -337,9 +337,6 @@ from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrends
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from .endpoints.organization_group_index_stats_unhandled import (
-    OrganizationGroupIndexStatsUnhandledEndpoint,
-)
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -1391,11 +1388,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/issues-stats-unhandled/$",
-        OrganizationGroupIndexStatsUnhandledEndpoint.as_view(),
-        name="sentry-api-0-organization-group-index-stats-unhandled",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/integrations/$",
