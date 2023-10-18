@@ -29,37 +29,55 @@ declare const __LOADER__IS_LAZY__: any;
 
   const onLoadCallbacks: (() => void)[] = [];
 
+  // A captured error
+  type ErrorQueueItem = {e: any};
+  // A captured promise rejection
+  type PromiseRejectionQueueItem = {p: any};
+  // A captured function call to Sentry
+  type FunctionQueueItem = {a: IArguments; f: string};
+  type QueueItem = ErrorQueueItem | PromiseRejectionQueueItem | FunctionQueueItem;
+
+  function queueIsError(item: QueueItem): item is ErrorQueueItem {
+    return 'e' in item;
+  }
+
+  function queueIsPromiseRejection(item: QueueItem): item is PromiseRejectionQueueItem {
+    return 'p' in item;
+  }
+
+  function queueIsFunction(item: QueueItem): item is FunctionQueueItem {
+    return 'f' in item;
+  }
+
+  const queue: QueueItem[] = [];
+
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-  const queue = function (content) {
-    // content.e = error
-    // content.p = promise rejection
-    // content.f = function call the Sentry
+  const enqueue = function (item: QueueItem) {
     if (
-      ('e' in content ||
-        'p' in content ||
-        (content.f && content.f.indexOf('capture') > -1) ||
-        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
-      lazy
+      lazy &&
+      (queueIsError(item) ||
+        queueIsPromiseRejection(item) ||
+        (queueIsFunction(item) && item.f.indexOf('capture') > -1) ||
+        (queueIsFunction(item) && item.f.indexOf('showReportDialog') > -1))
     ) {
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
       injectCDNScriptTag();
     }
-    queue.data.push(content);
+    queue.push(item);
   };
-  queue.data = [];
 
   function onError() {
     // Use keys as "data type" to save some characters"
-    queue({
+    enqueue({
       e: [].slice.call(arguments),
     });
   }
 
   function onUnhandledRejection(e) {
-    queue({
+    enqueue({
       p:
         'reason' in e
           ? e.reason
@@ -71,10 +89,6 @@ declare const __LOADER__IS_LAZY__: any;
 
   function onSentryCDNScriptLoaded() {
     try {
-      // Remove the lazy mode error event listeners that we previously registered
-      _window.removeEventListener(_errorEvent, onError);
-      _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
-
       // Add loader as SDK source
       _window.SENTRY_SDK_SOURCE = 'loader';
 
@@ -84,6 +98,11 @@ declare const __LOADER__IS_LAZY__: any;
 
       // Configure it using provided DSN and config object
       SDK.init = function (options) {
+        // Remove the lazy mode error event listeners that we previously registered
+        // Once we call init, we can assume that Sentry has added it's own global error listeners
+        _window.removeEventListener(_errorEvent, onError);
+        _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
+
         const mergedInitOptions = _loaderInitConfig;
         for (const key in options) {
           if (Object.prototype.hasOwnProperty.call(options, key)) {
@@ -177,47 +196,44 @@ declare const __LOADER__IS_LAZY__: any;
         }
       }
 
-      const buffer = queue.data;
-
-      let initAlreadyCalled = sdkIsLoaded();
-
-      // Call init first, if provided
-      buffer.sort(bufferItem => (bufferItem.f === 'init' ? -1 : 0));
-
-      // TODO: Refactor this to first call all inits or fall back to the normal init.
-
-      // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
-      // We replay all calls to `Sentry.*` now
-      let calledSentry = false;
-      for (let i = 0; i < buffer.length; i++) {
-        if (buffer[i].f) {
-          calledSentry = true;
-          const call = buffer[i];
-          if (initAlreadyCalled === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user so call to init is optional
-            SDK.init();
-          }
-          initAlreadyCalled = true;
-          SDK[call.f].apply(SDK, call.a);
+      // First call all inits from the queue
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        if (queueIsFunction(item) && item.f === 'init') {
+          SDK.init.apply(SDK, item.a);
         }
       }
-      if (initAlreadyCalled === false && calledSentry === false) {
-        // Sentry has never been called but we need Sentry.init() so call it
+
+      // If the SDK has not been called manually, either in an onLoad callback, or somewhere else,
+      // we initialize it for the user
+      if (!sdkIsLoaded()) {
         SDK.init();
       }
 
-      // TODO: change this comment. What is tracekit?
-      // Because we installed the SDK, at this point we have an access to TraceKit's handler,
+      // Now, we _know_ that the SDK is initialized, and can continue with the rest of the queue
+
+      // Because we installed the SDK, at this point we can assume that the global handlers have been patched
       // which can take care of browser differences (eg. missing exception argument in onerror)
       const sentryPatchedErrorHandler = _window.onerror;
       const sentryPatchedUnhandledRejectionHandler = _window.onunhandledrejection;
 
-      // And now capture all previously caught exceptions
-      for (let i = 0; i < buffer.length; i++) {
-        if ('e' in buffer[i] && sentryPatchedErrorHandler) {
-          sentryPatchedErrorHandler.apply(_window, buffer[i].e);
-        } else if ('p' in buffer[i] && sentryPatchedUnhandledRejectionHandler) {
-          sentryPatchedUnhandledRejectionHandler.apply(_window, [buffer[i].p]);
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+
+        if (queueIsFunction(item)) {
+          // We already called all init before, so just skip this
+          if (item.f === 'init') {
+            continue;
+          }
+
+          SDK[item.f].apply(SDK, item.a);
+        } else if (queueIsError(item) && sentryPatchedErrorHandler) {
+          sentryPatchedErrorHandler.apply(_window, item.e);
+        } else if (
+          queueIsPromiseRejection(item) &&
+          sentryPatchedUnhandledRejectionHandler
+        ) {
+          sentryPatchedUnhandledRejectionHandler.apply(_window, [item.p]);
         }
       }
     } catch (o_O) {
@@ -229,6 +245,11 @@ declare const __LOADER__IS_LAZY__: any;
   _window[_namespace] = _window[_namespace] || {};
 
   _window[_namespace].onLoad = function (callback) {
+    // If the SDK was already loaded, call the callback immediately
+    if (sdkIsLoaded()) {
+      callback();
+      return;
+    }
     onLoadCallbacks.push(callback);
   };
 
@@ -249,7 +270,7 @@ declare const __LOADER__IS_LAZY__: any;
     'showReportDialog',
   ].forEach(function (f) {
     _window[_namespace][f] = function () {
-      queue({f, a: arguments});
+      enqueue({f, a: arguments});
     };
   });
 
