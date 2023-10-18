@@ -1363,6 +1363,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Enables transaction to metric dataset migration UI for alert rules
+    "organizations:alert-migration-ui": False,
+    # Enables the migration of alerts (checked in a migration script).
+    "organizations:alerts-migration-enabled": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1499,6 +1503,8 @@ SENTRY_FEATURES = {
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
     "organizations:on-demand-metrics-extraction-experimental": False,
+    # Display on demand metrics related UI elements
+    "organizations:on-demand-metrics-ui": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1695,6 +1701,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable browser starfish view
+    "organizations:starfish-browser-webvitals": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1713,6 +1721,10 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
+    # Enable profiling statistical detectors ema detection
+    "organizations:performance-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:performance-statistical-detectors-breakpoint": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1742,8 +1754,6 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
-    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
-    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page

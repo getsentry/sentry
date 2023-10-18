@@ -1,23 +1,8 @@
-from typing import Optional
-
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.utils import InvalidParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
-
-
-def is_team_admin(org_member: OrganizationMember, team: Optional[Team] = None) -> bool:
-    """
-    Defaults to returning true is the member is a team admin in the
-    organization. Can also be scoped to a specific team.
-    """
-    omt = OrganizationMemberTeam.objects.filter(organizationmember=org_member, role="admin")
-    if team:
-        omt = omt.filter(team=team)
-    return omt.exists()
 
 
 def get_teams(request, organization, teams=None):

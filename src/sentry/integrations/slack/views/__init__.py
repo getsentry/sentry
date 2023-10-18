@@ -23,10 +23,9 @@ def build_linking_url(endpoint: str, **kwargs: Any) -> str:
     return url
 
 
-def render_error_page(request: Request, status: int, body_text: str) -> HttpResponse:
+def render_error_page(request: Request, body_text: str) -> HttpResponse:
     return render_to_response(
         "sentry/integrations/slack/link-team-error.html",
         request=request,
-        status=status,
         context={"body_text": body_text},
     )
