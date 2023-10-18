@@ -22,7 +22,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -2315,27 +2315,26 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
     def test_run_query_with_on_demand_user_misery(self):
-        field = "user_misery(300)"
+        threshold = 300
+        field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
         spec = OnDemandMetricSpec(field=field, query=query_s)
 
-        events = [
-            # satisfied
-            (300, 3),
-            # tolerated
-            (400, 2),
-            # frustrated
-            (1201, 10),
+        transaction_duration_repeats = [
+            (threshold, 3),  # satisfied
+            (threshold + 100, 2),  # tolerated
+            ((threshold * 4) + 1, 10),  # frustrated
         ]
 
         for hour in range(0, 2):
-            for (value, repeat) in events:
+            for duration, repeat in transaction_duration_repeats:
                 for _ in range(0, repeat):
                     self.store_transaction_metric(
-                        value=value,
+                        value=duration,
                         metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                        # It's a set on demand because of using the users field
                         internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                        entity="metrics_sets",
+                        entity=EntityKey.MetricsSets.value,
                         tags={"query_hash": spec.query_hash},
                         timestamp=self.start + datetime.timedelta(hours=hour),
                     )
@@ -2346,9 +2345,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_s,
             selected_columns=[field],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-            ),
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
         metrics_query = query._get_metrics_query_from_on_demand_spec(
             spec=query._on_demand_metric_spec, require_time_range=True
@@ -2365,7 +2362,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
 
         result = query.run_query("test_query")
-        assert result["data"][:5] == [
+        assert result["data"][:3] == [
             {
                 "time": self.start.isoformat(),
                 "user_misery_300": 0.04875776397515528,
@@ -2376,14 +2373,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "user_misery_300": 0,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "user_misery_300": 0,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
                 "user_misery_300": 0,
             },
         ]

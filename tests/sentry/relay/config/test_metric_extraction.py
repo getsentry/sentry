@@ -433,13 +433,13 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 
 
 @django_db_all
-@pytest.mark.parametrize("threshold", [100])  # XXX: TBD
-def test_get_metric_extraction_config_with_user_misery(default_project, threshold):
+def test_get_metric_extraction_config_with_user_misery(default_project):
+    threshold = 100
     duration = 1000
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
-            f"transaction.duration:>={duration}",  # XXX: TBD
+            f"transaction.duration:>={duration}",
             default_project,
         )
 
@@ -450,9 +450,17 @@ def test_get_metric_extraction_config_with_user_misery(default_project, threshol
             {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [],  # XXX TBD
+                # This is necessary for calculating unique users
+                "field": "event.user.id",
+                "mri": "s:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "key": "satisfaction",
+                        "value": "frustrated",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
             }
         ]
 

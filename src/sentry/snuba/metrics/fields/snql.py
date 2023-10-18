@@ -1002,35 +1002,13 @@ def on_demand_eps_snql_factory(
 
 def on_demand_user_misery_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
-):
-    # XXX: The formula is calculated like this
-    # (count_miserable(user,100) + 5.8875) / (count_unique(user) + 5.8875 + 111.8625) = 0.0575
-    # https://githf9a20ff3ub.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
-    miserable_users = Function(
-        "uniqIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                            resolve_tag_value(use_case_id, org_id, "frustrated"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
+) -> Function:
+    miserable_users = uniq_if_column_snql(
+        aggregate_filter, org_id, use_case_id, "satisfaction", "frustrated"
     )
-    unique_users = Function(
-        "uniq",
-        [
-            Column("value"),
-        ],
-    )
+    unique_users = Function("uniq", [Column("value")])
+    # (count_miserable(users, threshold) + 5.8875) / (count_unique(users) + 5.8875 + 111.8625)
+    # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
     return Function(
         "divide",
         [
