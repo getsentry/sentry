@@ -45,6 +45,15 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "ttfb", "unit": "millisecond"},
     {"name": "time_to_full_display", "unit": "millisecond"},
     {"name": "time_to_initial_display", "unit": "millisecond"},
+    {"name": "score.cls", "unit": "ratio"},
+    {"name": "score.fcp", "unit": "ratio"},
+    {"name": "score.fid", "unit": "ratio"},
+    {"name": "score.lcp", "unit": "ratio"},
+    {"name": "score.total", "unit": "ratio"},
+    {"name": "score.weight.cls", "unit": "ratio"},
+    {"name": "score.weight.fcp", "unit": "ratio"},
+    {"name": "score.weight.fid", "unit": "ratio"},
+    {"name": "score.weight.lcp", "unit": "ratio"},
 ]
 
 

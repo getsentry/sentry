@@ -409,6 +409,26 @@ def _get_project_config(
             ),
         }
 
+    if features.has("organizations:performance-calculate-score-relay", project.organization):
+        config["performanceScoreConfig"] = {
+            "profiles": [
+                {
+                    "name": "Desktop",
+                    "score_components": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200, "p50": 2400},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100, "p50": 300},
+                        {"measurement": "cls", "weight": 0.25, "p10": 0.1, "p50": 0.25},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                }
+            ]
+        }
+
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
