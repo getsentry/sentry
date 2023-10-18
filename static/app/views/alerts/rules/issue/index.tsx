@@ -325,16 +325,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         addErrorMessage(detail, {append: true})
       );
     }
-    if (!ruleId) {
+
+    if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
-      this.handleChange('conditions', [
-        {
-          id,
-          label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[id]}...`,
-        },
-      ]);
+      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
     }
   }
 

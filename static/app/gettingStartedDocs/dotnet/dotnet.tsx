@@ -10,22 +10,15 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
 
 const installSnippetPackageManager = (params: Params) => `
-Install-Package Sentry -Version ${
-  params.sourcePackageRegistries.isLoading
-    ? t('\u2026loading')
-    : params.sourcePackageRegistries.data?.['sentry.dotnet']?.version ?? '3.34.0'
-}`;
+Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
 const installSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry -v ${
-  params.sourcePackageRegistries.isLoading
-    ? t('\u2026loading')
-    : params.sourcePackageRegistries.data?.['sentry.dotnet']?.version ?? '3.34.0'
-}`;
+dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
 const getConfigureSnippet = (params: Params) => `
 using Sentry;
