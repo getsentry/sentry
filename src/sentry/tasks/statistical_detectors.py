@@ -95,7 +95,12 @@ def run_detection() -> None:
         Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
         step=100,
     ):
-        if project.flags.has_transactions and project.id in enabled_performance_projects:
+        if project.flags.has_transactions and (
+            features.has(
+                "organizations:performance-statistical-detectors-ema", project.organization
+            )
+            or project.id in enabled_performance_projects
+        ):
             performance_projects.append(project)
             performance_projects_count += 1
 
@@ -714,6 +719,26 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if (
+            project.id in enabled_performance_projects
+            or features.has(
+                "organizations:performance-statistical-detectors-breakpoint", project.organization
+            )
+        )
+    ]
+    project_ids = [project.id for project in projects]
+    org_ids = list({project.organization_id for project in projects})
+
+    if not project_ids or not org_ids:
+        return []
+
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings

@@ -502,13 +502,20 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_transactions_query(self) -> None:
-        res = query_transactions(
-            [self.org.id],
-            [p.id for p in self.projects],
-            self.hour_ago,
-            self.now,
-            self.num_transactions,
-        )
+        with override_options(
+            {
+                "statistical_detectors.enable.projects.performance": [
+                    project.id for project in self.projects
+                ],
+            }
+        ):
+            res = query_transactions(
+                [self.org.id],
+                [p.id for p in self.projects],
+                self.hour_ago,
+                self.now,
+                self.num_transactions,
+            )
         assert len(res) == len(self.projects) * self.num_transactions
         for trend_payload in res:
             assert trend_payload.count == 2
