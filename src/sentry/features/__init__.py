@@ -96,7 +96,6 @@ default_manager.add("organizations:investigation-bias", OrganizationFeature, Fea
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issue-details-stacktrace-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform-extra-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-platform-api-crons-sd", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
