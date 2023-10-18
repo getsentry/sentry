@@ -177,15 +177,8 @@ export function getDuration(
   return `${label} ${tn('millisecond', 'milliseconds', result)}`;
 }
 
-const SUFFIX_ABBR = {
-  years: t('yr'),
-  weeks: t('wk'),
-  days: t('d'),
-  hours: t('hr'),
-  minutes: t('min'),
-  seconds: t('s'),
-  milliseconds: t('ms'),
-};
+type Level = [number, string];
+
 /**
  * Translates seconds into human readable format of seconds, minutes, hours, days, and years
  * e.g. 1 hour 25 minutes 15 seconds
@@ -203,7 +196,7 @@ export function getExactDuration(
   minDuration: string = 'milliseconds'
 ) {
   const operation = seconds < 0 ? Math.ceil : Math.floor;
-  const levels = [
+  const levels: Level[] = [
     [operation(seconds / 604800), abbreviation ? 'wk' : ' weeks'],
     [operation((seconds % 604800) / 86400), abbreviation ? 'd' : ' days'],
     [operation(((seconds % 604800) % 86400) / 3600), abbreviation ? 'hr' : ' hours'],
@@ -224,7 +217,7 @@ export function getExactDuration(
 
   for (let i = 0, max = levels.length; i < max; i++) {
     if (
-      (i === max - 1 || minDuration === (levels[i][1] as string).trim()) &&
+      (i === max - 1 || minDuration === levels[i][1].trim()) &&
       !returntext &&
       !levels[i][0]
     ) {
@@ -237,10 +230,10 @@ export function getExactDuration(
     returntext +=
       ' ' +
       levels[i][0] +
-      (!abbreviation && Math.abs(levels[i][0] as number) === 1
-        ? (levels[i][1] as string).substring(0, (levels[i][1] as string).length - 1) // strip the 's' from the end if its singular
+      (!abbreviation && Math.abs(levels[i][0]) === 1
+        ? (levels[i][1] as string).substring(0, levels[i][1].length - 1) // strip the 's' from the end if its singular
         : levels[i][1]);
-    if (minDuration === (levels[i][1] as string).trim()) {
+    if (minDuration === levels[i][1].trim()) {
       break;
     }
   }
@@ -252,7 +245,10 @@ export const SEC_IN_DAY = 86400;
 export const SEC_IN_HR = 3600;
 export const SEC_IN_MIN = 60;
 
-type Level = [lvlSfx: moment.unitOfTime.DurationConstructor, denominator: number];
+type LargeSuffixLevel = [
+  lvlSfx: moment.unitOfTime.DurationConstructor,
+  denominator: number,
+];
 
 type ParsedLargestSuffix = [val: number, suffix: moment.unitOfTime.DurationConstructor];
 /**
@@ -268,7 +264,7 @@ export function parseLargestSuffix(
   seconds: number,
   maxSuffix: string = 'days'
 ): ParsedLargestSuffix {
-  const levels: Level[] = [
+  const levels: LargeSuffixLevel[] = [
     ['minutes', SEC_IN_MIN],
     ['hours', SEC_IN_HR],
     ['days', SEC_IN_DAY],
