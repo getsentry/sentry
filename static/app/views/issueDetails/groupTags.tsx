@@ -111,16 +111,26 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
   }
 
   const getTagKeyTarget = (tag: SimpleTag) => {
+    const pathname =
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+        ? generateTagsRoute({orgSlug: organization.slug})
+        : `${baseUrl}tags/${tag.key}/`;
+
+    const query =
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+        ? {
+            ...extractSelectionParameters(location.query),
+            start: (beforeDateTime as Date).toISOString(),
+            end: (afterDateTime as Date).toISOString(),
+            statsPeriod: undefined,
+            tagKey: tag.key,
+            transaction,
+          }
+        : extractSelectionParameters(location.query);
+
     return {
-      pathname: generateTagsRoute({orgSlug: organization.slug}),
-      query: {
-        ...extractSelectionParameters(location.query),
-        start: (beforeDateTime as Date).toISOString(),
-        end: (afterDateTime as Date).toISOString(),
-        statsPeriod: undefined,
-        tagKey: tag.key,
-        transaction,
-      },
+      pathname,
+      query,
     };
   };
 

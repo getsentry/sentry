@@ -3,6 +3,7 @@ import {Tags} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {IssueType} from 'sentry/types';
 import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
@@ -52,11 +53,11 @@ describe('GroupTags', function () {
     });
   });
 
-  it('navigates to performance tags summary heatmap when tag key is clicked', async function () {
+  it('navigates correctly when duration regression issue > tags key is clicked', async function () {
     render(
       <GroupTags
         {...routerProps}
-        group={group}
+        group={{...group, issueType: IssueType.PERFORMANCE_DURATION_REGRESSION}}
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
