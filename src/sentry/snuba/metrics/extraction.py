@@ -590,13 +590,12 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def _get_field_and_threshold(project: Project, argument: Optional[str]):
+def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
     # The widget does not allow NOT passing an argument but just in case
-    if argument is None:
+    if not arguments:
         raise Exception("Threshold parameter required.")
 
-    _, metric = _get_threshold_and_metric(project)
-    return _map_field_name(metric), int(argument)
+    return int(arguments[0])
 
 
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
@@ -618,7 +617,8 @@ def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
 
 
 def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
-    field, apdex_threshold = _get_field_and_threshold(project, arguments[0])
+    apdex_threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -944,7 +944,7 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_threshold_and_metric(project: Project) -> Tuple[int, str]:
+def _get_satisfactory_threshold_and_metric(project: Project) -> Tuple[int, str]:
     """It returns the statisfactory response time threshold for the project and
     the associated metric ("transaction.duration" or "measurements.lcp")."""
     result = ProjectTransactionThreshold.filter(
