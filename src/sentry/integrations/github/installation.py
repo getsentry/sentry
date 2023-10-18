@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from django.http import HttpResponse
 from django.views.generic import View
@@ -12,6 +13,8 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
+
+INSTALLATION_EXPOSURE_MAX_TIME = 10 * 60
 
 
 class GitHubIntegrationsInstallationEndpoint(View):
@@ -27,7 +30,9 @@ class GitHubIntegrationsInstallationEndpoint(View):
         except OrganizationIntegration.DoesNotExist:
             pass
 
-        # TODO: expose this data only for a few minutes to reduce GitHub login name leak?
+        time_elapsed_since_added = time.time() - integration.date_added.timestamp()
+        if time_elapsed_since_added > INSTALLATION_EXPOSURE_MAX_TIME:
+            return HttpResponse(status=404)
 
         result = {
             "account_login": integration.name,
