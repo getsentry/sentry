@@ -3,9 +3,7 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 // import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -85,18 +83,6 @@ function AccessibilityList() {
     accessibilityData && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
       : undefined;
-
-  const {
-    handleClick: onClickToJump,
-    onSectionRendered,
-    showJumpDownButton,
-    showJumpUpButton,
-  } = useJumpButtons({
-    currentTime,
-    frames: filteredItems,
-    isTable: true,
-    setScrollToRow,
-  });
 
   const onClickCell = useCallback(
     ({}: {dataIndex: number; rowIndex: number}) => {
@@ -200,23 +186,15 @@ function AccessibilityList() {
                         setScrollToRow(undefined);
                       }
                     }}
-                    onSectionRendered={onSectionRendered}
+                    scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
                     rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                    scrollToRow={scrollToRow}
                     width={width}
                   />
                 )}
               </AutoSizer>
-              {sortConfig.by === 'timestamp' && items.length ? (
-                <JumpButtons
-                  jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
-                  onClick={onClickToJump}
-                  tableHeaderHeight={HEADER_HEIGHT}
-                />
-              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
