@@ -1760,8 +1760,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
-    # Enable ANR rates in project details page
-    "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
