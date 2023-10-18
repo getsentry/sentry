@@ -25,7 +25,7 @@ import Header from '../components/header';
 import {Threshold} from '../utils/types';
 import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
-import {ThresholdGroupRow} from './thresholdGroupRow';
+import {ThresholdGroupRows} from './thresholdGroupRows';
 
 type Props = {};
 
@@ -147,9 +147,11 @@ function ReleaseThresholdList({}: Props) {
               {thresholdGroups &&
                 Object.entries(thresholdGroups).map(([projId, byEnv]) => {
                   return Object.entries(byEnv).map(([envName, thresholdGroup]) => (
-                    <ThresholdGroupRow
+                    <ThresholdGroupRows
                       key={`${projId}-${envName}`}
                       thresholds={thresholdGroup}
+                      refetch={refetch}
+                      columns={5}
                     />
                   ));
                 })}
@@ -173,6 +175,13 @@ const StyledPanelTable = styled(PanelTable)`
     auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
+  > *:nth-last-child(n + 1) {
+    // border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: inherit;
+  }
+  > *:last-child {
+    border-bottom: none;
+  }
 `;
 
 const ReleaseThresholdsPageFilterBar = styled(PageFilterBar)`
