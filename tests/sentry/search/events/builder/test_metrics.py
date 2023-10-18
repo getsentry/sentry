@@ -31,7 +31,7 @@ from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-def _user_misery_formula(miserable_users: int, unique_users: int) -> int:
+def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
     return (miserable_users + constants.MISERY_ALPHA) / (
         unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
     )
@@ -2320,15 +2320,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
-    @pytest.mark.parametrize(
-        "user_to_frustration, expected_user_misery",
-        [
-            ([("happy user", False), ("saddd user", True)], _user_misery_formula(1, 2)),
-            ([("happy user", False), ("happy user", False)], _user_misery_formula(0, 2)),
-        ],
-    )
-    def test_run_query_with_on_demand_user_misery(
-        self: object, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+    def _test_user_misery(
+        self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
     ) -> None:
         threshold = 300
         field = f"user_misery({threshold})"
@@ -2360,19 +2353,18 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
+        assert query._on_demand_metric_spec
         metrics_query = query._get_metrics_query_from_on_demand_spec(
             spec=query._on_demand_metric_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
         assert metrics_query.select[0].op == "on_demand_user_misery"
-        assert metrics_query.where[0].lhs.name == "query_hash"
-        assert (
-            metrics_query.where[0].rhs == "f9a20ff3"
-        )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
-        assert (
-            metrics_query.where[0].rhs == spec.query_hash
-        )  # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+        assert metrics_query.where
+        assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
+        # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+        assert metrics_query.where[0].rhs == "f9a20ff3"
+        assert metrics_query.where[0].rhs == spec.query_hash
 
         result = query.run_query("test_query")
         assert result["data"][:3] == [
@@ -2395,6 +2387,18 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "time", "type": "DateTime('Universal')"},
                 {"name": "user_misery_300", "type": "Float64"},
             ],
+        )
+
+    def test_run_query_with_on_demand_user_misery(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("sad user", True)],
+            _user_misery_formula(1, 2),
+        )
+
+    def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("ok user", False)],
+            _user_misery_formula(0, 2),
         )
 
 
