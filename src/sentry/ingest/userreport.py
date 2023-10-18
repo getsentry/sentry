@@ -133,7 +133,7 @@ def find_and_compare_eventuser_data(event: Event, eventuser: EventUser):
     try:
         snuba_eventuser = find_eventuser_with_snuba(event)
     except Exception:
-        logger.exception("Error when attempting to fetch EventUser data from Snuba")
+        return logger.exception("Error when attempting to fetch EventUser data from Snuba")
 
     # Compare Snuba result with EventUser record
     snuba_eventuser_equality = _is_snuba_result_equal_to_eventuser(snuba_eventuser, eventuser)
