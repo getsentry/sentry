@@ -6,9 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 /**
- * The "Widget" connects the default Feedback button with the Feedback Modal
- *
- * XXX: this is temporary while we make this an SDK feature.
+ * Use this to display the Feedback widget in certain routes/components
  */
 export default function FeedbackWidget() {
   const config = useLegacyStore(ConfigStore);
