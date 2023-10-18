@@ -119,7 +119,11 @@ function ResourceSummary() {
           </HeaderContainer>
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
-          <SampleList groupId={groupId} transactionName={transaction as string} />
+          <SampleList
+            transactionRoute="/performance/browser/pageloads/"
+            groupId={groupId}
+            transactionName={transaction as string}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

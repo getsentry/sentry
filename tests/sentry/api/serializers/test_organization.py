@@ -102,7 +102,6 @@ class OrganizationSerializerTest(TestCase):
             "performance-issues-search",
             "transaction-name-normalize",
             "transaction-name-mark-scrubbed-as-sanitized",
-            "project-performance-settings-admin",
         }
 
     @mock.patch("sentry.features.batch_has")
