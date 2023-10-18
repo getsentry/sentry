@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
 
@@ -9,6 +8,8 @@ import sentry_sdk
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     CurriedFunction,
@@ -36,7 +37,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba import functions, metrics_performance
+from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -312,7 +313,7 @@ def query_transactions_timeseries(
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    start = end - timedelta(hours=14)
+    start = end - timedelta(days=14)
     use_case_id = UseCaseID.TRANSACTIONS
     interval = 3600  # 1 hour
     # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
@@ -332,6 +333,19 @@ def query_transactions_timeseries(
             "transaction",
         )
 
+        transactions_condition = BooleanCondition(
+            BooleanOp.OR,
+            [
+                BooleanCondition(
+                    BooleanOp.AND,
+                    [
+                        Condition(Column("project_id"), Op.EQ, project_id),
+                        Condition(Column("transaction"), Op.EQ, transaction_name),
+                    ],
+                )
+                for project_id, transaction_name in transactions
+            ],
+        )
         query = Query(
             match=Entity(EntityKey.GenericMetricsDistributions.value),
             select=[
@@ -349,7 +363,7 @@ def query_transactions_timeseries(
                         ),
                         1,
                     ),
-                    "p95",
+                    "p95_transaction_duration",
                 ),
                 Function(
                     "transform",
@@ -358,11 +372,11 @@ def query_transactions_timeseries(
                         Function("array", ("",)),
                         Function("array", ("<< unparameterized >>",)),
                     ),
-                    "transaction_name",
+                    "transaction",
                 ),
             ],
             groupby=[
-                Column("transaction_name"),
+                Column("transaction"),
                 Column("project_id"),
                 Function(
                     "toStartOfInterval",
@@ -376,10 +390,11 @@ def query_transactions_timeseries(
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-                Condition(Column("transaction_name"), Op.IN, [t for _, t in transaction_chunk]),
+                transactions_condition,
             ],
             orderby=[
-                OrderBy(Column("transaction_name"), Direction.DESC),
+                OrderBy(Column("project_id"), Direction.ASC),
+                OrderBy(Column("transaction"), Direction.DESC),
                 OrderBy(
                     Function(
                         "toStartOfInterval",
@@ -405,99 +420,36 @@ def query_transactions_timeseries(
         data = raw_snql_query(
             request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
         )["data"]
-        for row in data:
+
+        results = {}
+        for index, datapoint in enumerate(data or []):
+            key = (datapoint["project_id"], datapoint["transaction"])
+            if key not in results:
+                results[key] = {
+                    "data": [datapoint],
+                }
+            else:
+                data = cast(List, results[key]["data"])
+                data.append(datapoint)
+
+        for key, item in results.items():
+            project_id, transaction_name = key
             formatted_result = SnubaTSResult(
                 {
                     "data": zerofill(
-                        data,
+                        item["data"],
                         start,
                         end,
                         interval,
                         "time",
                     ),
-                    "project": row["project_id"],
-                    "order": 0,  # TODO
+                    "project": project_id,
                 },
                 start,
                 end,
                 interval,
             )
-            yield row["project_id"], row["transaction_name"], formatted_result
-
-
-def query_transactions_timeseries_old(
-    transactions: List[Tuple[int, int | str]],
-    start: datetime,
-    agg_function: str,
-) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
-    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    interval = 3600  # 1 hour
-
-    # TODO: batch cross-project (and cross-org) timeseries queries
-    # (currently only txns in the same project are batched)
-    grouped_transactions = defaultdict(list)
-    for project_id, transaction_name in transactions:
-        grouped_transactions[project_id].append(transaction_name)
-
-    for project_id, transaction_names in grouped_transactions.items():
-        params: Dict[str, Any] = {
-            "start": end - timedelta(days=14),
-            "end": end,
-            "project_id": [project_id],
-            "project_objects": [Project.objects.get(id=project_id)],
-        }
-
-        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
-        # 336 data points per transaction name, so we can safely get 25 transaction
-        # timeseries.
-        chunk_size = 25
-
-        for transactions_chunk in chunked(transaction_names, chunk_size):
-            escaped_transaction_names = [
-                transaction_name.replace('"', '\\"') for transaction_name in transactions_chunk
-            ]
-            query = " OR ".join([f'transaction:"{name}"' for name in escaped_transaction_names])
-
-            raw_results = metrics_performance.timeseries_query(
-                selected_columns=["project_id", "transaction", agg_function],
-                query=query,
-                params=params,
-                rollup=interval,
-                referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
-                groupby=Column("transaction"),
-                zerofill_results=False,
-            )
-
-            results = {}
-            for index, datapoint in enumerate(raw_results.data.get("data") or []):
-                transaction_name = datapoint["transaction"]
-                if transaction_name not in results:
-                    results[transaction_name] = {
-                        "order": index,
-                        "data": [datapoint],
-                    }
-                else:
-                    data = cast(List, results[transaction_name]["data"])
-                    data.append(datapoint)
-
-            for transaction_name, item in results.items():
-                formatted_result = SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            item["data"],
-                            params["start"],
-                            params["end"],
-                            interval,
-                            "time",
-                        ),
-                        "project": project_id,
-                        "order": item["order"],
-                    },
-                    params["start"],
-                    params["end"],
-                    interval,
-                )
-                yield project_id, transaction_name, formatted_result
+            yield project_id, transaction_name, formatted_result
 
 
 @instrumented_task(

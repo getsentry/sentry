@@ -571,11 +571,13 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                                 {
                                     "transaction": "transaction_2",
                                     "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 1.0,
                                 },
                                 {
                                     "transaction": "transaction_2",
                                     "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 9.5,
                                 },
                             ],
@@ -585,7 +587,38 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                             "time",
                         ),
                         "project": self.projects[0].id,
-                        "order": 0,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+            (
+                self.projects[0].id,
+                "transaction_1",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[0].id,
                     },
                     start,
                     end,
@@ -602,11 +635,13 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                                 {
                                     "transaction": "transaction_1",
                                     "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[1].id,
                                     "p95_transaction_duration": 1.0,
                                 },
                                 {
                                     "transaction": "transaction_1",
                                     "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[1].id,
                                     "p95_transaction_duration": 9.5,
                                 },
                             ],
@@ -616,7 +651,6 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                             "time",
                         ),
                         "project": self.projects[1].id,
-                        "order": 0,
                     },
                     start,
                     end,
