@@ -90,6 +90,7 @@ type Props = {
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
+  isSpanInEmbeddedTree: boolean;
   organization: Organization;
   relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
@@ -255,7 +256,7 @@ function SpanDetail(props: Props) {
   }
 
   function renderViewSimilarSpansButton() {
-    const {span, organization, event} = props;
+    const {span, organization, event, isSpanInEmbeddedTree} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
       return null;
@@ -266,7 +267,7 @@ function SpanDetail(props: Props) {
     const target = spanDetailsRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
-      query: location.query,
+      query: isSpanInEmbeddedTree ? '' : location.query,
       spanSlug: {op: span.op, group: span.hash},
       projectID: event.projectID,
     });

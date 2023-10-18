@@ -346,6 +346,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         relatedErrors={errors}
         scrollToHash={this.scrollIntoView}
         resetCellMeasureCache={this.props.resetCellMeasureCache}
+        isSpanInEmbeddedTree={this.props.isSpanInEmbeddedTree}
       />
     );
   }
