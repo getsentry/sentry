@@ -1,12 +1,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {IssueCategory, Organization} from 'sentry/types';
+import {DateString, IssueCategory, Organization} from 'sentry/types';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
+  datetime?: {
+    end: DateString;
+    start: DateString;
+    statsPeriod: undefined;
+  };
+  extraConditions?: string;
   groupIds?: string | string[];
   issueCategory?: IssueCategory;
   replayIds?: string | string[];
@@ -21,6 +27,8 @@ function useReplaysCount({
   organization,
   replayIds,
   transactionNames,
+  extraConditions,
+  datetime,
 }: Options) {
   const api = useApi();
 
@@ -109,10 +117,11 @@ function useReplaysCount({
         `/organizations/${organization.slug}/replay-count/`,
         {
           query: {
-            query: query.conditions,
+            query: [query.conditions, extraConditions].join(' ').trim(),
             data_source: dataSource,
             statsPeriod: '14d',
             project: -1,
+            ...datetime,
           },
         }
       );
@@ -120,7 +129,15 @@ function useReplaysCount({
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, issueCategory]);
+  }, [
+    issueCategory,
+    query,
+    api,
+    organization.slug,
+    extraConditions,
+    datetime,
+    zeroCounts,
+  ]);
 
   useEffect(() => {
     const hasSessionReplay = organization.features.includes('session-replay');

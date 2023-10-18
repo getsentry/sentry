@@ -10,6 +10,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -21,7 +22,14 @@ import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  Event,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -44,7 +52,8 @@ type Props = {
   event?: Event;
 };
 
-interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
+interface GroupHeaderTabsProps
+  extends Pick<Props, 'baseUrl' | 'group' | 'project' | 'event'> {
   disabledTabs: Tab[];
   eventRoute: LocationDescriptor;
 }
@@ -55,14 +64,43 @@ function GroupHeaderTabs({
   eventRoute,
   group,
   project,
+  event,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const now = useMemo(() => new Date(Date.now()), []);
 
-  const replaysCount = useReplaysCount({
+  const replayCountDefaultIssueProps = {
+    organization,
     issueCategory: group.issueCategory,
     groupIds: group.id,
+  };
+  const replayCountStatisticalDetectorProps = {
     organization,
-  })[group.id];
+    issueCategory: group.issueCategory,
+    transactionNames: event?.occurrence?.evidenceData?.transaction,
+    extraConditions: getSampleEventQuery({
+      transaction: event?.occurrence?.evidenceData?.transaction,
+      durationBaseline: event?.occurrence?.evidenceData?.aggregateRange2,
+      addUpperBound: false,
+    })
+      .split(' ')
+      .filter(condition => !condition.startsWith('transaction:'))
+      .join(' '),
+    datetime: {
+      statsPeriod: undefined,
+      start: new Date(event?.occurrence?.evidenceData?.breakpoint * 1000).toISOString(),
+      end: now.toISOString(),
+    },
+  };
+  const replaysCount = useReplaysCount(
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+      ? replayCountStatisticalDetectorProps
+      : replayCountDefaultIssueProps
+  )[
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+      ? event?.occurrence?.evidenceData?.transaction
+      : group.id
+  ];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
@@ -309,7 +347,9 @@ function GroupHeader({
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
           <EnvironmentPageFilter alignDropdown="right" />
         </HeaderRow>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
+        <GroupHeaderTabs
+          {...{baseUrl, disabledTabs, eventRoute, group, project, event}}
+        />
       </div>
     </Layout.Header>
   );
