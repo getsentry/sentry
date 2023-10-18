@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';

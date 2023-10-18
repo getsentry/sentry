@@ -2485,6 +2485,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert meta["dataset"] == "metrics"
             assert meta["fields"][function_name] == "percent_change"
 
+    def test_avg_if(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_if(transaction.duration, release, foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg_if(transaction.duration, release, foo)"] == 150
+
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["avg_if(transaction.duration, release, foo)"] == "duration"
+
     def test_device_class(self):
         self.store_transaction_metric(
             100,
@@ -2572,6 +2607,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_compare(self):
         super().test_avg_compare()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if(self):
+        super().test_avg_if()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class(self):

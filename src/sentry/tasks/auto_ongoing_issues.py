@@ -115,17 +115,22 @@ def schedule_auto_transition_issues_new_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
-    logger.info(
-        "auto_transition_issues_new_to_ongoing started",
-        extra={
-            "first_seen_lte": first_seen_lte,
-        },
-    )
-
+    first_seen_lte_datetime = datetime.fromtimestamp(first_seen_lte, timezone.utc)
     base_queryset = Group.objects.filter(
         status=GroupStatus.UNRESOLVED,
         substatus=GroupSubStatus.NEW,
-        first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
+        first_seen__lte=first_seen_lte_datetime,
+    )
+
+    logger_extra = {
+        "first_seen_lte": first_seen_lte,
+        "first_seen_lte_datetime": first_seen_lte_datetime,
+    }
+    if base_queryset:
+        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra=logger_extra,
     )
 
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):

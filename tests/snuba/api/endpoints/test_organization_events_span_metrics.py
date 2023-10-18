@@ -805,6 +805,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["unique.span_domains"] == "sentry_table3"
         assert meta["fields"]["unique.span_domains"] == "string"
 
+    def test_avg_if(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            200,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_if(span.self_time, release, foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg_if(span.self_time, release, foo)"] == 150
+
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
+
     def test_device_class(self):
         self.store_span_metric(
             123,
@@ -924,6 +963,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_unique_values_span_domain_with_filter(self):
         super().test_unique_values_span_domain_with_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if(self):
+        super().test_avg_if()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class_filter(self):
