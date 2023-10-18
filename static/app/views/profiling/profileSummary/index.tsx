@@ -64,7 +64,7 @@ import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSumma
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
-import {RecentProfilesTable} from 'sentry/views/profiling/profileSummary/recentProfilesTable';
+import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
@@ -72,12 +72,12 @@ import {SlowestProfileFunctions} from './slowestProfileFunctions';
 
 function decodeViewOrDefault(
   value: string | string[] | null | undefined,
-  defaultValue: 'flamegraph' | 'recent profiles'
-): 'flamegraph' | 'recent profiles' {
+  defaultValue: 'flamegraph' | 'profiles'
+): 'flamegraph' | 'profiles' {
   if (!value || Array.isArray(value)) {
     return defaultValue;
   }
-  if (value === 'flamegraph' || value === 'recent profiles') {
+  if (value === 'flamegraph' || value === 'profiles') {
     return value;
   }
   return defaultValue;
@@ -90,12 +90,12 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 interface ProfileSummaryHeaderProps {
   location: Location;
-  onViewChange: (newVie: 'flamegraph' | 'recent profiles') => void;
+  onViewChange: (newVie: 'flamegraph' | 'profiles') => void;
   organization: Organization;
   project: Project | null;
   query: string;
   transaction: string;
-  view: 'flamegraph' | 'recent profiles';
+  view: 'flamegraph' | 'profiles';
 }
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
@@ -158,7 +158,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
           <TabList.Item key="flamegraph">Flamegraph</TabList.Item>
-          <TabList.Item key="recent profiles">Recent Profiles</TabList.Item>
+          <TabList.Item key="profiles">profiles</TabList.Item>
         </TabList>
       </Tabs>
     </ProfilingHeader>
@@ -366,12 +366,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const location = useLocation();
-  const [view, setView] = useState<'flamegraph' | 'recent profiles'>(
+  const [view, setView] = useState<'flamegraph' | 'profiles'>(
     decodeViewOrDefault(location.query.view, 'flamegraph')
   );
 
   const onSetView = useCallback(
-    (newView: 'flamegraph' | 'recent profiles') => {
+    (newView: 'flamegraph' | 'profiles') => {
       setView(newView);
       browserHistory.push({
         ...location,
@@ -423,8 +423,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             query={query}
             hideCount
           />
-          {view === 'recent profiles' ? (
-            <RecentProfilesTable />
+          {view === 'profiles' ? (
+            <ProfilesTable />
           ) : (
             <ProfileVisualizationContainer>
               <ProfileVisualization>

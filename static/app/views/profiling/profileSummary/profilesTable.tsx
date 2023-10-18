@@ -9,9 +9,8 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
-const BASE_FIELDS = [
+const FIELDS = [
   'profile.id',
   'trace',
   'trace.transaction',
@@ -24,24 +23,17 @@ const BASE_FIELDS = [
 ] as const;
 
 // user misery is only available with the profiling-using-transactions feature
-const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
-type FieldType = (typeof ALL_FIELDS)[number];
+type FieldType = (typeof FIELDS)[number];
 
-export function RecentProfilesTable() {
+export function ProfilesTable() {
   const location = useLocation();
-  const organization = useOrganization();
-
-  const profilingUsingTransactions = organization.features.includes(
-    'profiling-using-transactions'
-  );
-  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
 
   const sort = useMemo(() => {
-    return formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
+    return formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
       key: 'timestamp',
       order: 'desc',
     });
-  }, [location.query.sort, fields]);
+  }, [location.query.sort]);
 
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
@@ -54,7 +46,7 @@ export function RecentProfilesTable() {
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields,
+    fields: FIELDS,
     query,
     sort,
     limit: 20,
@@ -62,8 +54,8 @@ export function RecentProfilesTable() {
   });
 
   const eventsTableProps = useMemo(() => {
-    return {columns: fields.slice(), sortableColumns: new Set(fields)};
-  }, [fields]);
+    return {columns: FIELDS.slice(), sortableColumns: new Set(FIELDS)};
+  }, []);
 
   return (
     <ProfileEvents>
