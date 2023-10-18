@@ -1427,6 +1427,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable querying Snuba to get the EventUser
+    "organizations:eventuser-from-snuba": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
