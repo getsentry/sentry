@@ -24,7 +24,6 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 type Props = {
   groupId: string;
   transactionName: string;
-  isBrowser?: boolean;
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
