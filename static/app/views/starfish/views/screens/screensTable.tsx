@@ -21,6 +21,7 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -61,7 +62,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     if (field === 'transaction') {
       return (
         <Fragment>
-          <TopResultsIndicator count={5} index={index} />
+          <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
             to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
               ...location.query,

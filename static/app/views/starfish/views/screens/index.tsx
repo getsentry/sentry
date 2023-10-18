@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -6,7 +7,6 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -40,6 +40,8 @@ export enum YAxis {
   THROUGHPUT,
   COUNT,
 }
+
+export const TOP_SCREENS = 5;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -95,6 +97,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
+  const theme = useTheme();
   const {query: locationQuery} = location;
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
@@ -234,8 +237,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
               color: isPrimary
-                ? CHART_PALETTE[6][index]
-                : Color(CHART_PALETTE[6][index]).lighten(0.5).string(),
+                ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
+                : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+                    .lighten(0.5)
+                    .string(),
             },
           } as SeriesDataUnit;
         });
