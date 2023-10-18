@@ -658,15 +658,15 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
         return [
             {
                 "key": "quality",
-                "value": "good",
-                "condition": {"name": field, "op": "gte", "value": thresholds["meh"]},
+                "value": "matches_hash",
+                "condition": {"name": field, "op": "lt", "value": thresholds["meh"]},
             }
         ]
     elif quality == "meh":
         return [
             {
                 "key": "quality",
-                "value": "meh",
+                "value": "matches_hash",
                 "condition": {
                     "inner": [
                         {"name": field, "op": "gte", "value": thresholds["meh"]},
@@ -680,19 +680,18 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
         return [
             {
                 "key": "quality",
-                "value": "poor",
+                "value": "matches_hash",
                 "condition": {"name": field, "op": "gte", "value": thresholds["poor"]},
             }
         ]
-    elif quality == "any":
-        return [
-            {
-                "key": "quality",
-                "value": "any",
-                "condition": {"name": field, "op": "gte", "value": 0},
-            }
-        ]
-    return []
+    return [
+        # 'any' quality
+        {
+            "key": "quality",
+            "value": "matches_hash",
+            "condition": {"name": field, "op": "gte", "value": 0},
+        }
+    ]
 
 
 # This is used to map a metric to a function which generates a specification

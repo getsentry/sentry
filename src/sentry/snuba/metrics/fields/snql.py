@@ -980,6 +980,31 @@ def on_demand_apdex_snql_factory(
     )
 
 
+def on_demand_count_web_vitals_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    return Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "quality")),
+                            resolve_tag_value(use_case_id, org_id, "matches_hash"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
 def on_demand_epm_snql_factory(
     aggregate_filter: Function,
     interval: float,

@@ -457,11 +457,11 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                     {
                         "condition": {
                             "name": f"event.{measurement}.value",
-                            "op": "gte",
+                            "op": "lt",
                             "value": 2500,
                         },
                         "key": "quality",
-                        "value": "good",
+                        "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
@@ -483,7 +483,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "op": "and",
                         },
                         "key": "quality",
-                        "value": "meh",
+                        "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
@@ -503,7 +503,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "value": 4000,
                         },
                         "key": "quality",
-                        "value": "poor",
+                        "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
@@ -523,10 +523,19 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "value": 0,
                         },
                         "key": "quality",
-                        "value": "any",
+                        "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
+            }
+
+        if quality == "":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [],
             }
 
 
