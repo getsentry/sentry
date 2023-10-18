@@ -15,14 +15,14 @@ interface Props {
   checked: string[];
 }
 
-type Mailbox = 'inbox' | 'archived';
+type Mailbox = 'inbox' | 'resolved' | 'archived';
 
 export default function FeedbackListHeader({checked}: Props) {
   const [mailbox, setMailbox] = useState<Mailbox>('inbox');
 
   return (
     <HeaderPanelItem>
-      <Checkbox />
+      <Checkbox onChange={() => {}} />
       {checked.length ? (
         <HasSelection checked={checked} />
       ) : (
@@ -65,6 +65,7 @@ function MailboxPicker({
           onChange={onChange}
         >
           <SegmentedControl.Item key="inbox">{t('Inbox')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="resolved">{t('Resolved')}</SegmentedControl.Item>
           <SegmentedControl.Item key="archived">{t('Archived')}</SegmentedControl.Item>
         </SegmentedControl>
       </Tooltip>

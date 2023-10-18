@@ -9175,10 +9175,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.7.0:
-  version "5.7.0"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.7.0.tgz#0499b7f1908774dfdca601c43e4ad91c3bbfcddd"
-  integrity sha512-sI9TbWkx3LCQY/UUGBm9loibbZHjdkmxD1rLyhm+3F0vdjm31qS44td8X1DNCdhXDp7gC30sl8mzcQ1J9s0/nw==
+platformicons@^5.7.1:
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.7.1.tgz#7941904807332a64130ce10e8fb915f2ee4fa3b2"
+  integrity sha512-Mv4jhpdlkSUph1uIsYN4+XxgiDgZbt3QRpvNqbCsFeQOyXfyHUWb8QxUWPC5+Zn4+iWntSbSsfTmW4IAsApO3A==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
