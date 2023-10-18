@@ -253,7 +253,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         assert rows[1]["aggregate_value"] == 59
         assert rows[1]["transaction"] == "transaction_1"
 
-    def test_interval_return(self) -> None:
+    def test_meta_data_in_response(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -261,6 +261,8 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
                     TransactionMRI.DURATION.value,
                 ),
                 aggregate="max",
+                filters=[Condition(Column("status_code"), Op.EQ, "200")],
+                groupby=[Column("transaction")],
             ),
             start=self.hour_ago.replace(minute=16, second=59),
             end=self.now.replace(minute=16, second=59),
@@ -280,6 +282,11 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert result["modified_start"] == self.hour_ago.replace(minute=16, second=0)
         assert result["modified_end"] == self.now.replace(minute=17, second=0)
+        assert result["indexer_mappings"] == {
+            "d:transactions/duration@millisecond": 9223372036854775909,
+            "status_code": 10000,
+            "transaction": 9223372036854776020,
+        }
 
     def test_bad_query(self) -> None:
         query = MetricsQuery(
