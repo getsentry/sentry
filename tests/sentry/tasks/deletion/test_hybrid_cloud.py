@@ -215,7 +215,7 @@ def setup_deletion_test():
 
 @django_db_all
 @region_silo_test(stable=True)
-def test_cascade_deletion_behavior(self):
+def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
     external_issue = data["external_issue"]
@@ -237,7 +237,7 @@ def test_cascade_deletion_behavior(self):
 
 @django_db_all
 @region_silo_test(stable=True)
-def test_do_nothing_deletion_behavior(self):
+def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
 
@@ -261,7 +261,7 @@ def test_do_nothing_deletion_behavior(self):
 
 @django_db_all
 @region_silo_test(stable=True)
-def test_set_null_deletion_behavior(self):
+def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
     user = data["user"]
     saved_query = data["saved_query"]
