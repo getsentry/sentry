@@ -283,7 +283,8 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: IndexerOutputMessageBatch = []
+        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
@@ -299,6 +300,7 @@ class IndexerBatch:
             metric_name = old_payload_value["name"]
             org_id = old_payload_value["org_id"]
             use_case_id = old_payload_value["use_case_id"]
+            cogs_usage[use_case_id] += 1
             sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
@@ -488,4 +490,4 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-        return new_messages
+        return IndexerOutputMessageBatch(new_messages, cogs_usage)
