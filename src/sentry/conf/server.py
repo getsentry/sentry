@@ -1363,6 +1363,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Enables transaction to metric dataset migration UI for alert rules
+    "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
     # Enables tagging javascript errors from the browser console.
