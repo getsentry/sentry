@@ -1845,6 +1845,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
     "organizations:investigation-bias": False,
+    # Controls whether or not the relocation endpoints can be used.
+    "relocation:enabled": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

@@ -38,6 +38,12 @@ class SystemPermission(permissions.BasePermission):
         return is_system_auth(request.auth)
 
 
+# TODO(azaslavsky): Get rid of this before pushing, use `SuperuserPermission` instead!
+class TestPermission(permissions.BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return True
+
+
 class NoPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return False

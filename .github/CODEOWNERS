@@ -91,6 +91,7 @@ Makefile                                                 @getsentry/owners-sentr
 
 ## Relocation - getsentry/team-ospo#153
 /src/sentry/backup/                                      @getsentry/open-source
+/src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
