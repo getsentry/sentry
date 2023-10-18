@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -24,7 +25,14 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION} = SpanMetricsField;
+const {
+  SPAN_SELF_TIME,
+  SPAN_OP,
+  SPAN_DESCRIPTION,
+  HTTP_DECODED_RESPONSE_BODY_LENGTH,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  HTTP_RESPONSE_TRANSFER_SIZE,
+} = SpanMetricsField;
 
 function ResourceSummary() {
   const organization = useOrganization();
@@ -34,6 +42,9 @@ function ResourceSummary() {
   } = useLocation();
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
     `avg(${SPAN_SELF_TIME})`,
+    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+    `avg(${HTTP_DECODED_RESPONSE_BODY_LENGTH})`,
+    `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
     'spm()',
     SPAN_OP,
     SPAN_DESCRIPTION,
@@ -82,6 +93,17 @@ function ResourceSummary() {
               </PageFilterBar>
             </PaddedContainer>
             <BlockContainer>
+              <Block title={t('Avg encoded size')}>
+                <FileSize bytes={spanMetrics?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]} />
+              </Block>
+              <Block title={t('Avg decoded size')}>
+                <FileSize
+                  bytes={spanMetrics?.[`avg(${HTTP_DECODED_RESPONSE_BODY_LENGTH})`]}
+                />
+              </Block>
+              <Block title={t('Avg transfer size')}>
+                <FileSize bytes={spanMetrics?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]} />
+              </Block>
               <Block title={DataTitles.avg}>
                 <DurationCell
                   milliseconds={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
