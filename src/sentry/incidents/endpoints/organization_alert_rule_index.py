@@ -191,7 +191,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             datasets = request.GET.getlist("dataset", [])
             if len(datasets) > 0:
                 alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
-                issue_rules = issue_rules.filter(source=-1)
+                issue_rules = Rule.objects.none()
 
         name = request.GET.get("name", None)
         if name:
