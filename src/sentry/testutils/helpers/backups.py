@@ -13,6 +13,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
+from django.conf import settings
+from django.core.management import call_command
 from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
@@ -31,7 +33,6 @@ from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
-from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentSnapshot,
@@ -78,7 +79,6 @@ from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -194,30 +194,14 @@ def reversed_dependencies():
     return sorted
 
 
-def is_control_model(model):
-    meta = model._meta
-    return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
-
-
-def clear_model(model, *, reset_pks: bool):
-    using = router.db_for_write(model)
-    with unguarded_write(using=using):
-        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()
-
-        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
-        # solution.
-        if reset_pks and model is not Node:
-            table = model._meta.db_table
-            seq = f"{table}_id_seq"
-            with connections[using].cursor() as cursor:
-                cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
-
-
-@assume_test_silo_mode(SiloMode.REGION)
 def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
+
+    if reset_pks:
+        for db in settings.DATABASES.keys():
+            call_command("flush", database=db, verbosity=0, interactive=False)
+        return
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
     with unguarded_write(using=router.db_for_write(Team)):
@@ -225,25 +209,19 @@ def clear_database(*, reset_pks: bool = False):
 
     reversed = reversed_dependencies()
     for model in reversed:
-        if is_control_model(model):
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                clear_model(model, reset_pks=reset_pks)
-        else:
-            clear_model(model, reset_pks=reset_pks)
+        with unguarded_write(using=router.db_for_write(model)):
+            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+            # when using `model.objects.all().delete()`, so we have to call out to Postgres
+            # manually.
+            connection = connections[router.db_for_write(model)]
+            with connection.cursor() as cursor:
+                table = model._meta.db_table
+                cursor.execute(f"DELETE FROM {table:s};")
 
     # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
     for model in set(apps.get_models()) - set(reversed):
-        # We don't know which silo these models reside in, so try both.
-        try:
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                clear_model(model, reset_pks=False)
-        except Exception:
-            pass
-
-        try:
-            clear_model(model, reset_pks=False)
-        except Exception:
-            pass
+        with unguarded_write(using=router.db_for_write(model)):
+            model.objects.all().delete()
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:

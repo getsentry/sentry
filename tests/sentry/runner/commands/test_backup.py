@@ -4,16 +4,15 @@ import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
+from django.db import IntegrityError
 
 from sentry.backup.helpers import create_encrypted_export_tarball
-from sentry.backup.imports import ImportingError
 from sentry.runner.commands.backup import compare, export, import_
-from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -78,7 +77,6 @@ def cli_import_then_export(
         assert rv.exit_code == 0, rv.output
 
 
-@region_silo_test(stable=True)
 class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command.
@@ -179,15 +177,14 @@ class BadImportExportDomainErrorTests(TransactionTestCase):
             ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose\n"
             in rv.output
         )
-        assert isinstance(rv.exception, ImportingError)
-        assert rv.exception.context.get_kind() == RpcImportErrorKind.IntegrityError
+        assert isinstance(rv.exception, IntegrityError)
         assert rv.exit_code == 1, rv.output
 
 
 class BadImportExportCommandTests(TestCase):
     def test_import_file_read_error_exit_code(self):
         rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH])
-        assert not isinstance(rv.exception, ImportingError)
+        assert not isinstance(rv.exception, IntegrityError)
         assert rv.exit_code == 2, rv.output
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
@@ -209,12 +206,3 @@ class BadImportExportCommandTests(TestCase):
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
             assert "Could not deserialize" in str(rv.exception)
-
-    @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
-    def test_import_in_control_silo(self):
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
-        assert isinstance(rv.exception, RuntimeError)
-        assert "Imports must be run in REGION or MONOLITH instances only" in rv.output
-
-
-# TODO(getsentry/team-ospo#190): Add bad compare tests.

@@ -3,44 +3,25 @@ from __future__ import annotations
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
 
 import click
+from django.conf import settings
 from django.core import serializers
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, connections, router, transaction
 from django.db.models.base import Model
+from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
-from sentry.backup.dependencies import (
-    NormalizedModelName,
-    PrimaryKeyMap,
-    dependencies,
-    get_model_name,
-)
-from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model, get_model_name
+from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
-from sentry.services.hybrid_cloud.import_export.model import (
-    RpcFilter,
-    RpcImportError,
-    RpcImportErrorKind,
-    RpcImportFlags,
-    RpcImportScope,
-    RpcPrimaryKeyMap,
-)
-from sentry.services.hybrid_cloud.import_export.service import ImportExportService
-from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
+from sentry.silo import unguarded_write
 from sentry.utils import json
-from sentry.utils.env import is_split_db
 
 __all__ = (
-    "ImportingError",
     "import_in_user_scope",
     "import_in_organization_scope",
     "import_in_config_scope",
     "import_in_global_scope",
 )
-
-
-class ImportingError(Exception):
-    def __init__(self, context: RpcImportError) -> None:
-        self.context = context
 
 
 def _import(
@@ -63,11 +44,6 @@ def _import(
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.user import User
-
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        errText = "Imports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
-        raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
     user_model_name = get_model_name(User)
@@ -178,38 +154,83 @@ def _import(
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_write():
+        allowed_relocation_scopes = scope.value
         pk_map = PrimaryKeyMap()
-        for model_name, json_data in yield_json_models(src):
-            model_relations = dependencies().get(model_name)
-            if not model_relations:
-                continue
+        for (batch_model_name, batch) in yield_json_models(src):
+            model = get_model(batch_model_name)
+            if model is None:
+                raise ValueError("Unknown model name")
 
-            dep_models = {
-                get_model_name(d) for d in model_relations.get_dependencies_for_relocation()
-            }
-            import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
-            result = import_by_model(
-                model_name=str(model_name),
-                scope=RpcImportScope.into_rpc(scope),
-                flags=RpcImportFlags.into_rpc(flags),
-                filter_by=[RpcFilter.into_rpc(f) for f in filters],
-                pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
-                json_data=json_data,
-            )
+            using = router.db_for_write(model)
+            with transaction.atomic(using=using):
+                count = 0
+                for obj in serializers.deserialize("json", batch, use_natural_keys=False):
+                    o = obj.object
+                    if o._meta.app_label not in EXCLUDED_APPS or o:
+                        if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
+                            o = obj.object
+                            model_name = get_model_name(o)
+                            for f in filters:
+                                if f.model == type(o) and getattr(o, f.field, None) not in f.values:
+                                    break
+                            else:
+                                # We can only be sure `get_relocation_scope()` will be correct if it
+                                # is fired AFTER normalization, as some `get_relocation_scope()`
+                                # methods rely on being able to correctly resolve foreign keys,
+                                # which is only possible after normalization.
+                                old_pk = o.normalize_before_relocation_import(pk_map, scope, flags)
+                                if old_pk is None:
+                                    continue
 
-            if isinstance(result, RpcImportError):
-                printer(result.pretty(), err=True)
-                if result.get_kind() == RpcImportErrorKind.IntegrityError:
-                    warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-                    printer(warningText, err=True)
-                raise ImportingError(result)
-            pk_map.extend(result.mapped_pks)
+                                # Now that the model has been normalized, we can ensure that this
+                                # particular instance has a `RelocationScope` that permits
+                                # importing.
+                                if not o.get_relocation_scope() in allowed_relocation_scopes:
+                                    continue
 
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
-        with unguarded_write(using="default"), transaction.atomic(using="default"):
+                                written = o.write_relocation_import(scope, flags)
+                                if written is None:
+                                    continue
+
+                                new_pk, import_kind = written
+                                slug = getattr(o, "slug", None)
+                                pk_map.insert(model_name, old_pk, new_pk, import_kind, slug)
+                                count += 1
+
+                # If we wrote at least one model, make sure to update the sequences too.
+                if count > 0:
+                    table = o._meta.db_table
+                    seq = f"{table}_id_seq"
+                    with connections[using].cursor() as cursor:
+                        cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+
+    try:
+        if len(settings.DATABASES) == 1:
+            # TODO(getsentry/team-ospo#185): This is currently untested in single-db mode. Fix ASAP!
+            with unguarded_write(using="default"), transaction.atomic("default"):
+                do_write()
+        else:
             do_write()
-    else:
-        do_write()
+
+    # For all database integrity errors, let's warn users to follow our
+    # recommended backup/restore workflow before reraising exception. Most of
+    # these errors come from restoring on a different version of Sentry or not restoring
+    # on a clean install.
+    except IntegrityError as e:
+        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
+        printer(
+            warningText,
+            err=True,
+        )
+        raise (e)
+
+    # Calls to `write_relocation_import` may fail validation and throw either a
+    # `DjangoValidationError` when a call to `.full_clean()` failed, or a
+    # `DjangoRestFrameworkValidationError` when a call to a custom DRF serializer failed. This
+    # exception catcher converts instances of the former to the latter.
+    except DjangoValidationError as e:
+        errs = {field: error for field, error in e.message_dict.items()}
+        raise DjangoRestFrameworkValidationError(errs) from e
 
 
 def import_in_user_scope(

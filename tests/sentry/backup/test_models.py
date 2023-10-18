@@ -85,11 +85,9 @@ from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import export_to_file, import_export_then_validate
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.json import JSONData
 from tests.sentry.backup import mark, targets
 
@@ -97,7 +95,6 @@ UNIT_TESTED: set[NormalizedModelName] = set()
 DYNAMIC_RELOCATION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
 class ModelUnitTests(TransactionTestCase):
     """
     Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
@@ -152,51 +149,39 @@ class ModelUnitTests(TransactionTestCase):
     @targets(mark(UNIT_TESTED, ApiAuthorization, ApiApplication, ApiGrant))
     def test_api_application(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            app = ApiApplication.objects.create(name="test", owner=user)
-            ApiAuthorization.objects.create(
-                application=app, user=self.create_user("example@example.com")
-            )
-            ApiGrant.objects.create(
-                user=self.user,
-                application=app,
-                expires_at="2022-01-01 11:11",
-                redirect_uri="https://example.com",
-                scope_list=["openid", "profile", "email"],
-            )
-
+        app = ApiApplication.objects.create(name="test", owner=user)
+        ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        ApiGrant.objects.create(
+            user=self.user,
+            application=app,
+            expires_at="2022-01-01 11:11",
+            redirect_uri="https://example.com",
+            scope_list=["openid", "profile", "email"],
+        )
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, ApiToken))
     def test_api_token(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            app = ApiApplication.objects.create(
-                owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
-            )
-            ApiToken.objects.create(application=app, user=user, token=uuid4().hex, expires_at=None)
-
+        app = ApiApplication.objects.create(
+            owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
+        )
+        ApiToken.objects.create(application=app, user=user, token=uuid4().hex, expires_at=None)
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, ApiKey))
     def test_api_key(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
-
+        ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, Authenticator))
     def test_authenticator(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            Authenticator.objects.create(user=user, type=1)
-
+        Authenticator.objects.create(user=user, type=1)
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, AuthIdentity, AuthProvider))
@@ -209,24 +194,17 @@ class ModelUnitTests(TransactionTestCase):
             "key3": [1, 2, 3],
             "key4": {"nested_key": "nested_value"},
         }
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.create(
-                user=user,
-                auth_provider=AuthProvider.objects.create(
-                    organization_id=org.id, provider="sentry"
-                ),
-                ident="123456789",
-                data=test_data,
-            )
-
+        AuthIdentity.objects.create(
+            user=user,
+            auth_provider=AuthProvider.objects.create(organization_id=org.id, provider="sentry"),
+            ident="123456789",
+            data=test_data,
+        )
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, ControlOption))
     def test_control_option(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            ControlOption.objects.create(key="foo", value="bar")
-
+        ControlOption.objects.create(key="foo", value="bar")
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, Counter))
@@ -273,9 +251,7 @@ class ModelUnitTests(TransactionTestCase):
 
     @targets(mark(UNIT_TESTED, Email))
     def test_email(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            Email.objects.create(email="email@example.com")
-
+        Email.objects.create(email="email@example.com")
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, Environment))
@@ -390,17 +366,14 @@ class ModelUnitTests(TransactionTestCase):
     def test_org_auth_token(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            OrgAuthToken.objects.create(
-                organization_id=org.id,
-                name="token 1",
-                token_hashed="ABCDEF",
-                token_last_characters="xyz1",
-                scope_list=["org:ci"],
-                date_last_used=None,
-            )
-
+        OrgAuthToken.objects.create(
+            organization_id=org.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, Organization))
@@ -506,12 +479,9 @@ class ModelUnitTests(TransactionTestCase):
     def test_sentry_app(self):
         app = self.create_sentry_app(name="test_app", organization=self.organization)
         self.create_sentry_app_installation(slug=app.slug, organization=self.organization)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            updater = SentryAppUpdater(sentry_app=app)
-            updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
-            updater.run(self.user)
-
+        updater = SentryAppUpdater(sentry_app=app)
+        updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
+        updater.run(self.user)
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, PendingIncidentSnapshot))
@@ -539,38 +509,28 @@ class ModelUnitTests(TransactionTestCase):
     def test_user(self):
         user = self.create_user()
         self.add_user_permission(user, "users.admin")
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserOption.objects.create(user=user, key="timezone", value="Europe/Vienna")
-
+        UserOption.objects.create(user=user, key="timezone", value="Europe/Vienna")
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, UserIP))
     def test_user_ip(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserIP.objects.create(
-                user=user,
-                ip_address="127.0.0.2",
-                first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
-                last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
-            )
-
+        UserIP.objects.create(
+            user=user,
+            ip_address="127.0.0.2",
+            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+        )
         return self.import_export_then_validate()
 
     @targets(mark(UNIT_TESTED, UserRole, UserRoleUser))
     def test_user_role(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            role = UserRole.objects.create(name="test-role")
-            UserRoleUser.objects.create(user=user, role=role)
-
+        role = UserRole.objects.create(name="test-role")
+        UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
 
 
-@region_silo_test(stable=True)
 class DynamicRelocationScopeTests(TransactionTestCase):
     """
     For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.
@@ -584,15 +544,13 @@ class DynamicRelocationScopeTests(TransactionTestCase):
     @targets(mark(DYNAMIC_RELOCATION_TESTED, ApiAuthorization, ApiToken))
     def test_api_auth_application_bound(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            app = ApiApplication.objects.create(name="test", owner=user)
-            auth = ApiAuthorization.objects.create(
-                application=app, user=self.create_user("example@example.com")
-            )
-            token = ApiToken.objects.create(
-                application=app, user=user, token=uuid4().hex, expires_at=None
-            )
+        app = ApiApplication.objects.create(name="test", owner=user)
+        auth = ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        token = ApiToken.objects.create(
+            application=app, user=user, token=uuid4().hex, expires_at=None
+        )
 
         # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
         assert auth.get_relocation_scope() == RelocationScope.Global
@@ -602,10 +560,8 @@ class DynamicRelocationScopeTests(TransactionTestCase):
     @targets(mark(DYNAMIC_RELOCATION_TESTED, ApiAuthorization, ApiToken))
     def test_api_auth_not_bound(self):
         user = self.create_user()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
-            token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
+        auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
+        token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
 
         assert auth.get_relocation_scope() == RelocationScope.Config
         assert token.get_relocation_scope() == RelocationScope.Config

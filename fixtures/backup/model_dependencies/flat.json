@@ -807,6 +807,8 @@
     "sentry.user",
     "sentry.userrole"
   ],
+  "sessions.session": [],
+  "sites.site": [],
   "social_auth.usersocialauth": [
     "sentry.user"
   ]
