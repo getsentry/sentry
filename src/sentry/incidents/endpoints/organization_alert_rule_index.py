@@ -346,7 +346,7 @@ Metric alert rule trigger actions follow the following structure:
     queryType = serializers.ChoiceField(
         required=False,
         choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
+        help_text="The type of query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),

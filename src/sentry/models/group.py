@@ -294,7 +294,7 @@ def get_recommended_event_for_environments(
     return None
 
 
-class GroupManager(BaseManager):
+class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
@@ -423,25 +423,26 @@ class GroupManager(BaseManager):
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
 
-        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
+        modified_groups_list = []
+        selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
             status=status, substatus=substatus
         )
 
-        for group in to_be_updated:
+        for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            modified_groups_list.append(group)
 
-        self.bulk_update(to_be_updated, ["status", "substatus"])
+        Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
 
-        for group in to_be_updated:
-            group.status = status
-            group.substatus = substatus
+        for group in modified_groups_list:
             Activity.objects.create_group_activity(
                 group,
                 activity_type,
                 data=activity_data,
                 send_notification=send_activity_notification,
             )
+
             record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
@@ -540,7 +541,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects = GroupManager(cache_fields=("id",))
+    objects: GroupManager = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
@@ -556,7 +557,8 @@ class Group(Model):
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
             ("project", "status", "substatus", "id"),
-            ("status", "substatus", "id"),
+            ("status", "substatus", "id"),  # TODO: Remove this
+            ("status", "substatus", "first_seen"),
         ]
         unique_together = (
             ("project", "short_id"),

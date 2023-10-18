@@ -1,7 +1,6 @@
 import {useMemo, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import GridEditable, {
@@ -131,10 +130,6 @@ export function PagePerformanceTable() {
       return <AlignRight>{formatAbbreviatedNumber(row['count()'])}</AlignRight>;
     }
     if (key === 'transaction') {
-      const link = `/performance/summary/?${qs.stringify({
-        project: project?.id,
-        transaction: row.transaction,
-      })}`;
       return (
         <NoOverflow>
           {project && (
@@ -146,7 +141,11 @@ export function PagePerformanceTable() {
               tooltip={project.slug}
             />
           )}
-          <Link to={link}>{row.transaction}</Link>
+          <Link
+            to={{...location, query: {...location.query, transaction: row.transaction}}}
+          >
+            {row.transaction}
+          </Link>
         </NoOverflow>
       );
     }
@@ -172,7 +171,7 @@ export function PagePerformanceTable() {
         <SearchBar
           placeholder={t('Search for Pages')}
           onSearch={query => {
-            setSearch(query === '' ? undefined : query);
+            setSearch(query === '' ? undefined : `*${query}*`);
           }}
         />
       </SearchBarContainer>

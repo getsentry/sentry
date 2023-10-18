@@ -340,6 +340,12 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
         return owner_ids
 
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
+    # on teams.
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
+        return q
+
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

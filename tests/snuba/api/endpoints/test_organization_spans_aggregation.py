@@ -227,7 +227,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         )
         self.trace_id_1 = uuid4().hex
 
-        self.root_event = self.create_event(
+        self.root_event_1 = self.create_event(
             trace=self.trace_id_1,
             trace_context={
                 "trace_id": self.trace_id_1,
@@ -306,7 +306,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         )
         self.trace_id_2 = uuid4().hex
 
-        self.root_event = self.create_event(
+        self.root_event_2 = self.create_event(
             trace=self.trace_id_2,
             trace_context={
                 "trace_id": self.trace_id_2,
@@ -418,6 +418,17 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             assert data[root_fingerprint]["count()"] == 2
             assert data[root_fingerprint]["description"] == "api/0/foo"
             assert round(data[root_fingerprint]["avg(duration)"]) == 850
+
+            if backend == "indexedSpans":
+                assert data[root_fingerprint]["samples"] == {
+                    ("80fe542aea4945ffbe612646987ee449", "root_1"),
+                    ("86b21833d1854d9b811000b91e7fccfa", "root_2"),
+                }
+            else:
+                assert data[root_fingerprint]["samples"] == {
+                    (self.root_event_1.event_id, self.span_ids_event_1["A"]),
+                    (self.root_event_2.event_id, self.span_ids_event_2["A"]),
+                }
 
             fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
             assert data[fingerprint]["description"] == "connect"

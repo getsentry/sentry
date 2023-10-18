@@ -7,13 +7,13 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import Count from 'sentry/components/count';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -205,7 +205,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
       </PageFilterBar>
       {props.usingTransactions ? (
         <SearchBar
@@ -379,9 +379,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           <ProfileVisualizationContainer>
             <ProfileVisualization>
               <ProfileGroupProvider
+                traceID=""
                 type="flamegraph"
                 input={data ?? null}
-                traceID=""
                 frameFilter={flamegraphFrameFilter}
               >
                 <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
@@ -513,7 +513,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 }
 
 const ViewSelectContainer = styled('div')`
-  min-width: 140px;
+  min-width: 160px;
 `;
 
 const AggregateFlamegraphToolbarContainer = styled('div')`
@@ -622,7 +622,7 @@ function ProfileDigest() {
 
       {percentiles.map(p => {
         return (
-          <div key={p}>
+          <ProfileDigestColumn key={p}>
             <ProfileDigestLabel>{p}</ProfileDigestLabel>
             <div>
               {profiles.isLoading ? (
@@ -633,10 +633,10 @@ function ProfileDigest() {
                 <PerformanceDuration nanoseconds={data?.[p] as number} abbreviation />
               )}
             </div>
-          </div>
+          </ProfileDigestColumn>
         );
       })}
-      <div>
+      <ProfileDigestColumn>
         <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
         <div>
           {profiles.isLoading ? (
@@ -647,10 +647,14 @@ function ProfileDigest() {
             <Count value={data?.['count()'] as number} />
           )}
         </div>
-      </div>
+      </ProfileDigestColumn>
     </ProfileDigestHeader>
   );
 }
+
+const ProfileDigestColumn = styled('div')`
+  text-align: right;
+`;
 
 const ProfileDigestHeader = styled('div')`
   display: flex;

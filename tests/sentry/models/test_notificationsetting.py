@@ -10,7 +10,6 @@ from sentry.notifications.types import (
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -29,11 +28,10 @@ def assert_no_notification_settings():
 
 
 def create_setting(**kwargs):
-    with Feature({"organizations:notifications-double-write": True}):
-        NotificationSetting.objects.update_settings(
-            value=NotificationSettingOptionValues.ALWAYS,
-            **_get_kwargs(kwargs),
-        )
+    NotificationSetting.objects.update_settings(
+        value=NotificationSettingOptionValues.ALWAYS,
+        **_get_kwargs(kwargs),
+    )
 
 
 @control_silo_test(stable=True)

@@ -975,15 +975,24 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level'>[]
+  errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
     ?.level;
 
+  if (errors?.some(isErrorPerformanceError)) {
+    return 'error';
+  }
+
   if (!highestErrorLevel) {
     return undefined;
   }
+
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
+}
+
+export function isErrorPerformanceError(error: {type?: number}): boolean {
+  return !!error.type && error.type >= 1000 && error.type < 2000;
 }
 
 // Maps the known error levels to an Alert component types

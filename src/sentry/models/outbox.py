@@ -289,7 +289,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
-            OutboxCategory.AUTH_IDENTITY_UPDATE,
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
@@ -302,6 +301,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
         },
     )
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})

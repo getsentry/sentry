@@ -35,7 +35,7 @@ class SentrySMTPServer(Service, SMTPServer):
             return STATUS[552]
 
         try:
-            group_id = email_to_group_id(rcpttos[0])
+            group_id, org_id = email_to_group_id(rcpttos[0])
         except Exception:
             logger.info("%r is not a valid email address", rcpttos)
             return STATUS[550]
@@ -58,6 +58,7 @@ class SentrySMTPServer(Service, SMTPServer):
             # If there's no body, we don't need to go any further
             return STATUS[200]
 
+        # TODO(hybridcloud) this needs to emit an outbox to the correct region.
         process_inbound_email.delay(mailfrom, group_id, payload)
         return STATUS[200]
 

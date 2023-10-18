@@ -36,12 +36,7 @@ class SentryVisitor(ast.NodeVisitor):
         if node.module and not node.level:
             if node.module.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
-            # for now only enforce this in getsentry
-            elif (
-                "getsentry/" in self.filename
-                and node.module == "sentry.models"
-                and any(x.name.isupper() or x.name.istitle() for x in node.names)
-            ):
+            elif node.module == "sentry.models":
                 self.errors.append((node.lineno, node.col_offset, S005_msg))
             elif (
                 "tests/" in self.filename

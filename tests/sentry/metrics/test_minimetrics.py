@@ -1,14 +1,25 @@
 from typing import Any, Dict
+from unittest import mock
 
 import pytest
 from sentry_sdk import Client, Hub, Transport
 
+from sentry.metrics.composite_experimental import CompositeExperimentalMetricsBackend
 from sentry.metrics.minimetrics import (
     MiniMetricsMetricsBackend,
     before_emit_metric,
     have_minimetrics,
 )
 from sentry.testutils.helpers import override_options
+
+
+def full_flush(hub):
+    # first flush flushes the metrics
+    hub.client.flush()
+
+    # second flush should really not do anything unless the first
+    # flush accidentally created more metrics
+    hub.client.flush()
 
 
 def parse_metrics(bytes: bytes):
@@ -77,7 +88,13 @@ def hub():
 
 @pytest.fixture(scope="function")
 def backend():
-    return MiniMetricsMetricsBackend(prefix="sentrytest.")
+    # Make sure we also patch the global metrics backend as the backend
+    # will forward internal metrics to it (back into itself).  If we don't
+    # set this up correctly, we might accidentally break our recursion
+    # protection and not see these tests fail.
+    rv = MiniMetricsMetricsBackend(prefix="sentrytest.")
+    with mock.patch("sentry.utils.metrics.backend", new=rv):
+        yield rv
 
 
 @pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
@@ -89,7 +106,7 @@ def backend():
 )
 def test_incr_called_with_no_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -113,7 +130,7 @@ def test_incr_called_with_no_tags(backend, hub):
 )
 def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -138,7 +155,7 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
 def test_incr_called_with_tag_value_as_list(backend, hub):
     # The minimetrics backend supports the list type.
     backend.incr(key="foo", tags={"x": ["bar", "baz"]})
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -159,7 +176,7 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
 def test_gauge_as_counter(backend, hub):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
-    hub.client.flush()
+    full_flush(hub)
 
     metrics = hub.client.transport.get_metrics()
 
@@ -167,6 +184,48 @@ def test_gauge_as_counter(backend, hub):
     assert metrics[0][1] == "sentrytest.foo@none"
     assert metrics[0][2] == "c"
     assert metrics[0][3] == ["42.0"]
+
+    assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.allow_all_incr": True,
+        "delightful_metrics.allow_all_timing": True,
+        "delightful_metrics.allow_all_gauge": True,
+    }
+)
+def test_composite_backend_does_not_recurse(hub):
+    composite_backend = CompositeExperimentalMetricsBackend(
+        primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
+    )
+    accessed = set()
+
+    class TrackingCompositeBackend:
+        def __getattr__(self, name):
+            accessed.add(name)
+            return getattr(composite_backend, name)
+
+    # make sure the backend feeds back to itself
+    with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()):
+        composite_backend.incr(key="sentrytest.composite", tags={"x": "bar"})
+        full_flush(hub)
+
+    # make sure that we did actually internally forward to the composite
+    # backend so the test does not accidentally succeed.
+    assert "incr" in accessed
+    assert "timing" in accessed
+
+    metrics = hub.client.transport.get_metrics()
+
+    # the minimetrics.add metric must not show up
+    assert len(metrics) == 1
+    assert metrics[0][1] == "sentry.sentrytest.composite@none"
+    assert metrics[0][4]["x"] == "bar"
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
 

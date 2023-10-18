@@ -13,6 +13,9 @@ import {
   CLICronQuickStart,
   CurlCronQuickStart,
   GoCronQuickStart,
+  JavaCronQuickStart,
+  JavaQuartzCronQuickStart,
+  JavaSpringBootCronQuickStart,
   NodeJSCronQuickStart,
   PHPCronQuickStart,
   PHPLaravelCronQuickStart,
@@ -83,6 +86,27 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Go',
     Guide: GoCronQuickStart,
     platforms: new Set(['go']),
+  },
+  java: {
+    label: 'Java',
+    Guide: JavaCronQuickStart,
+    platforms: new Set(['java', 'java-log4j2', 'java-logback']),
+  },
+  javaSpringBoot: {
+    label: 'Spring',
+    Guide: JavaSpringBootCronQuickStart,
+    platforms: new Set(['java-spring-boot', 'java-spring']),
+  },
+  javaQuartz: {
+    label: 'Quartz',
+    Guide: JavaQuartzCronQuickStart,
+    platforms: new Set([
+      'java',
+      'java-log4j2',
+      'java-logback',
+      'java-spring-boot',
+      'java-spring',
+    ]),
   },
 };
 

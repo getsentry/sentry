@@ -58,7 +58,10 @@ function OpsBreakdown({
   hideHeader = false,
   topN = TOP_N_SPANS,
 }: Props) {
-  const transactionEvent = event.type === 'transaction' ? event : undefined;
+  const transactionEvent =
+    event.type === 'transaction' || event.type === 'aggregateTransaction'
+      ? event
+      : undefined;
 
   function generateStats(): OpBreakdownType {
     if (!transactionEvent) {

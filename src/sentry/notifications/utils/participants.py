@@ -214,11 +214,11 @@ def get_participants_for_release(
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     if should_use_notifications_v2(organization):
+        # don't pass in projects since the settings are scoped to the organization only for now
         providers_by_recipient = notifications_service.get_participants(
-            recipients=actors,
-            project_ids=[project.id for project in projects],
-            organization_id=organization.id,
             type=NotificationSettingEnum.DEPLOY,
+            recipients=actors,
+            organization_id=organization.id,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
@@ -584,11 +584,12 @@ def get_recipients_by_provider(
 
     # First evaluate the teams.
     setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
-    controller = None
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
     if should_use_notifications_v2(project.organization):
+        # get by team
         controller = NotificationController(
-            recipients=users,
+            recipients=teams,
             organization_id=project.organization_id,
             project_ids=[project.id],
             type=setting_type,
@@ -614,13 +615,12 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        if not controller:
-            controller = NotificationController(
-                recipients=users,
-                organization_id=project.organization_id,
-                project_ids=[project.id],
-                type=setting_type,
-            )
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
         users_by_provider = controller.get_notification_recipients(
             type=setting_type, actor_type=ActorType.USER
         )

@@ -118,6 +118,7 @@ declare namespace Profiling {
     weights: number[];
     samples: number[][];
     samples_profiles?: number[][];
+    sample_durations_ns?: number[];
     type: 'sampled';
   }
 
