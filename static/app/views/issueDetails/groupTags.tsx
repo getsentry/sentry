@@ -87,7 +87,7 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
   const tagList: SimpleTag[] = isTagFacetsResponse(data, shouldUseTagFacetsEndpoint)
     ? data.filter(({key}) => key !== 'transaction')?.map(sumTagFacetsForTopValues)
     : data;
-  const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
+  const alphabeticalTags = tagList.sort((a, b) => a.key.localeCompare(b.key));
 
   if (isLoading) {
     return <LoadingIndicator />;
