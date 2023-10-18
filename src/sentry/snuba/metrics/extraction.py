@@ -149,13 +149,14 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "user_misery": "s",
 }
 
-_NO_ARG_METRICS = (
+
+_NO_ARG_METRICS = [
     "on_demand_epm",
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
-)
-_MULTIPLE_ARGS_METRICS = ("on_demand_apdex", "on_demand_user_misery")
+]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_user_misery"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -619,7 +620,7 @@ def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
 
 def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
     apdex_threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -651,7 +652,7 @@ def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
     threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -965,7 +966,7 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_threshold_and_metric(project: Project) -> Tuple[int, str]:
+def _get_satisfactory_threshold_and_metric(project: Project) -> Tuple[int, str]:
     """It returns the statisfactory response time threshold for the project and
     the associated metric ("transaction.duration" or "measurements.lcp")."""
     result = ProjectTransactionThreshold.filter(
