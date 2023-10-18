@@ -311,7 +311,8 @@ def query_transactions_timeseries(
     start: datetime,
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
-    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(days=14)
+    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    start = end - timedelta(hours=14)
     use_case_id = UseCaseID.TRANSACTIONS
     interval = 3600  # 1 hour
     # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
@@ -405,24 +406,23 @@ def query_transactions_timeseries(
             request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
         )["data"]
         for row in data:
-            pass
-            # formatted_result = SnubaTSResult(
-            #     {
-            #         "data": zerofill(
-            #             item["data"],
-            #             params["start"],
-            #             params["end"],
-            #             interval,
-            #             "time",
-            #         ),
-            #         "project": project_id,
-            #         "order": item["order"],
-            #     },
-            #     start,
-            #     end,
-            #     interval,
-            # )
-            # yield row["project_id"], row["transaction_name"], row["time"]
+            formatted_result = SnubaTSResult(
+                {
+                    "data": zerofill(
+                        data,
+                        start,
+                        end,
+                        interval,
+                        "time",
+                    ),
+                    "project": row["project_id"],
+                    "order": 0,  # TODO
+                },
+                start,
+                end,
+                interval,
+            )
+            yield row["project_id"], row["transaction_name"], formatted_result
 
 
 def query_transactions_timeseries_old(
