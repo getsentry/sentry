@@ -98,7 +98,7 @@ function ResourceSummary() {
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
           <SampleList
-            isBrowser
+            transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
             transactionName={transaction as string}
           />

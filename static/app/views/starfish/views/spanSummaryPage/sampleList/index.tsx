@@ -28,6 +28,7 @@ type Props = {
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
+  transactionRoute?: string;
 };
 
 export function SampleList({
@@ -36,7 +37,7 @@ export function SampleList({
   transactionMethod,
   spanDescription,
   onClose,
-  isBrowser,
+  transactionRoute = '/performance/summary/',
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -77,15 +78,10 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = isBrowser
-    ? `/performance/browser/pageloads/?${qs.stringify({
-        project: query.project,
-        transaction: transactionName,
-      })}`
-    : `/performance/summary/?${qs.stringify({
-        project: query.project,
-        transaction: transactionName,
-      })}`;
+  const link = `${transactionRoute}?${qs.stringify({
+    project: query.project,
+    transaction: transactionName,
+  })}`;
 
   function defaultOnClose() {
     router.replace({
