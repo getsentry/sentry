@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
@@ -31,6 +31,29 @@ type Props = {
   transactionMethod?: string;
 };
 
+export function getSampleSymbol(
+  duration: number,
+  compareToDuration: number,
+  theme: Theme
+): {color: string; symbol: string} {
+  if (isNearAverage(duration, compareToDuration)) {
+    return {
+      symbol: crossIconPath,
+      color: theme.gray500,
+    };
+  }
+
+  return duration > compareToDuration
+    ? {
+        symbol: upwardPlayIconPath,
+        color: theme.red300,
+      }
+    : {
+        symbol: downwardPlayIconPath,
+        color: theme.green300,
+      };
+}
+
 function DurationChart({
   groupId,
   transactionName,
@@ -43,28 +66,6 @@ function DurationChart({
   const theme = useTheme();
   const {setPageError} = usePageError();
   const pageFilter = usePageFilters();
-
-  const getSampleSymbol = (
-    duration: number,
-    compareToDuration: number
-  ): {color: string; symbol: string} => {
-    if (isNearAverage(duration, compareToDuration)) {
-      return {
-        symbol: crossIconPath,
-        color: theme.gray500,
-      };
-    }
-
-    return duration > compareToDuration
-      ? {
-          symbol: upwardPlayIconPath,
-          color: theme.red300,
-        }
-      : {
-          symbol: downwardPlayIconPath,
-          color: theme.green300,
-        };
-  };
 
   const filters = {
     transactionName,
@@ -131,7 +132,7 @@ function DurationChart({
       'transaction.id': transaction_id,
       span_id,
     }) => {
-      const {symbol, color} = getSampleSymbol(duration, avg);
+      const {symbol, color} = getSampleSymbol(duration, avg, theme);
       return {
         data: [
           {
