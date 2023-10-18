@@ -15,18 +15,20 @@ function useReplayFromIssue({
   group,
   location,
   organization,
-  transaction,
   datetime,
+  customIdQuery,
+  customIdKey,
 }: {
   group: Group;
   location: Location;
   organization: Organization;
+  customIdKey?: string;
+  customIdQuery?: string;
   datetime?: {
     end: DateString;
     start: DateString;
     statsPeriod: undefined;
   };
-  transaction?: string;
 }) {
   const api = useApi();
 
@@ -44,9 +46,7 @@ function useReplayFromIssue({
         {
           query: {
             returnIds: true,
-            query: transaction
-              ? `transaction:["${transaction}"]`
-              : `issue.id:[${group.id}]`,
+            query: customIdQuery ?? `issue.id:[${group.id}]`,
             data_source: dataSource,
             statsPeriod: '14d',
             project: ALL_ACCESS_PROJECTS,
@@ -54,12 +54,20 @@ function useReplayFromIssue({
           },
         }
       );
-      setReplayIds(response[transaction ?? group.id] || []);
+      setReplayIds(response[customIdKey ?? group.id] || []);
     } catch (error) {
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource, transaction, datetime]);
+  }, [
+    api,
+    organization.slug,
+    customIdQuery,
+    group.id,
+    dataSource,
+    datetime,
+    customIdKey,
+  ]);
 
   const eventView = useMemo(() => {
     if (!replayIds) {

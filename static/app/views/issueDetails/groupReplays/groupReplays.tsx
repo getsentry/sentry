@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {type Event, type Group, IssueType, type Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -39,7 +40,12 @@ function GroupReplays({group, event}: Props) {
       group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
       event?.occurrence
         ? {
-            transaction: event?.occurrence?.evidenceData?.transaction,
+            customIdKey: event?.occurrence?.evidenceData?.transaction,
+            customIdQuery: getSampleEventQuery({
+              transaction: event.occurrence.evidenceData.transaction,
+              durationBaseline: event.occurrence.evidenceData.aggregateRange2,
+              addUpperBound: false,
+            }),
             datetime: {
               statsPeriod: undefined,
               start: new Date(
