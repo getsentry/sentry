@@ -699,7 +699,7 @@ class OnDemandMetricSpec:
 
     @property
     def field_to_extract(self):
-        if self.op in _MULTIPLE_ARGS_METRICS:
+        if self.op in ("on_demand_apdex"):
             return None
 
         if not self._arguments:
