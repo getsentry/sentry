@@ -371,17 +371,15 @@ def _record_commit_context_all_frames_analytics(
         reason = "commit_too_old" if most_recent_blame else "no_commit_found"
         metrics.incr(
             "sentry.tasks.process_commit_context.aborted",
-            tags={
-                "detail": "could_not_fetch_commit_context",
-            },
+            tags={"detail": reason},
         )
         logger.info(
-            "process_commit_context_all_frames.find_commit_context",
+            "process_commit_context_all_frames.find_commit_context_failed",
             extra={
                 **extra,
+                "project_id": project_id,
                 "reason": reason,
                 "num_frames": len(frames),
-                "fallback": True,
             },
         )
         analytics.record(

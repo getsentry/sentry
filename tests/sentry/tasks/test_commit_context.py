@@ -737,6 +737,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             reason="could_not_find_in_app_stacktrace_frame",
         )
 
+    @patch("sentry.integrations.utils.commit_context.logger.info")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(
@@ -744,7 +745,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
     )
     @with_feature("organizations:suspect-commits-all-frames")
     def test_failure_no_blames(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
     ):
         """
         A simple failure case where no blames are returned. We bail out and fall back
@@ -784,6 +785,19 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             reason="no_commit_found",
         )
 
+        mock_logger_info.assert_any_call(
+            "process_commit_context_all_frames.find_commit_context_failed",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "reason": "no_commit_found",
+                "num_frames": 1,
+            },
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.info")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(
@@ -791,7 +805,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
     )
     @with_feature("organizations:suspect-commits-all-frames")
     def test_failure_old_blame(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
     ):
         """
         A simple failure case where no blames are returned. We bail out and fall back
@@ -829,6 +843,18 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             num_frames=1,
             num_successfully_mapped_frames=1,
             reason="commit_too_old",
+        )
+
+        mock_logger_info.assert_any_call(
+            "process_commit_context_all_frames.find_commit_context_failed",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "reason": "commit_too_old",
+                "num_frames": 1,
+            },
         )
 
 
