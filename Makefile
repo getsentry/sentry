@@ -133,6 +133,7 @@ test-python-ci: create-db
 		tests/sentry \
 		tests/sentry_plugins \
 		tests/symbolicator \
+		tests/snuba \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
