@@ -175,7 +175,7 @@ export function ProfilesSummaryChart({
 
   return (
     <ProfilesChartContainer>
-      <ProfilesChartTitle>{t('Profile durations')}</ProfilesChartTitle>
+      <ProfilesChartTitle>{t('Durations')}</ProfilesChartTitle>
       <ChartZoom router={router} {...selection?.datetime}>
         {zoomRenderProps => (
           <AreaChart

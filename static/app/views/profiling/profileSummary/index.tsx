@@ -520,8 +520,13 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
-  padding: ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)};
   background-color: ${p => p.theme.background};
+  /*
+    force height to be the same as profile digest header,
+    but subtract 1px for the border that doesnt exist on the header
+   */
+  height: 41px;
 `;
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
@@ -546,7 +551,6 @@ const ProfileDigestContainer = styled('div')`
 `;
 
 const ProfileDigestScrollContainer = styled('div')`
-  padding: ${space(0.5)};
   position: absolute;
   left: 0;
   right: 0;
@@ -659,6 +663,12 @@ const ProfileDigestColumn = styled('div')`
 const ProfileDigestHeader = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  /* force height to be same as toolbar */
+  height: 42px;
+  flex-shrink: 0;
 `;
 
 const ProfileDigestLabel = styled('span')`
