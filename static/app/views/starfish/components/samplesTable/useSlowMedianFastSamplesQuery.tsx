@@ -1,9 +1,12 @@
+import max from 'lodash/max';
+
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DataRow} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 
 const LIMIT_PER_POPULATION = 2;
 
@@ -18,7 +21,10 @@ const LIMIT_PER_POPULATION = 2;
  *
  * @param eventView An eventView containing query information, such as the transaction and other filters
  */
-export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
+export default function useSlowMedianFastSamplesQuery(
+  eventView: EventView,
+  graphMax?: number
+) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -57,33 +63,40 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     },
   ];
 
-  const eventViewAggregates = eventView.clone().withColumns([
-    {kind: 'function', function: ['p50', 'transaction.duration', undefined, undefined]},
-    {kind: 'function', function: ['p95', 'transaction.duration', undefined, undefined]},
-    {kind: 'function', function: ['avg', 'transaction.duration', undefined, undefined]},
-  ]);
+  const eventViewAggregates = eventView
+    .clone()
+    .withColumns([
+      {kind: 'function', function: ['avg', 'transaction.duration', undefined, undefined]},
+    ]);
 
   const {isLoading: isLoadingAgg, data: aggregatesData} = useDiscoverQuery({
     eventView: eventViewAggregates,
     referrer: 'starfish-transaction-summary-sample-events',
     location,
     orgSlug: organization.slug,
+    options: {
+      refetchOnWindowFocus: false,
+      enabled: graphMax !== undefined,
+    },
   });
+  const avg = aggregatesData
+    ? aggregatesData.data[0]['avg(transaction.duration)']
+    : undefined;
+  const upperThird = graphMax ? max([graphMax * (2 / 3), avg]) : undefined;
+  const lowerThird = graphMax ? graphMax * (1 / 3) : undefined;
 
   const slowestSamplesEventView = eventView
     .clone()
     .withColumns(commonColumns)
     .withSorts([
       {
-        field: 'transaction.duration',
+        field: 'id',
         kind: 'desc',
       },
     ]);
 
   slowestSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:>${
-      aggregatesData?.data?.[0]?.['p95(transaction.duration)'] ?? 0
-    }`
+    `transaction.duration:<${graphMax} transaction.duration:>${upperThird}`
   );
 
   const {isLoading: isLoadingSlowest, data: slowestSamplesData} = useDiscoverQuery({
@@ -93,6 +106,10 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     orgSlug: organization.slug,
 
     limit: LIMIT_PER_POPULATION,
+    options: {
+      refetchOnWindowFocus: false,
+      enabled: graphMax !== undefined && avg !== undefined,
+    },
   });
 
   const medianSamplesEventView = eventView
@@ -106,9 +123,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     ]);
 
   medianSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:<=${
-      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
-    }`
+    `transaction.duration:<=${upperThird} transaction.duration:>${lowerThird}`
   );
 
   const {isLoading: isLoadingMedian, data: medianSamplesData} = useDiscoverQuery({
@@ -117,6 +132,10 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     location,
     orgSlug: organization.slug,
     limit: LIMIT_PER_POPULATION,
+    options: {
+      refetchOnWindowFocus: false,
+      enabled: graphMax !== undefined && avg !== undefined,
+    },
   });
 
   const fastestSamplesEventView = eventView
@@ -130,9 +149,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     ]);
 
   fastestSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:<=${
-      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
-    }`
+    `transaction.duration:<=${lowerThird}`
   );
 
   const {isLoading: isLoadingFastest, data: fastestSamplesData} = useDiscoverQuery({
@@ -141,6 +158,10 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     location,
     orgSlug: organization.slug,
     limit: LIMIT_PER_POPULATION,
+    options: {
+      refetchOnWindowFocus: false,
+      enabled: graphMax !== undefined,
+    },
   });
 
   if (isLoadingAgg || isLoadingSlowest || isLoadingMedian || isLoadingFastest) {
@@ -155,7 +176,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
 
   return {
     isLoading: false,
-    data: combinedData,
+    data: combinedData as DataRow[],
     aggregatesData: aggregatesData?.data[0] ?? [],
   };
 }

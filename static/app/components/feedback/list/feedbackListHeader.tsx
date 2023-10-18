@@ -22,7 +22,7 @@ export default function FeedbackListHeader({checked}: Props) {
 
   return (
     <HeaderPanelItem>
-      <Checkbox />
+      <Checkbox onChange={() => {}} />
       {checked.length ? (
         <HasSelection checked={checked} />
       ) : (
