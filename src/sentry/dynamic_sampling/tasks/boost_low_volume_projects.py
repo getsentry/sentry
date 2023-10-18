@@ -64,7 +64,12 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
+
+# This set contains all the projects for which we want to start extracting the sample rate over time. This is done
+# as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
+PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 
 
 @instrumented_task(
@@ -302,6 +307,13 @@ def adjust_sample_rates_of_projects(
             old_sample_rate = sample_rate_to_float(
                 redis_client.hget(cache_key, rebalanced_project.id)
             )
+
+            if rebalanced_project.id in PROJECTS_WITH_METRICS:
+                metrics.timing(
+                    "dynamic_sampling.project_sample_rate",
+                    rebalanced_project.new_sample_rate,
+                    tags={"project_id": rebalanced_project.id},
+                )
 
             # We want to store the new sample rate as a string.
             pipeline.hset(

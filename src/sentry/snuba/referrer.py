@@ -687,6 +687,10 @@ class Referrer(Enum):
     WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
     WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
+    # Referrers used in the migration script for alerts
+    ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
+    ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
+
     # Referrers in tests
     API_METRICS_TOTALS = "api.metrics.totals"
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

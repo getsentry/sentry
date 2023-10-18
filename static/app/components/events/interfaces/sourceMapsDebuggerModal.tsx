@@ -106,6 +106,7 @@ export interface FrameSourceMapDebuggerData {
   hasScrapingData: boolean;
   matchingSourceFileNames: string[];
   matchingSourceMapName: string | null;
+  minDebugIdSdkVersion: string | null;
   release: string | null;
   releaseHasSomeArtifact: boolean;
   releaseProgress: number;
@@ -444,22 +445,25 @@ function InstalledSdkChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('Outdated SDK')}</h6>
           <p>
-            {sourceResolutionResults.sdkVersion
+            {sourceResolutionResults.sdkVersion !== null
               ? tct(
-                  'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs. You should upgrade to at lease version [targetVersion].',
+                  'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs.',
                   {
                     currentVersion: (
                       <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock>
                     ),
-                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
                   }
                 )
-              : tct(
-                  'You are using an outdated version of the Sentry SDK which does not support debug IDs. You should upgrade to at least version [targetVersion]',
-                  {
-                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
-                  }
-                )}
+              : t(
+                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
+                )}{' '}
+            {sourceResolutionResults.minDebugIdSdkVersion !== null
+              ? tct('You should upgrade to version [targetVersion] or higher.', {
+                  targetVersion: (
+                    <MonoBlock>{sourceResolutionResults.minDebugIdSdkVersion}</MonoBlock>
+                  ),
+                })
+              : t('You should upgrade to the latest version.')}
           </p>
           <p>
             {tct(

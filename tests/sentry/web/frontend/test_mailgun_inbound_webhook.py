@@ -44,6 +44,7 @@ class TestMailgunInboundWebhookView(TestCase):
             },
         )
         assert resp.status_code == 500
+        assert process_inbound_email.call_count == 0
 
     @mock.patch("sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email")
     def test_simple(self, process_inbound_email):

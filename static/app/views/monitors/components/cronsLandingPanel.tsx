@@ -91,11 +91,11 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   'java-spring-boot': [],
 };
 
-function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
+export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
   return !!(platform && platform in platformGuides);
 }
 
-function isValidGuide(guide?: string): guide is GuideKey {
+export function isValidGuide(guide?: string): guide is GuideKey {
   return !!(guide && Object.values<string>(GuideKey).includes(guide));
 }
 

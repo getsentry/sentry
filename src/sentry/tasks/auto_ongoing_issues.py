@@ -109,39 +109,28 @@ def schedule_auto_transition_issues_new_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    span = sentry_sdk.Hub.current.scope.span
     total_count = 0
 
     def get_total_count(results):
         nonlocal total_count
         total_count += len(results)
 
-    most_recent_group_first_seen_seven_days_ago = (
-        Group.objects.filter(
-            first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
-        )
-        .order_by("-id")
-        .first()
-    )
-
-    if span is not None:
-        span.set_tag(
-            "most_recent_group_first_seen_seven_days_ago",
-            most_recent_group_first_seen_seven_days_ago.id,
-        )
-
-    logger.info(
-        "auto_transition_issues_new_to_ongoing started",
-        extra={
-            "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
-            "first_seen_lte": first_seen_lte,
-        },
-    )
-
+    first_seen_lte_datetime = datetime.fromtimestamp(first_seen_lte, timezone.utc)
     base_queryset = Group.objects.filter(
         status=GroupStatus.UNRESOLVED,
         substatus=GroupSubStatus.NEW,
-        id__lte=most_recent_group_first_seen_seven_days_ago.id,
+        first_seen__lte=first_seen_lte_datetime,
+    )
+
+    logger_extra = {
+        "first_seen_lte": first_seen_lte,
+        "first_seen_lte_datetime": first_seen_lte_datetime,
+    }
+    if base_queryset:
+        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra=logger_extra,
     )
 
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):

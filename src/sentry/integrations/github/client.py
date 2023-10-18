@@ -8,7 +8,13 @@ import sentry_sdk
 from requests import PreparedRequest
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.blame import (
+    create_blame_query,
+    extract_commits_from_blame_response,
+    generate_file_path_mapping,
+)
 from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
     Repo,
@@ -22,6 +28,7 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
@@ -658,6 +665,48 @@ class GitHubClientMixin(GithubProxyClient):
             raise ApiError("Branch does not exist in GitHub.")
 
         return ref.get("target", {}).get("blame", {}).get("ranges", [])
+
+    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+        file_path_mapping = generate_file_path_mapping(files)
+
+        try:
+            response = self.post(
+                path="/graphql",
+                data={"query": create_blame_query(file_path_mapping)},
+                allow_text=False,
+            )
+        except ValueError as e:
+            logger.exception(
+                e,
+                {
+                    "provider": "github",
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
+            return []
+
+        if not isinstance(response, MappingApiResponse):
+            raise ApiError("Response is not JSON")
+
+        if response.get("errors"):
+            err_message = ", ".join(
+                [error.get("message", "") for error in response.get("errors", [])]
+            )
+            logger.error(
+                "get_blame_for_files.graphql_error",
+                extra={
+                    "provider": "github",
+                    "error": err_message,
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
+
+        return extract_commits_from_blame_response(
+            response=response,
+            file_path_mapping=file_path_mapping,
+            files=files,
+            extra={"provider": "github", "organization_integration_id": self.org_integration_id},
+        )
 
 
 class GitHubAppsClient(GitHubClientMixin):

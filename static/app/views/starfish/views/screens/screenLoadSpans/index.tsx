@@ -3,8 +3,8 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -22,6 +22,7 @@ import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
@@ -62,7 +63,6 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -83,9 +83,10 @@ function ScreenLoadSpans() {
               <StarfishPageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
-                    <DatePageFilter alignDropdown="left" />
+                    <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
+                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreensView
@@ -96,7 +97,6 @@ function ScreenLoadSpans() {
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
@@ -129,7 +129,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

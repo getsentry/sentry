@@ -60,6 +60,13 @@ class DatabaseBackedAppService(AppService):
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
 
+    def get_sentry_app_by_id(self, *, id: int) -> Optional[RpcSentryApp]:
+        try:
+            sentry_app = SentryApp.objects.get(id=id)
+        except SentryApp.DoesNotExist:
+            return None
+        return serialize_sentry_app(sentry_app)
+
     def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
@@ -148,7 +155,7 @@ class DatabaseBackedAppService(AppService):
             self,
         ) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
             return self._filter_has_any_key_validator(
-                "organization_id", "installation_ids", "app_ids", "uuids"
+                "organization_id", "installation_ids", "app_ids", "uuids", "status"
             )
 
         def serialize_api(self, serializer: Optional[None]) -> Serializer:
@@ -157,13 +164,16 @@ class DatabaseBackedAppService(AppService):
         def apply_filters(
             self, query: QuerySet[SentryAppInstallation], filters: SentryAppInstallationFilterArgs
         ) -> QuerySet[SentryAppInstallation]:
-            # filters["status"] = SentryAppInstallationStatus.INSTALLED
             if "installation_ids" in filters:
                 query = query.filter(id__in=filters["installation_ids"])
+            if "app_ids" in filters:
+                query = query.filter(sentry_app_id__in=filters["app_ids"])
             if "organization_id" in filters:
                 query = query.filter(organization_id=filters["organization_id"])
             if "uuids" in filters:
                 query = query.filter(uuid__in=filters["uuids"])
+            if "status" in filters:
+                query = query.filter(status=filters["status"])
 
             return query
 

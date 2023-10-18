@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import IntEnum, auto, unique
-from typing import Optional
+from typing import List, NamedTuple, Optional
 
-from sentry.backup.dependencies import NormalizedModelName
 from sentry.utils import json
 
 
-@dataclass
-class InstanceID:
+class InstanceID(NamedTuple):
     """Every entry in the generated backup JSON file should have a unique model+ordinal combination,
     which serves as its identifier."""
 
@@ -19,14 +18,7 @@ class InstanceID:
     # The order that this model appeared in the JSON inputs. Because we validate that the same
     # number of models of each kind are present on both the left and right side when validating, we
     # can use the ordinal as a unique identifier.
-    ordinal: int | None = None
-
-    def __init__(self, model: NormalizedModelName, ordinal: Optional[int] = None):
-        self.model = str(model)
-        self.ordinal = ordinal
-
-    def __hash__(self):
-        return hash((self.model, self.ordinal))
+    ordinal: Optional[int] = None
 
     def pretty(self) -> str:
         out = f"InstanceID(model: {self.model!r}"
@@ -132,20 +124,40 @@ class ComparatorFindingKind(FindingKind):
 
 
 @dataclass(frozen=True)
-class Finding:
+class Finding(ABC):
     """
-    A JSON serializable and user-reportable finding for an import/export operation.
+    A JSON serializable and user-reportable finding for an import/export operation. Don't use this
+    class directly - inherit from it, set a specific `kind` type, and define your own pretty
+    printer!
     """
 
     on: InstanceID
 
     # The original `pk` of the model in question, if one is specified in the `InstanceID`.
-    left_pk: int | None = None
+    left_pk: Optional[int] = None
 
     # The post-import `pk` of the model in question, if one is specified in the `InstanceID`.
-    right_pk: int | None = None
+    right_pk: Optional[int] = None
 
     reason: str = ""
+
+    def _pretty_inner(self) -> str:
+        """
+        Pretty print only the fields on the shared `Finding` portion.
+        """
+
+        out = f"\n\ton: {self.on.pretty()}"
+        if self.left_pk:
+            out += f",\n\tleft_pk: {self.left_pk}"
+        if self.right_pk:
+            out += f",\n\tright_pk: {self.right_pk}"
+        if self.reason:
+            out += f",\n\treason: {self.reason}"
+        return out
+
+    @abstractmethod
+    def pretty(self) -> str:
+        pass
 
 
 @dataclass(frozen=True)
@@ -157,20 +169,13 @@ class ComparatorFinding(Finding):
     kind: ComparatorFindingKind = ComparatorFindingKind.Unknown
 
     def pretty(self) -> str:
-        out = f"Finding(\n\tkind: {self.kind.name},\n\ton: {self.on.pretty()}"
-        if self.left_pk:
-            out += f",\n\tleft_pk: {self.left_pk}"
-        if self.right_pk:
-            out += f",\n\tright_pk: {self.right_pk}"
-        if self.reason:
-            out += f",\n\treason: {self.reason}"
-        return out + "\n)"
+        return f"ComparatorFinding(\n\tkind: {self.kind.name},{self._pretty_inner()}\n)"
 
 
 class ComparatorFindings:
     """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
 
-    def __init__(self, findings: list[ComparatorFinding]):
+    def __init__(self, findings: List[ComparatorFinding]):
         self.findings = findings
 
     def append(self, finding: ComparatorFinding) -> None:
@@ -179,7 +184,7 @@ class ComparatorFindings:
     def empty(self) -> bool:
         return not self.findings
 
-    def extend(self, findings: list[ComparatorFinding]) -> None:
+    def extend(self, findings: List[ComparatorFinding]) -> None:
         self.findings += findings
 
     def pretty(self) -> str:
@@ -196,6 +201,4 @@ class FindingJSONEncoder(json.JSONEncoder):
             if isinstance(kind, FindingKind):
                 d["kind"] = kind.name
             return d
-        if isinstance(obj, InstanceID):
-            return obj.__dict__
         return super().default(obj)

@@ -22,7 +22,6 @@ from typing import (
     cast,
 )
 
-import mmh3
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
@@ -46,9 +45,13 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
-from sentry.db.postgres.transactions import enforce_constraints, in_test_assert_no_transaction
+from sentry.db.postgres.transactions import (
+    django_test_transaction_water_mark,
+    enforce_constraints,
+    in_test_assert_no_transaction,
+)
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import unguarded_write
+from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -431,18 +434,37 @@ class OutboxBase(Model):
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using):
-            next_outbox: OutboxBase | None
-            next_outbox = cls(**row).selected_messages_in_shard().order_by("id").first()
-            if not next_outbox:
+        try:
+            with transaction.atomic(using=using, savepoint=False):
+                next_outbox: OutboxBase | None
+                next_outbox = (
+                    cls(**row)
+                    .selected_messages_in_shard()
+                    .order_by("id")
+                    .select_for_update(nowait=True)
+                    .first()
+                )
+                if not next_outbox:
+                    return None
+
+                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+                # expect all objects to be drained before the next schedule comes around, or else we will run again.
+                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+                # case of drains, for instance.
+                now = timezone.now()
+                next_outbox.selected_messages_in_shard().update(
+                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+                )
+
+                return next_outbox
+
+        except OperationalError as e:
+            # If concurrent locking is happening on the table, gracefully pass and allow
+            # that work to process.
+            if "LockNotAvailable" in str(e):
                 return None
-
-            now = timezone.now()
-            next_outbox.selected_messages_in_shard().update(
-                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-            )
-
-            return next_outbox
+            else:
+                raise
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -502,61 +524,28 @@ class OutboxBase(Model):
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(**kwds)
 
-    def lock_id(self, attrs: Iterable[str]) -> int:
-        # 64 bit integer that roughly encodes a unique, serializable lock identifier
-        return mmh3.hash64(".".join(str(getattr(self, attr)) for attr in attrs))[0]
-
     @contextlib.contextmanager
     def process_shard(
         self, latest_shard_row: OutboxBase | None
     ) -> Generator[OutboxBase | None, None, None]:
         flush_all: bool = not bool(latest_shard_row)
+        next_shard_row: OutboxBase | None
         using: str = db.router.db_for_write(type(self))
-
-        shard_lock_id = self.lock_id(self.sharding_columns)
-        obtained_lock = True
-
-        try:
-            with contextlib.ExitStack() as stack, connections[using].cursor() as cursor:
-                if not flush_all:
-                    stack.enter_context(metrics.timer("outbox.process_shard.acquire_lock"))
-                if flush_all:
-                    cursor.execute("SELECT pg_try_advisory_lock(%s)", [shard_lock_id])
-                    if not cursor.fetchone()[0]:
-                        metrics.incr(
-                            "outbox.process_shard.failed_to_acquire_lock",
-                            tags=dict(scope=OutboxScope(self.shard_scope).name),
-                        )
-                        obtained_lock = False
-                else:
-                    cursor.execute("SELECT pg_advisory_lock(%s)", [shard_lock_id])
-
-            if obtained_lock:
-                next_shard_row: OutboxBase | None
-                next_shard_row = self.selected_messages_in_shard(
-                    latest_shard_row=latest_shard_row
-                ).first()
-                yield next_shard_row
-            else:
-                yield None
-        except OperationalError as e:
-            next_shard_row = self.selected_messages_in_shard(
-                latest_shard_row=latest_shard_row
-            ).first()
-            if next_shard_row is None:
-                yield None
-            else:
-                raise OutboxFlushError(
-                    f"Could not flush shard category={self.category}", self
-                ) from e
-        finally:
+        with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
             try:
-                with connections[using].cursor() as cursor:
-                    cursor.execute("SELECT pg_advisory_unlock(%s)", [shard_lock_id])
-            except Exception:
-                # If something strange is going on with our connection, force it closed to prevent holding the lock.
-                connections[using].close()
-                raise
+                next_shard_row = (
+                    self.selected_messages_in_shard(latest_shard_row=latest_shard_row)
+                    .select_for_update(nowait=flush_all)
+                    .first()
+                )
+            except OperationalError as e:
+                if "LockNotAvailable" in str(e):
+                    # If a non task flush process is running already, allow it to proceed without contention.
+                    next_shard_row = None
+                else:
+                    raise e
+
+            yield next_shard_row
 
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
@@ -791,6 +780,16 @@ class ControlOutbox(ControlOutboxBase):
         )
 
 
+def outbox_silo_modes() -> List[SiloMode]:
+    cur = SiloMode.get_current_mode()
+    result: List[SiloMode] = []
+    if cur != SiloMode.REGION:
+        result.append(SiloMode.CONTROL)
+    if cur != SiloMode.CONTROL:
+        result.append(SiloMode.REGION)
+    return result
+
+
 class OutboxContext(threading.local):
     flushing_enabled: bool | None = None
 
@@ -831,3 +830,21 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
+
+
+# Add this in after we successfully deploy, the job.
+# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
+# def schedule_backfill_outboxes(app_config, using, **kwargs):
+#     from sentry.tasks.backfill_outboxes import (
+#         schedule_backfill_outbox_jobs,
+#         schedule_backfill_outbox_jobs_control,
+#     )
+#     from sentry.utils.env import in_test_environment
+#
+#     if in_test_environment():
+#         return
+#
+#     if SiloMode.get_current_mode() != SiloMode.REGION:
+#         schedule_backfill_outbox_jobs_control.delay()
+#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
+#         schedule_backfill_outbox_jobs.delay()

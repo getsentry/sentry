@@ -13,7 +13,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
-from sentry.mediators.plugins import Migrator
+from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
@@ -26,7 +26,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
+from sentry import features, options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
@@ -89,13 +89,21 @@ def run_detection() -> None:
     performance_projects = []
     profiling_projects = []
 
-    # TODO: make the amount of projects per batch configurable
+    performance_projects_count = 0
+    profiling_projects_count = 0
+
     for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE),
+        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
         step=100,
     ):
-        if project.flags.has_transactions and project.id in enabled_performance_projects:
+        if project.flags.has_transactions and (
+            features.has(
+                "organizations:performance-statistical-detectors-ema", project.organization
+            )
+            or project.id in enabled_performance_projects
+        ):
             performance_projects.append(project)
+            performance_projects_count += 1
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
@@ -105,8 +113,12 @@ def run_detection() -> None:
                 )
                 performance_projects = []
 
-        if project.flags.has_profiles and project.id in enabled_profiling_projects:
+        if project.flags.has_profiles and (
+            features.has("organizations:profiling-statistical-detectors-ema", project.organization)
+            or project.id in enabled_profiling_projects
+        ):
             profiling_projects.append(project.id)
+            profiling_projects_count += 1
 
             if len(profiling_projects) >= PROJECTS_PER_BATCH:
                 detect_function_trends.delay(profiling_projects, now)
@@ -121,6 +133,18 @@ def run_detection() -> None:
         )
     if profiling_projects:
         detect_function_trends.delay(profiling_projects, now)
+
+    metrics.incr(
+        "statistical_detectors.performance.projects.total",
+        amount=performance_projects_count,
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.profiling.projects.total",
+        amount=profiling_projects_count,
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -142,7 +166,12 @@ def detect_transaction_trends(
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
+    unique_project_ids: Set[int] = set()
+
     for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
+        for _, payload in trends:
+            unique_project_ids.add(payload.project_id)
+
         detect_transaction_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in trends],
@@ -153,6 +182,12 @@ def detect_transaction_trends(
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
+
+    metrics.incr(
+        "statistical_detectors.performance.projects.active",
+        amount=len(unique_project_ids),
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -165,18 +200,6 @@ def detect_transaction_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
-
-    for project_id, transaction_name in transactions:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("regressed_project_id", project_id)
-            scope.set_tag("regressed_transaction", transaction_name)
-            scope.set_tag("breakpoint", "no")
-
-            scope.set_context(
-                "statistical_detectors",
-                {"timestamp": start.isoformat()},
-            )
-            sentry_sdk.capture_message("Potential Transaction Regression")
 
     breakpoint_count = 0
 
@@ -217,7 +240,7 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -467,7 +490,12 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
+    unique_project_ids: Set[int] = set()
+
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
+        for _, payload in regression_chunk:
+            unique_project_ids.add(payload.project_id)
+
         detect_function_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in regression_chunk],
@@ -478,6 +506,12 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
+
+    metrics.incr(
+        "statistical_detectors.profiling.projects.active",
+        amount=len(unique_project_ids),
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
@@ -490,18 +524,6 @@ def detect_function_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
-
-    for project_id, fingerprint in functions_list:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("regressed_project_id", project_id)
-            scope.set_tag("regressed_function_id", fingerprint)
-            scope.set_tag("breakpoint", "no")
-
-            scope.set_context(
-                "statistical_detectors",
-                {"timestamp": start.isoformat()},
-            )
-            sentry_sdk.capture_message("Potential Function Regression")
 
     breakpoint_count = 0
     emitted_count = 0
@@ -683,24 +705,6 @@ def emit_function_regression_issue(
     payloads = []
 
     for entry in breakpoints:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("breakpoint", "yes")
-            scope.set_tag("regressed_project_id", entry["project"])
-            # the service was originally meant for transactions so this
-            # naming is a result of this
-            scope.set_tag("regressed_function_id", entry["transaction"])
-
-            breakpoint_ts = datetime.fromtimestamp(entry["breakpoint"], tz=timezone.utc)
-            scope.set_context(
-                "statistical_detectors",
-                {
-                    **entry,
-                    "timestamp": start.isoformat(),
-                    "breakpoint_timestamp": breakpoint_ts.isoformat(),
-                },
-            )
-            sentry_sdk.capture_message("Potential Function Regression")
-
         project_id = int(entry["project"])
         fingerprint = int(entry["transaction"])
         example = examples.get((project_id, fingerprint))
@@ -740,10 +744,24 @@ def all_function_payloads(
     project_ids: List[int],
     start: datetime,
 ) -> Generator[DetectorPayload, None, None]:
+    enabled_profiling_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.profiling")
+    )
+
     projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
-    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
+    selected_projects = Project.objects.filter(id__in=project_ids).select_related("organization")
+    selected_projects = filter(
+        lambda project: (
+            features.has(
+                "organizations:profiling-statistical-detectors-breakpoint", project.organization
+            )
+            or project.id in enabled_profiling_projects
+        ),
+        selected_projects,
+    )
+    for projects in chunked(selected_projects, projects_per_query):
         try:
             yield from query_functions(projects, start)
         except Exception as e:
@@ -765,6 +783,31 @@ def all_function_timeseries(
             continue
 
 
+BACKEND_TRANSACTION_OPS = [
+    # Common
+    "function.aws",
+    "function.aws.lambda",
+    "http.server",
+    "queue.process",
+    "serverless.function",
+    "task",
+    "websocket.server",
+    # Python
+    "asgi.server",
+    "celery.task",
+    "queue.task.celery",
+    "queue.task.rq",
+    "rq.task",
+    # Ruby
+    "queue.active_job",
+    "queue.delayed_job",
+    "queue.sidekiq",
+    "rails.action_cable",
+    "rails.request",
+    "sidekiq",
+]
+
+
 def query_transactions(
     org_ids: List[int],
     project_ids: List[int],
@@ -772,6 +815,26 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if (
+            project.id in enabled_performance_projects
+            or features.has(
+                "organizations:performance-statistical-detectors-breakpoint", project.organization
+            )
+        )
+    ]
+    project_ids = [project.id for project in projects]
+    org_ids = list({project.organization_id for project in projects})
+
+    if not project_ids or not org_ids:
+        return []
+
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
@@ -783,6 +846,11 @@ def query_transactions(
         use_case_id,
         org_ids[0],
         "transaction",
+    )
+    transaction_op_metric_id = indexer.resolve(
+        use_case_id,
+        org_ids[0],
+        "transaction.op",
     )
 
     # if our time range is more than an hour, use the hourly granularity
@@ -836,6 +904,11 @@ def query_transactions(
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("metric_id"), Op.EQ, duration_metric_id),
+            Condition(
+                Column(f"tags_raw[{transaction_op_metric_id}]"),
+                Op.IN,
+                list(BACKEND_TRANSACTION_OPS),
+            ),
         ],
         limitby=LimitBy([Column("project_id")], transactions_per_project),
         orderby=[

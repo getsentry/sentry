@@ -47,7 +47,7 @@ class TestFinding(Finding):
 class FindingsTests(TestCase):
     def test_defaults(self):
         finding = TestFinding(
-            on=InstanceID(model=get_model_name(Email)),
+            on=InstanceID(model=str(get_model_name(Email))),
             reason="test reason",
         )
 
@@ -76,7 +76,7 @@ class FindingsTests(TestCase):
     def test_no_nulls(self):
         finding = TestFinding(
             kind=TestFindingKind.Foo,
-            on=InstanceID(model=get_model_name(Email), ordinal=1),
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",

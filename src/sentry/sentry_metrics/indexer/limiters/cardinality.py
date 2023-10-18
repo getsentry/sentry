@@ -56,13 +56,12 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
         )
 
-    if quota_args:
-        if len(quota_args) > 1:
-            raise ValueError("multiple quotas are actually unsupported")
+    if not quota_args:
+        raise ValueError("quotas cannot be empty")
+    if len(quota_args) > 1:
+        raise ValueError("multiple quotas are actually unsupported")
 
-        return Quota(**quota_args[0])
-
-    return None
+    return Quota(**quota_args[0])
 
 
 class InboundMessage(TypedDict):
