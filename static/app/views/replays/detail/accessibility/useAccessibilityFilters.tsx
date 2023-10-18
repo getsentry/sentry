@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {HydratedA11yIssue} from 'sentry/utils/replays/hydrateA11yRecord';
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface AccessibilitySelectOption extends SelectOption<string> {
@@ -23,13 +23,13 @@ export type FilterFields = {
 };
 
 type Options = {
-  accessibilityData: HydratedA11yIssue[];
+  accessibilityData: HydratedA11yFrame[];
 };
 
 type Return = {
   getImpactLevels: () => AccessibilitySelectOption[];
   getIssueTypes: () => AccessibilitySelectOption[];
-  items: HydratedA11yIssue[];
+  items: HydratedA11yFrame[];
   searchTerm: string;
   selectValue: string[];
   setFilters: (val: AccessibilitySelectOption[]) => void;
@@ -37,11 +37,11 @@ type Return = {
 };
 
 const FILTERS = {
-  impact: (item: HydratedA11yIssue, impacts: string[]) =>
+  impact: (item: HydratedA11yFrame, impacts: string[]) =>
     impacts.length === 0 || impacts.includes(item.impact ?? ''),
-  type: (item: HydratedA11yIssue, types: string[]) =>
+  type: (item: HydratedA11yFrame, types: string[]) =>
     types.length === 0 || types.includes(item.id),
-  searchTerm: (item: HydratedA11yIssue, searchTerm: string) => {
+  searchTerm: (item: HydratedA11yFrame, searchTerm: string) => {
     return JSON.stringify(item).toLowerCase().includes(searchTerm);
   },
 };
