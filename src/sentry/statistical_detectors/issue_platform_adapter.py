@@ -48,6 +48,11 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
                     value=f'{regression["transaction"]} duration increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)',
                     important=True,
                 ),
+                IssueEvidence(
+                    name="Transaction",
+                    value=regression["transaction"],
+                    important=True,
+                ),
             ],
             detection_time=current_timestamp,
             level="info",
