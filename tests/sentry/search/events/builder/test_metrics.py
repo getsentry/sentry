@@ -2321,23 +2321,32 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         spec = OnDemandMetricSpec(field=field, query=query_s)
 
         transaction_duration_repeats = [
-            (threshold, 3),  # satisfied
-            (threshold + 100, 2),  # tolerated
-            ((threshold * 4) + 1, 10),  # frustrated
+            ("happy user", False),
+            ("sad user 1", True),
+            ("sad user 2", True),
+            ("sad user 3", True),
+            ("sad user 4", True),
+            ("sad user 5", True),
+            ("sad user 6", True),
+            ("sad user 7", True),
         ]
 
         for hour in range(0, 2):
-            for duration, repeat in transaction_duration_repeats:
-                for _ in range(0, repeat):
-                    self.store_transaction_metric(
-                        value=duration,
-                        metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                        # It's a set on demand because of using the users field
-                        internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                        entity=EntityKey.MetricsSets.value,
-                        tags={"query_hash": spec.query_hash},
-                        timestamp=self.start + datetime.timedelta(hours=hour),
-                    )
+            for name, frustrated in transaction_duration_repeats:
+                tags = (
+                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
+                    if frustrated
+                    else {"query_hash": spec.query_hash}
+                )
+                self.store_transaction_metric(
+                    value=name,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    # It's a set on demand because of using the users field
+                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
+                    entity=EntityKey.MetricsSets.value,
+                    tags=tags,
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2365,11 +2374,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:3] == [
             {
                 "time": self.start.isoformat(),
-                "user_misery_300": 0.04875776397515528,
+                "user_misery_300": 0.10248508946322067,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": 0.04875776397515528,
+                "user_misery_300": 0.10248508946322067,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
