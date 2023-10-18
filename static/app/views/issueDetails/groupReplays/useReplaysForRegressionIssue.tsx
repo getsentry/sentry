@@ -23,7 +23,7 @@ function useReplaysForRegressionIssue({
   location: Location;
   organization: Organization;
 }) {
-  const now = useRef(new Date(Date.now()).toISOString());
+  const now = useRef(new Date().toISOString());
   const api = useApi();
 
   const [replayIds, setReplayIds] = useState<string[]>();

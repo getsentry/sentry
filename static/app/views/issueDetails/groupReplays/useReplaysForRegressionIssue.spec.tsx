@@ -150,7 +150,7 @@ describe('useReplaysForRegressionIssue', () => {
           start: new Date(
             mockEvent.occurrence.evidenceData.breakpoint * 1000
           ).toISOString(),
-          end: new Date(Date.now()).toISOString(),
+          end: new Date().toISOString(),
         }),
       })
     );
