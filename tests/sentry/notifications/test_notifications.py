@@ -20,7 +20,7 @@ from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
-from sentry.notifications.notifications.activity import AssignedActivityNotification
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
