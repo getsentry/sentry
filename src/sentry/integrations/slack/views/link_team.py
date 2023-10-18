@@ -107,6 +107,13 @@ class SlackLinkTeamView(BaseView):
             ):
                 teams_by_id[team.id] = team
 
+        if not teams_by_id:
+            return render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: No teams found in your organizations to link. You must be a Sentry organization admin/manager/owner or a team admin to link a team in your respective organization.",
+            )
+
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
         form = SelectTeamForm(list(teams_by_id.values()), request.POST or None)
