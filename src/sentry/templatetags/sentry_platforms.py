@@ -8,15 +8,13 @@ register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def letter_platform_svg(context, display_name, identifier, size=None, rounded=False):
-    return mark_safe(
-        get_letter_avatar(
-            display_name,
-            identifier,
-            size,
-            use_svg=False,
-            initials=display_name[0:2] if display_name else None,
-            rounded=rounded,
-        )
+    return get_letter_avatar(
+        display_name,
+        identifier,
+        size,
+        use_svg=False,
+        initials=display_name[0:2] if display_name else None,
+        rounded=rounded,
     )
 
 

@@ -2,7 +2,6 @@ from urllib.parse import urlencode
 
 from django import template
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
@@ -23,7 +22,7 @@ def gravatar_url(context, email, size, default="mm"):
 
 @register.simple_tag(takes_context=True)
 def letter_avatar_svg(context, display_name, identifier, size=None):
-    return mark_safe(get_letter_avatar(display_name, identifier, size=size))
+    return get_letter_avatar(display_name, identifier, size=size)
 
 
 @register.simple_tag(takes_context=True)

@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_str
 from django.utils.html import escape, format_html
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.safestring import SafeString
 from PIL import Image
 
 from sentry.http import safe_urlopen
@@ -75,7 +75,7 @@ def get_letter_avatar(
     use_svg: Optional[bool] = True,
     initials: Optional[str] = None,
     rounded: Optional[bool] = False,
-) -> str:
+) -> SafeString:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
     initials = initials or "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
@@ -83,24 +83,26 @@ def get_letter_avatar(
     color = get_letter_avatar_color(identifier)
     if use_svg:
         size_attrs = f'height="{size}" width="{size}"' if size else ""
-        return (
+        return format_html(
             '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
             '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
             '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
             "{initials}"
             "</text>"
-            "</svg>"
-        ).format(color=color, initials=initials, size_attrs=size_attrs)
+            "</svg>",
+            color=color,
+            initials=initials,
+            size_attrs=size_attrs,
+        )
     else:
         size_attrs = f"height:{size}px;width:{size}px;" if size else ""
         font_size = "font-size:%spx;" % (size / 2) if size else ""
         line_height = "line-height:%spx;" % size if size else ""
         span_class = " rounded" if rounded else ""
-        return (
+        return format_html(
             '<span class="html-avatar{span_class}" '
             'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
-            "{initials}</span>"
-        ).format(
+            "{initials}</span>",
             color=color,
             initials=initials,
             size_attrs=size_attrs,
@@ -131,7 +133,7 @@ def get_email_avatar(
                     # default to mm if including in emails
                     gravatar_url = get_gravatar_url(identifier, size=size)
                     return format_html('<img class="avatar" src="{}">', gravatar_url)
-    return mark_safe(get_letter_avatar(display_name, identifier, size, use_svg=False))
+    return get_letter_avatar(display_name, identifier, size, use_svg=False)
 
 
 def get_platform_avatar(
