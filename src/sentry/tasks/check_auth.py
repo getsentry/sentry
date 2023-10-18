@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -71,41 +70,40 @@ def check_auth_identity(auth_identity_id, **kwargs):
     prev_is_valid = not getattr(om.flags, "sso:invalid")
 
     provider = auth_provider.get_provider()
-    with outbox_context(flush=False):
-        try:
-            provider.refresh_identity(auth_identity)
-        except IdentityNotValid as exc:
-            if prev_is_valid:
-                logger.warning(
-                    "AuthIdentity(id=%s) notified as not valid: %s",
-                    auth_identity_id,
-                    str(exc),
-                    exc_info=True,
-                )
-                metrics.incr("auth.identities.invalidated", skip_internal=False)
-            is_linked = False
-            is_valid = False
-        except Exception as exc:
-            # to ensure security we count any kind of error as an invalidation
-            # event
-            metrics.incr("auth.identities.refresh_error", skip_internal=False)
-            logger.exception(
-                "AuthIdentity(id=%s) returned an error during validation: %s",
+    try:
+        provider.refresh_identity(auth_identity)
+    except IdentityNotValid as exc:
+        if prev_is_valid:
+            logger.warning(
+                "AuthIdentity(id=%s) notified as not valid: %s",
                 auth_identity_id,
                 str(exc),
+                exc_info=True,
             )
-            is_linked = True
-            is_valid = False
-        else:
-            is_linked = True
-            is_valid = True
+            metrics.incr("auth.identities.invalidated", skip_internal=False)
+        is_linked = False
+        is_valid = False
+    except Exception as exc:
+        # to ensure security we count any kind of error as an invalidation
+        # event
+        metrics.incr("auth.identities.refresh_error", skip_internal=False)
+        logger.exception(
+            "AuthIdentity(id=%s) returned an error during validation: %s",
+            auth_identity_id,
+            str(exc),
+        )
+        is_linked = True
+        is_valid = False
+    else:
+        is_linked = True
+        is_valid = True
 
-        if getattr(om.flags, "sso:linked") != is_linked:
-            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
-                # flags are not replicated, so it's ok not to create outboxes here.
-                setattr(om.flags, "sso:linked", is_linked)
-                setattr(om.flags, "sso:invalid", not is_valid)
-                organization_service.update_membership_flags(organization_member=om)
+    if getattr(om.flags, "sso:linked") != is_linked:
+        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
+            # flags are not replicated, so it's ok not to create outboxes here.
+            setattr(om.flags, "sso:linked", is_linked)
+            setattr(om.flags, "sso:invalid", not is_valid)
+            organization_service.update_membership_flags(organization_member=om)
 
-        now = timezone.now()
-        auth_identity.update(last_verified=now, last_synced=now)
+    now = timezone.now()
+    auth_identity.update(last_verified=now, last_synced=now)
