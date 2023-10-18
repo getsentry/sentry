@@ -7,19 +7,19 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -101,10 +101,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
-        'releases',
-        `/organizations/${organization.slug}/releases/`,
-        {query},
-        {disableEntireQuery: true},
+        'releases', // stateKey
+        `/organizations/${organization.slug}/releases/`, // endpoint
+        {query}, // params
+        {disableEntireQuery: true}, // options
       ],
     ];
 
@@ -533,7 +533,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 </GuideAnchor>
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  alignDropdown="left"
                   disallowArbitraryRelativeRanges
                   menuFooterMessage={t(
                     'Changing this date range will recalculate the release metrics.'

@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,7 +58,7 @@ export default function WebVitalsLandingPage() {
       });
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
+    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -69,7 +69,7 @@ export default function WebVitalsLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Page Loads',
+                label: 'Web Vitals',
               },
               ...(transaction ? [{label: 'Page Overview'}] : []),
             ]}
@@ -77,7 +77,7 @@ export default function WebVitalsLandingPage() {
 
           <Layout.Title>
             {transaction && project && <ProjectAvatar project={project} size={24} />}
-            {transaction ?? t('Page Loads')}
+            {transaction ?? t('Web Vitals')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -95,7 +95,7 @@ export default function WebVitalsLandingPage() {
             )}
             <PageFilterBar condensed>
               <ProjectPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
           <PerformanceScoreChart projectScore={projectScore} transaction={transaction} />
