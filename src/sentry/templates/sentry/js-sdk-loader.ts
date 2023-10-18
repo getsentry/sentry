@@ -11,7 +11,7 @@ declare const __LOADER__IS_LAZY__: any;
   _namespace,
   _publicKey,
   _sdkBundleUrl,
-  _config,
+  _loaderInitConfig,
   _lazy
 ) {
   let lazy = _lazy;
@@ -27,7 +27,6 @@ declare const __LOADER__IS_LAZY__: any;
     }
   }
 
-  let injected = false;
   const onLoadCallbacks: (() => void)[] = [];
 
   // Create a namespace and attach function that will store captured exception
@@ -46,7 +45,7 @@ declare const __LOADER__IS_LAZY__: any;
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
-      injectSdk();
+      injectCDNScriptTag();
     }
     queue.data.push(content);
   };
@@ -70,8 +69,9 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
-  function onSentryScriptLoaded() {
+  function onSentryCDNScriptLoaded() {
     try {
+      // Remove the lazy mode error event listeners that we previously registered
       _window.removeEventListener(_errorEvent, onError);
       _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
@@ -80,19 +80,19 @@ declare const __LOADER__IS_LAZY__: any;
 
       const SDK = _window[_namespace];
 
-      const oldInit = SDK.init;
+      const cdnInit = SDK.init;
 
       // Configure it using provided DSN and config object
       SDK.init = function (options) {
-        const target = _config;
+        const mergedInitOptions = _loaderInitConfig;
         for (const key in options) {
           if (Object.prototype.hasOwnProperty.call(options, key)) {
-            target[key] = options[key];
+            mergedInitOptions[key] = options[key];
           }
         }
 
-        setupDefaultIntegrations(target, SDK);
-        oldInit(target);
+        setupDefaultIntegrations(mergedInitOptions, SDK);
+        cdnInit(mergedInitOptions);
       };
 
       // Wait a tick to ensure that all `Sentry.onLoad()` callbacks have been registered
@@ -102,11 +102,16 @@ declare const __LOADER__IS_LAZY__: any;
     }
   }
 
-  function injectSdk() {
-    if (injected) {
+  let injectedCDNScriptTag = false;
+
+  /**
+   * Injects script tag into the page pointing to the CDN bundle.
+   */
+  function injectCDNScriptTag() {
+    if (injectedCDNScriptTag) {
       return;
     }
-    injected = true;
+    injectedCDNScriptTag = true;
 
     // Create a `script` tag with provided SDK `url` and attach it just before the first, already existing `script` tag
     // Scripts that are dynamically created and added to the document are async by default,
@@ -114,17 +119,17 @@ declare const __LOADER__IS_LAZY__: any;
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    const _currentScriptTag = _document.scripts[0];
-    const _newScriptTag = _document.createElement('script') as HTMLScriptElement;
-    _newScriptTag.src = _sdkBundleUrl;
-    _newScriptTag.crossOrigin = 'anonymous';
+    const firstScriptTagInDom = _document.scripts[0];
+    const cdnScriptTag = _document.createElement('script') as HTMLScriptElement;
+    cdnScriptTag.src = _sdkBundleUrl;
+    cdnScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
-    _newScriptTag.addEventListener('load', onSentryScriptLoaded, {
+    cdnScriptTag.addEventListener('load', onSentryCDNScriptLoaded, {
       once: true,
       passive: true,
     });
-    _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
+    firstScriptTagInDom.parentNode!.insertBefore(cdnScriptTag, firstScriptTagInDom);
   }
 
   // We want to ensure to only add default integrations if they haven't been added by the user.
@@ -172,20 +177,22 @@ declare const __LOADER__IS_LAZY__: any;
         }
       }
 
-      const data = queue.data;
+      const buffer = queue.data;
 
       let initAlreadyCalled = sdkIsLoaded();
 
       // Call init first, if provided
-      data.sort(a => (a.f === 'init' ? -1 : 0));
+      buffer.sort(bufferItem => (bufferItem.f === 'init' ? -1 : 0));
+
+      // TODO: Refactor this to first call all inits or fall back to the normal init.
 
       // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
       // We replay all calls to `Sentry.*` now
       let calledSentry = false;
-      for (let i = 0; i < data.length; i++) {
-        if (data[i].f) {
+      for (let i = 0; i < buffer.length; i++) {
+        if (buffer[i].f) {
           calledSentry = true;
-          const call = data[i];
+          const call = buffer[i];
           if (initAlreadyCalled === false && call.f !== 'init') {
             // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
@@ -199,17 +206,18 @@ declare const __LOADER__IS_LAZY__: any;
         SDK.init();
       }
 
+      // TODO: change this comment. What is tracekit?
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
-      const tracekitErrorHandler = _window.onerror;
-      const tracekitUnhandledRejectionHandler = _window.onunhandledrejection;
+      const sentryPatchedErrorHandler = _window.onerror;
+      const sentryPatchedUnhandledRejectionHandler = _window.onunhandledrejection;
 
       // And now capture all previously caught exceptions
-      for (let i = 0; i < data.length; i++) {
-        if ('e' in data[i] && tracekitErrorHandler) {
-          tracekitErrorHandler.apply(_window, data[i].e);
-        } else if ('p' in data[i] && tracekitUnhandledRejectionHandler) {
-          tracekitUnhandledRejectionHandler.apply(_window, [data[i].p]);
+      for (let i = 0; i < buffer.length; i++) {
+        if ('e' in buffer[i] && sentryPatchedErrorHandler) {
+          sentryPatchedErrorHandler.apply(_window, buffer[i].e);
+        } else if ('p' in buffer[i] && sentryPatchedUnhandledRejectionHandler) {
+          sentryPatchedUnhandledRejectionHandler.apply(_window, [buffer[i].p]);
         }
       }
     } catch (o_O) {
@@ -226,7 +234,7 @@ declare const __LOADER__IS_LAZY__: any;
 
   _window[_namespace].forceLoad = function () {
     setTimeout(function () {
-      injectSdk();
+      injectCDNScriptTag();
     });
   };
 
@@ -250,7 +258,7 @@ declare const __LOADER__IS_LAZY__: any;
 
   if (!lazy) {
     setTimeout(function () {
-      injectSdk();
+      injectCDNScriptTag();
     });
   }
 })(
