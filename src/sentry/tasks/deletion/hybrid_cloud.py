@@ -286,6 +286,9 @@ def _process_tombstone_reconciliation(
             model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
             set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
+        elif field.on_delete == "DO_NOTHING":
+            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
+
         else:
             raise ValueError(
                 f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"

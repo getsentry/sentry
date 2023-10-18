@@ -58,6 +58,7 @@ from django.apps import apps
 class HybridCloudForeignKeyCascadeBehavior(IntEnum):
     CASCADE = 1
     SET_NULL = 2
+    DO_NOTHING = 3
 
 
 class HybridCloudForeignKey(models.BigIntegerField):
