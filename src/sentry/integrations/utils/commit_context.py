@@ -321,16 +321,16 @@ def _get_blames_from_all_integrations(
     file_blames: list[FileBlameInfo] = []
     integration_to_install_mapping: dict[str, IntegrationInstallation] = {}
 
-    for integration_organziation_id, files in integration_to_files_mapping.items():
+    for integration_organization_id, files in integration_to_files_mapping.items():
         integration = integration_service.get_integration(
-            organization_integration_id=integration_organziation_id
+            organization_integration_id=integration_organization_id
         )
         if not integration:
             continue
         install = integration.get_installation(organization_id=organization_id)
         if not isinstance(install, CommitContextMixin):
             continue
-        integration_to_install_mapping[integration_organziation_id] = install
+        integration_to_install_mapping[integration_organization_id] = install
         try:
             blames = install.get_commit_context_all_frames(files)
             file_blames.extend(blames)
