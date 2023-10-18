@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, Set, cast
+from typing import List, Optional, Set
 
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportResult,
@@ -61,6 +61,4 @@ class ImportExportService(RpcService):
         pass
 
 
-import_export_service: ImportExportService = cast(
-    ImportExportService, ImportExportService.create_delegation()
-)
+import_export_service = ImportExportService.create_delegation()

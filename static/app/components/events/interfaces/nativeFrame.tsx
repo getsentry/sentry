@@ -34,7 +34,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -233,10 +232,6 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
-  const organization = useOrganization();
-  const stacktraceChangesEnabled = !!organization?.features.includes(
-    'issue-details-stacktrace-improvements'
-  );
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -244,7 +239,7 @@ function NativeFrame({
         <RowHeader
           expandable={expandable}
           expanded={expanded}
-          stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
+          isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
         >
           <SymbolicatorIcon>
@@ -324,7 +319,7 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
-          {stacktraceChangesEnabled && hiddenFrameCount ? (
+          {hiddenFrameCount ? (
             <ShowHideButton
               analyticsEventName="Stacktrace Frames: toggled"
               analyticsEventKey="stacktrace_frames.toggled"
@@ -343,15 +338,7 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <TypeCell>
-            {!frame.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
-            )}
-          </TypeCell>
+          <TypeCell>{frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}</TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -460,8 +447,8 @@ const FileName = styled('span')`
 const RowHeader = styled('span')<{
   expandable: boolean;
   expanded: boolean;
+  isInAppFrame: boolean;
   isSubFrame: boolean;
-  stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
@@ -470,13 +457,13 @@ const RowHeader = styled('span')<{
   align-content: center;
   column-gap: ${space(1)};
   background-color: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame
+    !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
-  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
-  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
+  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
+  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
