@@ -5,7 +5,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import docs from './awslambda';
 
 describe('awslambda onboarding docs', function () {
-  it('renders gradle docs correctly', async function () {
+  it('renders docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.aspnetcore': {
