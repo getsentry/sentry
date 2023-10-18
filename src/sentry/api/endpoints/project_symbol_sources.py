@@ -68,7 +68,7 @@ class SourceSerializer(serializers.Serializer):
     filetypes = serializers.ListField(
         child=serializers.ChoiceField(choices=VALID_FILE_TYPES),
         required=False,
-        help_text="The allowed file types for the source.",
+        help_text="The allowed file types for the source. This is optional for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
     )
     layout = LayoutSerializer(
         required=False,
@@ -198,7 +198,10 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            ProjectParams.source_id("The ID of the source to look up.", False),
+            ProjectParams.source_id(
+                "The ID of the source to look up. If this is not provided, all sources are returned.",
+                False,
+            ),
         ],
         responses={
             200: REDACTED_SOURCES_SCHEMA,
