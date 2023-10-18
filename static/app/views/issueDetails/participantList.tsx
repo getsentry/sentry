@@ -81,7 +81,7 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
           <motion.div
             variants={{
               open: {height: '100%', opacity: 1, marginTop: space(1)},
-              closed: {height: '0', opacity: 0},
+              closed: {height: '0', opacity: 0, marginTop: 0},
             }}
             initial="closed"
             animate="open"
