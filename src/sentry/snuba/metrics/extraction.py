@@ -24,7 +24,7 @@ from typing_extensions import NotRequired
 
 from sentry.api import event_search
 from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
-from sentry.constants import DataCategory
+from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -149,6 +149,14 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "epm": "c",
     "eps": "c",
 }
+
+_NO_ARG_METRICS = [
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -585,6 +593,14 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
+def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+    # The widget does not allow NOT passing an argument but just in case
+    if not arguments:
+        raise Exception("Threshold parameter required.")
+
+    return int(arguments[0])
+
+
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
     """This specification tags transactions with a boolean saying if it failed."""
     return [
@@ -604,16 +620,8 @@ def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
 
 
 def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
-    _, metric = _get_apdex_project_transaction_threshold(project)
-
-    # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
-    #  support that.
-    if not arguments:
-        raise Exception("apdex requires a threshold parameter.")
-
-    field = _map_field_name(metric)
-    threshold = arguments[0]
-    apdex_threshold = int(threshold)
+    apdex_threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -781,17 +789,13 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op in [
-            "on_demand_epm",
-            "on_demand_eps",
-            "on_demand_failure_count",
-            "on_demand_failure_rate",
-        ]:
+        if self.op in _NO_ARG_METRICS:
             return self.op
-        elif self.op == "on_demand_apdex":
-            return f"{self.op}:{self._arguments[0]}"
-        elif self.op == "on_demand_count_web_vitals":
-            return f"{self.op}:{self._arguments[0]}:{self._arguments[1]}"
+        elif self.op in _MULTIPLE_ARGS_METRICS:
+            ret_val = f"{self.op}"
+            for arg in self._arguments:
+                ret_val += f":{arg}"
+            return ret_val
 
         if not self._arguments:
             return None
@@ -894,10 +898,7 @@ class OnDemandMetricSpec:
     def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[Sequence[str]]:
-        requires_arguments = metric_type in ["s", "d"] or op in [
-            "on_demand_apdex",
-            "on_demand_count_web_vitals",
-        ]
+        requires_arguments = metric_type in ["s", "d"] or op in _MULTIPLE_ARGS_METRICS
         if not requires_arguments:
             return None
 
@@ -905,7 +906,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in ["on_demand_apdex", "on_demand_count_web_vitals"]
+        map_argument = op not in _MULTIPLE_ARGS_METRICS
 
         first_argument = arguments[0]
         return [_map_field_name(first_argument)] if map_argument else arguments
@@ -953,6 +954,7 @@ class OnDemandMetricSpec:
 
     @staticmethod
     def _parse_query(value: str) -> Optional[QueryParsingResult]:
+        """Parse query string into our internal AST format."""
         try:
             conditions = event_search.parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
@@ -1000,7 +1002,9 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str]:
+def _get_satisfactory_threshold_and_metric(project: Project) -> Tuple[int, str]:
+    """It returns the statisfactory response time threshold for the project and
+    the associated metric ("transaction.duration" or "measurements.lcp")."""
     result = ProjectTransactionThreshold.filter(
         organization_id=project.organization.id,
         project_ids=[project.id],
@@ -1010,11 +1014,11 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
 
     if len(result) == 0:
         # We use the default threshold shown in the UI.
-        threshold = 300
+        threshold = APDEX_THRESHOLD_DEFAULT
         metric = TransactionMetric.DURATION.value
     else:
-        # We technically don't use this threshold since we extract it from the apdex(x) field where x is the threshold,
-        # but we still return it to have it in case a fallback will be needed.
+        # We technically don't use this threshold since we extract it from the apdex(x) field
+        # where x is the threshold, however, we still return it in case a fallback is needed.
         threshold, metric = result[0]
 
     if metric == TransactionMetric.DURATION.value:

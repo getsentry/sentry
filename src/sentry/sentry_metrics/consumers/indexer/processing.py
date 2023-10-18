@@ -131,7 +131,7 @@ class MessageProcessor:
 
         new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
 
-        sdk.set_measurement("new_messages.len", len(new_messages))
+        sdk.set_measurement("new_messages.len", len(new_messages.data))
 
         with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
             op="apply_cardinality_limits"
