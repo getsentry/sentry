@@ -412,13 +412,13 @@ def query_transactions_timeseries(
             app_id="statistical_detectors",
             query=query,
             tenant_ids={
-                "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
+                "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value,
                 "cross_org_query": 1,
                 "use_case_id": use_case_id.value,
             },
         )
         data = raw_snql_query(
-            request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
+            request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value
         )["data"]
 
         results = {}
