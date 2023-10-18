@@ -726,6 +726,17 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             sdk_name="sentry.python",
         )
 
+        mock_record.assert_any_call(
+            "integrations.failed_to_fetch_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=0,
+            num_successfully_mapped_frames=0,
+            reason="could_not_find_in_app_stacktrace_frame",
+        )
+
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(

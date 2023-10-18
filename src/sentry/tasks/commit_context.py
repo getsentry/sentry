@@ -240,6 +240,18 @@ def process_commit_context(
                     project_id=project_id,
                     sdk_name=sdk_name,
                 )
+                if features.has("organizations:suspect-commits-all-frames", project.organization):
+                    analytics.record(
+                        "integrations.failed_to_fetch_commit_context_all_frames",
+                        organization_id=project.organization_id,
+                        project_id=project_id,
+                        group_id=basic_logging_details["group"],
+                        event_id=basic_logging_details["event"],
+                        num_frames=0,
+                        num_successfully_mapped_frames=0,
+                        reason="could_not_find_in_app_stacktrace_frame",
+                    )
+
                 return
 
             if features.has("organizations:suspect-commits-all-frames", project.organization):
