@@ -357,19 +357,31 @@ def query_transactions_timeseries(
             "transaction",
         )
 
-        transactions_condition = BooleanCondition(
-            BooleanOp.OR,
-            [
-                BooleanCondition(
-                    BooleanOp.AND,
-                    [
-                        Condition(Column("project_id"), Op.EQ, project_id),
-                        Condition(Column("transaction"), Op.EQ, transaction_name),
-                    ],
-                )
-                for project_id, transaction_name in transactions
-            ],
-        )
+        transactions_condition = None
+        if len(transactions) == 1:
+            project_id, transaction_name = transactions[0]
+            transactions_condition = BooleanCondition(
+                BooleanOp.AND,
+                [
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("transaction"), Op.EQ, transaction_name),
+                ],
+            )
+        else:
+            transactions_condition = BooleanCondition(
+                BooleanOp.OR,
+                [
+                    BooleanCondition(
+                        BooleanOp.AND,
+                        [
+                            Condition(Column("project_id"), Op.EQ, project_id),
+                            Condition(Column("transaction"), Op.EQ, transaction_name),
+                        ],
+                    )
+                    for project_id, transaction_name in transactions
+                ],
+            )
+
         query = Query(
             match=Entity(EntityKey.GenericMetricsDistributions.value),
             select=[

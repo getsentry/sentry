@@ -712,6 +712,19 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             ),
         ]
 
+    def test_query_transactions_single_timeseries(self) -> None:
+        results = [
+            timeseries
+            for timeseries in query_transactions_timeseries(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                ],
+                self.now,
+                "p95(transaction.duration)",
+            )
+        ]
+        assert len(results) == 1
+
     @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
     @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
     def test_transaction_change_point_detection(
