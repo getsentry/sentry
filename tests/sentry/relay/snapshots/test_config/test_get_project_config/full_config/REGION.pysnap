@@ -1,5 +1,5 @@
 ---
-created: '2023-10-02T11:41:08.393725Z'
+created: '2023-10-17T11:07:17.137208Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -89,8 +89,14 @@ config:
       patterns:
       - '*healthcheck*'
       - '*healthy*'
-      - '*live*'
-      - '*ready*'
+      - live
+      - live[z/-]*
+      - '*[/-]live'
+      - '*[/-]live[z/-]*'
+      - ready
+      - ready[z/-]*
+      - '*[/-]ready'
+      - '*[/-]ready[z/-]*'
       - '*heartbeat*'
       - '*/health'
       - '*/healthz'
