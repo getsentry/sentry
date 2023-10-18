@@ -320,9 +320,9 @@ def test_spec_failure_rate(default_project):
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
-def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
-    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
 
