@@ -62,7 +62,12 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
     defined(event) &&
     group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
 
-  const {data, isLoading, isError, refetch} = useFetchIssueTags({
+  const {
+    data = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useFetchIssueTags({
     orgSlug: organization.slug,
     groupId: group.id,
     environment: environments,
@@ -79,10 +84,9 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
 
   // useFetchIssueTags can return two different types of responses, depending on shouldUseTagFacetsEndpoint
   // This line will convert the response to a common type for rendering
-  const tagList: SimpleTag[] =
-    (isTagFacetsResponse(data, shouldUseTagFacetsEndpoint)
-      ? data?.filter(({key}) => key !== 'transaction')?.map(sumTagFacetsForTopValues)
-      : data) ?? [];
+  const tagList: SimpleTag[] = isTagFacetsResponse(data, shouldUseTagFacetsEndpoint)
+    ? data.filter(({key}) => key !== 'transaction')?.map(sumTagFacetsForTopValues)
+    : data;
   const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
 
   if (isLoading) {
