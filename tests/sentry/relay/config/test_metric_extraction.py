@@ -14,6 +14,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
@@ -444,6 +445,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
 
         config = get_metric_extraction_config(default_project)
 
+        vital = measurement.split(".")[1]
+
         assert config
         assert len(config["metrics"]) == 1
 
@@ -458,7 +461,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                         "condition": {
                             "name": f"event.{measurement}.value",
                             "op": "lt",
-                            "value": 2500,
+                            "value": VITAL_THRESHOLDS[vital]["meh"],
                         },
                         "key": "quality",
                         "value": "matches_hash",
@@ -477,8 +480,16 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                     {
                         "condition": {
                             "inner": [
-                                {"name": f"event.{measurement}.value", "op": "gte", "value": 2500},
-                                {"name": f"event.{measurement}.value", "op": "lt", "value": 4000},
+                                {
+                                    "name": f"event.{measurement}.value",
+                                    "op": "gte",
+                                    "value": VITAL_THRESHOLDS[vital]["meh"],
+                                },
+                                {
+                                    "name": f"event.{measurement}.value",
+                                    "op": "lt",
+                                    "value": VITAL_THRESHOLDS[vital]["poor"],
+                                },
                             ],
                             "op": "and",
                         },
@@ -500,7 +511,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                         "condition": {
                             "name": f"event.{measurement}.value",
                             "op": "gte",
-                            "value": 4000,
+                            "value": VITAL_THRESHOLDS[vital]["poor"],
                         },
                         "key": "quality",
                         "value": "matches_hash",
