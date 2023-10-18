@@ -9,20 +9,26 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {NewQuery} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {
+  ScreensTable,
+  useTableQuery,
+} from 'sentry/views/starfish/views/screens/screensTable';
 
 export enum YAxis {
   WARM_START,
@@ -87,7 +93,9 @@ type Props = {
 
 export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
+  const {selection} = pageFilter;
   const location = useLocation();
+  const {query: locationQuery} = location;
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
@@ -104,29 +112,38 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   ]);
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
+  const orderby = decodeScalar(locationQuery.sort, `-count`);
+  const newQuery: NewQuery = {
+    name: '',
+    fields: [
+      'transaction',
+      SpanMetricsField.PROJECT_ID,
+      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
+      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
+      'avg(measurements.time_to_full_display)',
+      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
+      'count()',
+    ],
+    query: queryString,
+    dataset: DiscoverDatasets.METRICS,
+    version: 2,
+    projects: selection.projects,
+  };
+  newQuery.orderby = orderby;
+  const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
+
   useSynchronizeCharts();
-  const {data: topTransactionsData, isLoading: topTransactionsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['transaction', 'count()'],
-        orderby: '-count',
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      location
-    ),
+  const {
+    data: topTransactionsData,
+    isLoading: topTransactionsLoading,
+    pageLinks,
+  } = useTableQuery({
+    eventView: tableEventView,
     enabled: !isReleasesLoading,
-    limit: 5,
   });
 
   const topTransactions =
-    topTransactionsData?.data?.map(datum => datum.transaction) ?? [];
+    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction) ?? [];
 
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
@@ -260,6 +277,12 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   return (
     <div data-test-id="starfish-mobile-view">
       <ChartsContainer>{renderBarCharts()}</ChartsContainer>
+      <ScreensTable
+        eventView={tableEventView}
+        data={topTransactionsData}
+        isLoading={topTransactionsLoading}
+        pageLinks={pageLinks}
+      />
     </div>
   );
 }
