@@ -1762,8 +1762,6 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
-    # Enable updates to the stacktrace ui
-    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
