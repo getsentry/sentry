@@ -57,6 +57,7 @@ __all__ = (
     "histogram_query",
     "check_multihistogram_fields",
 )
+DEFAULT_DATASET_REASON = "unchanged"
 
 
 logger = logging.getLogger(__name__)
