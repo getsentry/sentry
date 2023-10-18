@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/actionCreators/events';
@@ -52,7 +52,7 @@ function isTagFacetsResponse(
 function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const now = useMemo(() => Date.now(), []);
+  const now = useRef(Date.now()).current;
 
   const {transaction, aggregateRange2, breakpoint} =
     event?.occurrence?.evidenceData ?? {};
