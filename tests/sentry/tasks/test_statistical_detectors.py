@@ -8,6 +8,7 @@ from django.db.models import F
 from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
@@ -18,6 +19,7 @@ from sentry.tasks.statistical_detectors import (
     emit_function_regression_issue,
     query_functions,
     query_transactions,
+    query_transactions_timeseries,
     run_detection,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
@@ -27,6 +29,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
@@ -538,6 +541,89 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    def test_query_transactions_timeseries(self) -> None:
+        results = [
+            timeseries
+            for timeseries in query_transactions_timeseries(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                    (self.projects[0].id, "transaction_2"),
+                    (self.projects[1].id, "transaction_1"),
+                ],
+                self.now,
+                "p95(transaction.duration)",
+            )
+        ]
+
+        end = self.now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        start = end - timedelta(days=14)
+        first_timeseries_time = self.now - timedelta(hours=2)
+        second_timeseries_time = self.now - timedelta(hours=1)
+        assert results == [
+            (
+                self.projects[0].id,
+                "transaction_2",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_2",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_2",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[0].id,
+                        "order": 0,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+            (
+                self.projects[1].id,
+                "transaction_1",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[1].id,
+                        "order": 0,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+        ]
 
     @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
     @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
