@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
-from typing import BinaryIO
+from typing import BinaryIO, Type
 
 import click
+from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
@@ -92,6 +93,11 @@ def _export(
         else:
             raise ValueError("Filter arguments must only apply to `Organization` or `User` models")
 
+    def get_exporter_for_model(model: Type[Model]):
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+            return import_export_service.export_by_model
+        return ImportExportService.get_local_implementation().export_by_model  # type: ignore
+
     # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson # to print the JSON objects in a streaming manner.
     for model in sorted_dependencies():
         from sentry.db.models.base import BaseModel
@@ -110,7 +116,7 @@ def _export(
             continue
 
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
-        export_by_model = ImportExportService.get_exporter_for_model(model)
+        export_by_model = get_exporter_for_model(model)
         result = export_by_model(
             model_name=str(model_name),
             scope=RpcExportScope.into_rpc(scope),
