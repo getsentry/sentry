@@ -148,6 +148,11 @@ export function getDuration(
 }
 
 type Level = [number, string];
+const SECS_IN_WKS = 604800;
+const SECS_IN_DAYS = 86400;
+const SECS_IN_HRS = 3600;
+const SECS_IN_MIN = 60;
+const MS_IN_S = 1000;
 
 /**
  * Translates seconds into human readable format of seconds, minutes, hours, days, and years
@@ -166,19 +171,27 @@ export function getExactDuration(
 ) {
   const operation = seconds < 0 ? Math.ceil : Math.floor;
   const levels: Level[] = [
-    [operation(seconds / 604800), abbreviation ? 'wk' : ' weeks'],
-    [operation((seconds % 604800) / 86400), abbreviation ? 'd' : ' days'],
-    [operation(((seconds % 604800) % 86400) / 3600), abbreviation ? 'hr' : ' hours'],
+    [operation(seconds / SECS_IN_WKS), abbreviation ? 'wk' : ' weeks'],
+    [operation((seconds % SECS_IN_WKS) / SECS_IN_DAYS), abbreviation ? 'd' : ' days'],
     [
-      operation((((seconds % 604800) % 86400) % 3600) / 60),
+      operation(((seconds % SECS_IN_WKS) % SECS_IN_DAYS) / SECS_IN_HRS),
+      abbreviation ? 'hr' : ' hours',
+    ],
+    [
+      operation((((seconds % SECS_IN_WKS) % SECS_IN_DAYS) % SECS_IN_HRS) / SECS_IN_MIN),
       abbreviation ? 'min' : ' minutes',
     ],
     [
-      operation((((seconds % 604800) % 86400) % 3600) % 60),
+      operation((((seconds % SECS_IN_WKS) % SECS_IN_DAYS) % SECS_IN_HRS) % SECS_IN_MIN),
       abbreviation ? 's' : ' seconds',
     ],
     [
-      operation((((((seconds * 1000) % 604800000) % 86400000) % 3600000) % 60000) % 1000),
+      operation(
+        (((((seconds * MS_IN_S) % (SECS_IN_WKS * MS_IN_S)) % (SECS_IN_DAYS * MS_IN_S)) %
+          (SECS_IN_HRS * MS_IN_S)) %
+          (SECS_IN_MIN * MS_IN_S)) %
+          MS_IN_S
+      ),
       abbreviation ? 'ms' : ' milliseconds',
     ],
   ];
