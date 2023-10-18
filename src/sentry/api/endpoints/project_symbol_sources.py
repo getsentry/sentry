@@ -59,9 +59,7 @@ class SourceSerializer(serializers.Serializer):
     )
     id = serializers.CharField(
         required=False,
-        help_text="The internal ID of the source. \
-        Must be distinct from all other source IDs and cannot start with 'sentry:'. \
-        If this is not provided, a new UUID will be generated.",
+        help_text="The internal ID of the source. Must be distinct from all other source IDs and cannot start with 'sentry:'. If this is not provided, a new UUID will be generated.",
     )
     name = serializers.CharField(
         required=True,
@@ -74,8 +72,7 @@ class SourceSerializer(serializers.Serializer):
     )
     layout = LayoutSerializer(
         required=False,
-        help_text="Layout settings for the source. \
-        This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
+        help_text="Layout settings for the source. This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
     )
     appconnectIssuer = serializers.CharField(
         min_length=36,
