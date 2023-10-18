@@ -18,6 +18,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -168,6 +169,23 @@ const InvestigationInProgressNotification = styled('span')`
   gap: ${space(0.5)};
 `;
 
+function handleRequestError(error: RequestError) {
+  // check why it failed (if it is due to the fact that the query is not supported (e.g. non transaction query)
+  // do nothing we just don't show the button
+  if (error.responseJSON?.query) {
+    const query = error.responseJSON.query;
+    if (Array.isArray(query)) {
+      for (const reason of query) {
+        if (reason === 'not_transaction_query') {
+          return; // this is not an error we just don't show the button
+        }
+      }
+    }
+  }
+  const errorResponse = t('Unable to fetch investigation rule');
+  addErrorMessage(errorResponse);
+}
+
 function InvestigationRuleCreationInternal(props: PropsInternal) {
   const projects = [...props.eventView.project];
   const organization = props.organization;
@@ -190,8 +208,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     return null;
   }
   if (request.isError) {
-    const errorResponse = t('Unable to fetch investigation rule');
-    addErrorMessage(errorResponse);
+    handleRequestError(request.error);
     return null;
   }
 

@@ -10,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
@@ -301,6 +300,10 @@ const FrameCallersTable = styled('div')`
     position: absolute;
     left: 0;
     top: 0;
+
+    &:nth-child(2) {
+      left: 164px;
+    }
   }
 
   .${FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER} {
@@ -386,7 +389,6 @@ export function AggregateFlamegraphTreeTable({
   frameFilter,
 }: AggregateFlamegraphTreeTableProps) {
   const dispatch = useDispatchFlamegraphState();
-  const {colorCoding} = useFlamegraphPreferences();
   const profiles = useFlamegraphProfiles();
   const profileGroup = useProfileGroup();
   const flamegraph = useFlamegraph();
@@ -415,11 +417,11 @@ export function AggregateFlamegraphTreeTable({
   const {colorMap} = useMemo(() => {
     return theme.COLORS.STACK_TO_COLOR(
       flamegraph.frames,
-      theme.COLORS.COLOR_MAPS[colorCoding],
+      theme.COLORS.COLOR_MAPS['by symbol name'],
       theme.COLORS.COLOR_BUCKET,
       theme
     );
-  }, [theme, flamegraph.frames, colorCoding]);
+  }, [theme, flamegraph.frames]);
 
   const getFrameColor = useCallback(
     (frame: FlamegraphFrame) => {
@@ -644,8 +646,12 @@ export function AggregateFlamegraphTreeTable({
       handleScrollTo(el => el.node === frame.node);
     }
 
+    canvasScheduler.on('zoom at frame', onShowInTableView);
     canvasScheduler.on('show in table view', onShowInTableView);
-    return () => canvasScheduler.off('show in table view', onShowInTableView);
+    return () => {
+      canvasScheduler.off('show in table view', onShowInTableView);
+      canvasScheduler.off('zoom at frame', onShowInTableView);
+    };
   }, [canvasScheduler, handleScrollTo]);
 
   const onSortBySampleCount = useCallback(() => {
@@ -724,6 +730,7 @@ export function AggregateFlamegraphTreeTable({
               })}
               <div className={FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER}>
                 <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+                <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
               </div>
             </div>
           </div>
@@ -763,6 +770,15 @@ const FixedTableItemsContainer = styled('div')`
   width: ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px;
   overflow: hidden;
   z-index: 1;
+
+  /* Hide scrollbar so we dont end up with double scrollbars */
+  > div {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 `;
 
 const DynamicTableItemsContainer = styled('div')`
