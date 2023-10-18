@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,6 +7,9 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -36,6 +39,7 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({frames, startTimestampMs}: Props) {
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
 
   const {setActiveTab} = useActiveReplayTab();
@@ -49,6 +53,8 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   // Note that this is intentionally not in state because we do not want to
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
+
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
   const {items, searchTerm, setSearchTerm} = filterProps;
@@ -64,6 +70,18 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
     cache,
     listRef,
     expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
   useScrollToCurrentItem({
@@ -116,11 +134,18 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -128,6 +153,13 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
+        {frames?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
       </TabItemContainer>
     </FluidHeight>
   );

@@ -154,6 +154,36 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     );
   }
 
+  if (key === 'trace') {
+    const traceId = props.dataRow[key];
+    if (!traceId) {
+      return <Container>{t('n/a')}</Container>;
+    }
+
+    return (
+      <Container>
+        <Link to={`/performance/trace/${getShortEventId(traceId)}`}>{traceId}</Link>
+      </Container>
+    );
+  }
+
+  if (key === 'trace.transaction') {
+    const project = getProjectForRow(props.baggage, props.dataRow);
+
+    const transactionId = props.dataRow[key];
+    if (!project) {
+      return <Container>{transactionId}</Container>;
+    }
+
+    return (
+      <Container>
+        <Link to={`/performance/${project.slug}:${getShortEventId(transactionId)}`}>
+          {transactionId}
+        </Link>
+      </Container>
+    );
+  }
+
   if (key === 'project.id' || key === 'project' || key === 'project.name') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
@@ -314,16 +344,6 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     name: t('Profile ID'),
     width: COL_WIDTH_UNDEFINED,
   },
-  trace: {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  'trace.transaction': {
-    key: 'trace.transaction',
-    name: t('Transaction ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
   transaction: {
     key: 'transaction',
     name: t('Transaction'),
@@ -332,6 +352,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'transaction.duration': {
     key: 'transaction.duration',
     name: t('Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  trace: {
+    key: 'trace',
+    name: t('Trace ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'trace.transaction': {
+    key: 'trace.transaction',
+    name: t('Transaction ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {
