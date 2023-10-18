@@ -80,8 +80,8 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
         {isExpanded && (
           <motion.div
             variants={{
-              open: {height: '100%', opacity: 1, marginTop: space(1)},
-              closed: {height: '0', opacity: 0, marginTop: 0},
+              open: {height: '100%', opacity: 1, overflow: 'initial'},
+              closed: {height: '0', opacity: 0, overflow: 'hidden'},
             }}
             initial="closed"
             animate="open"
@@ -100,6 +100,7 @@ const ParticipantWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  padding-bottom: ${space(1)};
 
   & > span {
     cursor: pointer;
