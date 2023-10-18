@@ -171,8 +171,8 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   grid-template-columns:
-    minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(250px, 4fr)
-    auto;
+    minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 4fr)
+    minmax(150px, auto);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
   > *:nth-last-child(n + 1) {
