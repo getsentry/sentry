@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
@@ -31,6 +31,11 @@ const webVitalFullNameMap = {
 
 export function WebVitalDescription({score, value, webVital}: Props) {
   const theme = useTheme();
+  const description: string = vitalDescription[WebVital[webVital.toUpperCase()]];
+  const descriptionWithoutBrowserNote = description.slice(
+    0,
+    description.indexOf('At the moment')
+  );
   return (
     <div>
       <Header>
@@ -52,7 +57,15 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           backgroundColor={`${getScoreColor(score, theme)}33`}
         />
       </Header>
-      <p>{vitalDescription[WebVital[webVital.toUpperCase()]]}</p>
+      <p>{descriptionWithoutBrowserNote}</p>
+      <p>
+        <b>
+          {tct(
+            `At the moment, there is support for [webVital] in the following browsers:`,
+            {webVital: webVital.toUpperCase()}
+          )}
+        </b>
+      </p>
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
