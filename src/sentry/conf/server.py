@@ -1386,6 +1386,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
+    # Removes extra fields from the project serializers
+    "organizations:cleanup-project-serializer": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
