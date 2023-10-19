@@ -9,7 +9,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_status_change import OccurrenceStatusChange
+from sentry.issues.occurrence_status_change import StatusChangeOccurrence
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -23,10 +23,6 @@ logger = logging.getLogger(__name__)
 class PayloadType(ValueEqualityEnum):
     OCCURRENCE = "occurrence"
     STATUS_CHANGE = "status_change"
-
-
-class PayloadType(ValueEqualityEnum):
-    OCCURRENCE = "occurrence"
 
 
 def _get_occurrence_producer() -> KafkaProducer:
@@ -43,9 +39,9 @@ _occurrence_producer = SingletonProducer(
 
 
 def produce_occurrence_to_kafka(
-    payload_type: PayloadType | None = PayloadType.OCCURRENCE,
+    payload_type: PayloadType = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
-    status_change: OccurrenceStatusChange | None = None,
+    status_change: StatusChangeOccurrence | None = None,
     event_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
@@ -82,7 +78,7 @@ def produce_occurrence_to_kafka(
         grouphash = (
             GroupHash.objects.filter(
                 project=status_change.project_id,
-                hash__in=status_change.fingerprint,
+                hash=status_change.fingerprint[0],
             )
             .select_related("group")
             .first()

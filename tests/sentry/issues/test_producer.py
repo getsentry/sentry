@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_status_change import OccurrenceStatusChange
+from sentry.issues.occurrence_status_change import StatusChangeOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -81,7 +81,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        status_change_resolve = OccurrenceStatusChange(
+        status_change_resolve = StatusChangeOccurrence(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=initial_status,
@@ -98,7 +98,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert not Activity.objects.filter(group=group).exists()
         assert not GroupHistory.objects.filter(group=group).exists()
 
-        status_change_resolve = OccurrenceStatusChange(
+        status_change_resolve = StatusChangeOccurrence(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -133,7 +133,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        bad_status_change_resolve = OccurrenceStatusChange(
+        bad_status_change_resolve = StatusChangeOccurrence(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -156,7 +156,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
-        bad_status_change_ignored = OccurrenceStatusChange(
+        bad_status_change_ignored = StatusChangeOccurrence(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.IGNORED,
@@ -211,7 +211,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        bad_status_change_resolve = OccurrenceStatusChange(
+        bad_status_change_resolve = StatusChangeOccurrence(
             fingerprint=["wronghash"],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,

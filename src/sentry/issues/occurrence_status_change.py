@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class OccurrenceStatusChange:
+class StatusChangeOccurrence:
     fingerprint: Sequence[str]
     project_id: int
     new_status: int
