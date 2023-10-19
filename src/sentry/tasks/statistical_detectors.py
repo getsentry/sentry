@@ -165,12 +165,7 @@ def detect_transaction_trends(
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    unique_project_ids: Set[int] = set()
-
     for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
-        for _, payload in trends:
-            unique_project_ids.add(payload.project_id)
-
         detect_transaction_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in trends],
@@ -181,12 +176,6 @@ def detect_transaction_trends(
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
-
-    metrics.incr(
-        "statistical_detectors.performance.projects.active",
-        amount=len(unique_project_ids),
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -256,6 +245,8 @@ def _detect_transaction_change_points(
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    unique_project_ids: Set[int] = set()
+
     transactions_count = 0
     regressed_count = 0
     improved_count = 0
@@ -303,6 +294,8 @@ def _detect_transaction_trends(
             elif trend_type == TrendType.Improved:
                 improved_count += 1
 
+            unique_project_ids.add(payload.project_id)
+
             yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
@@ -325,6 +318,12 @@ def _detect_transaction_trends(
     metrics.incr(
         "statistical_detectors.improved.transactions",
         amount=improved_count,
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.performance.projects.active",
+        amount=len(unique_project_ids),
         sample_rate=1.0,
     )
 
@@ -419,12 +418,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    unique_project_ids: Set[int] = set()
-
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
-        for _, payload in regression_chunk:
-            unique_project_ids.add(payload.project_id)
-
         detect_function_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in regression_chunk],
@@ -435,12 +429,6 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
-
-    metrics.incr(
-        "statistical_detectors.profiling.projects.active",
-        amount=len(unique_project_ids),
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -481,6 +469,8 @@ def detect_function_change_points(
 def _detect_function_trends(
     project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    unique_project_ids: Set[int] = set()
+
     functions_count = 0
     regressed_count = 0
     improved_count = 0
@@ -522,6 +512,8 @@ def _detect_function_trends(
             elif trend_type == TrendType.Improved:
                 improved_count += 1
 
+            unique_project_ids.add(payload.project_id)
+
             yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
@@ -544,6 +536,12 @@ def _detect_function_trends(
     metrics.incr(
         "statistical_detectors.improved.functions",
         amount=improved_count,
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.profiling.projects.active",
+        amount=len(unique_project_ids),
         sample_rate=1.0,
     )
 
