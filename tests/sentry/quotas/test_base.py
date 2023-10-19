@@ -1,9 +1,9 @@
 import pytest
 
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.models import Monitor, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -99,12 +99,12 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.ACTIVE,
+            status=ObjectStatus.WAITING,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
         monitor.refresh_from_db()
-        assert monitor.status == MonitorStatus.OK
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_unassign_monitor_seat(self):
         monitor = Monitor.objects.create(
@@ -112,12 +112,12 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.OK,
+            status=ObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.unassign_monitor_seat(monitor) is None
         monitor.refresh_from_db()
-        assert monitor.status == MonitorStatus.DISABLED
+        assert monitor.status == ObjectStatus.DISABLED
 
     def test_enable_seat_recreate(self):
         monitor = Monitor.objects.create(
@@ -125,7 +125,6 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.OK,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.enable_seat_recreate(monitor) is None
@@ -136,7 +135,6 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.OK,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.disable_seat_recreate(monitor) is None

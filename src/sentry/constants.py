@@ -467,6 +467,7 @@ class ObjectStatus:
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
+    WAITING = 4
 
     DISABLED = 1
 
@@ -477,6 +478,7 @@ class ObjectStatus:
             (cls.DISABLED, "disabled"),
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.WAITING, "waiting"),
         )
 
 

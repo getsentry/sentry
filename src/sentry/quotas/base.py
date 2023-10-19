@@ -506,10 +506,10 @@ class Quota(Service):
         Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
         will be updated from ACTIVE to OK if the seat assignment is accepted.
         """
-        from sentry.monitors.models import MonitorStatus
+        from sentry.constants import ObjectStatus
         from sentry.utils.outcomes import Outcome
 
-        monitor.update(status=MonitorStatus.OK)
+        monitor.update(status=ObjectStatus.ACTIVE)
         return Outcome.ACCEPTED
 
     def unassign_monitor_seat(
@@ -519,9 +519,9 @@ class Quota(Service):
         """
         Disables a monitor seat assignment and sets the Monitor status to DISABLED
         """
-        from sentry.monitors.models import MonitorStatus
+        from sentry.constants import ObjectStatus
 
-        monitor.update(status=MonitorStatus.DISABLED)
+        monitor.update(status=ObjectStatus.DISABLED)
 
     def enable_seat_recreate(self, monitor: Monitor):
         """Sets the monitor's seat assignment to automatically be recreated at renewal."""
