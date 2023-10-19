@@ -99,7 +99,7 @@ export enum IssueTitle {
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
 }
 
-export const getIssueTypeFromOccurenceType = (
+export const getIssueTypeFromOccurrenceType = (
   typeId: number | undefined
 ): IssueType | null => {
   const occurrenceTypeToIssueIdMap = {

@@ -247,9 +247,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         recipients: List[RpcActor],
-        project_ids: Optional[List[int]],
-        organization_id: Optional[int],
         type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
     ) -> MutableMapping[
         int, MutableMapping[int, str]
     ]:  # { actor_id : { provider_str: value_str } }

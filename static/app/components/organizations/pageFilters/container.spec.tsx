@@ -35,6 +35,10 @@ describe('PageFiltersContainer', function () {
     organization: {features: ['global-views']},
     projects: [
       {
+        id: '1',
+        slug: 'project-1',
+      },
+      {
         id: '2',
         slug: 'project-2',
       },
@@ -352,6 +356,7 @@ describe('PageFiltersContainer', function () {
       organization: {
         features: ['global-views'],
       },
+      projects: [TestStubs.Project({id: 1}), TestStubs.Project({id: 2})],
       router: {
         // we need this to be set to make sure org in context is same as
         // current org in URL
@@ -915,7 +920,7 @@ describe('PageFiltersContainer', function () {
         // forceProject generally starts undefined
         const {rerender} = renderForGlobalView(
           {shouldForceProject: true},
-          changeQuery(initialData.routerContext, {project: 321})
+          changeQuery(initialData.routerContext, {project: 2})
         );
 
         rerender({forceProject: initialData.projects[1]});

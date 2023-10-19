@@ -73,6 +73,27 @@ export function MetricsCardinalityProvider(props: {
   eventView.fields = [{field: 'tpm()'}];
   const _eventView = adjustEventViewTime(eventView);
 
+  if (
+    props.organization.features.includes(
+      'performance-remove-metrics-compatibility-fallback'
+    )
+  ) {
+    return (
+      <Provider
+        sendOutcomeAnalytics={props.sendOutcomeAnalytics}
+        organization={props.organization}
+        value={{
+          isLoading: false,
+          outcome: {
+            forceTransactionsOnly: false,
+          },
+        }}
+      >
+        {props.children}
+      </Provider>
+    );
+  }
+
   return (
     <Fragment>
       <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>

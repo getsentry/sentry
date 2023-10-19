@@ -645,6 +645,7 @@ def get_sdk_debug_id_support(event_data):
         official_sdks = [
             "sentry.javascript.angular",
             "sentry.javascript.angular-ivy",
+            "sentry.javascript.astro",
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",

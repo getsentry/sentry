@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import cast
 
 from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -39,6 +38,4 @@ class LostPasswordHashService(RpcService):
         pass
 
 
-lost_password_hash_service: LostPasswordHashService = cast(
-    LostPasswordHashService, LostPasswordHashService.create_delegation()
-)
+lost_password_hash_service = LostPasswordHashService.create_delegation()

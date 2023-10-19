@@ -379,6 +379,11 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
+            # Ignore some native Django models, since other models don't reference them and we don't
+            # really use them for business logic.
+            if model._meta.app_label in {"sessions", "sites"}:
+                continue
+
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together

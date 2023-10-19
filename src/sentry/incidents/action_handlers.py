@@ -135,13 +135,13 @@ class EmailActionHandler(ActionHandler):
             if should_use_notifications_v2(self.project.organization):
                 controller = NotificationController(
                     recipients={RpcUser(id=member.user_id) for member in target.member_set},
-                    project_ids=[project.id for project in self.projects],
+                    project_ids=[self.project.id],
                     organization_id=self.project.organization_id,
                 )
 
                 users = controller.get_notification_recipients(
                     type=NotificationSettingEnum.ISSUE_ALERTS, actor_type=ActorType.USER
-                )
+                )[ExternalProviders.EMAIL]
             else:
                 users = NotificationSetting.objects.filter_to_accepting_recipients(
                     self.project,
