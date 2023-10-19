@@ -133,6 +133,8 @@ function GeoLocationDiff({event, projectId}: {event: Event; projectId: string}) 
               },
               projectID: projectId,
               display: DisplayModes.DURATION,
+              // Only show p95 series to align with issue context
+              unselectedSeries: ['avg()', 'p100()', 'p99()', 'p75()', 'p50()'],
             });
 
             return (

@@ -61,6 +61,7 @@ describe('GeoLocationDiff', () => {
         },
       ],
     });
+
     render(<GeoLocationDiff projectId={PROJECT_ID} event={mockEvent} />);
 
     expect(
@@ -92,6 +93,7 @@ describe('GeoLocationDiff', () => {
         },
       ],
     });
+
     render(<GeoLocationDiff projectId={PROJECT_ID} event={mockEvent} />);
 
     await userEvent.hover(await screen.findByText('+100.00%'));
@@ -124,6 +126,34 @@ describe('GeoLocationDiff', () => {
           end: new Date(BREAKPOINT_TIMESTAMP * 1000 + 7 * DAY).toISOString(),
         }),
       })
+    );
+  });
+
+  it('links to the transaction summary page with the geo code as a filter', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-root-cause-analysis/',
+      method: 'GET',
+      body: [
+        {
+          duration_after: 10,
+          duration_before: 5,
+          duration_delta: 5,
+          ['geo.country_code']: 'US',
+        },
+      ],
+    });
+
+    render(<GeoLocationDiff projectId={PROJECT_ID} event={mockEvent} />);
+
+    const url = new URL(
+      (await screen.findByText('+100.00%')).getAttribute('href') as string,
+      'http://mockHost.com'
+    );
+    expect(url.pathname).toBe('/organizations/org-slug/performance/summary/');
+    expect(url.searchParams.get('query')).toBe('geo.country_code:US');
+    expect(url.searchParams.get('display')).toBe('duration');
+    expect(new Set(url.searchParams.getAll('unselectedSeries'))).toEqual(
+      new Set(['avg()', 'p99()', 'p100()', 'p50()', 'p75()'])
     );
   });
 });
