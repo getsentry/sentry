@@ -85,6 +85,7 @@ MetricOperationType = Literal[
     "p90",
     "p95",
     "p99",
+    "p100",
     "percentage",
     "histogram",
     "rate",
