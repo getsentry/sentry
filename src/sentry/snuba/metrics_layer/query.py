@@ -121,7 +121,7 @@ def _resolve_metrics_entity(mri: str) -> EntityKey:
 
 def _resolve_metrics_query(
     metrics_query: MetricsQuery,
-) -> tuple[MetricsQuery, Mapping[str, int]]:
+) -> tuple[MetricsQuery, Mapping[str, str | int]]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
@@ -129,12 +129,13 @@ def _resolve_metrics_query(
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
     scope = metrics_query.scope
-    mappings = {}
+    mappings: dict[str, str | int] = {}
     if not metric.public_name and metric.mri:
         public_name = get_public_name_from_mri(metric.mri)
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
         )
+        mappings[public_name] = metric.mri
     elif not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
         metrics_query = metrics_query.set_query(
