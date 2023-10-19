@@ -35,13 +35,20 @@ type AggregateSpanRow = {
   start_ms: number;
 };
 
-export function useAggregateSpans({transaction}) {
+export function useAggregateSpans({
+  transaction,
+  httpMethod,
+}: {
+  transaction: string;
+  httpMethod?: string;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const endpointOptions = {
     query: {
       transaction,
+      ...(defined(httpMethod) ? {'http.method': httpMethod} : null),
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -67,11 +74,12 @@ export function useAggregateSpans({transaction}) {
 
 type Props = {
   transaction: string;
+  httpMethod?: string;
 };
 
-export function AggregateSpans({transaction}: Props) {
+export function AggregateSpans({transaction, httpMethod}: Props) {
   const organization = useOrganization();
-  const {data, isLoading} = useAggregateSpans({transaction});
+  const {data, isLoading} = useAggregateSpans({transaction, httpMethod});
 
   const [isBannerOpen, setIsBannerOpen] = useLocalStorageState<boolean>(
     'aggregate-waterfall-info-banner',

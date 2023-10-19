@@ -1,5 +1,8 @@
 import {Query} from 'history';
 
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
 export function aggregateWaterfallRouteWithQuery({
   orgSlug,
   transaction,
@@ -13,6 +16,16 @@ export function aggregateWaterfallRouteWithQuery({
 }) {
   const pathname = `/organizations/${orgSlug}/performance/summary/aggregateWaterfall/`;
 
+  const filter = decodeScalar(query.query);
+  let httpMethod: string | undefined = undefined;
+  if (filter) {
+    const search = new MutableSearch(filter);
+    const method = search.tokens.find(token => token.key === 'http.method');
+    if (method) {
+      httpMethod = method.value;
+    }
+  }
+
   return {
     pathname,
     query: {
@@ -23,6 +36,7 @@ export function aggregateWaterfallRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      ...(httpMethod ? {'http.method': httpMethod} : null),
     },
   };
 }
