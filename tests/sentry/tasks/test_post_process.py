@@ -1759,7 +1759,8 @@ class PostProcessGroupErrorTest(
 
     @with_feature("organizations:escalating-metrics-backend")
     @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+    @patch("sentry.utils.metrics.incr")
+    def test_generic_metrics_backend_counter(self, metric_incr_mock, generic_metrics_backend_mock):
         min_ago = iso_format(before_now(minutes=1))
         event = self.create_event(
             data={
@@ -1782,6 +1783,10 @@ class PostProcessGroupErrorTest(
         )
 
         assert generic_metrics_backend_mock.call_count == 1
+        metric_incr_mock.assert_any_call(
+            "sentry.tasks.post_process.post_process_group.completed",
+            tags={"issue_category": "error", "pipeline": "process_rules"},
+        )
 
 
 @region_silo_test
