@@ -396,7 +396,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         if (
             group.issue_category != GroupCategory.ERROR
-            or group.issue_category != GroupCategory.FEEDBACK
+            and group.issue_category != GroupCategory.FEEDBACK
         ):
             raise ValidationError(detail="Only error and feedback issues can be deleted.", code=400)
 
