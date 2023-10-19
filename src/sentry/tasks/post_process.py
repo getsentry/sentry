@@ -659,7 +659,7 @@ def run_post_process_job(job: PostProcessJob):
                 "sentry.tasks.post_process.post_process_group.exception",
                 tags={
                     "issue_category": issue_category_metric,
-                    "pipeline": pipeline,
+                    "pipeline": pipeline_step.__name__,
                 },
             )
             logger.exception(
@@ -671,7 +671,7 @@ def run_post_process_job(job: PostProcessJob):
                 "sentry.tasks.post_process.post_process_group.completed",
                 tags={
                     "issue_category": issue_category_metric,
-                    "pipeline": pipeline,
+                    "pipeline": pipeline_step.__name__,
                 },
             )
 
