@@ -12,6 +12,8 @@ from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceGroupTypeDefaults,
     PerformanceHTTPOverheadGroupType,
+    PerformanceP95DurationRegressionGroupType,
+    PerformanceSlowDBQueryGroupType,
     ProfileJSONDecodeType,
     get_group_type_by_slug,
     get_group_types_by_category,
@@ -177,3 +179,13 @@ class GroupRegistryTest(BaseGroupTypeTest):
                 PerformanceHTTPOverheadGroupType,
                 ErrorGroupType,
             }
+
+    def test_get_auto_resolve(self) -> None:
+        registry = GroupTypeRegistry()
+        registry.add(ErrorGroupType)
+        registry.add(PerformanceSlowDBQueryGroupType)
+        registry.add(PerformanceP95DurationRegressionGroupType)
+        assert registry.get_auto_resolve_enabled() == [
+            ErrorGroupType,
+            PerformanceSlowDBQueryGroupType,
+        ]

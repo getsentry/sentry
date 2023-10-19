@@ -6,6 +6,7 @@ from typing import Mapping
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.issues import grouptype
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -37,6 +38,7 @@ def schedule_auto_resolution():
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
+    auto_resolve_enabled_issue_types = grouptype.registry.get_auto_resolve_enabled()
     cutoff = time() - ONE_HOUR
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
@@ -49,7 +51,11 @@ def schedule_auto_resolution():
         if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
             continue
 
-        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+        auto_resolve_project_issues.delay(
+            project_id=project_id,
+            enabled_issue_types=auto_resolve_enabled_issue_types,
+            expires=ONE_HOUR,
+        )
 
 
 @instrumented_task(
@@ -60,7 +66,9 @@ def schedule_auto_resolution():
     silo_mode=SiloMode.REGION,
 )
 @log_error_if_queue_has_items
-def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
+def auto_resolve_project_issues(
+    project_id, enabled_issue_types, cutoff=None, chunk_size=1000, **kwargs
+):
     project = Project.objects.get_from_cache(id=project_id)
 
     age = project.get_option("sentry:resolve_age", None)
@@ -83,6 +91,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
+        if group.issue_type not in enabled_issue_types:
+            continue
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED,
             resolved_at=timezone.now(),

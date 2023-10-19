@@ -53,6 +53,11 @@ class GroupTypeRegistry:
     def all(self) -> List[Type[GroupType]]:
         return list(self._registry.values())
 
+    def get_auto_resolve_enabled(self) -> List[Type[GroupType]]:
+        return list(
+            group_type for group_type in self._registry.values() if group_type.enable_auto_resolve
+        )
+
     def get_visible(
         self, organization: Organization, actor: Optional[Any] = None
     ) -> List[Type[GroupType]]:
@@ -120,6 +125,8 @@ class GroupType:
     # decide if this is released.
     released: bool = False
 
+    # Allow automatic resolution of an issue type
+    enable_auto_resolve: bool = False
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -178,6 +185,10 @@ class GroupType:
         return f"{cls.build_base_feature_name()}-post-process-group"
 
 
+def get_auto_resolve_enabled() -> List[type[GroupType]]:
+    return registry.get_auto_resolve_enabled()
+
+
 def get_all_group_type_ids() -> Set[int]:
     # TODO: Replace uses of this with the registry
     return registry.get_all_group_type_ids()
@@ -205,11 +216,13 @@ class ErrorGroupType(GroupType):
     description = "Error"
     category = GroupCategory.ERROR.value
     released = True
+    enable_auto_resolve = True
 
 
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
+    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -332,6 +345,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
@@ -341,6 +355,7 @@ class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, Gr
     description = "Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

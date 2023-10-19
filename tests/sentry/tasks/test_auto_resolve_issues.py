@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
@@ -47,6 +48,13 @@ class ScheduleAutoResolutionTest(TestCase):
             last_seen=timezone.now() - timedelta(days=1),
         )
 
+        group4 = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            last_seen=timezone.now() - timedelta(days=1),
+            type=PerformanceDurationRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
+        )
+
         mock_backend.get_size.return_value = 0
 
         with self.tasks():
@@ -57,6 +65,8 @@ class ScheduleAutoResolutionTest(TestCase):
         assert Group.objects.get(id=group2.id).status == GroupStatus.UNRESOLVED
 
         assert Group.objects.get(id=group3.id).status == GroupStatus.UNRESOLVED
+
+        assert Group.objects.get(id=group4.id).status == GroupStatus.UNRESOLVED
 
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
             kwargs={"project_id": group1.project_id, "group_id": group1.id}
