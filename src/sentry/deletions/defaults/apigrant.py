@@ -2,6 +2,7 @@ from django.db import router
 
 from sentry.models.apigrant import ApiGrant
 from sentry.silo.safety import unguarded_write
+
 from ..base import ModelDeletionTask
 
 

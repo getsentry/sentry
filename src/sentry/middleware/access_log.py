@@ -9,9 +9,9 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.utils import metrics
 
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
