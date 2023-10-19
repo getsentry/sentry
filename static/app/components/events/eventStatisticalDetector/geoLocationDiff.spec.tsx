@@ -63,12 +63,18 @@ describe('GeoLocationDiff', () => {
     });
     render(<GeoLocationDiff projectId={PROJECT_ID} event={mockEvent} />);
 
-    const firstRow = (await screen.findByText('US')).parentElement as HTMLElement;
+    expect(
+      await screen.findByText(
+        'An increase in the transaction duration has been detected for the following countries. The results are sorted by their overall effect on the duration, based off of the change in duration and the current TPM.'
+      )
+    ).toBeInTheDocument();
+
+    const firstRow = screen.getByText('US').parentElement as HTMLElement;
     expect(firstRow).toBeInTheDocument();
     within(firstRow).getByText('United States');
     within(firstRow).getByText('+100.00%');
 
-    const secondRow = (await screen.findByText('CA')).parentElement as HTMLElement;
+    const secondRow = screen.getByText('CA').parentElement as HTMLElement;
     expect(secondRow).toBeInTheDocument();
     within(secondRow).getByText('Canada');
     within(secondRow).getByText('+40.00%');
