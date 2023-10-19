@@ -37,6 +37,13 @@ export function isIssueAlert(
   return !data.hasOwnProperty('triggers');
 }
 
+export enum DatasetOption {
+  ALL = 'all',
+  ERRORS = 'errors',
+  SESSIONS = 'sessions',
+  PERFORMANCE = 'performance',
+}
+
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),
@@ -195,3 +202,22 @@ export function getTeamParams(team?: string | string[]): string[] {
 
   return toArray(team);
 }
+
+const datasetValues = new Set(Object.values(DatasetOption));
+export function getQueryDataset(dataset: any): DatasetOption {
+  if ((datasetValues as Set<any>).has(dataset)) {
+    return dataset as DatasetOption;
+  }
+  return DatasetOption.ALL;
+}
+
+export const datasetToQueryParam: Record<DatasetOption, Dataset[] | undefined> = {
+  [DatasetOption.ALL]: undefined,
+  [DatasetOption.ERRORS]: [Dataset.ERRORS],
+  [DatasetOption.SESSIONS]: [Dataset.METRICS],
+  [DatasetOption.PERFORMANCE]: [
+    Dataset.GENERIC_METRICS,
+    // TODO(telemetry-experience): remove this once we migrated all performance alerts to generic metrics
+    Dataset.TRANSACTIONS,
+  ],
+};

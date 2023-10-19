@@ -17,6 +17,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {IncidentStatus} from 'sentry/views/alerts/types';
+import {DatasetOption} from 'sentry/views/alerts/utils';
 
 import AlertRulesList from './alertRulesList';
 
@@ -288,6 +289,43 @@ describe('AlertRulesList', () => {
         query: {
           name: testQuery,
         },
+      })
+    );
+  });
+
+  it('searches by alert type', async () => {
+    const {routerContext, organization, router} = initializeOrg();
+    render(<AlertRulesList />, {context: routerContext, organization});
+
+    const performanceControl = await screen.getByRole('radio', {name: 'Performance'});
+    expect(performanceControl).toBeInTheDocument();
+    await userEvent.click(performanceControl);
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          dataset: DatasetOption.PERFORMANCE,
+        },
+      })
+    );
+  });
+
+  it('calls api with correct query params when searching by alert type', () => {
+    const {routerContext, organization} = initializeOrg({
+      router: {
+        location: {
+          query: {
+            dataset: DatasetOption.PERFORMANCE,
+          },
+        },
+      },
+    });
+    render(<AlertRulesList />, {context: routerContext, organization});
+
+    expect(rulesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/combined-rules/',
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: ['generic_metrics', 'transactions']}),
       })
     );
   });
