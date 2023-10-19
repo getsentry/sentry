@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -20,7 +21,8 @@ import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
@@ -45,6 +47,10 @@ import {
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -969,6 +975,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
+    const showMigrationWarning =
+      hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
@@ -1042,6 +1051,31 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
+            {showMigrationWarning && (
+              <Alert
+                type="warning"
+                showIcon
+                trailingItems={
+                  <Button size="xs" type="submit">
+                    {t('Looks good to me!')}
+                  </Button>
+                }
+              >
+                {tct(
+                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  {
+                    tooltip: (
+                      <Tooltip
+                        showUnderline
+                        title={t(
+                          'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored. Learn more'
+                        )}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            )}
             {triggerForm(formDisabled)}
             {ruleNameOwnerForm(formDisabled)}
           </List>
