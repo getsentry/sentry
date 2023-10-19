@@ -174,7 +174,6 @@
   "sentry_debugidartifactbundle",
   "sentry_dashboardwidget",
   "sentry_dashboardproject",
-  "sentry_customdynamicsamplingruleuser",
   "sentry_customdynamicsamplingruleproject",
   "sentry_commitfilechange",
   "sentry_authproviderreplica",

@@ -1103,6 +1103,11 @@
   "sentry.customdynamicsamplingrule": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
@@ -1143,34 +1148,6 @@
       [
         "custom_dynamic_sampling_rule",
         "project"
-      ]
-    ]
-  },
-  "sentry.customdynamicsamplingruleuser": {
-    "dangling": false,
-    "foreign_keys": {
-      "custom_dynamic_sampling_rule": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.customdynamicsamplingrule",
-        "nullable": false
-      },
-      "user": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.user",
-        "nullable": false
-      }
-    },
-    "model": "sentry.customdynamicsamplingruleuser",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_customdynamicsamplingruleuser",
-    "uniques": [
-      [
-        "custom_dynamic_sampling_rule",
-        "user"
       ]
     ]
   },
