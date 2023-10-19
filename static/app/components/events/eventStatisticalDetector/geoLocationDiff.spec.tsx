@@ -69,15 +69,14 @@ describe('GeoLocationDiff', () => {
       )
     ).toBeInTheDocument();
 
-    const firstRow = screen.getByText('US').parentElement as HTMLElement;
-    expect(firstRow).toBeInTheDocument();
-    within(firstRow).getByText('United States');
-    within(firstRow).getByText('+100.00%');
+    const rows = screen.getAllByRole('listitem');
+    within(rows[0]).getByText('US');
+    within(rows[0]).getByText('United States');
+    within(rows[0]).getByText('+100.00%');
 
-    const secondRow = screen.getByText('CA').parentElement as HTMLElement;
-    expect(secondRow).toBeInTheDocument();
-    within(secondRow).getByText('Canada');
-    within(secondRow).getByText('+40.00%');
+    within(rows[1]).getByText('CA');
+    within(rows[1]).getByText('Canada');
+    within(rows[1]).getByText('+40.00%');
   });
 
   it('shows the absolute durations in a tooltip when the percent increases are hovered', async () => {
