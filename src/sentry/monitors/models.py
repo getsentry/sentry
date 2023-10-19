@@ -79,7 +79,9 @@ class MonitorObjectStatus(ObjectStatus):
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
-        return super().as_choices() + ((cls.WAITING, "waiting"),)
+        choices = list(super().as_choices())
+        choices.append((cls.WAITING, "waiting"))
+        return tuple(choices)
 
 
 class MonitorStatus:
