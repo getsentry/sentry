@@ -261,6 +261,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         assert rule.id != second_rule.id
