@@ -384,7 +384,7 @@ describe('jsSelfProfile', () => {
     ]);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const trace: JSSelfProfiling.Trace = {
       resources: ['app.js'],
       frames: [

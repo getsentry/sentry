@@ -3,7 +3,7 @@ import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
 
-function countFrameOccurences(
+function countFrameOccurrences(
   frames: ReadonlyArray<FlamegraphFrame>
 ): Map<string, number> {
   const counts = new Map<string, number>();
@@ -38,8 +38,8 @@ export class DifferentialFlamegraph extends Flamegraph {
       {inverted: from.inverted, sort: from.sort}
     );
 
-    const fromCounts = countFrameOccurences(from.frames);
-    const toCounts = countFrameOccurences(to.frames);
+    const fromCounts = countFrameOccurrences(from.frames);
+    const toCounts = countFrameOccurrences(to.frames);
 
     const countDiff: Map<string, number> = new Map();
     const colorMap: Map<string, ColorChannels> =

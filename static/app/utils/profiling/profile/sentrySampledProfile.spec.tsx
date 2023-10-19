@@ -421,7 +421,7 @@ describe('SentrySampledProfile', () => {
     expect(profile.threadId).toBe(1);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const sampledProfile = makeSentrySampledProfile({
       transaction: {
         id: '',
