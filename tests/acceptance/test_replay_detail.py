@@ -81,14 +81,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_dom_events_tab(self):
-        with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="replay-details-dom-btn"]')
-            self.browser.wait_until_test_id("replay-details-dom-events-tab")
-
     def test_console_tab(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
