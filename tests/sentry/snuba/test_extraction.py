@@ -70,7 +70,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we support custom percentiles that can be mapped to one of standard percentiles
+            # we dont support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
@@ -105,7 +105,7 @@ class TestCreatesOndemandMetricSpec:
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
-            # we support custom percentiles that can be mapped to one of standard percentiles
+            # we do not support custom percentiles that can not be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
             (
                 "count()",
