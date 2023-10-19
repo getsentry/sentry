@@ -72,7 +72,7 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
@@ -544,7 +544,9 @@ class ScopingTests(ImportTestCase):
                 self.verify_model_inclusion(ImportScope.Global)
 
 
-@region_silo_test(stable=True)
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class DecryptionTests(ImportTestCase):
     """
     Ensures that decryption actually works. We only test one model for each scope, because it's
@@ -665,7 +667,9 @@ class DecryptionTests(ImportTestCase):
                 assert UserRole.objects.count() > 0
 
 
-@region_silo_test(stable=True)
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.

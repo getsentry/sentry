@@ -87,6 +87,7 @@ class TestCreatesOndemandMetricSpec:
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
+            ("count()", "transaction.duration:>0 my-transaction"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):

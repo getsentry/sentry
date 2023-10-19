@@ -371,4 +371,71 @@ describe('useReplaysCount', () => {
       '/profile': 0,
     });
   });
+
+  it('should accept start and end times and override statsPeriod', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+    const mockDate = new Date(Date.now());
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        transactionNames: mockTransactionNames,
+        datetime: {
+          start: mockDate,
+          end: mockDate,
+        },
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `transaction:["/home","/profile"]`,
+          data_source: 'discover',
+          project: -1,
+          start: mockDate,
+          end: mockDate,
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+  });
+
+  it('passes along extra conditions and appends them to the query', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        transactionNames: mockTransactionNames,
+        extraConditions: 'transaction.duration>:300ms',
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `transaction:["/home","/profile"] transaction.duration>:300ms`,
+          data_source: 'discover',
+          project: -1,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+  });
 });
