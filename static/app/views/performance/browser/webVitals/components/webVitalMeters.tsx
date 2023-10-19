@@ -92,7 +92,6 @@ const getFormattedDuration = (value: number) => {
 };
 
 const Container = styled('div')`
-  margin-top: ${space(2)};
   margin-bottom: ${space(1)};
 `;
 
@@ -108,7 +107,6 @@ const Flex = styled('div')<{gap?: number}>`
 
 const MeterBarContainer = styled('div')`
   flex: 1;
-  top: -6px;
   position: relative;
   padding: 0;
   cursor: pointer;
