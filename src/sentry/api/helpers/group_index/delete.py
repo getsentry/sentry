@@ -128,7 +128,7 @@ def delete_groups(
     if any(
         (
             (group.issue_category != GroupCategory.ERROR)
-            or (group.issue_category != GroupCategory.FEEDBACK)
+            and (group.issue_category != GroupCategory.FEEDBACK)
         )
         for group in group_list
     ):
