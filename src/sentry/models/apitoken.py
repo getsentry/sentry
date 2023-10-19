@@ -39,10 +39,12 @@ class ApiToken(Model, HasApiScopes):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
+    name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
     refresh_token = models.CharField(max_length=64, unique=True, null=True, default=generate_token)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
+    token_last_characters = models.CharField(max_length=4, null=True)
 
     objects = BaseManager(cache_fields=("token",))
 
@@ -54,6 +56,14 @@ class ApiToken(Model, HasApiScopes):
 
     def __str__(self):
         return force_str(self.token)
+
+    def save(self, *args, **kwargs):
+        # Grab the last four characters of the generated token and save them to the DB. These
+        # will later be used in the UI when displaying the obfuscated token to help users
+        # identify the tokens.
+        token_last_characters = self.token[-4:]
+        self.token_last_characters = token_last_characters
+        super().save(*args, **kwargs)
 
     @classmethod
     def from_grant(cls, grant):
@@ -114,7 +124,11 @@ class ApiToken(Model, HasApiScopes):
         except SentryAppInstallation.DoesNotExist:
             installation = None
 
-        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
+        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table
+        #  `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations,
+        #  we can only have 1 ApiToken per installation. So we currently don't use the join table
+        #  for Public Integrations. We should update to make records in the join table for Public Integrations
+        #  so that we can have a common abstraction for finding an installation by ApiToken.
         if not installation or installation.sentry_app.status == SentryAppStatus.INTERNAL:
             try:
                 install_token = SentryAppInstallationToken.objects.select_related(
