@@ -9,13 +9,14 @@
   },
   "dependencies": {
     "@acemarke/react-prod-sourcemaps": "^0.2.1",
-    "@babel/core": "~7.21.0",
-    "@babel/plugin-transform-react-jsx": "^7.21.0",
-    "@babel/plugin-transform-runtime": "~7.21.0",
-    "@babel/preset-env": "~7.20.2",
-    "@babel/preset-react": "^7.18.6",
-    "@babel/preset-typescript": "^7.21.0",
-    "@babel/runtime": "~7.21.0",
+    "@babel/core": "~7.23.2",
+    "@babel/plugin-transform-react-jsx": "^7.22.15",
+    "@babel/plugin-transform-react-jsx-source": "^7.22.5",
+    "@babel/plugin-transform-runtime": "~7.23.2",
+    "@babel/preset-env": "~7.23.2",
+    "@babel/preset-react": "^7.22.15",
+    "@babel/preset-typescript": "^7.23.2",
+    "@babel/runtime": "~7.23.2",
     "@dnd-kit/core": "^3.1.1",
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.10.5",
@@ -97,7 +98,7 @@
     "color": "^4.2.3",
     "compression-webpack-plugin": "10.0.0",
     "copy-webpack-plugin": "^11.0.0",
-    "core-js": "^3.28.0",
+    "core-js": "^3.33.0",
     "cronstrue": "^2.26.0",
     "crypto-browserify": "^3.12.0",
     "crypto-js": "4.0.0",
@@ -171,7 +172,6 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
     "@sentry/profiling-node": "^1.2.0",
@@ -244,7 +244,6 @@
       "last 2 Edge major versions",
       "last 2 Safari major versions",
       "last 3 iOS major versions",
-      "last 1 OperaMobile version",
       "Firefox ESR"
     ],
     "development": [
@@ -253,7 +252,6 @@
       "last 2 Edge major versions",
       "last 2 Safari major versions",
       "last 3 iOS major versions",
-      "last 1 OperaMobile version",
       "Firefox ESR"
     ],
     "test": [
