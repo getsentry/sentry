@@ -28,7 +28,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
     def ts(self, dt: datetime) -> int:
         return int(dt.timestamp())
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {

@@ -13,6 +13,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.dataset import EntityKey
@@ -59,7 +60,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
     # Resolves MRI or public name in metrics_query
     try:
-        resolved_metrics_query, mappings = resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         request.query = resolved_metrics_query
     except Exception as e:
         metrics.incr(
@@ -110,7 +111,7 @@ GENERIC_ENTITIES = {
 def _resolve_metrics_entity(mri: str) -> EntityKey:
     parsed_mri = parse_mri(mri)
     if parsed_mri is None:
-        raise ValueError(f"{mri} is not a valid MRI")
+        raise InvalidParams(f"'{mri}' is not a valid MRI")
 
     if parsed_mri.namespace == "sessions":
         return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
@@ -118,9 +119,13 @@ def _resolve_metrics_entity(mri: str) -> EntityKey:
     return GENERIC_ENTITIES[parsed_mri.entity]
 
 
-def resolve_metrics_query(
+def _resolve_metrics_query(
     metrics_query: MetricsQuery,
-) -> tuple[MetricsQuery, Mapping[str : str | int]]:
+) -> tuple[MetricsQuery, Mapping[str, int]]:
+    """
+    Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
+    that shows all the strings that were resolved and what they were resolved too.
+    """
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
     scope = metrics_query.scope
@@ -130,7 +135,6 @@ def resolve_metrics_query(
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
         )
-        mappings[metric.mri] = public_name
     elif not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
         metrics_query = metrics_query.set_query(
@@ -154,30 +158,30 @@ def resolve_metrics_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
         )
 
-    new_groupby, new_mappings = resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
+    new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
     mappings.update(new_mappings)
-    new_groupby, new_mappings = resolve_groupby(metrics_query.groupby, use_case_id, org_id)
+    new_groupby, new_mappings = _resolve_groupby(metrics_query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_groupby(new_groupby)
     mappings.update(new_mappings)
 
-    new_filters, new_mappings = resolve_filters(metrics_query.query.filters, use_case_id, org_id)
+    new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
     mappings.update(new_mappings)
-    new_filters, new_mappings = resolve_filters(metrics_query.filters, use_case_id, org_id)
+    new_filters, new_mappings = _resolve_filters(metrics_query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_filters(new_filters)
     mappings.update(new_mappings)
 
     return metrics_query, mappings
 
 
-def resolve_groupby(
+def _resolve_groupby(
     groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
-) -> tuple[list[Column] | None, Mapping[str, str | int]]:
+) -> tuple[list[Column] | None, Mapping[str, int]]:
     """
     Go through the groupby columns and resolve any that need to be resolved.
     We also return a reverse mapping of the resolved columns to the original
-    so that we can edit the results
+    so that they can be added to the results.
     """
     if not groupby:
         return groupby, {}
@@ -199,9 +203,14 @@ def resolve_groupby(
     return new_groupby, mappings
 
 
-def resolve_filters(
+def _resolve_filters(
     filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
-) -> tuple[list[Condition | BooleanCondition] | None, Mapping[str, str | int]]:
+) -> tuple[list[Condition | BooleanCondition] | None, Mapping[str, int]]:
+    """
+    Go through the columns in the filter and resolve any that can be resolved.
+    We also return a reverse mapping of the resolved columns to the original
+    so that they can be added to the results.
+    """
     if not filters:
         return filters, {}
 
